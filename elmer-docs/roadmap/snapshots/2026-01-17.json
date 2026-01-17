@@ -1,0 +1,73 @@
+{
+  "$schema": "elmer-roadmap-v1",
+  "generated_at": "2026-01-17T00:00:03.252006",
+  "summary": {
+    "total_initiatives": 1,
+    "by_phase": {
+      "discovery": 0,
+      "define": 0,
+      "build": 1,
+      "validate": 0,
+      "launch": 0,
+      "measure": 0,
+      "learn": 0
+    },
+    "health": {
+      "on_track": 0,
+      "at_risk": 0,
+      "blocked": 0,
+      "stale": 0,
+      "in-progress": 1
+    }
+  },
+  "initiatives": [
+    {
+      "id": "rep-workspace",
+      "name": "Rep Workspace",
+      "hypothesis_id": null,
+      "phase": "build",
+      "sub_phase": null,
+      "status": "in-progress",
+      "priority": "high",
+      "owner": "Skylar/Tyler",
+      "personas": [],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": null,
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "",
+      "metrics": {
+        "total_iterations": 2,
+        "current_version": "v2"
+      }
+    }
+  ],
+  "timeline_view": [],
+  "dependencies_graph": {
+    "nodes": [
+      "rep-workspace"
+    ],
+    "edges": []
+  }
+}

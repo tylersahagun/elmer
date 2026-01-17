@@ -1,0 +1,157 @@
+---
+description: 'Workspace maintenance agent - validates structure and keeps files synchronized'
+globs: ['**/_meta.json', '**/roadmap.json', '**/_index.json']
+alwaysApply: false
+---
+
+# Workspace Maintenance Rules
+
+When working with tracked metadata files, validate workspace integrity.
+
+## Trigger Conditions
+
+This rule activates when editing:
+- `initiatives/[name]/_meta.json` - Initiative metadata
+- `roadmap/roadmap.json` - Roadmap data
+- `signals/_index.json` - Signal index
+- `hypotheses/_index.json` - Hypothesis index
+
+## On _meta.json Change
+
+When an initiative's `_meta.json` is modified:
+
+### 1. Validate Schema
+```json
+Required fields:
+- initiative (string)
+- phase (enum: discovery|define|build|validate|launch|measure|learn)
+- status (enum: on_track|at_risk|blocked|stale)
+- created_at (ISO8601)
+- updated_at (ISO8601)
+```
+
+### 2. Validate Phase Transition
+Only allow valid transitions:
+- discovery → define, retired
+- define → build, discovery, retired
+- build → validate, define, retired
+- validate → launch, build, retired
+- launch → measure, retired
+- measure → learn, retired
+- learn → retired
+
+### 3. Auto-Update Fields
+- Set `updated_at` to current timestamp
+- Calculate `metrics.days_in_phase`
+- Update `status` to `stale` if >14 days without change
+
+### 4. Trigger Downstream Updates
+After saving _meta.json:
+- Suggest running `/roadmap refresh`
+- If phase changed, note in phase_history
+
+## On roadmap.json Change
+
+When roadmap.json is modified:
+
+### 1. Validate Structure
+- Check `$schema` field
+- Verify all initiatives reference valid _meta.json files
+- Ensure counts match actual files
+
+### 2. Verify Consistency
+- `summary.total_initiatives` matches `initiatives.length`
+- `summary.by_phase` counts are accurate
+- `summary.health` counts are accurate
+
+## On Index File Change
+
+When `_index.json` files are modified:
+
+### 1. Validate JSON
+- Must be valid JSON
+- Must have `$schema` field
+- Must have `last_updated` field
+
+### 2. Verify References
+For signals/_index.json:
+- Each signal references an existing file
+- File paths are valid
+
+For hypotheses/_index.json:
+- Each hypothesis references an existing file
+- Status matches file location (active/, validated/, etc.)
+
+## Integrity Invariants
+
+These must always be true:
+
+1. **Every initiative folder has _meta.json**
+   - If missing, suggest: "Run `/maintain fix` to generate"
+
+2. **Every _meta.json has valid phase**
+   - If invalid, flag as error
+
+3. **Roadmap reflects current state**
+   - If stale (>24 hours), suggest: "Run `/roadmap refresh`"
+
+4. **Indexes match file system**
+   - If mismatch, suggest: "Run `/maintain sync`"
+
+5. **No orphaned files**
+   - Files should be in expected locations per structure-schema.json
+
+## Stale Detection
+
+Flag items as stale when:
+- Initiative: >14 days in same phase without update
+- Hypothesis: >30 days in active without new evidence
+- Signal: >14 days unprocessed
+
+## Quick Fixes
+
+When issues detected, suggest:
+
+| Issue | Suggestion |
+|-------|------------|
+| Missing _meta.json | `maintain fix` |
+| Stale roadmap | `roadmap refresh` |
+| Index mismatch | `maintain sync` |
+| Invalid phase | Manual correction needed |
+| Orphaned file | `maintain clean` |
+
+## Validation on Save
+
+Before saving any tracked file:
+
+```
+1. Parse and validate JSON/YAML
+2. Check required fields
+3. Validate enum values
+4. Check references exist
+5. If validation fails, show error and don't save
+```
+
+## Error Messages
+
+Use clear error messages:
+
+```
+❌ Invalid phase: "designing" is not valid
+   Valid phases: discovery, define, build, validate, launch, measure, learn
+
+❌ Missing required field: "initiative"
+   _meta.json must have an "initiative" field
+
+⚠️ Stale initiative detected
+   "hubspot-config" has been in "build" phase for 18 days
+   Consider: Update _meta.json or run `/validate`
+```
+
+## Integration Notes
+
+This rule works with:
+- `/maintain` command for manual audits
+- `/roadmap` command for regeneration
+- `/status` command for viewing state
+- Other commands that modify _meta.json

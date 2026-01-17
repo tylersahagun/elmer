@@ -1,0 +1,3269 @@
+{
+  "activity": {},
+  "announcedBuild": {
+    "id": "69681f69a354521faad0cdc0",
+    "number": 20,
+    "status": "PUBLISHED",
+    "autoAcceptChanges": false,
+    "features": {
+      "uiTests": true,
+      "uiReview": true,
+      "isReactNativeApp": null
+    },
+    "app": {
+      "id": "695ece8a989a140b6546402c",
+      "turboSnapAvailability": "UNUSED"
+    },
+    "storybookUrl": "https://695ece8a989a140b6546402c-fhjtwjmxuu.chromatic.com/"
+  },
+  "build": {
+    "id": "69681f69a354521faad0cdc0",
+    "number": 20,
+    "status": "BROKEN",
+    "autoAcceptChanges": false,
+    "features": {
+      "uiTests": true,
+      "uiReview": true,
+      "isReactNativeApp": null
+    },
+    "app": {
+      "manageUrl": "https://www.chromatic.com/manage?appId=695ece8a989a140b6546402c",
+      "setupUrl": "https://www.chromatic.com/setup?appId=695ece8a989a140b6546402c",
+      "account": {
+        "exceededThreshold": false,
+        "paymentRequired": false,
+        "billingUrl": "https://www.chromatic.com/billing?accountId=695ecdf4a0861b3337113f8f"
+      },
+      "repository": {
+        "provider": "github"
+      }
+    },
+    "storybookUrl": "https://695ece8a989a140b6546402c-fhjtwjmxuu.chromatic.com/",
+    "specCount": 149,
+    "componentCount": 16,
+    "testCount": 149,
+    "changeCount": 102,
+    "errorCount": 1,
+    "actualTestCount": 9,
+    "actualCaptureCount": 9,
+    "inheritedCaptureCount": 140,
+    "interactionTestFailuresCount": 0,
+    "webUrl": "https://www.chromatic.com/build?appId=695ece8a989a140b6546402c&number=20",
+    "browsers": [
+      {
+        "browser": "chrome"
+      }
+    ],
+    "turboSnapEnabled": null,
+    "wasLimited": false,
+    "tests": [
+      {
+        "spec": {
+          "name": "Badge: Lab",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Badge: Alpha",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Badge: Beta",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Badge: All Sizes",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Badge: Inline Variant",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Badge: Navigation Variant",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Card: Option A (Confirm)",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Card: Option B (Balanced)",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Card: Option C (Labs)",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option A - Max Control",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option A - Loading",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option A - Empty",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option A - Error",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option B - Balanced ⭐",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option B - Loading",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option B - Empty",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option B - Error",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option B - Single Feature",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option C - Labs Explorer",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option C - Loading",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option C - Empty",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option C - Error",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Panel: Option C - All Enabled",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "📊 All Options Comparison",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle",
+            "displayName": "ReleaseLifecycle"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "🏷️ Badge: All Variants",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "🏷️ Badge: PostHog Style",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "🔖 Wrapper: Navigation Demo",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "🔖 Wrapper: Page Headers",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "🔖 Wrapper: Inline Badges",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "🔖 Wrapper: Feature Cards",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "⚙️ Settings: Tabbed Layout",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "⚙️ Settings: Tabbed (Lab Tab)",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "⚙️ Settings: Tabbed (Alpha Tab)",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "⚙️ Settings: Tabbed (Loading)",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "⚙️ Settings: Tabbed (Error)",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "⚙️ Settings: Sidebar Layout",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "📊 V2: Layout Comparison",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "🖥️ Full Page: Settings Integration",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings Panel",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings: Lab Tab",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings: Alpha Tab",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings: Loading",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings: Error",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Badges: All Variants",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Example: Navigation",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Example: Page Headers",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Example: Feature Cards",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Example: Buttons",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Example: Table/List",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Example: Modal/Dialog",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Example: Dropdown Menu",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "All UI Examples",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Full Page Demo",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V3",
+            "displayName": "V3"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings Panel",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings: Labs Tab",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings: Non-Manager View",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings: Loading",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Settings: Error",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Badges: All Variants",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Enrollment Logic Comparison",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Release Lifecycle Documentation",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Permissions: Manager vs User",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Full Page Demo",
+          "component": {
+            "name": "Prototypes/ReleaseLifecycle/V4",
+            "displayName": "V4"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Default",
+          "component": {
+            "name": "Components/Button",
+            "displayName": "Button"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Secondary",
+          "component": {
+            "name": "Components/Button",
+            "displayName": "Button"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Destructive",
+          "component": {
+            "name": "Components/Button",
+            "displayName": "Button"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Outline",
+          "component": {
+            "name": "Components/Button",
+            "displayName": "Button"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Ghost",
+          "component": {
+            "name": "Components/Button",
+            "displayName": "Button"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Link",
+          "component": {
+            "name": "Components/Button",
+            "displayName": "Button"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Small",
+          "component": {
+            "name": "Components/Button",
+            "displayName": "Button"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Large",
+          "component": {
+            "name": "Components/Button",
+            "displayName": "Button"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Empty",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "With Selected Properties",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Pasted Transcript Review",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Full Deal Scorecard",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Loading",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Contact Object Type",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Property Selector Empty",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Property Selector With Selection",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Field Config Card Default",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Field Config Card Configured",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Field Config Card Collapsed",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Field Config Card Basic",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v1-Standalone/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Empty Configuration",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v2-Workflow",
+            "displayName": "v2-Workflow"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Configured Deal Scorecard",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v2-Workflow",
+            "displayName": "v2-Workflow"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Contact Updater",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v2-Workflow",
+            "displayName": "v2-Workflow"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "With Conditional Trigger",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v2-Workflow",
+            "displayName": "v2-Workflow"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Side By Side With Canvas",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v2-Workflow",
+            "displayName": "v2-Workflow"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V 3 Empty",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v3-Action/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V 3 Update Configured",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v3-Action/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V 3 Update Or Create",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v3-Action/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V 3 Create New Object",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v3-Action/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V 3 With Notes Tasks",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v3-Action/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V 3 Custom Object",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v3-Action/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V 3 Loading",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v3-Action/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V 3 Error",
+          "component": {
+            "name": "Prototypes/HubSpotConfig/v3-Action/HubSpotAgentConfig",
+            "displayName": "HubSpotAgentConfig"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Iteration v2: Snapshot + Health + Plan",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/Iterations",
+            "displayName": "Iterations"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Iteration v3: Deal Workspace",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/Iterations",
+            "displayName": "Iterations"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Option A: Maximum Control",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Option B: Balanced (Recommended)",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Option C: Maximum Efficiency",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Loading: Control",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Loading: Balanced",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Loading: Efficient",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Error: Balanced",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Error: Control",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Empty: Balanced",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Empty: No Actions (Caught Up)",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Account Card: Control",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Account Card: Balanced (Collapsed)",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Account Card: Balanced (Expanded)",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Account Card: At Risk Account",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Account Card: Efficient",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Action Card: Control",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Action Card: Balanced",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Action Card: Efficient",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Action Card: Low Confidence",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Action Card: Loading",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Action Card: Empty",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Action Card: Error",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Deal Health: Compact",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Deal Health: Detailed",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Deal Health: Expanded",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Deal Health: All Badges",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Confidence Indicators",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Comparison: All Three Options",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace",
+            "displayName": "JourneyWorkspace"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_Dashboard",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_Loading",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_Error",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_Success",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_Empty",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_LowConfidence",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_DealWorkspace",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_EventTimeline_Vertical",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "V2_EventTimeline_Horizontal",
+          "component": {
+            "name": "Prototypes/JourneyWorkspace/V2",
+            "displayName": "V2"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Default",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "With Last Run",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Filter Panel Story",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Builder Panel Story",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Builder Panel Empty",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Table View With Data",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Table View Running",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Table View Empty",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Chat Input Story",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Full Workflow",
+          "component": {
+            "name": "Universal Signal Tables/SignalTables",
+            "displayName": "SignalTables"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Default",
+          "component": {
+            "name": "Signal Tables/Chat Variants/B. Chat-Central",
+            "displayName": "B. Chat-Central"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Default",
+          "component": {
+            "name": "Signal Tables/Chat Variants/C. Chat-Companion",
+            "displayName": "C. Chat-Companion"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Default",
+          "component": {
+            "name": "Signal Tables/Chat Variants/A. Chat-First",
+            "displayName": "A. Chat-First"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      },
+      {
+        "spec": {
+          "name": "Default",
+          "component": {
+            "name": "Signal Tables/Chat Variants/Comparison",
+            "displayName": "Comparison"
+          }
+        },
+        "parameters": {
+          "viewport": 1200,
+          "viewportIsDefault": true
+        },
+        "mode": {
+          "name": "1200px"
+        }
+      }
+    ],
+    "inProgressCount": 0,
+    "completedAt": 1768431519213
+  },
+  "buildCommand": "npm run build-storybook -- --output-dir=/var/folders/dq/_0_zrpmd0p3f8tmzvg962qfw0000gn/T/chromatic--87434-9VEckM9Myin0",
+  "buildLogFile": "/Users/tylersahagun/Source/elmer/prototypes/build-storybook.log",
+  "configuration": {},
+  "environment": {},
+  "exitCode": 2,
+  "exitCodeKey": "BUILD_HAS_ERRORS",
+  "fileInfo": {
+    "lengths": [
+      {
+        "pathname": "assets/ActionCard-CdKpQWA1.js",
+        "contentLength": 25403,
+        "knownAs": "assets/ActionCard-CdKpQWA1.js"
+      },
+      {
+        "pathname": "assets/BetaFeatures.stories-Bz3N_edq.js",
+        "contentLength": 60841,
+        "knownAs": "assets/BetaFeatures.stories-Bz3N_edq.js"
+      },
+      {
+        "pathname": "assets/BetaFeatures.stories-DFWUK0JC.js",
+        "contentLength": 46473,
+        "knownAs": "assets/BetaFeatures.stories-DFWUK0JC.js"
+      },
+      {
+        "pathname": "assets/BetaFeatures.stories-H4kT3Xna.js",
+        "contentLength": 49358,
+        "knownAs": "assets/BetaFeatures.stories-H4kT3Xna.js"
+      },
+      {
+        "pathname": "assets/BetaFeatures.stories-eD3Kw5Ir.js",
+        "contentLength": 99684,
+        "knownAs": "assets/BetaFeatures.stories-eD3Kw5Ir.js"
+      },
+      {
+        "pathname": "assets/Button.stories-DjV-BOgT.js",
+        "contentLength": 5192,
+        "knownAs": "assets/Button.stories-DjV-BOgT.js"
+      },
+      {
+        "pathname": "assets/ChatCentral.stories-BjGbmU2a.js",
+        "contentLength": 1886,
+        "knownAs": "assets/ChatCentral.stories-BjGbmU2a.js"
+      },
+      {
+        "pathname": "assets/ChatCentralTables-DyoRIxoH.js",
+        "contentLength": 10421,
+        "knownAs": "assets/ChatCentralTables-DyoRIxoH.js"
+      },
+      {
+        "pathname": "assets/ChatCompanion.stories-qI5BzHvD.js",
+        "contentLength": 1820,
+        "knownAs": "assets/ChatCompanion.stories-qI5BzHvD.js"
+      },
+      {
+        "pathname": "assets/ChatCompanionTables-wpqkL8F6.js",
+        "contentLength": 11111,
+        "knownAs": "assets/ChatCompanionTables-wpqkL8F6.js"
+      },
+      {
+        "pathname": "assets/ChatFirst.stories-viUR1BWp.js",
+        "contentLength": 1886,
+        "knownAs": "assets/ChatFirst.stories-viUR1BWp.js"
+      },
+      {
+        "pathname": "assets/ChatFirstTables-DwmKMGbN.js",
+        "contentLength": 9846,
+        "knownAs": "assets/ChatFirstTables-DwmKMGbN.js"
+      },
+      {
+        "pathname": "assets/Color-YHDXOIA2-g_vwwKYr.js",
+        "contentLength": 29333,
+        "knownAs": "assets/Color-YHDXOIA2-g_vwwKYr.js"
+      },
+      {
+        "pathname": "assets/Comparison.stories-BXaiUWi_.js",
+        "contentLength": 4717,
+        "knownAs": "assets/Comparison.stories-BXaiUWi_.js"
+      },
+      {
+        "pathname": "assets/DocsRenderer-CFRXHY34-B3RHf2kD.js",
+        "contentLength": 894130,
+        "knownAs": "assets/DocsRenderer-CFRXHY34-B3RHf2kD.js"
+      },
+      {
+        "pathname": "assets/HubSpotAgentConfig.stories-B3ouF5Rq.js",
+        "contentLength": 43855,
+        "knownAs": "assets/HubSpotAgentConfig.stories-B3ouF5Rq.js"
+      },
+      {
+        "pathname": "assets/HubSpotAgentConfigV3.stories-XSSbbxia.js",
+        "contentLength": 42416,
+        "knownAs": "assets/HubSpotAgentConfigV3.stories-XSSbbxia.js"
+      },
+      {
+        "pathname": "assets/HubSpotAgentWorkflow.stories-b8jd2A1O.js",
+        "contentLength": 52030,
+        "knownAs": "assets/HubSpotAgentWorkflow.stories-b8jd2A1O.js"
+      },
+      {
+        "pathname": "assets/JourneyWorkspace.iterations.stories-BRZUeT87.js",
+        "contentLength": 19891,
+        "knownAs": "assets/JourneyWorkspace.iterations.stories-BRZUeT87.js"
+      },
+      {
+        "pathname": "assets/JourneyWorkspace.stories-QVMeBRmY.js",
+        "contentLength": 52693,
+        "knownAs": "assets/JourneyWorkspace.stories-QVMeBRmY.js"
+      },
+      {
+        "pathname": "assets/JourneyWorkspaceV2.stories-C1TYEkf6.js",
+        "contentLength": 40574,
+        "knownAs": "assets/JourneyWorkspaceV2.stories-C1TYEkf6.js"
+      },
+      {
+        "pathname": "assets/SignalTables.stories--4SqYgmU.js",
+        "contentLength": 44086,
+        "knownAs": "assets/SignalTables.stories--4SqYgmU.js"
+      },
+      {
+        "pathname": "assets/arrow-up-EuL_fEv3.js",
+        "contentLength": 605,
+        "knownAs": "assets/arrow-up-EuL_fEv3.js"
+      },
+      {
+        "pathname": "assets/chevron-right-DU1z36wS.js",
+        "contentLength": 294,
+        "knownAs": "assets/chevron-right-DU1z36wS.js"
+      },
+      {
+        "pathname": "assets/chunk-XP5HYGXS-BpfKkqn7.js",
+        "contentLength": 710,
+        "knownAs": "assets/chunk-XP5HYGXS-BpfKkqn7.js"
+      },
+      {
+        "pathname": "assets/client-BLTvwgUg.js",
+        "contentLength": 90,
+        "knownAs": "assets/client-BLTvwgUg.js"
+      },
+      {
+        "pathname": "assets/entry-preview-C3WnZwG9.js",
+        "contentLength": 29773,
+        "knownAs": "assets/entry-preview-C3WnZwG9.js"
+      },
+      {
+        "pathname": "assets/entry-preview-docs-DtakIWIX.js",
+        "contentLength": 247072,
+        "knownAs": "assets/entry-preview-docs-DtakIWIX.js"
+      },
+      {
+        "pathname": "assets/external-link-ChtNm1BE.js",
+        "contentLength": 415,
+        "knownAs": "assets/external-link-ChtNm1BE.js"
+      },
+      {
+        "pathname": "assets/iframe-DJFuICET.js",
+        "contentLength": 215958,
+        "knownAs": "assets/iframe-DJFuICET.js"
+      },
+      {
+        "pathname": "assets/index-BVLMb_CH.js",
+        "contentLength": 422,
+        "knownAs": "assets/index-BVLMb_CH.js"
+      },
+      {
+        "pathname": "assets/index-C8NrMXaH.js",
+        "contentLength": 133959,
+        "knownAs": "assets/index-C8NrMXaH.js"
+      },
+      {
+        "pathname": "assets/index-CLEdRh-S.js",
+        "contentLength": 662277,
+        "knownAs": "assets/index-CLEdRh-S.js"
+      },
+      {
+        "pathname": "assets/index-DrFu-skq.js",
+        "contentLength": 767,
+        "knownAs": "assets/index-DrFu-skq.js"
+      },
+      {
+        "pathname": "assets/index-GiUgBvb1.js",
+        "contentLength": 7351,
+        "knownAs": "assets/index-GiUgBvb1.js"
+      },
+      {
+        "pathname": "assets/index-WwbkVOJN.js",
+        "contentLength": 57136,
+        "knownAs": "assets/index-WwbkVOJN.js"
+      },
+      {
+        "pathname": "assets/jsx-runtime-CDt2p4po.js",
+        "contentLength": 918,
+        "knownAs": "assets/jsx-runtime-CDt2p4po.js"
+      },
+      {
+        "pathname": "assets/link-2-BLsLhdDb.js",
+        "contentLength": 406,
+        "knownAs": "assets/link-2-BLsLhdDb.js"
+      },
+      {
+        "pathname": "assets/loader-2-2X6Rwhaz.js",
+        "contentLength": 303,
+        "knownAs": "assets/loader-2-2X6Rwhaz.js"
+      },
+      {
+        "pathname": "assets/plus-BU_h--jW.js",
+        "contentLength": 755,
+        "knownAs": "assets/plus-BU_h--jW.js"
+      },
+      {
+        "pathname": "assets/preview-0M4QLnOp.js",
+        "contentLength": 110,
+        "knownAs": "assets/preview-0M4QLnOp.js"
+      },
+      {
+        "pathname": "assets/preview-B8lJiyuQ.js",
+        "contentLength": 5064,
+        "knownAs": "assets/preview-B8lJiyuQ.js"
+      },
+      {
+        "pathname": "assets/preview-BBWR9nbA.js",
+        "contentLength": 8117,
+        "knownAs": "assets/preview-BBWR9nbA.js"
+      },
+      {
+        "pathname": "assets/preview-BWzBA1C2.js",
+        "contentLength": 7623,
+        "knownAs": "assets/preview-BWzBA1C2.js"
+      },
+      {
+        "pathname": "assets/preview-CvbIS5ZJ.js",
+        "contentLength": 184,
+        "knownAs": "assets/preview-CvbIS5ZJ.js"
+      },
+      {
+        "pathname": "assets/preview-D-Qz4Vhp.js",
+        "contentLength": 660703,
+        "knownAs": "assets/preview-D-Qz4Vhp.js"
+      },
+      {
+        "pathname": "assets/preview-DD_OYowb.js",
+        "contentLength": 3507,
+        "knownAs": "assets/preview-DD_OYowb.js"
+      },
+      {
+        "pathname": "assets/preview-DGUiP6tS.js",
+        "contentLength": 711,
+        "knownAs": "assets/preview-DGUiP6tS.js"
+      },
+      {
+        "pathname": "assets/preview-DHQbi4pV.js",
+        "contentLength": 608,
+        "knownAs": "assets/preview-DHQbi4pV.js"
+      },
+      {
+        "pathname": "assets/preview-DSGI8n58.css",
+        "contentLength": 45918,
+        "knownAs": "assets/preview-DSGI8n58.css"
+      },
+      {
+        "pathname": "assets/preview-Dfs-qi00.js",
+        "contentLength": 889,
+        "knownAs": "assets/preview-Dfs-qi00.js"
+      },
+      {
+        "pathname": "assets/react-18-CSQQTWN2.js",
+        "contentLength": 787,
+        "knownAs": "assets/react-18-CSQQTWN2.js"
+      },
+      {
+        "pathname": "assets/save-b6Q6lugF.js",
+        "contentLength": 1311,
+        "knownAs": "assets/save-b6Q6lugF.js"
+      },
+      {
+        "pathname": "assets/settings-D51O0mCA.js",
+        "contentLength": 890,
+        "knownAs": "assets/settings-D51O0mCA.js"
+      },
+      {
+        "pathname": "assets/skip-forward-DopVtMzR.js",
+        "contentLength": 361,
+        "knownAs": "assets/skip-forward-DopVtMzR.js"
+      },
+      {
+        "pathname": "assets/sparkles-ChhGil9w.js",
+        "contentLength": 586,
+        "knownAs": "assets/sparkles-ChhGil9w.js"
+      },
+      {
+        "pathname": "assets/switch-CZ3_yZMV.js",
+        "contentLength": 3577,
+        "knownAs": "assets/switch-CZ3_yZMV.js"
+      },
+      {
+        "pathname": "assets/table-2-oFkF_KMd.js",
+        "contentLength": 634,
+        "knownAs": "assets/table-2-oFkF_KMd.js"
+      },
+      {
+        "pathname": "assets/tabs-CYhn07Lp.js",
+        "contentLength": 2961,
+        "knownAs": "assets/tabs-CYhn07Lp.js"
+      },
+      {
+        "pathname": "assets/test-utils-Btaxxkuu.js",
+        "contentLength": 12942,
+        "knownAs": "assets/test-utils-Btaxxkuu.js"
+      },
+      {
+        "pathname": "assets/trash-2-D-vQry49.js",
+        "contentLength": 769,
+        "knownAs": "assets/trash-2-D-vQry49.js"
+      },
+      {
+        "pathname": "assets/type-lEw6jjZC.js",
+        "contentLength": 3617,
+        "knownAs": "assets/type-lEw6jjZC.js"
+      },
+      {
+        "pathname": "assets/types-BYn7BufN.js",
+        "contentLength": 3800,
+        "knownAs": "assets/types-BYn7BufN.js"
+      },
+      {
+        "pathname": "assets/types-Cs9BJvhf.js",
+        "contentLength": 4397,
+        "knownAs": "assets/types-Cs9BJvhf.js"
+      },
+      {
+        "pathname": "assets/users-DUa19JRR.js",
+        "contentLength": 1235,
+        "knownAs": "assets/users-DUa19JRR.js"
+      },
+      {
+        "pathname": "assets/utils-CytzSlOG.js",
+        "contentLength": 20318,
+        "knownAs": "assets/utils-CytzSlOG.js"
+      },
+      {
+        "pathname": "assets/x-B7vmqAia.js",
+        "contentLength": 1561,
+        "knownAs": "assets/x-B7vmqAia.js"
+      },
+      {
+        "pathname": "favicon.svg",
+        "contentLength": 1251,
+        "knownAs": "favicon.svg"
+      },
+      {
+        "pathname": "iframe.html",
+        "contentLength": 17745,
+        "knownAs": "iframe.html"
+      },
+      {
+        "pathname": "index.html",
+        "contentLength": 4598,
+        "knownAs": "index.html"
+      },
+      {
+        "pathname": "index.json",
+        "contentLength": 49276,
+        "knownAs": "index.json"
+      },
+      {
+        "pathname": "nunito-sans-bold-italic.woff2",
+        "contentLength": 49460,
+        "knownAs": "nunito-sans-bold-italic.woff2"
+      },
+      {
+        "pathname": "nunito-sans-bold.woff2",
+        "contentLength": 47144,
+        "knownAs": "nunito-sans-bold.woff2"
+      },
+      {
+        "pathname": "nunito-sans-italic.woff2",
+        "contentLength": 49620,
+        "knownAs": "nunito-sans-italic.woff2"
+      },
+      {
+        "pathname": "nunito-sans-regular.woff2",
+        "contentLength": 47072,
+        "knownAs": "nunito-sans-regular.woff2"
+      },
+      {
+        "pathname": "project.json",
+        "contentLength": 1012,
+        "knownAs": "project.json"
+      },
+      {
+        "pathname": "sb-addons/essentials-actions-3/manager-bundle.js",
+        "contentLength": 41418,
+        "knownAs": "sb-addons/essentials-actions-3/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/essentials-backgrounds-5/manager-bundle.js",
+        "contentLength": 15165,
+        "knownAs": "sb-addons/essentials-backgrounds-5/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/essentials-controls-2/manager-bundle.js",
+        "contentLength": 424276,
+        "knownAs": "sb-addons/essentials-controls-2/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/essentials-docs-4/manager-bundle.js",
+        "contentLength": 379244,
+        "knownAs": "sb-addons/essentials-docs-4/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/essentials-measure-8/manager-bundle.js",
+        "contentLength": 6668,
+        "knownAs": "sb-addons/essentials-measure-8/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/essentials-outline-9/manager-bundle.js",
+        "contentLength": 6710,
+        "knownAs": "sb-addons/essentials-outline-9/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/essentials-toolbars-7/manager-bundle.js",
+        "contentLength": 5389,
+        "knownAs": "sb-addons/essentials-toolbars-7/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/essentials-viewport-6/manager-bundle.js",
+        "contentLength": 16871,
+        "knownAs": "sb-addons/essentials-viewport-6/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/interactions-10/manager-bundle.js",
+        "contentLength": 289739,
+        "knownAs": "sb-addons/interactions-10/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/links-1/manager-bundle.js",
+        "contentLength": 988,
+        "knownAs": "sb-addons/links-1/manager-bundle.js"
+      },
+      {
+        "pathname": "sb-addons/storybook-core-core-server-presets-0/common-manager-bundle.js",
+        "contentLength": 1229,
+        "knownAs": "sb-addons/storybook-core-core-server-presets-0/common-manager-bundle.js"
+      },
+      {
+        "pathname": "sb-common-assets/favicon.svg",
+        "contentLength": 1251,
+        "knownAs": "sb-common-assets/favicon.svg"
+      },
+      {
+        "pathname": "sb-common-assets/nunito-sans-bold-italic.woff2",
+        "contentLength": 49460,
+        "knownAs": "sb-common-assets/nunito-sans-bold-italic.woff2"
+      },
+      {
+        "pathname": "sb-common-assets/nunito-sans-bold.woff2",
+        "contentLength": 47144,
+        "knownAs": "sb-common-assets/nunito-sans-bold.woff2"
+      },
+      {
+        "pathname": "sb-common-assets/nunito-sans-italic.woff2",
+        "contentLength": 49620,
+        "knownAs": "sb-common-assets/nunito-sans-italic.woff2"
+      },
+      {
+        "pathname": "sb-common-assets/nunito-sans-regular.woff2",
+        "contentLength": 47072,
+        "knownAs": "sb-common-assets/nunito-sans-regular.woff2"
+      },
+      {
+        "pathname": "sb-manager/globals-module-info.js",
+        "contentLength": 23448,
+        "knownAs": "sb-manager/globals-module-info.js"
+      },
+      {
+        "pathname": "sb-manager/globals-runtime.js",
+        "contentLength": 1473203,
+        "knownAs": "sb-manager/globals-runtime.js"
+      },
+      {
+        "pathname": "sb-manager/globals.js",
+        "contentLength": 2428,
+        "knownAs": "sb-manager/globals.js"
+      },
+      {
+        "pathname": "sb-manager/runtime.js",
+        "contentLength": 413040,
+        "knownAs": "sb-manager/runtime.js"
+      }
+    ],
+    "paths": [
+      "assets/ActionCard-CdKpQWA1.js",
+      "assets/BetaFeatures.stories-Bz3N_edq.js",
+      "assets/BetaFeatures.stories-DFWUK0JC.js",
+      "assets/BetaFeatures.stories-H4kT3Xna.js",
+      "assets/BetaFeatures.stories-eD3Kw5Ir.js",
+      "assets/Button.stories-DjV-BOgT.js",
+      "assets/ChatCentral.stories-BjGbmU2a.js",
+      "assets/ChatCentralTables-DyoRIxoH.js",
+      "assets/ChatCompanion.stories-qI5BzHvD.js",
+      "assets/ChatCompanionTables-wpqkL8F6.js",
+      "assets/ChatFirst.stories-viUR1BWp.js",
+      "assets/ChatFirstTables-DwmKMGbN.js",
+      "assets/Color-YHDXOIA2-g_vwwKYr.js",
+      "assets/Comparison.stories-BXaiUWi_.js",
+      "assets/DocsRenderer-CFRXHY34-B3RHf2kD.js",
+      "assets/HubSpotAgentConfig.stories-B3ouF5Rq.js",
+      "assets/HubSpotAgentConfigV3.stories-XSSbbxia.js",
+      "assets/HubSpotAgentWorkflow.stories-b8jd2A1O.js",
+      "assets/JourneyWorkspace.iterations.stories-BRZUeT87.js",
+      "assets/JourneyWorkspace.stories-QVMeBRmY.js",
+      "assets/JourneyWorkspaceV2.stories-C1TYEkf6.js",
+      "assets/SignalTables.stories--4SqYgmU.js",
+      "assets/arrow-up-EuL_fEv3.js",
+      "assets/chevron-right-DU1z36wS.js",
+      "assets/chunk-XP5HYGXS-BpfKkqn7.js",
+      "assets/client-BLTvwgUg.js",
+      "assets/entry-preview-C3WnZwG9.js",
+      "assets/entry-preview-docs-DtakIWIX.js",
+      "assets/external-link-ChtNm1BE.js",
+      "assets/iframe-DJFuICET.js",
+      "assets/index-BVLMb_CH.js",
+      "assets/index-C8NrMXaH.js",
+      "assets/index-CLEdRh-S.js",
+      "assets/index-DrFu-skq.js",
+      "assets/index-GiUgBvb1.js",
+      "assets/index-WwbkVOJN.js",
+      "assets/jsx-runtime-CDt2p4po.js",
+      "assets/link-2-BLsLhdDb.js",
+      "assets/loader-2-2X6Rwhaz.js",
+      "assets/plus-BU_h--jW.js",
+      "assets/preview-0M4QLnOp.js",
+      "assets/preview-B8lJiyuQ.js",
+      "assets/preview-BBWR9nbA.js",
+      "assets/preview-BWzBA1C2.js",
+      "assets/preview-CvbIS5ZJ.js",
+      "assets/preview-D-Qz4Vhp.js",
+      "assets/preview-DD_OYowb.js",
+      "assets/preview-DGUiP6tS.js",
+      "assets/preview-DHQbi4pV.js",
+      "assets/preview-DSGI8n58.css",
+      "assets/preview-Dfs-qi00.js",
+      "assets/react-18-CSQQTWN2.js",
+      "assets/save-b6Q6lugF.js",
+      "assets/settings-D51O0mCA.js",
+      "assets/skip-forward-DopVtMzR.js",
+      "assets/sparkles-ChhGil9w.js",
+      "assets/switch-CZ3_yZMV.js",
+      "assets/table-2-oFkF_KMd.js",
+      "assets/tabs-CYhn07Lp.js",
+      "assets/test-utils-Btaxxkuu.js",
+      "assets/trash-2-D-vQry49.js",
+      "assets/type-lEw6jjZC.js",
+      "assets/types-BYn7BufN.js",
+      "assets/types-Cs9BJvhf.js",
+      "assets/users-DUa19JRR.js",
+      "assets/utils-CytzSlOG.js",
+      "assets/x-B7vmqAia.js",
+      "favicon.svg",
+      "iframe.html",
+      "index.html",
+      "index.json",
+      "nunito-sans-bold-italic.woff2",
+      "nunito-sans-bold.woff2",
+      "nunito-sans-italic.woff2",
+      "nunito-sans-regular.woff2",
+      "project.json",
+      "sb-addons/essentials-actions-3/manager-bundle.js",
+      "sb-addons/essentials-backgrounds-5/manager-bundle.js",
+      "sb-addons/essentials-controls-2/manager-bundle.js",
+      "sb-addons/essentials-docs-4/manager-bundle.js",
+      "sb-addons/essentials-measure-8/manager-bundle.js",
+      "sb-addons/essentials-outline-9/manager-bundle.js",
+      "sb-addons/essentials-toolbars-7/manager-bundle.js",
+      "sb-addons/essentials-viewport-6/manager-bundle.js",
+      "sb-addons/interactions-10/manager-bundle.js",
+      "sb-addons/links-1/manager-bundle.js",
+      "sb-addons/storybook-core-core-server-presets-0/common-manager-bundle.js",
+      "sb-common-assets/favicon.svg",
+      "sb-common-assets/nunito-sans-bold-italic.woff2",
+      "sb-common-assets/nunito-sans-bold.woff2",
+      "sb-common-assets/nunito-sans-italic.woff2",
+      "sb-common-assets/nunito-sans-regular.woff2",
+      "sb-manager/globals-module-info.js",
+      "sb-manager/globals-runtime.js",
+      "sb-manager/globals.js",
+      "sb-manager/runtime.js"
+    ],
+    "statsPath": "",
+    "total": 7261578,
+    "hashes": {
+      "assets/ActionCard-CdKpQWA1.js": "fb8024644cd8d388",
+      "assets/BetaFeatures.stories-Bz3N_edq.js": "8e40cb52ef0b139a",
+      "assets/BetaFeatures.stories-DFWUK0JC.js": "3e8c249728094d65",
+      "assets/BetaFeatures.stories-H4kT3Xna.js": "af5853f87b54f223",
+      "assets/BetaFeatures.stories-eD3Kw5Ir.js": "2a5998ca1f456b94",
+      "assets/Button.stories-DjV-BOgT.js": "49a900bd434f0cf2",
+      "assets/ChatCentral.stories-BjGbmU2a.js": "895a37b6c2686e9f",
+      "assets/ChatCentralTables-DyoRIxoH.js": "47e4b7dbb3cfe9ec",
+      "assets/ChatCompanion.stories-qI5BzHvD.js": "ba077cf90b852bc5",
+      "assets/ChatCompanionTables-wpqkL8F6.js": "4fbabeaaa18690e8",
+      "assets/ChatFirst.stories-viUR1BWp.js": "5db9c23bc12413a0",
+      "assets/ChatFirstTables-DwmKMGbN.js": "6cc36a46871304a5",
+      "assets/Color-YHDXOIA2-g_vwwKYr.js": "0fb3c2f579c99e10",
+      "assets/Comparison.stories-BXaiUWi_.js": "574cbb5889151a50",
+      "assets/DocsRenderer-CFRXHY34-B3RHf2kD.js": "c69b7c70fcbd8c84",
+      "assets/HubSpotAgentConfig.stories-B3ouF5Rq.js": "b187225389e41bdf",
+      "assets/HubSpotAgentConfigV3.stories-XSSbbxia.js": "1ff12006f0c9f4a6",
+      "assets/HubSpotAgentWorkflow.stories-b8jd2A1O.js": "f0dc7759a63ef2aa",
+      "assets/JourneyWorkspace.iterations.stories-BRZUeT87.js": "7950d93c8645c4b7",
+      "assets/JourneyWorkspace.stories-QVMeBRmY.js": "3bbb102a3b543232",
+      "assets/JourneyWorkspaceV2.stories-C1TYEkf6.js": "c23d13fbce75dd56",
+      "assets/SignalTables.stories--4SqYgmU.js": "22b2f37ee79f132d",
+      "assets/arrow-up-EuL_fEv3.js": "22b74e888c19583a",
+      "assets/chevron-right-DU1z36wS.js": "dcc1bb43ccd39d43",
+      "assets/chunk-XP5HYGXS-BpfKkqn7.js": "ddc66446ebb7bb54",
+      "assets/client-BLTvwgUg.js": "06cf0a1514d29b57",
+      "assets/entry-preview-C3WnZwG9.js": "334106b16f69a61f",
+      "assets/entry-preview-docs-DtakIWIX.js": "f6451b2217a5a37d",
+      "assets/external-link-ChtNm1BE.js": "9e28e5fde6518981",
+      "assets/iframe-DJFuICET.js": "dabc91dae8145147",
+      "assets/index-BVLMb_CH.js": "37d20b1700185817",
+      "assets/index-C8NrMXaH.js": "0e04a30e972c8907",
+      "assets/index-CLEdRh-S.js": "0bacb847340df82d",
+      "assets/index-DrFu-skq.js": "894f6b01402f1ee1",
+      "assets/index-GiUgBvb1.js": "58de88437cdc4cea",
+      "assets/index-WwbkVOJN.js": "6dd2e0570a11d351",
+      "assets/jsx-runtime-CDt2p4po.js": "fc4533e4f2149df9",
+      "assets/link-2-BLsLhdDb.js": "a18588d4de6db1f9",
+      "assets/loader-2-2X6Rwhaz.js": "49420a1cb28d5b56",
+      "assets/plus-BU_h--jW.js": "1273d4a51859401d",
+      "assets/preview-0M4QLnOp.js": "3e99f06a960f2e8f",
+      "assets/preview-B8lJiyuQ.js": "2afc69637deabd49",
+      "assets/preview-BBWR9nbA.js": "d20389d560f62749",
+      "assets/preview-BWzBA1C2.js": "067312486ad98caf",
+      "assets/preview-CvbIS5ZJ.js": "154bca787b590aeb",
+      "assets/preview-D-Qz4Vhp.js": "5cddc04fc711c57d",
+      "assets/preview-DD_OYowb.js": "58bbf742cc2b222c",
+      "assets/preview-DGUiP6tS.js": "5dd583d5eeac4996",
+      "assets/preview-DHQbi4pV.js": "337ab01612be278b",
+      "assets/preview-DSGI8n58.css": "f667f17eec0afe63",
+      "assets/preview-Dfs-qi00.js": "30a1fed61b669da6",
+      "assets/react-18-CSQQTWN2.js": "6e3d5c3c902357ac",
+      "assets/save-b6Q6lugF.js": "aa894c51be286691",
+      "assets/settings-D51O0mCA.js": "a36003bf00fb1843",
+      "assets/skip-forward-DopVtMzR.js": "2f4c94da1da6481e",
+      "assets/sparkles-ChhGil9w.js": "38f9eebbf96785f1",
+      "assets/switch-CZ3_yZMV.js": "596b3fb52e7ee464",
+      "assets/table-2-oFkF_KMd.js": "74bd91a0c6edc221",
+      "assets/tabs-CYhn07Lp.js": "0e1942e2857fd0c2",
+      "assets/test-utils-Btaxxkuu.js": "192d00572594f92d",
+      "assets/trash-2-D-vQry49.js": "ac5fd8dd54c959a4",
+      "assets/type-lEw6jjZC.js": "49f4f71f5eb0cafa",
+      "assets/types-BYn7BufN.js": "f6310b97409a5b62",
+      "assets/types-Cs9BJvhf.js": "bd979c1b0129f14e",
+      "assets/users-DUa19JRR.js": "9f3165e577e248e4",
+      "assets/utils-CytzSlOG.js": "730b10e28d905bb4",
+      "assets/x-B7vmqAia.js": "2cc5bbda36a1e72f",
+      "favicon.svg": "293aff65db45e6c4",
+      "iframe.html": "eda4b284284a76cf",
+      "index.html": "7a74c37f0618c68c",
+      "index.json": "e95a6140a4b01cff",
+      "nunito-sans-bold-italic.woff2": "d64464b3594b3fb9",
+      "nunito-sans-bold.woff2": "0bd5b61b7fb7f7d5",
+      "nunito-sans-italic.woff2": "b7807d9de055e9a0",
+      "nunito-sans-regular.woff2": "6687b7be04c2debe",
+      "project.json": "b6340ccfe67f02bc",
+      "sb-addons/essentials-actions-3/manager-bundle.js": "b98385e5f52a3e52",
+      "sb-addons/essentials-backgrounds-5/manager-bundle.js": "e5a1f77aa444dde2",
+      "sb-addons/essentials-controls-2/manager-bundle.js": "f67a84984da02626",
+      "sb-addons/essentials-docs-4/manager-bundle.js": "9c10b8528aa2a448",
+      "sb-addons/essentials-measure-8/manager-bundle.js": "75c0aa297a0b4e17",
+      "sb-addons/essentials-outline-9/manager-bundle.js": "09253d311d933ac3",
+      "sb-addons/essentials-toolbars-7/manager-bundle.js": "ee727a11546946d8",
+      "sb-addons/essentials-viewport-6/manager-bundle.js": "422116414640c08d",
+      "sb-addons/interactions-10/manager-bundle.js": "4fa799a6b54f3c2b",
+      "sb-addons/links-1/manager-bundle.js": "7006308465ddc585",
+      "sb-addons/storybook-core-core-server-presets-0/common-manager-bundle.js": "255904ad849ac088",
+      "sb-common-assets/favicon.svg": "293aff65db45e6c4",
+      "sb-common-assets/nunito-sans-bold-italic.woff2": "d64464b3594b3fb9",
+      "sb-common-assets/nunito-sans-bold.woff2": "0bd5b61b7fb7f7d5",
+      "sb-common-assets/nunito-sans-italic.woff2": "b7807d9de055e9a0",
+      "sb-common-assets/nunito-sans-regular.woff2": "6687b7be04c2debe",
+      "sb-manager/globals-module-info.js": "e8c0a7123d838271",
+      "sb-manager/globals-runtime.js": "4dc1e5c3366f26b3",
+      "sb-manager/globals.js": "dbb1adbc9aebc9d2",
+      "sb-manager/runtime.js": "ab889320d3ec775e"
+    }
+  },
+  "flags": {
+    "onlyStoryFiles": [
+      "src/components/HubSpotConfig/v3/HubSpotAgentConfigV3.stories.tsx"
+    ],
+    "debug": true,
+    "outputDir": [],
+    "storybookBuildDir": [],
+    "externals": [],
+    "onlyStoryNames": [],
+    "untraced": [],
+    "fileHashing": true,
+    "interactive": true
+  },
+  "git": {
+    "version": "2.50.1",
+    "gitUserEmail": "tylersahagun@gmail.com",
+    "uncommittedHash": "fatal: Unable to hash elephant-ai\n02690944e821b6c27380d11de074820291955d6a",
+    "rootPath": "/Users/tylersahagun/Source/elmer",
+    "commit": "ee43435b8487d0b158caacf75efc10417e9f548b",
+    "committedAt": 1768418616000,
+    "committerEmail": "tylersahagun@gmail.com",
+    "committerName": "Tyler Sahagun",
+    "branch": "main",
+    "slug": "tylersahagun/elmer",
+    "fromCI": true,
+    "parentCommits": [
+      "ee43435b8487d0b158caacf75efc10417e9f548b"
+    ]
+  },
+  "input": [],
+  "isOnboarding": false,
+  "isPublishOnly": false,
+  "isReactNativeApp": false,
+  "options": {
+    "fromCI": true,
+    "inAction": false,
+    "dryRun": false,
+    "debug": true,
+    "autoAcceptChanges": false,
+    "exitZeroOnChanges": false,
+    "exitOnceUploaded": false,
+    "diagnosticsFile": "chromatic-diagnostics.json",
+    "fileHashing": true,
+    "interactive": false,
+    "isLocalBuild": false,
+    "originalArgv": [
+      "--only-story-files",
+      "src/components/HubSpotConfig/v3/HubSpotAgentConfigV3.stories.tsx",
+      "--debug"
+    ],
+    "onlyStoryFiles": [
+      "src/components/HubSpotConfig/v3/HubSpotAgentConfigV3.stories.tsx"
+    ],
+    "logFile": "chromatic.log",
+    "buildScriptName": "build-storybook",
+    "storybookLogFile": "build-storybook.log",
+    "branchName": ""
+  },
+  "packageJson": {
+    "name": "askelephant-prototypes",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc && vite build",
+      "preview": "vite preview",
+      "storybook": "storybook dev -p 6006",
+      "build-storybook": "storybook build",
+      "chromatic": "chromatic"
+    },
+    "dependencies": {
+      "class-variance-authority": "^0.7.0",
+      "clsx": "^2.1.0",
+      "lucide-react": "^0.312.0",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0",
+      "tailwind-merge": "^2.2.0"
+    },
+    "devDependencies": {
+      "@storybook/addon-essentials": "^8.0.0",
+      "@storybook/addon-interactions": "^8.0.0",
+      "@storybook/addon-links": "^8.0.0",
+      "@storybook/blocks": "^8.0.0",
+      "@storybook/react": "^8.0.0",
+      "@storybook/react-vite": "^8.0.0",
+      "@storybook/test": "^8.0.0",
+      "@types/react": "^18.2.0",
+      "@types/react-dom": "^18.2.0",
+      "@vitejs/plugin-react": "^4.2.0",
+      "autoprefixer": "^10.4.0",
+      "chromatic": "^13.3.5",
+      "postcss": "^8.4.0",
+      "storybook": "^8.0.0",
+      "tailwindcss": "^3.4.0",
+      "typescript": "^5.0.0",
+      "vite": "^5.0.0"
+    }
+  },
+  "packagePath": "/Users/tylersahagun/Source/elmer/prototypes/package.json",
+  "projectMetadata": {
+    "hasRouter": false,
+    "creationDate": {},
+    "storybookCreationDate": {},
+    "numberOfCommitters": 2,
+    "numberOfAppFiles": 0
+  },
+  "rebuildForBuildId": "69681f1c80cef1eb92e6dcff",
+  "runtimeMetadata": {
+    "nodePlatform": "darwin",
+    "nodeVersion": "22.19.0",
+    "packageManager": "npm",
+    "packageManagerVersion": "10.9.3"
+  },
+  "sentinelUrls": [
+    "https://chromatic-builds.s3.us-west-2.amazonaws.com/695ece8a989a140b6546402c-fhjtwjmxuu/.chromatic/files-copied.3259490649.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAJVVEQEOBEEPXSNNQ%2F20260114%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20260114T225756Z&X-Amz-Expires=1800&X-Amz-Signature=f7496e644b6445a23e989473fd0df7943a7f1847607772f43c2b14fbcd40adb8&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject"
+  ],
+  "sessionId": "13e3712f-fe6c-4e96-8cb8-95f09faf2bb3",
+  "sourceDir": "/var/folders/dq/_0_zrpmd0p3f8tmzvg962qfw0000gn/T/chromatic--87434-9VEckM9Myin0",
+  "startedAt": 1768431483161,
+  "storybook": {
+    "version": "8.6.15",
+    "builder": {
+      "name": "@storybook/react-vite",
+      "packageVersion": "8.6.15"
+    },
+    "baseDir": "prototypes"
+  },
+  "storybookUrl": "https://695ece8a989a140b6546402c-fhjtwjmxuu.chromatic.com/",
+  "task": "snapshot",
+  "uploadedBytes": 1188840,
+  "uploadedFiles": 7,
+  "userError": true
+}

@@ -1,0 +1,143 @@
+---
+description: 'Analyze user research and meeting transcripts with strategic lens'
+globs: ['elmer-docs/research/**/*', 'elmer-docs/meeting-notes/**/*', 'elmer-docs/floating-docs/**/*']
+alwaysApply: false
+---
+
+# Research Analyst
+
+## Strategic Context (Always Reference)
+
+Before analyzing ANY transcript or research, load:
+
+1. @elmer-docs/company-context/product-vision.md - Core identity, principles, anti-vision
+2. @elmer-docs/company-context/strategic-guardrails.md - Red flags and decision framework
+3. @elmer-docs/company-context/personas.md - Who we're building for
+
+## Extract From Transcripts
+
+1. Key decisions made
+2. Action items (who, what, when)
+3. User problems (with verbatim quotes)
+4. Feature requests/ideas
+5. Insights and patterns
+6. Open questions
+7. **Strategic alignment signals** (new)
+8. **Red flags / concerns** (new)
+
+## Strategic Alignment Analysis (NEW)
+
+When analyzing conversations about new initiatives or features, **actively flag**:
+
+### 🚩 Misalignment Signals
+
+| Signal | How to Flag |
+|--------|-------------|
+| Unclear user outcomes | "⚠️ Outcome unclear: Who benefits and how?" |
+| No revenue/business tie | "⚠️ Business impact missing: How does this drive expansion/retention?" |
+| Generic AI feature | "⚠️ Anti-vision concern: This sounds like 'better notes'—what's our unique angle?" |
+| Trust implications unclear | "⚠️ Trust gap: Privacy/reliability implications not addressed" |
+| Feature-first thinking | "⚠️ Solution before problem: What evidence exists for this need?" |
+| Persona confusion | "⚠️ Persona unclear: Is this for reps, leaders, CSMs, or RevOps?" |
+
+### ✅ Alignment Signals
+
+Also highlight when discussions are well-aligned:
+
+| Signal | How to Flag |
+|--------|-------------|
+| Clear outcome chain | "✅ Strong outcome chain: [Feature] → [behavior] → [business result]" |
+| Evidence-backed | "✅ Evidence present: [quote/data supporting the need]" |
+| Trust-forward | "✅ Trust considered: Privacy/reliability addressed" |
+| Persona-specific | "✅ Clear persona: Built for [persona] with specific pain" |
+
+## Pushback Questions to Surface
+
+When analyzing a transcript about a proposed initiative, include a section:
+
+### Questions to Resolve Before PRD
+
+Based on the conversation, these gaps need answers:
+
+1. [Question from unclear outcome]
+2. [Question from missing evidence]
+3. [Question from trust implications]
+4. [Question from persona confusion]
+
+Reference: @elmer-docs/company-context/strategic-guardrails.md for the full question bank.
+
+## Output Template
+
+```markdown
+# [Type] Summary: [Topic]
+**Date:** YYYY-MM-DD
+**Participants:** 
+
+## TL;DR
+[2-3 sentences including strategic assessment]
+
+## Strategic Alignment Assessment
+
+### Alignment Score: [Strong / Moderate / Weak / Concerning]
+
+**What's aligned:**
+- ✅ [Aligned element]
+
+**What needs clarification:**
+- ⚠️ [Concern with specific question]
+
+### Recommended Next Steps
+- [ ] [Specific question to answer]
+- [ ] [Discovery work needed]
+
+---
+
+## Key Decisions
+- 
+
+## Action Items
+- [ ] [Action] - @[owner]
+
+## User Problems
+### [Problem Name]
+> "[Verbatim quote]"
+- Severity: High/Medium/Low
+- Frequency: Common/Occasional/Rare
+- Persona: [Which persona]
+
+## Feature Ideas
+- **Idea:** 
+- **Value:** 
+- **Outcome chain:** [If clear] or ⚠️ Needs outcome chain
+
+## Insights
+- 
+
+## Open Questions
+1. 
+
+## Questions for Leadership/Stakeholders
+*Before proceeding to PRD, these need answers:*
+1. 
+```
+
+## When to Raise Concerns
+
+**Actively push back** in your summary if you detect:
+
+1. **"Build it and see"** - No evidence, just intuition
+2. **Scope creep toward generic AI** - Features any competitor could build
+3. **Trust debt** - Shipping fast without reliability plan
+4. **Persona confusion** - Trying to serve everyone, serving no one
+5. **Missing outcome** - Feature described without "so that..."
+
+Frame concerns constructively:
+
+> "Before this moves to PRD, I'd recommend answering: [specific question]. This helps ensure alignment with our principle that [quote relevant leadership principle]."
+
+## Save Location
+
+- Meeting notes → `elmer-docs/meeting-notes/YYYY-MM-DD-[topic].md`
+- User interviews → `elmer-docs/research/user-interviews/`
+- Competitive → `elmer-docs/research/competitive/`
+- Leadership conversations → `elmer-docs/research/leadership/`

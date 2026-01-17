@@ -1,0 +1,78 @@
+{
+  "name": "Rep Workspace",
+  "slug": "rep-workspace",
+  "phase": "build",
+  "status": "in-progress",
+  "owner": "Skylar/Tyler",
+  "target_personas": ["sales-rep"],
+  "priority": "high",
+  "created_at": "2026-01-16",
+  "updated_at": "2026-01-16T17:00:00Z",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered_at": "2026-01-16",
+      "completed_at": "2026-01-16"
+    },
+    {
+      "phase": "define",
+      "entered_at": "2026-01-16",
+      "completed_at": "2026-01-16"
+    },
+    {
+      "phase": "build",
+      "entered_at": "2026-01-16",
+      "completed_at": null
+    }
+  ],
+  "graduation_criteria": {
+    "build_to_validate": {
+      "prototype_notes_exists": true,
+      "prototype_covers_states": true,
+      "storybook_complete": true,
+      "design_review_passed": false,
+      "design_brief_exists": true
+    }
+  },
+  "validation_history": [
+    {
+      "date": "2026-01-16",
+      "type": "jury",
+      "phase": "build",
+      "result": "fail",
+      "pass_rate": 45.0,
+      "jury_size": 100,
+      "report_file": "jury-evaluations/build-report-20260116-164514.md",
+      "notes": "V1 evaluation - needs trust indicators and onboarding"
+    }
+  ],
+  "metrics": {
+    "total_iterations": 2,
+    "current_version": "v2"
+  },
+  "iteration_history": [
+    {
+      "version": "v1",
+      "date": "2026-01-16",
+      "summary": "Initial context prototype with dashboard layout"
+    },
+    {
+      "version": "v2",
+      "date": "2026-01-16",
+      "summary": "Trust & onboarding iteration based on jury feedback",
+      "changes": [
+        "Added OnboardingExperience (welcome, tour, complete)",
+        "Added SyncStatusBadge on all widgets",
+        "Added DataProvenancePopover for data sources",
+        "Added GlobalStatusBar for system health",
+        "Created design-brief.md"
+      ]
+    }
+  ],
+  "dependencies": [
+    "global-chat",
+    "crm-exp-ete",
+    "customer-journey-map"
+  ],
+  "tags": ["dashboard", "rep-experience", "q1-2026", "trust-iteration"]
+}

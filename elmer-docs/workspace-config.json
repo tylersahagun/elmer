@@ -1,0 +1,46 @@
+{
+  "$schema": "./workspace-config.schema.json",
+  "workspace": {
+    "name": "PM Workspace",
+    "description": "AI-powered product management workspace",
+    "initialized": false,
+    "created_at": null,
+    "version": "1.0.0"
+  },
+  "product": {
+    "name": "",
+    "one_liner": "",
+    "description": "",
+    "stage": "",
+    "target_market": "",
+    "anti_vision": []
+  },
+  "personas": {
+    "primary": [],
+    "secondary": []
+  },
+  "outcomes": {
+    "north_star": "",
+    "key_metrics": []
+  },
+  "repos": [],
+  "prototypes": {
+    "default_location": "prototypes/",
+    "storybook_port": 6006,
+    "tech_stack": {
+      "framework": "react",
+      "styling": "tailwindcss",
+      "language": "typescript"
+    }
+  },
+  "integrations": {
+    "linear": {
+      "enabled": false,
+      "team_id": ""
+    },
+    "notion": {
+      "enabled": false,
+      "workspace_id": ""
+    }
+  }
+}

@@ -1,0 +1,225 @@
+---
+description: "Process PM orchestrator jobs using MCP tools"
+globs: []
+alwaysApply: false
+---
+
+# Job Processor Agent
+
+You are a PM orchestrator job processor. When the user asks you to "process jobs", "run pending jobs", or similar, you use MCP tools to:
+
+1. Fetch pending jobs from the orchestrator
+2. Process each job by generating appropriate content
+3. Save results back to the orchestrator
+
+## Workflow
+
+### Step 1: Get Pending Jobs
+
+```
+Call: get-pending-jobs
+```
+
+This returns a list of jobs with their types and project context.
+
+### Step 2: Process Each Job
+
+For each pending job:
+
+1. Call `get-job-context` to get full context (project, existing documents, input)
+2. Call `update-job-status` with status "running" to lock the job
+3. Generate the required content based on job type
+4. Call `complete-job` with the generated content
+
+### Job Type Processing Instructions
+
+#### `analyze_transcript`
+
+**Input**: `transcript` field in job input
+**Output**: Research document with:
+- TL;DR summary
+- Key insights with verbatim quotes
+- User problems identified
+- Feature requests
+- Open questions
+
+Read company context files first:
+- `elmer-docs/company-context/product-vision.md`
+- `elmer-docs/company-context/strategic-guardrails.md`
+
+Then analyze the transcript through the lens of product vision alignment.
+
+#### `generate_prd`
+
+**Input**: Research document (from existing docs) + project info
+**Output**: PRD document following this structure:
+
+```markdown
+# [Project Name] - PRD
+
+## Problem Statement
+[What problem are we solving? Include user quotes from research]
+
+## Target Personas
+[Who is this for? Reference company personas]
+
+## Success Metrics
+[How do we measure success?]
+
+## User Journey
+[Current state → Desired state]
+
+## MVP Scope
+### Must Have
+- ...
+
+### Nice to Have
+- ...
+
+## Out of Scope
+[What are we NOT building?]
+
+## Open Questions
+[What still needs answers?]
+```
+
+#### `generate_design_brief`
+
+**Input**: PRD document
+**Output**: Design brief with:
+- Visual direction
+- Component patterns to use/create
+- Interaction patterns
+- Accessibility considerations
+- Mobile considerations
+
+#### `generate_engineering_spec`
+
+**Input**: PRD + Design Brief
+**Output**: Engineering spec with:
+- Technical approach
+- Data model changes
+- API changes
+- Component architecture
+- Testing approach
+- Migration considerations
+
+#### `generate_gtm_brief`
+
+**Input**: PRD
+**Output**: GTM brief with:
+- Target audience
+- Key messaging
+- Launch strategy
+- Success metrics
+
+#### `run_jury_evaluation`
+
+**Input**: Content to evaluate + phase
+**Output**: Jury evaluation report with:
+- Approval rate
+- Key concerns
+- Suggestions for improvement
+
+Use the jury system from `@.cursor/rules/jury-system.mdc`.
+
+#### `build_prototype`
+
+**Input**: PRD + Design Brief
+**Output**: Create React components in `prototypes/` folder
+
+Steps:
+1. Read the PRD and design brief from job context
+2. Determine component name from PRD title
+3. Create the component structure:
+   - `prototypes/src/components/[ComponentName]/[ComponentName].tsx` - Main component
+   - `prototypes/src/components/[ComponentName]/[ComponentName].stories.tsx` - Storybook stories
+   - `prototypes/src/components/[ComponentName]/index.ts` - Exports
+4. Implement the component based on PRD requirements
+5. Use React 18 + TypeScript + Tailwind CSS
+6. Create interactive Storybook stories with multiple variants
+7. Call `complete-job` with summary of files created
+
+Follow prototype builder patterns from `@.cursor/rules/prototype-builder.mdc`.
+
+Example component structure:
+
+```tsx
+// ComponentName.tsx
+"use client";
+
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+interface ComponentNameProps {
+  className?: string;
+}
+
+export function ComponentName({ className }: ComponentNameProps) {
+  return (
+    <div className={cn("p-4", className)}>
+      {/* Implementation based on PRD */}
+    </div>
+  );
+}
+```
+
+```tsx
+// ComponentName.stories.tsx
+import type { Meta, StoryObj } from "@storybook/react";
+import { ComponentName } from "./ComponentName";
+
+const meta: Meta<typeof ComponentName> = {
+  title: "Prototypes/ComponentName",
+  component: ComponentName,
+  parameters: { layout: "centered" },
+  tags: ["autodocs"],
+};
+
+export default meta;
+type Story = StoryObj<typeof ComponentName>;
+
+export const Default: Story = { args: {} };
+```
+
+### Step 3: Error Handling
+
+If generation fails, call `fail-job` with an error message.
+
+## Example Session
+
+User: "Process my jobs"
+
+```
+1. Call get-pending-jobs
+   → Found 2 jobs: generate_prd (project: crm-agent), generate_design_brief (project: crm-agent)
+
+2. For job 1 (generate_prd):
+   a. get-job-context → Project "CRM Agent", has research.md
+   b. update-job-status (running)
+   c. Read elmer-docs/company-context/product-vision.md
+   d. Read existing research document
+   e. Generate PRD following template
+   f. complete-job with generated PRD
+
+3. For job 2 (generate_design_brief):
+   a. get-job-context → Now has PRD from step 2
+   b. update-job-status (running)
+   c. Generate design brief based on PRD
+   d. complete-job with generated design brief
+
+4. Report: "Processed 2 jobs: generated PRD and design brief for CRM Agent"
+```
+
+## Company Context
+
+Always load company context before generating content:
+
+1. `elmer-docs/company-context/product-vision.md` - Core identity, anti-vision
+2. `elmer-docs/company-context/strategic-guardrails.md` - Red flags
+3. `elmer-docs/company-context/personas.md` - Target users
+
+Use this to:
+- Ensure generated content aligns with product vision
+- Reference correct personas
+- Avoid anti-vision patterns

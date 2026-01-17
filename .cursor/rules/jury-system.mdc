@@ -1,0 +1,519 @@
+---
+description: 'Condorcet Jury System - Synthetic user validation at every PM phase'
+globs: ['elmer-docs/initiatives/**/*', 'elmer-docs/personas/**/*']
+alwaysApply: false
+---
+
+# Condorcet Jury System
+
+Synthetic user validation integrated into every phase of the PM workflow. Uses majority voting (Condorcet's Jury Theorem) to validate product decisions against a diverse panel of synthetic personas derived from real AskElephant customer conversations.
+
+## Core Principle
+
+> If each synthetic persona has >50% accuracy in judging whether a feature matches their needs, aggregating 100-500+ votes produces near-certain collective judgment.
+
+## When to Invoke Jury Validation
+
+| Command | Jury Integration |
+|---------|------------------|
+| `research [name]` | Validate extracted pain points resonate broadly |
+| `PM [name]` | Validate user stories and flows match mental models |
+| `proto [name]` | Evaluate usability with persona-appropriate heuristics |
+| `eval [name]` | Run jury evaluation and generate verdict report |
+| `iterate [name]` | Generate iteration docs from jury feedback |
+
+## Quick Commands
+
+```bash
+# Run jury evaluation (simulation - no API needed)
+python elmer-docs/scripts/jury-system/simulate_jury.py \
+  --initiative [name] --phase research --jury-size 100
+
+# Generate iteration documents from feedback
+python elmer-docs/scripts/jury-system/iterate_from_feedback.py \
+  --initiative [name]
+```
+
+## Iteration Outputs Location
+
+After running `iterate [name]`, find documents at:
+```
+elmer-docs/initiatives/[name]/iterations/iter-[timestamp]/
+├── research-gaps.md     # Questions for follow-up interviews
+├── prd-amendments.md    # P0/P1 requirements to add
+├── prototype-spec.md    # UI components to build
+└── README.md            # Workflow summary
+```
+
+## Persona Loading
+
+Before any jury operation, load personas from:
+
+1. **Archetypes**: `elmer-docs/personas/archetypes/*.json`
+2. **Generated Pool**: `elmer-docs/personas/generated/[latest-batch]/personas.json`
+3. **Cohorts** (for stratified sampling): `elmer-docs/personas/cohorts/*.json`
+
+### Stratified Sampling
+
+When sampling personas for validation, ensure distribution:
+
+| Dimension | Distribution |
+|-----------|--------------|
+| **Role** | Sales Rep: 40%, Sales Leader: 25%, CSM: 20%, RevOps: 15% |
+| **Tech Proficiency** | Novice: 25%, Intermediate: 50%, Advanced: 25% |
+| **AI Adoption** | Skeptic: 15% (minimum), Curious: 40%, Early Adopter: 35%, Power User: 10% |
+
+**Critical**: Always include 15% skeptics. They catch issues optimists miss.
+
+---
+
+## Phase 1: Research Validation
+
+### When
+After extracting pain points from transcript analysis.
+
+### Process
+1. Extract pain points with supporting quotes from transcript
+2. For each pain point, query N personas (default: 100-200)
+3. Aggregate votes, flag by segment
+
+### Prompt Template
+
+```
+You ARE {persona.demographics.name}, a {persona.role.title} at a {persona.firmographics.company_size} company.
+
+Your context:
+- Tech comfort: {persona.psychographics.tech_literacy}
+- AI attitude: {persona.psychographics.ai_adoption_stage}
+- Your primary pain: {persona.context.primary_pain}
+
+A product team has identified this pain point from customer research:
+
+PAIN POINT: {extracted_pain_point}
+SUPPORTING QUOTE: "{supporting_quote}"
+
+As yourself, respond in JSON:
+
+{
+  "resonance_score": [1-5, where 1="not my problem", 5="exactly my frustration"],
+  "perspective": "[2-3 sentences explaining why this does/doesn't resonate, in first person]",
+  "missing_aspect": "[Optional: related pain they might have overlooked]"
+}
+```
+
+### Aggregation Rules
+- **Validated**: >60% rate resonance 4+
+- **Contested**: 40-60% rate resonance 4+
+- **Rejected**: <40% rate resonance 4+
+
+Segment results by role to see if pain is universal or role-specific.
+
+### Output File: `jury-evaluations/research-v1.json`
+
+```json
+{
+  "validation_type": "research",
+  "initiative": "[name]",
+  "timestamp": "ISO-8601",
+  "sample_size": 200,
+  "pain_points": [
+    {
+      "pain": "Zero visibility into agent behavior",
+      "source_quote": "...",
+      "resonance_mean": 4.3,
+      "pct_strong_resonance": 0.78,
+      "by_role": { "sales_rep": 4.1, "revops": 4.8 },
+      "gaps_identified": ["Notification when changes (12%)", "Undo (8%)"],
+      "verdict": "VALIDATED"
+    }
+  ]
+}
+```
+
+---
+
+## Phase 2: PRD Validation
+
+### When
+After generating PRD and Design Brief.
+
+### What to Validate
+1. **User Stories**: Do they describe real needs?
+2. **Outcome Chains**: Do outcomes resonate?
+3. **User Flows**: Do they match mental models?
+
+### User Story Validation Prompt
+
+```
+You ARE {persona.demographics.name}. A product team proposes this user story:
+
+USER STORY:
+As a {story.persona}, I want to {story.action} so that {story.benefit}.
+
+ACCEPTANCE CRITERIA:
+{story.criteria}
+
+Evaluate as yourself, respond in JSON:
+
+{
+  "relevance_score": [1-5],
+  "clarity": "clear" | "somewhat_clear" | "confusing",
+  "missing_from_your_perspective": "[what's missing]",
+  "usage_frequency": "daily" | "weekly" | "monthly" | "rarely" | "never"
+}
+```
+
+### Flow Validation Prompt
+
+```
+You ARE {persona.demographics.name}. Here's a proposed user flow:
+
+TRIGGER: {flow.trigger}
+STEPS:
+1. {step_1}
+2. {step_2}
+...
+OUTCOME: {flow.outcome}
+
+Walk through this flow as yourself, respond in JSON:
+
+{
+  "hesitation_points": ["step_number and why you'd pause"],
+  "matches_expectation": true | false,
+  "expected_alternative": "[what you'd try instead, if any]",
+  "overall_confidence": [1-5]
+}
+```
+
+### Aggregation Rules
+- **User Stories**: Pass if >70% rate relevance 4+
+- **Flows**: Flag steps where >20% report hesitation
+
+### Output Files
+- `jury-evaluations/prd-v1.json`
+- `jury-evaluations/design-v1.json`
+
+---
+
+## Phase 3: Prototype Evaluation
+
+### When
+After Storybook prototype is built.
+
+### Process
+1. Capture prototype (screenshot or spec description)
+2. Each persona evaluates against scenario and heuristics
+3. Apply self-consistency filter (each agent votes 3x internally)
+4. Aggregate using majority voting + Bayesian Truth Serum for subjective
+
+### Evaluation Prompt
+
+```
+You ARE {persona.demographics.name}, a {persona.role.title}.
+
+YOUR CONTEXT:
+- Tech comfort: {persona.psychographics.tech_literacy}
+- AI trust: {persona.psychographics.trust_in_ai}
+- Patience for learning: {persona.psychographics.patience_for_learning}
+
+SCENARIO: {scenario.description}
+YOUR TASK: {scenario.task.primary_goal}
+
+PROTOTYPE:
+{prototype_description_or_screenshot}
+
+Evaluate this prototype in JSON:
+
+{
+  "first_impression": "[What you notice first, what's unclear]",
+  "task_walkthrough": {
+    "steps_you_would_try": ["step 1", "step 2"],
+    "hesitation_points": ["where you'd pause"],
+    "would_give_up": true | false,
+    "give_up_reason": "[if true, why]"
+  },
+  "heuristic_scores": {
+    "visibility_of_status": { "score": [1-5], "reason": "..." },
+    "match_with_expectations": { "score": [1-5], "reason": "..." },
+    "user_control": { "score": [1-5], "reason": "..." },
+    "consistency": { "score": [1-5], "reason": "..." },
+    "error_prevention": { "score": [1-5], "reason": "..." }
+  },
+  "issues": [
+    {
+      "what": "[description]",
+      "where": "[UI element]",
+      "severity": "cosmetic" | "minor" | "major" | "catastrophic",
+      "why_matters_to_you": "[persona-specific impact]"
+    }
+  ],
+  "emotional_response": {
+    "frustration": [1-5],
+    "confidence": [1-5],
+    "would_recommend": [1-5]
+  },
+  "verdict": {
+    "would_use": true | false,
+    "reasoning": "[why/why not]"
+  }
+}
+```
+
+### Self-Consistency Filter (per Document 1)
+Run each evaluation 3x with temperature 0.7. Only count vote if 2/3 or 3/3 agree. Discard inconsistent responses.
+
+### Issue Aggregation
+- Issue must appear in >20% of evaluations to be considered validated
+- Take maximum severity when same issue reported differently
+- Group similar issues by location + description
+
+### Bayesian Truth Serum (for subjective feedback)
+Score answers not just by frequency but by "surprisingly common"—opinions more prevalent than predicted. Highlights expert insights that might be suppressed in simple majority.
+
+### Output Files
+- `jury-evaluations/proto-v1.json` (raw structured data)
+- `jury-evaluations/jury-report.md` (synthesized actionable insights)
+
+---
+
+## Phase 4: Iterate Command
+
+### When
+After receiving jury feedback, before next version.
+
+### Process
+1. Read latest `jury-report.md`
+2. Identify top 3 friction points
+3. Propose specific changes
+4. Apply changes to prototype
+5. Run mini-eval (50 personas, focused on changed areas)
+6. Compare: `proto-v1.json` → `proto-v2.json`
+7. Update `iteration-log.md`
+
+### Iteration Log Format
+
+```markdown
+# Iteration Log: [initiative-name]
+
+## v1 → v2 (2026-01-08)
+
+### Jury Feedback Addressed
+1. **Issue**: "Where do I click to start?" (127 mentions, 45%)
+   **Change**: Added prominent "Get Started" button in header
+   **v1 confidence**: 3.2 → **v2 confidence**: 4.1
+
+2. **Issue**: Empty state confusion (89 mentions, 31%)
+   **Change**: Added onboarding wizard for first-time users
+   **v1 confidence**: 2.8 → **v2 confidence**: 4.3
+
+### Jury Verdict Comparison
+| Metric | v1 | v2 | Delta |
+|--------|----|----|-------|
+| Overall approval | 68% | 84% | +16% |
+| Task completion confidence | 3.2 | 4.1 | +0.9 |
+| Would recommend | 3.5 | 4.2 | +0.7 |
+
+### Remaining Issues
+- [Issues still flagged in v2]
+```
+
+---
+
+## Model Selection
+
+| Operation | Model | Rationale |
+|-----------|-------|-----------|
+| Persona Generation | Claude Haiku | Cost-effective for volume |
+| Research Validation | Claude Haiku | Simple resonance scoring |
+| PRD Validation | Claude Haiku | Structured output |
+| Prototype Evaluation | Claude Haiku | Volume of evaluations |
+| Synthesis/Aggregation | Claude Sonnet | Quality of final insights |
+
+**Temperature Settings**:
+- Persona generation: 0.9 (maximize diversity)
+- Evaluation: 0.7 (balanced for self-consistency)
+- Synthesis: 0.3 (consistent, coherent output)
+
+---
+
+## Cost Estimation
+
+| Phase | Sample Size | Estimated Cost |
+|-------|-------------|----------------|
+| Research Validation | 200 personas × 5 pains | ~$0.50 |
+| PRD Validation | 300 personas × 10 stories | ~$1.00 |
+| Prototype Evaluation | 500 personas | ~$2.00 |
+| Synthesis | 1 aggregation | ~$0.50 |
+| **Total per initiative** | | **~$4.00** |
+
+---
+
+## Output File Locations
+
+All jury outputs go in the initiative folder:
+
+```
+elmer-docs/initiatives/[name]/jury-evaluations/
+├── research-v1.json      # Pain point resonance
+├── prd-v1.json           # User story validation
+├── design-v1.json        # Flow validation
+├── proto-v1.json         # Usability evaluation (raw)
+├── proto-v2.json         # After iteration
+├── jury-report.md        # Human-readable synthesis
+└── iteration-log.md      # Change tracking
+```
+
+---
+
+## Quality Checks
+
+Before trusting jury results:
+
+- [ ] **Sample size adequate**: ≥100 for research, ≥200 for PRD, ≥300 for proto
+- [ ] **Skeptic representation**: ≥15% of sample are AI skeptics
+- [ ] **Role coverage**: All relevant archetypes represented
+- [ ] **Self-consistency applied**: Inconsistent responses filtered
+- [ ] **No mode collapse**: Check variance in responses (std > 0.5 on 5-point scales)
+
+---
+
+## Anti-Patterns to Avoid
+
+1. **Trusting small samples**: <50 personas = high variance, don't trust
+2. **All optimists**: If no skeptics in sample, results are biased
+3. **Ignoring segment differences**: Sales Reps may hate what RevOps loves
+4. **Skipping self-consistency**: Reduces noise significantly
+5. **Over-weighting majority**: BTS catches expert minority opinions
+
+---
+
+## Integration with Existing Workflow
+
+This system **supplements, not replaces** real user research. Use for:
+
+- ✅ Rapid validation between real interviews
+- ✅ Catching obvious mismatches before investing in prototypes
+- ✅ Systematically covering personas you haven't talked to yet
+- ✅ Iteration validation (faster than scheduling real users)
+
+Do NOT use to:
+
+- ❌ Replace actual customer conversations
+- ❌ Make final launch decisions without real validation
+- ❌ Justify skipping discovery research
+
+---
+
+## Full Iteration Workflow
+
+### Step 1: Run Initial Jury Evaluation
+
+```bash
+python elmer-docs/scripts/jury-system/simulate_jury.py \
+  --initiative hubspot-agent-config-ui --phase research --jury-size 100
+```
+
+**Output:** Jury verdict, friction points, segment breakdowns
+
+### Step 2: Generate Iteration Documents
+
+```bash
+python elmer-docs/scripts/jury-system/iterate_from_feedback.py \
+  --initiative hubspot-agent-config-ui
+```
+
+**Generates:**
+- `research-gaps.md` - Targeted interview questions for failing segments
+- `prd-amendments.md` - P0 requirements addressing top friction
+- `prototype-spec.md` - UI mockups and Storybook stories to build
+
+### Step 3: Conduct Follow-Up Research
+
+Use `research-gaps.md` to:
+1. Schedule 5-7 interviews with skeptic users
+2. Interview 3-5 users from underperforming archetypes
+3. Run competitive analysis on friction points
+4. Update `research.md` with new findings
+
+### Step 4: Update PRD
+
+Merge `prd-amendments.md` into main PRD:
+1. Add P0 requirements (rollback, preview, etc.)
+2. Add P1 features (activity log, templates)
+3. Add persona-specific requirements
+4. Update acceptance criteria
+
+### Step 5: Build Prototype Addressing Feedback
+
+Use `prototype-spec.md` to create Storybook stories:
+
+```typescript
+// elephant-ai/web/src/components/prototypes/HubSpotConfig/
+UndoRollbackToast.tsx
+UndoRollbackToast.stories.tsx
+IntegrationStatusDashboard.tsx
+ConfigurationWizard.tsx
+PreviewTestMode.tsx
+PrivacyControls.tsx
+```
+
+### Step 6: Re-Run Jury Evaluation
+
+```bash
+python elmer-docs/scripts/jury-system/simulate_jury.py \
+  --initiative hubspot-agent-config-ui --phase prototype --jury-size 100
+```
+
+**Target Improvements:**
+- Overall: ≥70% combined pass (up from 50%)
+- Skeptics: ≥30% pass (up from 18%)
+- Operations: ≥60% pass (up from 48%)
+
+### Step 7: Compare Iterations
+
+Look at both reports to validate improvement:
+
+```
+iterations/iter-20260109-010729/  # v1
+iterations/iter-20260115-xxxxxx/  # v2 (after changes)
+```
+
+Track delta in `iteration-log.md`.
+
+---
+
+## Workflow Diagram
+
+```
+┌──────────────┐     ┌─────────────────┐     ┌──────────────────┐
+│  Research    │────▶│  Jury Eval      │────▶│  Iterate Docs    │
+│  (research.md)     │  (simulate_jury) │     │  (iterate_from_  │
+└──────────────┘     └─────────────────┘     │   feedback.py)   │
+                                             └────────┬─────────┘
+                                                      │
+       ┌──────────────────────────────────────────────┴───────┐
+       │                                                      │
+       ▼                        ▼                        ▼
+┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ research-gaps.md│  │ prd-amendments.md│  │ prototype-spec.md│
+│                 │  │                  │  │                  │
+│ Interview       │  │ P0/P1 features   │  │ UI mockups       │
+│ questions for   │  │ to add based on  │  │ Storybook stories│
+│ failing segments│  │ friction points  │  │ to build         │
+└────────┬────────┘  └────────┬─────────┘  └────────┬─────────┘
+         │                    │                     │
+         ▼                    ▼                     ▼
+┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ Conduct user    │  │ Update main PRD  │  │ Build prototypes │
+│ interviews      │  │                  │  │ in Storybook     │
+└────────┬────────┘  └────────┬─────────┘  └────────┬─────────┘
+         │                    │                     │
+         └──────────────┬─────┴─────────────────────┘
+                        │
+                        ▼
+              ┌─────────────────┐
+              │ Re-run jury eval │
+              │ to validate      │
+              │ improvements     │
+              └─────────────────┘
+```

@@ -1,0 +1,22 @@
+/**
+* @license
+*
+* Font Family: Chillax
+* Designed by: Manushi Parikh
+* URL: https://www.fontshare.com/fonts/chillax
+* © 2026 Indian Type Foundry
+*
+* Chillax Semibold 
+
+*
+*/
+@font-face {
+  font-family: 'Chillax-Semibold';
+  src: url('../fonts/Chillax-Semibold.woff2') format('woff2'),
+       url('../fonts/Chillax-Semibold.woff') format('woff'),
+       url('../fonts/Chillax-Semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+  font-style: normal;
+}
+

@@ -1,0 +1,52 @@
+# Deploy Storybook to Chromatic
+# Triggers on pushes to prototypes/ folder
+# The Cursor agent provides the URL directly in Slack
+
+name: Deploy Storybook Preview
+
+on:
+  push:
+    paths:
+      - "prototypes/**"
+    branches:
+      - main
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  deploy-storybook:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: prototypes/package-lock.json
+
+      - name: Install dependencies
+        working-directory: prototypes
+        run: npm ci
+
+      - name: Deploy to Chromatic
+        id: chromatic
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          workingDir: prototypes
+          exitZeroOnChanges: true
+          autoAcceptChanges: main
+
+      - name: Output URLs
+        run: |
+          echo "🎨 Storybook URL: ${{ steps.chromatic.outputs.storybookUrl }}"
+          echo "🔗 Build URL: ${{ steps.chromatic.outputs.buildUrl }}"
+          echo ""
+          echo "📱 Permanent URL: https://main--695ece8a989a140b6546402c.chromatic.com"

@@ -1,0 +1,165 @@
+import { create } from "zustand";
+import type { ProjectStage as ProjectStageType } from "./db/schema";
+
+// ============================================
+// TYPES
+// ============================================
+
+export interface ProjectCard {
+  id: string;
+  name: string;
+  description?: string;
+  stage: ProjectStageType;
+  status: "active" | "paused" | "completed" | "archived";
+  priority: number;
+  createdAt: Date;
+  updatedAt: Date;
+  // Computed/joined data
+  documentCount?: number;
+  prototypeCount?: number;
+  // Job state
+  activeJobType?: string;
+  activeJobProgress?: number;
+  activeJobStatus?: "pending" | "running" | "completed" | "failed" | "cancelled";
+  lastJobError?: string;
+  isLocked?: boolean; // True when jobs are running - prevents dragging
+}
+
+export interface KanbanColumn {
+  id: ProjectStageType;
+  displayName: string;
+  color: string;
+  order: number;
+  enabled: boolean;
+  autoTriggerJobs?: string[];
+  humanInLoop?: boolean;
+}
+
+export interface WorkspaceState {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+// ============================================
+// KANBAN STORE
+// ============================================
+
+interface KanbanState {
+  // Data
+  workspace: WorkspaceState | null;
+  columns: KanbanColumn[];
+  projects: ProjectCard[];
+  
+  // UI State
+  activeProjectId: string | null;
+  draggedProjectId: string | null;
+  isLoading: boolean;
+  
+  // Actions
+  setWorkspace: (workspace: WorkspaceState) => void;
+  setColumns: (columns: KanbanColumn[]) => void;
+  setProjects: (projects: ProjectCard[]) => void;
+  addProject: (project: ProjectCard) => void;
+  updateProject: (id: string, updates: Partial<ProjectCard>) => void;
+  moveProject: (projectId: string, toStage: ProjectStageType) => void;
+  setActiveProject: (id: string | null) => void;
+  setDraggedProject: (id: string | null) => void;
+  setLoading: (loading: boolean) => void;
+}
+
+export const useKanbanStore = create<KanbanState>((set) => ({
+  // Initial state
+  workspace: null,
+  columns: [],
+  projects: [],
+  activeProjectId: null,
+  draggedProjectId: null,
+  isLoading: false,
+
+  // Actions
+  setWorkspace: (workspace) => set({ workspace }),
+  
+  setColumns: (columns) => set({ columns }),
+  
+  setProjects: (projects) => set({ projects }),
+  
+  addProject: (project) => set((state) => ({
+    projects: [...state.projects, project],
+  })),
+  
+  updateProject: (id, updates) => set((state) => ({
+    projects: state.projects.map((p) =>
+      p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p
+    ),
+  })),
+  
+  moveProject: (projectId, toStage) => set((state) => ({
+    projects: state.projects.map((p) =>
+      p.id === projectId ? { ...p, stage: toStage, updatedAt: new Date() } : p
+    ),
+  })),
+  
+  setActiveProject: (id) => set({ activeProjectId: id }),
+  
+  setDraggedProject: (id) => set({ draggedProjectId: id }),
+  
+  setLoading: (loading) => set({ isLoading: loading }),
+}));
+
+// ============================================
+// UI STORE
+// ============================================
+
+interface UIState {
+  // Sidebar
+  sidebarOpen: boolean;
+  sidebarTab: "chat" | "details" | "jobs";
+  
+  // Modals
+  newProjectModalOpen: boolean;
+  projectDetailModalOpen: boolean;
+  settingsModalOpen: boolean;
+  
+  // Actions
+  toggleSidebar: () => void;
+  setSidebarTab: (tab: "chat" | "details" | "jobs") => void;
+  openNewProjectModal: () => void;
+  closeNewProjectModal: () => void;
+  openProjectDetailModal: () => void;
+  closeProjectDetailModal: () => void;
+  openSettingsModal: () => void;
+  closeSettingsModal: () => void;
+}
+
+export const useUIStore = create<UIState>((set) => ({
+  // Initial state
+  sidebarOpen: true,
+  sidebarTab: "chat",
+  newProjectModalOpen: false,
+  projectDetailModalOpen: false,
+  settingsModalOpen: false,
+
+  // Actions
+  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+  setSidebarTab: (tab) => set({ sidebarTab: tab }),
+  openNewProjectModal: () => set({ newProjectModalOpen: true }),
+  closeNewProjectModal: () => set({ newProjectModalOpen: false }),
+  openProjectDetailModal: () => set({ projectDetailModalOpen: true }),
+  closeProjectDetailModal: () => set({ projectDetailModalOpen: false }),
+  openSettingsModal: () => set({ settingsModalOpen: true }),
+  closeSettingsModal: () => set({ settingsModalOpen: false }),
+}));
+
+// ============================================
+// SELECTORS
+// ============================================
+
+export const selectProjectsByStage = (stage: ProjectStageType) => (state: KanbanState) =>
+  state.projects.filter((p) => p.stage === stage);
+
+export const selectActiveProject = (state: KanbanState) =>
+  state.projects.find((p) => p.id === state.activeProjectId);
+
+export const selectEnabledColumns = (state: KanbanState) =>
+  state.columns.filter((c) => c.enabled).sort((a, b) => a.order - b.order);

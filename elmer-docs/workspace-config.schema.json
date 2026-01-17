@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PM Workspace Configuration",
+  "description": "Configuration schema for a PM Workspace instance",
+  "type": "object",
+  "required": ["workspace", "product", "prototypes"],
+  "properties": {
+    "workspace": {
+      "type": "object",
+      "description": "Workspace metadata",
+      "properties": {
+        "name": { "type": "string", "description": "Human-readable workspace name" },
+        "description": { "type": "string" },
+        "initialized": { "type": "boolean", "description": "Whether /setup has been run" },
+        "created_at": { "type": ["string", "null"], "format": "date-time" },
+        "version": { "type": "string" }
+      },
+      "required": ["name", "initialized"]
+    },
+    "product": {
+      "type": "object",
+      "description": "Product being managed in this workspace",
+      "properties": {
+        "name": { "type": "string", "description": "Product name" },
+        "one_liner": { "type": "string", "description": "One-sentence product description" },
+        "description": { "type": "string", "description": "Longer product description" },
+        "stage": { 
+          "type": "string", 
+          "enum": ["idea", "prototype", "mvp", "growth", "scale", "mature"],
+          "description": "Product lifecycle stage"
+        },
+        "target_market": { "type": "string" },
+        "anti_vision": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Things we explicitly are NOT building"
+        }
+      }
+    },
+    "personas": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Primary user personas"
+        },
+        "secondary": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Secondary user personas"
+        }
+      }
+    },
+    "outcomes": {
+      "type": "object",
+      "properties": {
+        "north_star": { "type": "string", "description": "Primary success metric" },
+        "key_metrics": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "repos": {
+      "type": "array",
+      "description": "Product codebases linked to this workspace",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Repository name" },
+          "path": { "type": "string", "description": "Path relative to workspace root" },
+          "prototype_path": { "type": "string", "description": "Path to prototypes within repo" },
+          "components_path": { "type": "string", "description": "Path to UI components for reference" },
+          "storybook_command": { "type": "string", "description": "Command to run Storybook" }
+        },
+        "required": ["name", "path"]
+      }
+    },
+    "prototypes": {
+      "type": "object",
+      "description": "Prototype configuration",
+      "properties": {
+        "default_location": { "type": "string", "description": "Default path for standalone prototypes" },
+        "storybook_port": { "type": "integer" },
+        "tech_stack": {
+          "type": "object",
+          "properties": {
+            "framework": { "type": "string" },
+            "styling": { "type": "string" },
+            "language": { "type": "string" }
+          }
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "description": "External tool integrations",
+      "properties": {
+        "linear": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "team_id": { "type": "string" }
+          }
+        },
+        "notion": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "workspace_id": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

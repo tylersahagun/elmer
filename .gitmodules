@@ -1,0 +1,10 @@
+# Product Repository Submodules
+# 
+# Add your product codebases as submodules in product-repos/:
+#
+#   git submodule add <repo-url> product-repos/<repo-name>
+#
+# Example:
+#   git submodule add git@github.com:myorg/my-app.git product-repos/my-app
+#
+# After adding, the submodule will appear below:

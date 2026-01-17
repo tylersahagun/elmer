@@ -1,0 +1,208 @@
+---
+description: 'Auto-assemble context for PM commands based on initiative and phase'
+globs: ['elmer-docs/initiatives/**/*']
+alwaysApply: false
+---
+
+# Context Orchestrator
+
+Automatically assemble relevant context when working on initiatives.
+
+## Purpose
+
+When any PM command runs on an initiative, this rule ensures all relevant context is loaded without requiring manual `@` references.
+
+## Context Loading Order
+
+When an initiative is mentioned or detected:
+
+### 1. Always Load (Foundation)
+```
+@elmer-docs/company-context/product-vision.md
+@elmer-docs/company-context/strategic-guardrails.md
+@elmer-docs/workspace-config.json
+```
+
+### 2. Load Initiative Metadata
+```
+@elmer-docs/initiatives/[name]/_meta.json
+```
+
+Extract from _meta.json:
+- Current phase
+- Target personas
+- Strategic pillar
+- Linked hypothesis
+
+### 3. Load Persona Context (Filtered)
+```
+@elmer-docs/company-context/personas.md
+```
+
+Filter to personas listed in `_meta.json.personas`
+
+### 4. Load Existing Initiative Docs (Phase-Dependent)
+
+| If Phase Is... | Also Load |
+|----------------|-----------|
+| discovery+ | `initiatives/[name]/research.md` |
+| define+ | `initiatives/[name]/prd.md` |
+| define+ | `initiatives/[name]/design-brief.md` |
+| build+ | `initiatives/[name]/prototype-notes.md` |
+| validate+ | `initiatives/[name]/jury-evaluations/` (latest) |
+
+### 5. Load Linked Hypothesis
+```
+@elmer-docs/hypotheses/committed/[hypothesis_id].md
+```
+
+## Auto-Detection
+
+Detect initiative from:
+1. Explicit mention: "for user-onboarding" or "[name]"
+2. Current file path: if editing `initiatives/[name]/...`
+3. Recent context: last initiative mentioned in conversation
+
+## Phase-Specific Context
+
+### Discovery Phase
+Load:
+- Research methodology guidance
+- Interview question templates
+- Competitive analysis patterns
+
+### Define Phase
+Load:
+- PRD template structure
+- Outcome chain examples
+- Success metrics patterns
+
+### Build Phase
+Load:
+- Prototype standards
+- Design system reference
+- Storybook patterns
+
+### Validate Phase
+Load:
+- Jury system configuration
+- Evaluation criteria
+- Graduation requirements
+
+## Context Package Format
+
+When context is assembled, present as:
+
+```markdown
+## Auto-Loaded Context
+
+**Initiative:** [name]
+**Phase:** [phase]
+**Personas:** [list]
+**Pillar:** [pillar]
+
+### Foundation
+- Product Vision: [summary]
+- Key Guardrails: [relevant items]
+
+### Initiative State
+- Status: [status]
+- Days in Phase: [days]
+- Next Action: [action]
+- Blockers: [list or "None"]
+
+### Linked Hypothesis
+[Summary of hypothesis if exists]
+
+### Existing Artifacts
+- Research: [exists/missing]
+- PRD: [exists/missing]
+- Design Brief: [exists/missing]
+- Prototype: [exists/missing]
+```
+
+## Integration with Commands
+
+### /research Command
+Context adds:
+- Existing research for this initiative
+- Research from related initiatives
+- Relevant persona details
+
+### /pm Command
+Context adds:
+- Research findings
+- Hypothesis problem statement
+- Strategic pillar context
+- Similar PRDs for reference
+
+### /proto Command
+Context adds:
+- PRD requirements
+- Design brief specs
+- Existing prototype patterns
+- Design system components
+
+### /iterate Command
+Context adds:
+- Current prototype state
+- Latest jury feedback
+- Version history
+
+### /validate Command
+Context adds:
+- Graduation criteria for current phase
+- Previous evaluations
+- Persona characteristics for jury
+
+## Context Refresh
+
+Refresh context when:
+- Initiative name changes
+- Phase advances
+- New documents added
+- Returning after long pause
+
+## Performance Considerations
+
+To avoid context overload:
+- Summarize long documents
+- Load only relevant sections
+- Prioritize most recent content
+- Skip unchanged content
+
+## Example Context Assembly
+
+For initiative "user-onboarding" in "build" phase:
+
+```
+Loading context for user-onboarding...
+
+✅ Foundation
+   - Product vision loaded
+   - Strategic guardrails loaded
+
+✅ Initiative: user-onboarding
+   - Phase: build
+   - Status: on_track
+   - Personas: new-user, admin
+   - Pillar: activation
+
+✅ Existing Artifacts
+   - research.md ✓
+   - prd.md ✓
+   - design-brief.md ✓
+   - prototype-notes.md ✓
+
+✅ Hypothesis: hyp-onboarding-flow
+   - Problem: Drop-off during setup
+   - Evidence: 5 signals
+
+Context ready. Proceeding with command...
+```
+
+## Manual Override
+
+User can skip auto-context with:
+- `--no-context` flag
+- Explicit `@` references (overrides auto-load)

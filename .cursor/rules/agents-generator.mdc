@@ -1,0 +1,71 @@
+---
+description: 'Generate product-focused AGENTS.md documentation'
+globs: ['.elmer/agents-docs/**/*']
+alwaysApply: false
+---
+
+# AGENTS.md Generator
+
+## Purpose
+
+Create AGENTS.md that gives AI agents PRODUCT context, not just technical docs.
+
+## Process
+
+1. Analyze target directory in @elephant-ai/web/src/ or @elephant-ai/functions/src/
+2. Cross-reference @notion for user context
+3. Generate with product focus
+
+## Template
+
+```markdown
+# [Path] AGENTS.md
+
+## Product Context
+
+- **Problem solved:**
+- **Personas:**
+- **Cognitive load eliminated:**
+
+## User Personas
+
+### [Primary]
+
+- **Need:**
+- **Fear:**
+- **Success:**
+
+## Key User Flows
+
+### Flow: [Name]
+
+**Trigger:** → **Steps:** → **Outcome:** **Success Metric:**
+
+## Trust & Experience
+
+### Builds Trust
+
+-
+
+### Breaks Trust
+
+-
+
+### Error Recovery
+
+-
+
+## Technical Context
+
+### Setup
+
+### Conventions
+
+### Testing
+
+### Related Components
+```
+
+## Save Location
+
+Mirror src structure: `.elmer/agents-docs/[path]/AGENTS.md`

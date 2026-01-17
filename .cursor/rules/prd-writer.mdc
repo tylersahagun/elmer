@@ -1,0 +1,162 @@
+---
+description: 'Generate structured PRDs for AskElephant'
+globs: ['elmer-docs/**/prd*.md']
+alwaysApply: false
+---
+
+# PRD Writer
+
+## Before Writing: Strategic Alignment Check
+
+**CRITICAL**: Before drafting ANY PRD, you MUST:
+
+1. Read @elmer-docs/company-context/product-vision.md
+2. Read @elmer-docs/company-context/strategic-guardrails.md
+3. Check @elmer-docs/company-context/personas.md
+4. Look for related PRDs in @elmer-docs/initiatives/
+
+## Pushback Triggers (Ask Before Proceeding)
+
+**Stop and ask clarifying questions if you detect:**
+
+### 🚩 Unclear Outcomes
+- "What business outcome does this enable? What changes for the user's day?"
+- "How would we know if this is working? What behavior changes?"
+
+### 🚩 Missing Persona Context
+- "Which persona needs this—reps, leaders, CSMs, or RevOps?"
+- "What's their current pain? What are they doing today?"
+
+### 🚩 No Evidence of Demand
+- "What evidence suggests customers need this? (quotes, churn reasons, data)"
+- "If we didn't build this, what happens to the business?"
+
+### 🚩 Revenue Impact Unclear
+- "How does this help us land, expand, or retain customers?"
+- "Does this help us win deals we're currently losing?"
+
+### 🚩 Trust/Privacy Implications
+- "How does this interact with privacy determination?"
+- "What happens when this fails? How do we recover trust?"
+
+### 🚩 Anti-Vision Warning
+- "This sounds like generic AI notes—how is this uniquely AskElephant?"
+- "Leadership said 'tech is not the moat'—what's the experience/delivery angle?"
+
+## Outcome Chain Requirement
+
+Every PRD MUST include a clear outcome chain:
+
+```
+[Feature] enables [user action]
+  → so that [immediate benefit]
+    → so that [behavior change]
+      → so that [business outcome]
+```
+
+If the user cannot articulate this chain, **do not proceed with the PRD**. Instead, recommend discovery work.
+
+## PRD Structure
+
+```markdown
+# [Feature Name] PRD
+
+## Overview
+- **Owner:** 
+- **Target Release:** 
+- **Status:** Draft
+- **Strategic Pillar:** [Trust / Data Knowledge / Trend Visibility]
+- **2026 Initiative:** [Which approved initiative does this support?]
+
+## Outcome Chain
+[Feature] enables [action]
+  → so that [benefit]
+    → so that [behavior change]
+      → so that [business outcome]
+
+## Problem Statement
+What problem? Who has it? Why now? What evidence?
+
+### Evidence
+- [ ] User quotes
+- [ ] Churn/support data
+- [ ] Competitive pressure
+- [ ] Leadership direction
+
+## Goals & Non-Goals
+
+### Goals (Measurable)
+- [ ] Goal with success metric and target
+
+### Non-Goals
+- Explicit exclusion with reasoning
+- Reference anti-vision if applicable
+
+## User Personas
+
+### Primary: [Name]
+- **Job-to-be-done:** 
+- **Current pain:** 
+- **Success looks like:** 
+- **Trust factors:** What builds/breaks trust for this persona?
+
+## User Stories
+- As a [persona], I want [action] so that [benefit]
+
+## Requirements
+
+### Must Have (MVP)
+- [ ] Requirement with acceptance criteria
+
+### Should Have
+### Could Have
+
+## User Flows
+
+### Flow: [Name]
+**Trigger:** 
+**Steps:** 1 → 2 → 3
+**Outcome:** 
+**Error states:** What happens when it fails?
+**Trust recovery:** How do we maintain trust on failure?
+
+## Trust & Privacy Considerations
+- Privacy determination interaction:
+- Data access implications:
+- Transparency to users:
+- Error recovery plan:
+
+## Technical Considerations
+- Dependencies:
+- Integration points:
+- Reliability risks:
+
+## Success Metrics
+- **North star:** 
+- **Leading indicators:** 
+- **Guardrails (what we don't want to break):**
+- **Trust metrics:** (if applicable)
+
+## Strategic Alignment
+- [ ] Outcome chain complete
+- [ ] Persona validated
+- [ ] Trust implications assessed
+- [ ] Not in anti-vision territory
+- [ ] Supports 2026 initiative stack
+
+## Open Questions
+1. 
+```
+
+## Save Location
+
+`elmer-docs/initiatives/[kebab-case-name]/prd.md`
+
+## When to Refuse PRD Creation
+
+If the initiative fails the strategic guardrails check, DO NOT create a PRD. Instead:
+
+1. List the gaps/concerns clearly
+2. Recommend specific discovery work
+3. Suggest questions to answer first
+4. Offer to help with discovery instead of PRD drafting

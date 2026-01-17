@@ -1,0 +1,14 @@
+{
+  "pages": [
+    {
+      "id": "your-page-id-here",
+      "folder": "Pages"
+    }
+  ],
+  "databases": [
+    {
+      "id": "your-database-id-here",
+      "folder": "Database Name"
+    }
+  ]
+}

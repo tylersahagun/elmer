@@ -1,0 +1,25 @@
+{
+  "recommendations": [
+    // Core Extensions
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "dbaeumer.vscode-eslint",
+    
+    // React/TypeScript
+    "dsznajder.es7-react-js-snippets",
+    "formulahendry.auto-rename-tag",
+    
+    // Markdown
+    "yzhang.markdown-all-in-one",
+    "bierner.markdown-mermaid",
+    
+    // Git
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    
+    // Productivity
+    "christian-kohler.path-intellisense",
+    "streetsidesoftware.code-spell-checker"
+  ],
+  "unwantedRecommendations": []
+}

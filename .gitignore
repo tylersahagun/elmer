@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+storybook-static/
+
+# Environment (keep .env.example for sharing)
+.env
+.env.local
+!.env.example
+*.local.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Obsidian (personal workspace)
+.obsidian/
+
+# Notion sync (local only)
+pm-workspace-docs/NotionSync/

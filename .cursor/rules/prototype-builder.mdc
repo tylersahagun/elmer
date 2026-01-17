@@ -1,0 +1,200 @@
+---
+description: "Build human-centric AI prototypes with creative exploration"
+globs: ["prototypes/**/*", "product-repos/**/prototypes/**/*"]
+alwaysApply: false
+---
+
+# Prototype Builder Rules
+
+Build prototypes that explore multiple creative directions, meet human-centric AI design standards, and enable informed design decisions.
+
+## Prototype Locations
+
+Check `workspace-config.json` for where to place prototypes:
+
+1. **Standalone** (default): `prototypes/src/[ProjectName]/`
+2. **In repo**: `product-repos/[repo]/src/components/prototypes/[ProjectName]/`
+
+When a repo is configured in `workspace-config.json`, prefer building there to match repo conventions. Fall back to standalone `prototypes/` if no repo is configured.
+
+## Design Principles (Always Apply)
+
+### Trust Before Automation
+- New features start as suggestions, not automations
+- Show receipts (evidence) for every AI decision
+- Make confidence levels explicit
+- Graceful failure > silent failure
+
+### Emotional Design
+- **Visceral**: Polish signals investment and care
+- **Behavioral**: Consistent, predictable interactions
+- **Reflective**: User feels augmented, not replaced
+
+### Persona Awareness
+Load personas from `elmer-docs/company-context/personas.md` and consider:
+- What do they fear?
+- What makes them feel capable?
+- What builds their trust?
+
+## Creative Exploration (Required)
+
+For each major component, create 2-3 creative directions:
+
+| Direction | User Control | Trust Required | Best Persona |
+|-----------|-------------|----------------|--------------|
+| Option A | Maximum | Low | New users, skeptics |
+| Option B | Balanced | Medium | Most users |
+| Option C | Minimal | High | Power users |
+
+## Required AI States
+
+Every AI feature needs ALL of these states in Storybook:
+
+```typescript
+// Required story exports
+export const Loading: Story = { ... };
+export const LoadingLong: Story = { ... };  // 3+ seconds
+export const Success: Story = { ... };
+export const Error: Story = { ... };
+export const LowConfidence: Story = { ... };
+export const Empty: Story = { ... };
+```
+
+### State Design Specs
+
+| State | Visual | Copy | Animation |
+|-------|--------|------|-----------|
+| Loading (short) | Spinner | None | Pulse |
+| Loading (long) | Progress stages | "Analyzing..." | Transitions |
+| Success | Check, muted | Brief, affirming | Scale+fade 150ms |
+| Error | Warning icon | Honest + solution | Gentle shake |
+| Low Confidence | Muted, dotted | "I think..." | None |
+| Empty | Illustration | Encouraging | Fade in |
+
+## Component Structure
+
+### Standalone Prototypes
+```
+prototypes/src/[ProjectName]/
+├── [ComponentName].tsx
+├── [ComponentName].stories.tsx   # All options + all states
+├── types.ts
+└── index.ts
+```
+
+### Repo Prototypes (when configured)
+```
+product-repos/[repo]/src/components/prototypes/[ProjectName]/
+├── [ComponentName].tsx
+├── [ComponentName].stories.tsx
+├── [ComponentName].docs.mdx      # Design rationale
+├── types.ts
+└── index.ts
+```
+
+## Story Organization
+
+```typescript
+const meta = {
+  title: 'Prototypes/[ProjectName]/[ComponentName]',
+  component: ComponentName,
+};
+
+// Creative Options
+export const OptionA_MaxControl: Story = { ... };
+export const OptionB_Balanced: Story = { ... };
+export const OptionC_Efficient: Story = { ... };
+
+// Required States
+export const Loading: Story = { ... };
+export const LoadingLong: Story = { ... };
+export const Success: Story = { ... };
+export const Error: Story = { ... };
+export const LowConfidence: Story = { ... };
+export const Empty: Story = { ... };
+```
+
+## Design Checklists
+
+### Before Coding
+- [ ] Read PRD and Design Brief
+- [ ] Understand which personas this serves
+- [ ] Identify trust level required
+- [ ] Plan 2-3 creative directions
+
+### During Build
+- [ ] All AI states implemented
+- [ ] Receipts/evidence visible for AI decisions
+- [ ] Confidence levels shown appropriately
+- [ ] Error recovery path exists
+- [ ] Undo available for AI actions
+
+### Before Review
+- [ ] Keyboard navigable
+- [ ] Screen reader compatible
+- [ ] Color contrast sufficient
+- [ ] No surveillance vibes
+- [ ] User feels capable, not dependent
+
+## Versioning
+
+Preserve iterations for comparison:
+
+```typescript
+// Version in story name
+export const V1_OptionA: Story = { ... };
+export const V2_OptionA_Refined: Story = { ... };
+
+// Or use folders
+// v1/, v2/, v3/
+```
+
+## Anti-Patterns
+
+🚩 **Single option** - Always explore 2-3 directions
+🚩 **Missing states** - All AI states required
+🚩 **Confident wrongness** - Show uncertainty appropriately
+🚩 **Silent failure** - Always explain what went wrong
+🚩 **Surveillance vibes** - "Helps you" not "reports on you"
+🚩 **Replacement framing** - Augment, don't replace
+🚩 **No receipts** - Show evidence for AI decisions
+
+## Tech Stack
+
+Default stack (configurable in `workspace-config.json`):
+- React 18 + TypeScript (strict mode)
+- Tailwind CSS
+- shadcn/ui components (when available)
+- Functional components with hooks
+
+## Storybook Commands
+
+### Standalone prototypes
+```bash
+cd prototypes
+npm run storybook    # http://localhost:6006
+npm run build-storybook
+```
+
+### Repo prototypes (check repo's package.json for exact command)
+```bash
+cd product-repos/[repo-name]
+npm run storybook    # Port may vary
+```
+
+## After Building
+
+Document in `elmer-docs/initiatives/[project]/prototype-notes.md`:
+
+1. Options created with rationale
+2. Comparison table
+3. Recommended direction
+4. Open questions for review
+5. Trust/emotion assessment for each option
+
+## Context Testing (When Repo Available)
+
+When a product repo is configured, test prototypes in real context:
+- Find similar components in the repo for reference
+- Embed prototype to verify it feels native
+- Check styling matches repo conventions

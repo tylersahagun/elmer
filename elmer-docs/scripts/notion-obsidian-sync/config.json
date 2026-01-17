@@ -1,0 +1,34 @@
+{
+  "pages": [
+    {
+      "id": "2c0f79b2c8ac817ca1bdcf67c21fb76c",
+      "folder": "Pages"
+    }
+  ],
+  "databases": [
+    {
+      "id": "2c0f79b2c8ac802c8b15c84a8fce3513",
+      "folder": "Projects"
+    },
+    {
+      "id": "57302df851844d1cae319f8bef588ce6",
+      "folder": "Roadmap"
+    },
+    {
+      "id": "70fd3050f9ce473a99767e2933b684cc",
+      "folder": "Design Briefs"
+    },
+    {
+      "id": "7321cbcb31a9470fb15d0f472d2c5eb8",
+      "folder": "Engineering Specs"
+    },
+    {
+      "id": "3dd2d7498d9a4be18594249847f44cc1",
+      "folder": "GTM Plans"
+    },
+    {
+      "id": "ee466e0ba7ee47058687f84e016c17f4",
+      "folder": "Feedback"
+    }
+  ]
+}
