@@ -1,17 +1,18 @@
 # Save Your Work
 
-Simple command to save and push all your changes. No git knowledge required.
+Create atomic commits with proper conventional commit messages.
 
 ## Usage
 
 - `/save` - Save all changes with auto-generated message
-- `/save [message]` - Save with a custom message (optional)
+- `/save [message]` - Save with a custom commit message
+- `/save --amend` - Amend the previous commit (add changes to last commit)
 
 ## What This Does
 
-1. Checks if you have any changes to save
-2. Stages all your changes
-3. Commits with a descriptive message
+1. Validates you're on a feature branch (not main)
+2. Checks for changes to commit
+3. Creates an atomic commit with conventional format
 4. Pushes to your branch on GitHub
 
 ## Process
@@ -24,12 +25,20 @@ BRANCH=$(git branch --show-current)
 echo "You're on branch: $BRANCH"
 ```
 
-If branch is `main`, warn the user:
+If branch is `main`, **STOP and create a feature branch**:
 ```
-⚠️ You're on the main branch! 
+🛑 You're on the main branch!
 
-Run /setup first to create your personal branch, 
-or run: git checkout -b collab/[your-name]-$(date +%Y-%m-%d)
+Direct commits to main are not allowed. Create a feature branch first:
+
+  /branch [feature-name]
+
+Examples:
+  /branch user-onboarding
+  /branch fix/login-bug
+  /branch proto/dashboard
+
+This keeps our git history clean and enables proper code review.
 ```
 
 ### Step 2: Check for Changes
@@ -55,16 +64,34 @@ Display to user:
 [show git status output]
 ```
 
-### Step 4: Generate Commit Message
+### Step 4: Generate Commit Message (Conventional Format)
 
-If user provided a message, use it. Otherwise, auto-generate based on files changed:
+Format: `type(scope): description`
 
-**Logic for auto-message:**
-- If changes in `elephant-ai/web/src/components/prototypes/` → "Update [FolderName] prototype"
-- If changes in `.cursor/commands/` → "Update workspace commands"
-- If changes in `elmer-docs/initiatives/` → "Update [initiative-name] documentation"
-- If changes in `elmer-docs/research/` → "Add research notes"
-- Otherwise → "Update workspace files"
+If user provided a message, parse and format it. Otherwise, auto-generate:
+
+**Auto-detection logic:**
+| Changed Files | Type | Scope | Message |
+|---------------|------|-------|---------|
+| `prototypes/src/components/` | `proto` | component name | `proto(ComponentName): update prototype` |
+| `.cursor/commands/` | `chore` | `commands` | `chore(commands): update workspace commands` |
+| `.cursor/rules/` | `chore` | `rules` | `chore(rules): update workspace rules` |
+| `elmer-docs/initiatives/` | `docs` | initiative name | `docs(initiative): update documentation` |
+| `elmer-docs/research/` | `docs` | `research` | `docs(research): add research notes` |
+| `.github/workflows/` | `ci` | - | `ci: update workflow` |
+| `orchestrator/` | `feat` or `fix` | `orchestrator` | `feat(orchestrator): update` |
+| Mixed changes | `chore` | - | `chore: update workspace files` |
+
+**User-provided message parsing:**
+- If already formatted (`feat: xyz`), use as-is
+- If plain text, infer type from context and format
+- Example: "add login button" → `feat(ui): add login button`
+
+**Commit message requirements:**
+- Must be lowercase (except proper nouns)
+- No period at the end
+- Max 72 characters for the subject line
+- Imperative mood ("add" not "added")
 
 ### Step 5: Stage and Commit
 
@@ -147,8 +174,35 @@ If you need help, ask Tyler or another team member.
 
 This is automatically handled by setting the upstream on first push.
 
-## Tips
+## Atomic Commit Guidelines
 
-- Save often! Small, frequent saves are better than big ones
-- You can always see your save history on GitHub
-- If something goes wrong, your work is safe - we can recover it
+### What is an Atomic Commit?
+
+An atomic commit is a single, focused change that:
+- Does ONE thing
+- Can be described in one sentence
+- Can be reverted without breaking other features
+- Makes sense on its own
+
+### Good vs Bad Examples
+
+| ❌ Bad (Too Big) | ✅ Good (Atomic) |
+|------------------|------------------|
+| "update everything" | "feat(ui): add Button component" |
+| "fix bugs and add features" | "fix(auth): resolve login redirect" |
+| "WIP" | "docs: add API reference" |
+
+### When to Commit
+
+Commit after completing each logical unit:
+- ✅ Finished a component → commit
+- ✅ Fixed a bug → commit  
+- ✅ Added a feature → commit
+- ✅ Updated documentation → commit
+
+### Tips
+
+- **Commit often** - Smaller commits are easier to review and revert
+- **One purpose per commit** - If you're using "and", split it up
+- **Review before committing** - Use `git diff` to check what you're committing
+- **Don't mix refactors with features** - Separate them into different commits

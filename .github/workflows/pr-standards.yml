@@ -1,0 +1,172 @@
+name: PR Standards
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  validate-pr:
+    name: Validate PR Standards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit count
+        id: commit-count
+        run: |
+          COMMIT_COUNT=$(git rev-list --count origin/main..HEAD)
+          echo "count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "📊 PR has $COMMIT_COUNT commit(s)"
+
+      - name: Validate branch naming
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          echo "🔍 Checking branch name: $BRANCH_NAME"
+          
+          # Valid prefixes
+          VALID_PREFIXES="feat/|fix/|docs/|refactor/|chore/|proto/|research/|test/|style/"
+          
+          if [[ "$BRANCH_NAME" =~ ^($VALID_PREFIXES) ]]; then
+            echo "✅ Branch name follows convention"
+          else
+            echo "⚠️ Branch name doesn't follow convention"
+            echo ""
+            echo "Expected format: [type]/[description]"
+            echo "Valid types: feat, fix, docs, refactor, chore, proto, research, test, style"
+            echo ""
+            echo "Examples:"
+            echo "  feat/user-onboarding"
+            echo "  fix/login-redirect"
+            echo "  proto/dashboard-redesign"
+            echo ""
+            echo "This is a warning, not a blocker."
+          fi
+
+      - name: Validate commit messages
+        run: |
+          echo "🔍 Checking commit messages..."
+          
+          # Get all commit messages in this PR
+          COMMITS=$(git log origin/main..HEAD --pretty=format:"%s")
+          
+          # Conventional commit pattern
+          PATTERN="^(feat|fix|docs|style|refactor|test|chore|proto|research)(\([a-z0-9-]+\))?: .+"
+          
+          INVALID_COUNT=0
+          while IFS= read -r commit; do
+            if [[ -z "$commit" ]]; then
+              continue
+            fi
+            
+            if [[ "$commit" =~ $PATTERN ]]; then
+              echo "  ✅ $commit"
+            else
+              echo "  ⚠️ $commit"
+              echo "     ^ Does not follow conventional commit format"
+              ((INVALID_COUNT++))
+            fi
+          done <<< "$COMMITS"
+          
+          if [ $INVALID_COUNT -gt 0 ]; then
+            echo ""
+            echo "⚠️ $INVALID_COUNT commit(s) don't follow conventional commit format"
+            echo ""
+            echo "Expected format: type(scope): description"
+            echo "Examples:"
+            echo "  feat(ui): add Button component"
+            echo "  fix(storybook): resolve build error"
+            echo "  docs: update README"
+            echo ""
+            echo "This is a warning. Consider squashing and rewriting before merge."
+          else
+            echo ""
+            echo "✅ All commit messages follow convention"
+          fi
+
+      - name: PR summary comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commitCount = ${{ steps.commit-count.outputs.count }};
+            const branchName = '${{ github.head_ref }}';
+            
+            let status = '✅';
+            let recommendation = '';
+            
+            if (commitCount > 1) {
+              status = '⚠️';
+              recommendation = `
+            ### Recommendation
+            
+            This PR has **${commitCount} commits**. For a clean git history, consider:
+            
+            1. **Squash on merge** (easiest) - Use "Squash and merge" button
+            2. **Squash locally** - Run:
+               \`\`\`bash
+               git rebase -i origin/main
+               # Change 'pick' to 'squash' for all but first commit
+               \`\`\`
+            
+            A single, well-described commit makes history easier to navigate.
+            `;
+            } else {
+              recommendation = `
+            ### ✅ Great job!
+            
+            This PR has a single commit - perfect for clean git history.
+            `;
+            }
+            
+            const body = `## PR Standards Check ${status}
+            
+            | Check | Status |
+            |-------|--------|
+            | Commit count | ${commitCount === 1 ? '✅' : '⚠️'} ${commitCount} commit(s) |
+            | Branch naming | Checked in logs |
+            | Commit format | Checked in logs |
+            
+            ${recommendation}
+            
+            ---
+            <details>
+            <summary>📚 Git Workflow Guidelines</summary>
+            
+            - **Branch naming**: \`feat/\`, \`fix/\`, \`docs/\`, \`proto/\`, etc.
+            - **Commit format**: \`type(scope): description\`
+            - **PR best practice**: Squash to single commit before merge
+            
+            See \`.cursor/rules/git-workflow.mdc\` for full guidelines.
+            </details>
+            `;
+            
+            // Find existing comment from this workflow
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('PR Standards Check')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }

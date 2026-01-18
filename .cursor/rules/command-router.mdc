@@ -29,8 +29,9 @@ Use these to:
 
 | Intent Patterns | Command | Description |
 |-----------------|---------|-------------|
-| "save my work", "commit changes", "push", "backup" | `/save` | Stage, commit, and push all changes |
+| "save my work", "commit changes", "push", "backup" | `/save` | Create atomic commit and push |
 | "get latest", "pull updates", "sync codebase", "update repo" | `/update` | Pull latest changes and sync submodules |
+| "new branch", "create branch", "start feature", "checkout" | `/branch [name]` | Create feature branch from main |
 | "help", "what commands", "how do I", "I'm stuck", "guide me" | `/help` | Show command guidance |
 | "what's the status", "where are we", "active work", "current state" | `/status` | Show workspace overview |
 | "roadmap", "what's planned", "priorities", "what's next" | `/roadmap` | View/update product roadmap |
@@ -156,6 +157,13 @@ This helps ensure we're building the right thing.
 - Contains: "save", "commit", "push", "pull", "update", "share", "PR"
 - Action: Execute appropriate git workflow command
 - Low-risk: Can auto-execute
+- **Important**: If on `main` branch, redirect to `/branch` first
+
+### Branch Intent
+- Contains: "new branch", "create branch", "start working", "new feature", "checkout"
+- Action: Execute `/branch [name]`
+- Requires: Branch name/description
+- Note: Always branches from latest `main`
 
 ### Status/Info Intent
 - Contains: "status", "where", "what's", "help", "how", "guide", "roadmap"
@@ -181,7 +189,8 @@ This helps ensure we're building the right thing.
 | Context-Proto | PRD, design-brief.md, product-repos/ structure, component-patterns.mdc |
 | Validate | All initiative docs, jury-system.mdc |
 | Status/Help | Current workspace state |
-| Git workflows | None (procedural) |
+| Git workflows | git-workflow.mdc, current branch state |
+| Branch | git-workflow.mdc |
 | Component | storybook-standards.mdc, existing component structure |
 | Storybook | Component files in prototypes/src/components |
 

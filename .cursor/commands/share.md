@@ -1,18 +1,27 @@
 # Share Your Work
 
-Create a Pull Request to share your prototypes and changes for review.
+Create a Pull Request with a clean, single commit for review.
 
 ## Usage
 
 - `/share` - Create a PR with auto-generated description
 - `/share [title]` - Create a PR with a custom title
+- `/share --no-squash` - Create PR without squashing (not recommended)
 
 ## What This Does
 
 1. Saves any unsaved changes
-2. Pushes your branch to GitHub
-3. Creates a Pull Request for review
-4. Provides a link to view and discuss
+2. **Squashes commits** into a single, well-formatted commit
+3. Pushes your branch to GitHub
+4. Creates a Pull Request for review
+5. Provides a link to view and discuss
+
+## Why Squash?
+
+Single-commit PRs keep git history clean and make it easy to:
+- Understand what each PR changed
+- Revert changes if needed
+- Navigate history with AI tools
 
 ## Process
 
@@ -38,14 +47,53 @@ Run /setup to create one, or check out an existing branch.
 if [ -n "$(git status --porcelain)" ]; then
     echo "📝 You have unsaved changes. Saving them first..."
     git add -A
-    git commit -m "Update before sharing"
+    git commit -m "chore: save changes before PR"
 fi
 ```
 
-### Step 3: Push to GitHub
+### Step 3: Check Commit Count and Squash
 
 ```bash
-git push -u origin "$BRANCH"
+COMMIT_COUNT=$(git rev-list --count origin/main..HEAD)
+echo "📊 Branch has $COMMIT_COUNT commit(s)"
+
+if [ $COMMIT_COUNT -gt 1 ]; then
+    echo "🔄 Squashing $COMMIT_COUNT commits into one..."
+    
+    # Get all commit messages for the squash message
+    MESSAGES=$(git log origin/main..HEAD --pretty=format:"- %s" --reverse)
+    
+    # Soft reset to main, keeping changes staged
+    git reset --soft origin/main
+    
+    # Create single commit with combined message
+    # Use the PR title or generate from branch name
+    COMMIT_MSG="[PR_TITLE_OR_GENERATED]"
+    git commit -m "$COMMIT_MSG" -m "Changes included:" -m "$MESSAGES"
+    
+    echo "✅ Commits squashed into one"
+fi
+```
+
+**Squash commit message format:**
+```
+feat(scope): PR title or description
+
+Changes included:
+- Original commit 1
+- Original commit 2
+- Original commit 3
+```
+
+### Step 4: Push to GitHub
+
+```bash
+# Force push since we rewrote history (only safe on feature branches)
+if [ $COMMIT_COUNT -gt 1 ]; then
+    git push -u origin "$BRANCH" --force-with-lease
+else
+    git push -u origin "$BRANCH"
+fi
 ```
 
 ### Step 4: Generate PR Description

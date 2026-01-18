@@ -1,0 +1,251 @@
+---
+description: 'Git workflow standards - feature branches, atomic commits, clean PRs'
+globs:
+alwaysApply: true
+---
+
+# Git Workflow Standards
+
+This workspace follows a clean Git workflow to keep history readable and AI-friendly.
+
+## Core Principles
+
+1. **Feature branches** - All work happens on branches off `main`
+2. **Atomic commits** - Each commit represents ONE logical change
+3. **Single-commit PRs** - PRs should have one squashed commit before merge
+4. **Conventional commits** - Follow the conventional commit format
+
+---
+
+## Branch Naming Convention
+
+```
+[type]/[short-description]
+```
+
+| Type | Use For | Example |
+|------|---------|---------|
+| `feat/` | New features | `feat/user-onboarding` |
+| `fix/` | Bug fixes | `fix/login-redirect` |
+| `docs/` | Documentation | `docs/api-reference` |
+| `refactor/` | Code restructuring | `refactor/auth-module` |
+| `chore/` | Maintenance tasks | `chore/update-deps` |
+| `proto/` | Prototypes | `proto/dashboard-redesign` |
+| `research/` | Research/exploration | `research/ai-suggestions` |
+
+**Rules:**
+- Use lowercase and hyphens (no spaces or underscores)
+- Keep it short but descriptive (3-5 words max)
+- Match the initiative name when applicable
+
+---
+
+## Commit Message Format
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation changes |
+| `style` | Formatting (no code change) |
+| `refactor` | Code restructuring |
+| `test` | Adding/updating tests |
+| `chore` | Maintenance, dependencies |
+| `proto` | Prototype work |
+
+### Scopes (Optional)
+
+Common scopes for this project:
+- `storybook` - Storybook/prototype changes
+- `ui` - UI component changes
+- `docs` - Documentation
+- `ci` - CI/CD changes
+- `orchestrator` - Orchestrator app changes
+- `elmer-docs` - PM documentation
+
+### Examples
+
+```
+feat(storybook): add Button component with variants
+fix(ui): resolve card overflow on mobile
+docs: update README with setup instructions
+chore(deps): bump tailwindcss to 3.4.0
+proto(onboarding): implement welcome flow mockup
+```
+
+---
+
+## Workflow Commands
+
+### Creating a Feature Branch
+
+Use `/branch [name]` to create a properly named branch:
+
+```
+/branch user-onboarding
+→ Creates: feat/user-onboarding
+```
+
+### Saving Work (Atomic Commits)
+
+Use `/save [message]` to commit changes:
+
+```
+/save "add login button component"
+→ Commits: feat(ui): add login button component
+```
+
+**Best Practices:**
+- Commit frequently (every logical change)
+- One commit = one purpose
+- If you can't describe it in one line, split it up
+
+### Sharing Work (PRs)
+
+Use `/share [title]` to create a PR:
+
+1. **Before creating PR**: Squash commits if multiple
+2. **PR title**: Should match the commit message format
+3. **PR description**: Auto-generated from commit body
+
+---
+
+## PR Requirements
+
+### Before Merging
+
+1. **Single commit** - Squash all commits into one
+2. **Clean message** - Follow conventional commit format
+3. **Passing CI** - All checks must pass
+4. **Approved** - At least one approval (when required)
+
+### Squashing Commits
+
+If you have multiple commits, squash before merge:
+
+```bash
+# Interactive rebase to squash
+git rebase -i main
+
+# In the editor, change 'pick' to 'squash' (or 's') for all but first commit
+# Save and edit the final commit message
+```
+
+Or use the GitHub "Squash and merge" button (recommended).
+
+---
+
+## GitHub Repository Settings
+
+**Recommended Settings** (Settings → General → Pull Requests):
+
+- [x] Allow squash merging
+- [x] Default to squash merge
+- [ ] Allow merge commits (disable)
+- [ ] Allow rebase merging (disable)
+- [x] Automatically delete head branches
+
+This ensures all PRs are squashed to a single commit on merge.
+
+---
+
+## Common Scenarios
+
+### Starting New Work
+
+```bash
+# Always start from updated main
+git checkout main
+git pull origin main
+
+# Create feature branch
+git checkout -b feat/my-feature
+```
+
+Or use: `/branch my-feature`
+
+### Making Changes
+
+```bash
+# Make atomic commits as you work
+git add [specific files]
+git commit -m "feat(scope): description"
+
+# Don't add everything blindly
+# Keep commits focused
+```
+
+### Ready for Review
+
+```bash
+# If multiple commits, squash first
+git rebase -i main
+
+# Push and create PR
+git push -u origin feat/my-feature
+gh pr create
+```
+
+Or use: `/share "feat: my feature description"`
+
+### After PR Merged
+
+```bash
+# Switch back to main
+git checkout main
+git pull origin main
+
+# Delete local feature branch
+git branch -d feat/my-feature
+
+# Start next feature
+git checkout -b feat/next-feature
+```
+
+---
+
+## Anti-Patterns to Avoid
+
+🚫 **Committing directly to main** - Always use feature branches
+🚫 **"WIP" or "fix stuff" commits** - Use descriptive messages
+🚫 **Giant commits** - Split into logical units
+🚫 **Merging instead of rebasing** - Keep history linear
+🚫 **Multiple unrelated changes in one commit** - One purpose per commit
+
+---
+
+## Quick Reference
+
+| Command | Action |
+|---------|--------|
+| `/branch [name]` | Create feature branch |
+| `/save [msg]` | Commit with message |
+| `/share [title]` | Create PR |
+| `/update` | Sync with main |
+
+| Branch Type | Prefix |
+|-------------|--------|
+| Feature | `feat/` |
+| Bug fix | `fix/` |
+| Docs | `docs/` |
+| Prototype | `proto/` |
+
+| Commit Type | Use For |
+|-------------|---------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation |
+| `chore` | Maintenance |
+| `proto` | Prototypes |
