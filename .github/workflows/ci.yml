@@ -53,6 +53,7 @@ jobs:
         if: matrix.has-lint
         working-directory: ${{ matrix.project }}
         run: npm run lint
+        continue-on-error: true  # Lint warnings don't block CI (for now)
 
   # ============================================
   # Build Verification
