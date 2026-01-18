@@ -6,35 +6,51 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { columnVariants, springPresets } from "@/lib/animations";
 import { useKanbanStore, type KanbanColumn as KanbanColumnType } from "@/lib/store";
 import { ProjectCard } from "./ProjectCard";
 import { ProjectFlipCard } from "./ProjectFlipCard";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
+
+// Column display state
+export type ColumnViewState = "normal" | "expanded" | "minimized" | "hidden";
 
 interface KanbanColumnProps {
   column: KanbanColumnType;
+  viewState?: ColumnViewState;
+  onExpand?: () => void;
+  onMinimize?: () => void;
+  onClose?: () => void;
+  onRestore?: () => void;
 }
 
-// Glowing orb colors for stage indicators - no gradients, just the orb
-const columnGlowMap: Record<string, { bg: string; glow: string }> = {
-  slate: { bg: "bg-slate-400/80", glow: "shadow-[0_0_12px_rgba(148,163,184,0.6)]" },
-  teal: { bg: "bg-teal-400/80", glow: "shadow-[0_0_12px_rgba(45,212,191,0.6)]" },
-  purple: { bg: "bg-purple-400/80", glow: "shadow-[0_0_12px_rgba(192,132,252,0.6)]" },
-  blue: { bg: "bg-blue-400/80", glow: "shadow-[0_0_12px_rgba(96,165,250,0.6)]" },
-  pink: { bg: "bg-pink-400/80", glow: "shadow-[0_0_12px_rgba(244,114,182,0.6)]" },
-  amber: { bg: "bg-amber-400/80", glow: "shadow-[0_0_12px_rgba(251,191,36,0.6)]" },
-  orange: { bg: "bg-orange-400/80", glow: "shadow-[0_0_12px_rgba(251,146,60,0.6)]" },
-  green: { bg: "bg-green-400/80", glow: "shadow-[0_0_12px_rgba(74,222,128,0.6)]" },
-  cyan: { bg: "bg-cyan-400/80", glow: "shadow-[0_0_12px_rgba(34,211,238,0.6)]" },
-  indigo: { bg: "bg-indigo-400/80", glow: "shadow-[0_0_12px_rgba(129,140,248,0.6)]" },
-  emerald: { bg: "bg-emerald-400/80", glow: "shadow-[0_0_12px_rgba(52,211,153,0.6)]" },
+// Color configuration for stage indicators
+const columnColorMap: Record<string, { bg: string; text: string }> = {
+  slate: { bg: "bg-slate-400", text: "text-slate-600 dark:text-slate-400" },
+  teal: { bg: "bg-teal-400", text: "text-teal-600 dark:text-teal-400" },
+  purple: { bg: "bg-purple-400", text: "text-purple-600 dark:text-purple-400" },
+  blue: { bg: "bg-blue-400", text: "text-blue-600 dark:text-blue-400" },
+  pink: { bg: "bg-pink-400", text: "text-pink-600 dark:text-pink-400" },
+  amber: { bg: "bg-amber-400", text: "text-amber-600 dark:text-amber-400" },
+  orange: { bg: "bg-orange-400", text: "text-orange-600 dark:text-orange-400" },
+  green: { bg: "bg-green-400", text: "text-green-600 dark:text-green-400" },
+  cyan: { bg: "bg-cyan-400", text: "text-cyan-600 dark:text-cyan-400" },
+  indigo: { bg: "bg-indigo-400", text: "text-indigo-600 dark:text-indigo-400" },
+  emerald: { bg: "bg-emerald-400", text: "text-emerald-600 dark:text-emerald-400" },
 };
 
 // Memoized column component - only re-renders when its own projects change
-export const KanbanColumn = memo(function KanbanColumn({ column }: KanbanColumnProps) {
+export const KanbanColumn = memo(function KanbanColumn({
+  column,
+  viewState = "normal",
+  onExpand,
+  onMinimize,
+  onClose,
+  onRestore,
+}: KanbanColumnProps) {
   // Subscribe ONLY to projects in this column using shallow comparison
   const projects = useKanbanStore(
     useShallow((state) => state.projects.filter((p) => p.stage === column.id))
@@ -45,7 +61,69 @@ export const KanbanColumn = memo(function KanbanColumn({ column }: KanbanColumnP
   });
 
   const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
-  const colorConfig = columnGlowMap[column.color] || columnGlowMap.slate;
+  const colorConfig = columnColorMap[column.color] || columnColorMap.slate;
+
+  // Handle hidden state
+  if (viewState === "hidden") {
+    return null;
+  }
+
+  // Handle minimized state - vertical strip with rotated title
+  if (viewState === "minimized") {
+    return (
+      <motion.div
+        variants={columnVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        data-kanban-column={column.id}
+        className="flex-shrink-0 w-12"
+      >
+        <div
+          className={cn(
+            "h-[calc(100vh-220px)] rounded-2xl border",
+            "bg-card dark:bg-card",
+            "border-border dark:border-[rgba(255,255,255,0.14)]",
+            "shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)]",
+            "cursor-pointer hover:border-primary/50 transition-colors",
+            "flex flex-col items-center py-4"
+          )}
+          onClick={onRestore}
+        >
+          {/* Minimized indicator */}
+          <div className={cn("w-2 h-2 rounded-full mb-4", colorConfig.bg)} />
+          
+          {/* Vertical title */}
+          <div className="flex-1 flex items-center justify-center">
+            <span
+              className={cn(
+                "font-mono text-xs text-muted-foreground whitespace-nowrap",
+                "[writing-mode:vertical-lr] rotate-180"
+              )}
+            >
+              {column.displayName}
+            </span>
+          </div>
+          
+          {/* Project count */}
+          <span className={cn(
+            "text-xs px-2 py-1 rounded-full mt-4",
+            "bg-muted text-muted-foreground",
+            "font-mono tabular-nums"
+          )}>
+            {projects.length}
+          </span>
+          
+          {/* Vertical line indicator */}
+          <div className="absolute inset-x-0 top-1/4 bottom-1/4 mx-auto w-px bg-border" />
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Normal and expanded states
+  const isExpanded = viewState === "expanded";
+  const columnWidth = isExpanded ? "w-[400px] sm:w-[450px]" : "w-[280px] sm:w-72";
 
   return (
     <motion.div
@@ -54,81 +132,94 @@ export const KanbanColumn = memo(function KanbanColumn({ column }: KanbanColumnP
       animate="animate"
       exit="exit"
       data-kanban-column={column.id}
-      className="flex-shrink-0 w-[280px] sm:w-72 min-w-[260px]"
+      className={cn("flex-shrink-0 min-w-[260px]", columnWidth)}
+      layout
     >
-      {/* Liquid Glass Lane Container - Pure glassmorphism, optimized for scroll */}
+      {/* macOS Window-style Column Container */}
       <motion.div
         animate={{
-          scale: isOver ? 1.02 : 1,
-          y: isOver ? -4 : 0,
+          scale: isOver ? 1.01 : 1,
+          y: isOver ? -2 : 0,
         }}
         transition={springPresets.bouncy}
         className={cn(
-          // Pill shape with full rounding
-          "rounded-[28px] overflow-hidden relative",
-          // Glass effect with GPU acceleration hint
-          "bg-slate-900/40 dark:bg-slate-950/50",
-          "backdrop-blur-sm", // Reduced from md to sm for better performance
-          // Promote to own layer for scroll performance
+          // Window styling - matches SkillsMP design tokens
+          "rounded-2xl overflow-hidden relative",
+          "bg-card dark:bg-card",
+          "border border-border dark:border-[rgba(255,255,255,0.14)]",
+          "shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)]",
+          // GPU acceleration
           "will-change-transform transform-gpu",
-          // Subtle border for glass edge definition
-          "border border-white/[0.08]",
-          // Transition for hover states only (not during scroll)
-          "transition-[border-color,box-shadow] duration-300",
-          // Hover/drop state - slight highlight
-          isOver && [
-            "border-white/[0.15]",
-            "shadow-[0_0_30px_rgba(255,255,255,0.05)]",
-          ]
+          // Transition for hover states
+          "transition-[border-color,box-shadow] duration-200",
+          // Drop state highlight
+          isOver && "border-primary/50 shadow-sm"
         )}
       >
-        
-        {/* Column Header - Inside the glass */}
-        <div className="flex items-center justify-between px-4 py-3 relative z-10">
-          <div className="flex items-center gap-2.5">
-            {/* Glowing orb indicator */}
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              colorConfig.bg,
-              colorConfig.glow
-            )} />
-            <span className="font-medium text-sm text-white">{column.displayName}</span>
-            <span className={cn(
-              "text-xs px-2 py-0.5 rounded-full",
-              "bg-white/15",
-              "text-white/80",
-              "font-medium tabular-nums"
-            )}>
-              {projects.length}
-            </span>
+        {/* Window Title Bar with Traffic Lights */}
+        <div
+          className={cn(
+            "flex h-9 items-center justify-between rounded-t-2xl border-b px-4",
+            "border-border dark:border-[rgba(255,255,255,0.14)]",
+            "bg-muted/50 dark:bg-muted/20"
+          )}
+        >
+          {/* Left side: Traffic lights + Title */}
+          <div className="flex items-center gap-3">
+            <TrafficLights
+              size={10}
+              interactive
+              onClose={onClose}
+              onMinimize={onMinimize}
+              onMaximize={onExpand}
+            />
+            <div className="flex items-center gap-2">
+              {/* Color indicator dot */}
+              <div className={cn("w-2 h-2 rounded-full", colorConfig.bg)} />
+              <span className="font-mono text-sm text-muted-foreground">
+                {column.displayName}
+              </span>
+            </div>
           </div>
+
+          {/* Right side: Project count */}
+          <span className={cn(
+            "text-xs px-2 py-0.5 rounded-full",
+            "bg-muted dark:bg-muted/50",
+            "text-muted-foreground",
+            "font-mono tabular-nums"
+          )}>
+            {projects.length}
+          </span>
         </div>
 
         {/* Column Body - Drop zone */}
         <div
           ref={setNodeRef}
-          className="px-3 pb-4 min-h-[calc(100vh-220px)] relative z-10"
+          className="px-3 py-3 min-h-[calc(100vh-220px)]"
         >
           <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
-              {projects.map((project) => {
-                const isLocked = project.isLocked || 
-                  project.activeJobStatus === "running" || 
-                  project.activeJobStatus === "pending";
-                return (
-                  <ProjectFlipCard 
-                    key={project.id} 
-                    project={project}
-                    disabled={isLocked}
-                  >
-                    <ProjectCard project={project} />
-                  </ProjectFlipCard>
-                );
-              })}
+              <AnimatePresence mode="popLayout">
+                {projects.map((project) => {
+                  const isLocked = project.isLocked || 
+                    project.activeJobStatus === "running" || 
+                    project.activeJobStatus === "pending";
+                  return (
+                    <ProjectFlipCard 
+                      key={project.id} 
+                      project={project}
+                      disabled={isLocked}
+                    >
+                      <ProjectCard project={project} />
+                    </ProjectFlipCard>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </SortableContext>
 
-          {/* Empty State - More integrated feel */}
+          {/* Empty State */}
           {projects.length === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -136,18 +227,11 @@ export const KanbanColumn = memo(function KanbanColumn({ column }: KanbanColumnP
               transition={springPresets.gentle}
               className={cn(
                 "h-full min-h-[200px] flex flex-col items-center justify-center",
-                "rounded-2xl",
-                // Subtle inner groove effect
-                "bg-gradient-to-b from-white/[0.02] to-transparent",
-                "dark:from-black/[0.05]",
+                "rounded-xl",
                 "border border-dashed",
-                "border-white/[0.06] dark:border-white/[0.04]",
-                "transition-all duration-300",
-                isOver && [
-                  "border-white/20 dark:border-white/10",
-                  "bg-gradient-to-b from-white/[0.05] to-transparent",
-                  "dark:from-white/[0.03]",
-                ]
+                "border-border dark:border-[rgba(255,255,255,0.08)]",
+                "transition-all duration-200",
+                isOver && "border-primary/30 bg-primary/5"
               )}
             >
               <motion.div
@@ -155,19 +239,18 @@ export const KanbanColumn = memo(function KanbanColumn({ column }: KanbanColumnP
                 transition={springPresets.quick}
                 className="text-center"
               >
-                <p className="text-xs text-white/70 font-medium">
+                <p className="text-xs text-muted-foreground font-mono">
                   Drop projects here
                 </p>
                 {column.autoTriggerJobs && column.autoTriggerJobs.length > 0 && (
-                  <p className="text-[10px] mt-1.5 text-white/50 font-mono">
-                    Auto-runs: {column.autoTriggerJobs.join(", ")}
+                  <p className="text-[10px] mt-1.5 text-muted-foreground/70 font-mono">
+                    $ auto-runs: {column.autoTriggerJobs.join(", ")}
                   </p>
                 )}
               </motion.div>
             </motion.div>
           )}
         </div>
-
       </motion.div>
     </motion.div>
   );

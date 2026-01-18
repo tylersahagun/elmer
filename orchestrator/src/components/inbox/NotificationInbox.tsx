@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -22,6 +22,7 @@ import {
   Loader2,
   Sparkles,
   Clock,
+  BellRing,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -34,6 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { NotificationType, NotificationPriority, NotificationStatus } from "@/lib/db/schema";
 import { AnimatedNotificationList, type NotificationItem as AnimatedNotificationItem } from "./AnimatedNotificationList";
+import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
 
 // Types
 interface NotificationProject {
@@ -131,6 +133,8 @@ export function NotificationInbox({
 }: NotificationInboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { isSupported: browserNotificationsSupported, permission, requestPermission, showJobNotification } = useBrowserNotifications();
+  const previousNotificationIds = useRef<Set<string>>(new Set());
 
   // Fetch notifications
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({

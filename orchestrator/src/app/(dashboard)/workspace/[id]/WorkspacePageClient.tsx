@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
 import { cn } from "@/lib/utils";
-import { GlassPanel } from "@/components/glass";
+import { Window } from "@/components/chrome/Window";
 import { StatusPill } from "@/components/chrome/StatusPill";
-import { CommandChip, CommandText } from "@/components/chrome/CommandChip";
+import { CommandChip } from "@/components/chrome/CommandChip";
 import { useTheme } from "next-themes";
 import { 
   Plus, 
@@ -182,16 +182,18 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   if (workspaceError) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
-        <GlassPanel className="max-w-md text-center">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Workspace Not Found</h2>
-          <p className="text-muted-foreground mb-4">
-            The workspace you&apos;re looking for doesn&apos;t exist or you don&apos;t have access.
-          </p>
-          <Button onClick={() => window.location.href = "/"}>
-            Go Home
-          </Button>
-        </GlassPanel>
+        <Window title="error" className="max-w-md">
+          <div className="text-center py-4">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Workspace Not Found</h2>
+            <p className="text-muted-foreground mb-4 font-mono text-sm">
+              The workspace you&apos;re looking for doesn&apos;t exist or you don&apos;t have access.
+            </p>
+            <Button onClick={() => window.location.href = "/"}>
+              Go Home
+            </Button>
+          </div>
+        </Window>
       </div>
     );
   }
@@ -226,16 +228,16 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
           {/* Center: Command chips (Desktop) */}
           <nav className="hidden lg:flex items-center gap-2">
             <CommandChip variant="outline" onClick={openNewProjectModal}>
-              <CommandText command="new" args="--project" />
+              $ new --project
             </CommandChip>
             <Link href="/knowledgebase">
               <CommandChip variant="outline">
-                <CommandText command="cd" args="/files" />
+                $ cd /files
               </CommandChip>
             </Link>
             <Link href="/personas">
               <CommandChip variant="outline">
-                <CommandText command="ls" args="personas/" />
+                $ ls personas/
               </CommandChip>
             </Link>
           </nav>

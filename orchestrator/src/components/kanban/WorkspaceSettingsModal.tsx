@@ -553,7 +553,7 @@ export function WorkspaceSettingsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="glass-panel border-white/20 max-w-6xl !p-0 !gap-0 h-[85vh] overflow-hidden">
+      <DialogContent className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-7xl !p-0 !gap-0 h-[90vh] overflow-hidden">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -563,25 +563,28 @@ export function WorkspaceSettingsModal() {
               exit="exit"
               className="flex flex-col h-[85vh]"
             >
-              {/* Header */}
-              <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-xl">Workspace Settings</DialogTitle>
-                    <DialogDescription>
-                      {workspace?.name || "Workspace"} configuration and stage pipeline
-                    </DialogDescription>
-                  </div>
+              {/* Header - macOS window style */}
+              <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
+                <div className="flex items-center gap-1.5 mr-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
                 </div>
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-muted-foreground" />
+                  <DialogTitle className="text-sm font-mono text-muted-foreground">
+                    workspace-settings
+                  </DialogTitle>
+                </div>
+                <DialogDescription className="sr-only">
+                  {workspace?.name || "Workspace"} configuration and stage pipeline
+                </DialogDescription>
               </DialogHeader>
 
               {/* Content with Tabs */}
               <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="flex-shrink-0 px-6 pt-4">
-                  <TabsList className="bg-slate-100/50 dark:bg-slate-800/50 grid w-full grid-cols-6">
+                  <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-6">
                     <TabsTrigger value="general" className="gap-1.5 text-xs">
                       <Settings className="w-3.5 h-3.5" />
                       General
@@ -614,7 +617,7 @@ export function WorkspaceSettingsModal() {
                     {/* General Tab - Basic workspace config */}
                     <TabsContent value="general" className="mt-0 space-y-6">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                           <h4 className="text-sm font-medium mb-3">Repository Settings</h4>
                           <div className="grid gap-4">
                             <div className="grid gap-2">
@@ -650,7 +653,7 @@ export function WorkspaceSettingsModal() {
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                           <h4 className="text-sm font-medium mb-3">Prototypes & Storybook</h4>
                           <div className="grid gap-4">
                             <div className="grid gap-2">
@@ -676,7 +679,7 @@ export function WorkspaceSettingsModal() {
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 lg:col-span-2">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)] lg:col-span-2">
                           <h4 className="text-sm font-medium mb-3">Context Paths</h4>
                           <p className="text-xs text-muted-foreground mb-3">
                             The first path is used as the default knowledge base root.
@@ -731,7 +734,7 @@ export function WorkspaceSettingsModal() {
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 lg:col-span-2">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)] lg:col-span-2">
                           <h4 className="text-sm font-medium mb-3">Git Automation</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
@@ -776,7 +779,7 @@ export function WorkspaceSettingsModal() {
                     {/* Pipeline Tab - Automation and AI settings */}
                     <TabsContent value="pipeline" className="mt-0 space-y-6">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                           <div className="flex items-center gap-2 mb-3">
                             <Bot className="w-4 h-4 text-purple-500" />
                             <h4 className="text-sm font-medium">AI Job Execution</h4>
@@ -825,7 +828,7 @@ export function WorkspaceSettingsModal() {
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                           <div className="flex items-center gap-2 mb-3">
                             <Workflow className="w-4 h-4 text-emerald-500" />
                             <h4 className="text-sm font-medium">Automation Depth</h4>
@@ -890,7 +893,7 @@ export function WorkspaceSettingsModal() {
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 lg:col-span-2">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)] lg:col-span-2">
                           <h4 className="text-sm font-medium mb-2">Knowledge Base Publishing</h4>
                           <p className="text-xs text-muted-foreground mb-3">
                             Map document types to knowledge base sections. Leave as &quot;None&quot; to disable publish.
@@ -1212,7 +1215,7 @@ export function WorkspaceSettingsModal() {
                     {/* Display Tab */}
                     <TabsContent value="display" className="mt-0 space-y-6">
                       {/* Display Mode Selection */}
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/80 dark:to-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="p-4 rounded-2xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <h4 className="text-sm font-medium mb-3">Display Mode</h4>
                         <p className="text-sm text-muted-foreground mb-4">
                           Choose between an immersive experience with animations or a clean, focused interface for productivity.
@@ -1288,7 +1291,7 @@ export function WorkspaceSettingsModal() {
 
                       {/* Background Selection - Only show in Immersive mode */}
                       {displayMode === "immersive" && (
-                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <h4 className="text-sm font-medium mb-3">Background Style</h4>
                         <p className="text-sm text-muted-foreground mb-4">
                           Choose an animated background for your workspace.
@@ -1327,7 +1330,7 @@ export function WorkspaceSettingsModal() {
 
                       {/* Background Customization */}
                       {displayMode === "immersive" && backgroundSettings.type !== "none" && (
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                           <h4 className="text-sm font-medium mb-3">Background Customization</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="grid gap-2">
@@ -1401,7 +1404,7 @@ export function WorkspaceSettingsModal() {
                       )}
 
                       {/* Other Display Settings */}
-                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <h4 className="text-sm font-medium mb-3">Other Visual Settings</h4>
                         <div className="grid gap-4">
                           <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
@@ -1442,10 +1445,10 @@ export function WorkspaceSettingsModal() {
 
                     {/* Personas Tab - Redirect to dedicated page */}
                     <TabsContent value="personas" className="mt-0 space-y-6">
-                      <div className="p-6 rounded-xl bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200/50 dark:border-purple-500/20">
+                      <div className="p-6 rounded-2xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
-                            <Users className="w-6 h-6 text-purple-400" />
+                          <div className="p-2 rounded-xl bg-muted border border-border dark:border-[rgba(255,255,255,0.08)]">
+                            <Users className="w-6 h-6 text-muted-foreground" />
                           </div>
                           <div>
                             <h4 className="text-lg font-semibold">Synthetic User Personas</h4>
@@ -1466,7 +1469,7 @@ export function WorkspaceSettingsModal() {
                         </a>
                       </div>
                       
-                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <h4 className="text-sm font-medium mb-3">Jury Configuration</h4>
                         <div className="grid gap-4">
                           <div className="grid gap-2">
@@ -1489,7 +1492,7 @@ export function WorkspaceSettingsModal() {
 
                     {/* About Tab */}
                     <TabsContent value="about" className="mt-0 space-y-4">
-                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <Label htmlFor="workspaceName" className="text-xs text-muted-foreground mb-2 block">Workspace Name</Label>
                         <Input
                           id="workspaceName"
@@ -1501,7 +1504,7 @@ export function WorkspaceSettingsModal() {
                         />
                       </div>
                       
-                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <Label htmlFor="workspaceDescription" className="text-xs text-muted-foreground mb-2 block">Description</Label>
                         <Textarea
                           id="workspaceDescription"
@@ -1513,14 +1516,14 @@ export function WorkspaceSettingsModal() {
                         />
                       </div>
                       
-                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <p className="text-xs text-muted-foreground mb-1">Workspace ID</p>
                         <p className="text-sm font-mono text-xs">{workspace?.id || "N/A"}</p>
                       </div>
                       
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200/50 dark:border-purple-500/20">
-                        <p className="text-xs text-purple-600 dark:text-purple-400 mb-1">About Elmer</p>
-                        <p className="text-sm text-purple-800/80 dark:text-purple-200/80">
+                      <div className="p-4 rounded-2xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                        <p className="text-xs text-muted-foreground font-mono mb-1">// About Elmer</p>
+                        <p className="text-sm text-muted-foreground">
                           Elmer is an AI-powered PM orchestrator that helps you move projects from idea to launch.
                           Drag projects through stages to trigger automated AI jobs that generate PRDs, design briefs, and more.
                         </p>
