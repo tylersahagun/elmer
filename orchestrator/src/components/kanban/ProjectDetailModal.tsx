@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -14,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useUIStore, useKanbanStore } from "@/lib/store";
-import { popInVariants, springPresets } from "@/lib/animations";
+import { popInVariants } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { DocumentViewer } from "@/components/documents";
 import { buildCursorDeepLink } from "@/lib/cursor/links";
@@ -25,7 +26,6 @@ import {
   Clock,
   Loader2,
   ArrowRight,
-  CheckCircle2,
   AlertCircle,
   Play,
   Pause,
@@ -33,7 +33,6 @@ import {
   ExternalLink,
   Sparkles,
   ArrowLeft,
-  RefreshCw,
   Users,
   Repeat,
   Plus,
@@ -59,12 +58,14 @@ const stageColors: Record<string, { bg: string; text: string }> = {
   ga: { bg: "bg-emerald-100 dark:bg-emerald-500/20", text: "text-emerald-700 dark:text-emerald-300" },
 };
 
-// Job status colors
-const jobStatusColors: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
-  pending: { bg: "bg-slate-100 dark:bg-slate-700", text: "text-slate-600 dark:text-slate-400", icon: Clock },
-  running: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-600 dark:text-blue-400", icon: Loader2 },
-  completed: { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-600 dark:text-green-400", icon: CheckCircle2 },
-  failed: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-600 dark:text-red-400", icon: AlertCircle },
+const documentStageMap: Partial<Record<DocumentType, string>> = {
+  research: "discovery",
+  prd: "prd",
+  design_brief: "design",
+  prototype_notes: "prototype",
+  jury_report: "validate",
+  engineering_spec: "tickets",
+  gtm_brief: "prd",
 };
 
 const knowledgebaseLabels: Record<KnowledgebaseType, string> = {
@@ -261,11 +262,31 @@ export function ProjectDetailModal() {
   });
 
   const handleSaveDocument = useCallback(async (content: string) => {
-    if (!selectedDocument) return;
+    if (!selectedDocument || !project) return;
     await saveDocumentMutation.mutateAsync({ docId: selectedDocument.id, content });
     // Update local state
-    setSelectedDocument((prev) => prev ? { ...prev, content } : null);
-  }, [selectedDocument, saveDocumentMutation]);
+    setSelectedDocument((prev) => (prev ? { ...prev, content } : null));
+
+    const workspaceId = project.workspaceId || project.workspace?.id;
+    if (!workspaceId) return;
+    const stageForScoring = documentStageMap[selectedDocument.type] || project.stage;
+
+    await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workspaceId,
+        projectId: activeProjectId,
+        type: "score_stage_alignment",
+        input: { stage: stageForScoring },
+      }),
+    });
+    await fetch("/api/jobs/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId }),
+    });
+  }, [selectedDocument, project, activeProjectId, saveDocumentMutation]);
 
   const handlePublishDocument = useCallback(async () => {
     if (!selectedDocument || !project) return;
@@ -482,9 +503,11 @@ export function ProjectDetailModal() {
                           disabled={!cursorLink}
                           className="h-9 w-9"
                         >
-                          <img
+                          <Image
                             src="/cursor/cursor-cube-light.svg"
                             alt=""
+                            width={16}
+                            height={16}
                             className="w-4 h-4 dark:invert"
                           />
                         </Button>

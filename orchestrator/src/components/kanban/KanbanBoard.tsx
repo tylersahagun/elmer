@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { motion, AnimatePresence } from "framer-motion";
+import { Flag, Pause, User, Zap } from "lucide-react";
 import { useKanbanStore, type ProjectCard as ProjectCardType, type KanbanColumn as KanbanColumnType } from "@/lib/store";
 import type { ProjectStage } from "@/lib/db/schema";
 import { KanbanColumn } from "./KanbanColumn";
@@ -483,6 +484,9 @@ export function KanbanBoard() {
     return acc;
   }, {} as Record<ProjectStage, ProjectCardType[]>);
 
+  const automationMode = workspace?.settings?.automationMode || "manual";
+  const stopStage = workspace?.settings?.automationStopStage;
+
   return (
     <DndContext
       sensors={sensors}
@@ -493,11 +497,12 @@ export function KanbanBoard() {
     >
       <div className="relative">
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 pt-4">
-          <div className="text-xs text-muted-foreground">
-            Automation: {workspace?.settings?.automationMode || "manual"}
-            {workspace?.settings?.automationMode === "auto_to_stage" &&
-              workspace?.settings?.automationStopStage &&
-              ` → ${workspace.settings.automationStopStage}`}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div>
+              Automation: {automationMode}
+              {automationMode === "auto_to_stage" && stopStage && ` → ${stopStage}`}
+            </div>
+            <AutomationLegend automationMode={automationMode} />
           </div>
           <IterationLoopControls mode={loopViewMode} onChange={setLoopViewMode} />
         </div>
@@ -550,5 +555,39 @@ export function KanbanBoard() {
         onSkip={handleTranscriptSkip}
       />
     </DndContext>
+  );
+}
+
+function AutomationLegend({
+  automationMode,
+}: {
+  automationMode: "manual" | "auto_to_stage" | "auto_all";
+}) {
+  if (automationMode === "manual") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30">
+          <Pause className="w-3 h-3 text-slate-500" />
+          Manual rail
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30">
+        <Zap className="w-3 h-3 text-emerald-500" />
+        Auto rail
+      </span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30">
+        <User className="w-3 h-3 text-amber-500" />
+        Human checkpoint
+      </span>
+      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30">
+        <Flag className="w-3 h-3 text-rose-500" />
+        Stop stage
+      </span>
+    </div>
   );
 }

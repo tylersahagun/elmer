@@ -315,6 +315,7 @@ export function useProjectJobs(options: UseProjectJobsOptions) {
   const fetchProjectJobs = useCallback(async () => {
     if (!projectId) return;
 
+    setIsLoading(true);
     try {
       // We'd need a project-specific endpoint, but for now filter from workspace jobs
       // In production, add GET /api/projects/[id]/jobs
@@ -342,14 +343,14 @@ export function useProjectJobs(options: UseProjectJobsOptions) {
       }
     } catch (err) {
       console.error("Failed to fetch project jobs:", err);
+    } finally {
+      setIsLoading(false);
     }
   }, [projectId, updateProject]);
 
   useEffect(() => {
     if (!enabled || !projectId) return;
-
-    setIsLoading(true);
-    fetchProjectJobs().finally(() => setIsLoading(false));
+    fetchProjectJobs();
 
     pollIntervalRef.current = setInterval(fetchProjectJobs, pollInterval);
 

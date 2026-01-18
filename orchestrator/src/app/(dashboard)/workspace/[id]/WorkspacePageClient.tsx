@@ -13,6 +13,7 @@ import { NotificationInbox } from "@/components/inbox";
 import { Button } from "@/components/ui/button";
 import { springPresets } from "@/lib/animations";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
+import { GlassPanel } from "@/components/glass";
 import { 
   Plus, 
   Settings, 

@@ -3,6 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { buildCursorDeepLink } from "@/lib/cursor/links";
 import { springPresets } from "@/lib/animations";
@@ -22,6 +23,9 @@ import {
   Lock,
   AlertCircle,
   CheckCircle,
+  Zap,
+  User,
+  Flag,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -69,6 +73,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
   const updateProject = useKanbanStore((s) => s.updateProject);
   const openProjectDetailModal = useUIStore((s) => s.openProjectDetailModal);
   const workspace = useKanbanStore((s) => s.workspace);
+  const columns = useKanbanStore((s) => s.columns);
   const stageConfidence = project.metadata?.stageConfidence?.[project.stage];
 
   // Check if project is locked (has active/pending jobs)
@@ -123,6 +128,27 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
     repo: workspace?.githubRepo,
     branch: project.metadata?.gitBranch,
   });
+
+  const currentColumn = columns.find((column) => column.id === project.stage);
+  const automationMode = workspace?.settings?.automationMode || "manual";
+  const isHumanCheckpoint = Boolean(currentColumn?.humanInLoop);
+  const isStopStage =
+    automationMode === "auto_to_stage" && workspace?.settings?.automationStopStage === project.stage;
+
+  const automationIndicators = (() => {
+    if (automationMode === "manual") {
+      return [{ label: "Manual rail", icon: Pause, className: "text-slate-500" }];
+    }
+    const indicators = [];
+    indicators.push({ label: "Auto rail", icon: Zap, className: "text-emerald-500" });
+    if (isHumanCheckpoint) {
+      indicators.push({ label: "Human checkpoint", icon: User, className: "text-amber-500" });
+    }
+    if (isStopStage) {
+      indicators.push({ label: "Stop stage", icon: Flag, className: "text-rose-500" });
+    }
+    return indicators;
+  })();
 
   const handleOpenCursor = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -240,9 +266,11 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
                 className="gap-2"
                 disabled={!cursorLink}
               >
-                <img
+                <Image
                   src="/cursor/cursor-cube-light.svg"
                   alt=""
+                  width={14}
+                  height={14}
                   className="w-3.5 h-3.5 dark:invert"
                 />
                 View in Cursor
@@ -273,6 +301,21 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground mb-2">
+        {automationIndicators.map((indicator) => {
+          const Icon = indicator.icon;
+          return (
+            <span
+              key={indicator.label}
+              className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30"
+            >
+              <Icon className={cn("w-3 h-3", indicator.className)} />
+              <span>{indicator.label}</span>
+            </span>
+          );
+        })}
       </div>
 
       {/* Title */}

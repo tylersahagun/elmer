@@ -13,14 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { FileText, Loader2, Upload, Plus } from "lucide-react";
+import { FileText, Loader2, Plus } from "lucide-react";
 import type { DocumentType } from "@/lib/db/schema";
 
 // Simple select component fallback if shadcn Select isn't available

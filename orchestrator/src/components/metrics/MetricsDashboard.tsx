@@ -201,11 +201,10 @@ function MetricRow({
 }
 
 interface MetricsDashboardProps {
-  projectId: string;
   projectName: string;
 }
 
-export function MetricsDashboard({ projectId, projectName }: MetricsDashboardProps) {
+export function MetricsDashboard({ projectName }: MetricsDashboardProps) {
   const [activeTab, setActiveTab] = useState("overview");
 
   // Mock data - would come from PostHog API

@@ -68,6 +68,7 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectRef = useRef<() => void>(() => {});
   const updateProject = useKanbanStore((s) => s.updateProject);
 
   // Process incoming message
@@ -245,10 +246,14 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
       }
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log("🔄 Attempting SSE reconnect...");
-        connect();
+        connectRef.current();
       }, 5000);
     };
   }, [workspaceId, enabled, processMessage]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   // Reconnect function
   const reconnect = useCallback(() => {

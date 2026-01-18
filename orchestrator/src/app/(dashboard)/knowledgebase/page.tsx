@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -30,13 +30,12 @@ export default function KnowledgebasePage() {
       if (!res.ok) throw new Error("Failed to fetch workspaces");
       return res.json();
     },
+    onSuccess: (data) => {
+      if (!workspaceId && Array.isArray(data) && data.length > 0) {
+        setWorkspaceId(data[0].id);
+      }
+    },
   });
-
-  useEffect(() => {
-    if (!workspaceId && Array.isArray(workspaces) && workspaces.length > 0) {
-      setWorkspaceId(workspaces[0].id);
-    }
-  }, [workspaceId, workspaces]);
 
   const { data, refetch } = useQuery({
     queryKey: ["knowledgebase", activeType, workspaceId],
@@ -47,13 +46,12 @@ export default function KnowledgebasePage() {
       return res.json();
     },
     enabled: !!workspaceId,
+    onSuccess: (result) => {
+      if (!result) return;
+      setTitle(TYPES.find((t) => t.id === activeType)?.label || "Knowledgebase");
+      setContent(result.content || "");
+    },
   });
-
-  useEffect(() => {
-    if (!data) return;
-    setTitle(TYPES.find((t) => t.id === activeType)?.label || "Knowledgebase");
-    setContent(data.content || "");
-  }, [activeType, data]);
 
   const handleLoad = async () => {
     const result = await refetch();

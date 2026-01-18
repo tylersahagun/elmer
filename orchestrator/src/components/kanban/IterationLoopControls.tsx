@@ -1,5 +1,40 @@
-\"use client\";
-\n+import { cn } from \"@/lib/utils\";
-import { Button } from \"@/components/ui/button\";
-\n+export type LoopViewMode = \"off\" | \"overlay\" | \"lanes\";
-\n+interface IterationLoopControlsProps {\n+  mode: LoopViewMode;\n+  onChange: (mode: LoopViewMode) => void;\n+  className?: string;\n+}\n+\n+export function IterationLoopControls({ mode, onChange, className }: IterationLoopControlsProps) {\n+  return (\n+    <div className={cn(\"flex items-center gap-2\", className)}>\n+      <Button\n+        size=\"sm\"\n+        variant={mode === \"off\" ? \"default\" : \"outline\"}\n+        onClick={() => onChange(\"off\")}\n+      >\n+        Loops Off\n+      </Button>\n+      <Button\n+        size=\"sm\"\n+        variant={mode === \"overlay\" ? \"default\" : \"outline\"}\n+        onClick={() => onChange(\"overlay\")}\n+      >\n+        Wave Overlay\n+      </Button>\n+      <Button\n+        size=\"sm\"\n+        variant={mode === \"lanes\" ? \"default\" : \"outline\"}\n+        onClick={() => onChange(\"lanes\")}\n+      >\n+        Lane View\n+      </Button>\n+    </div>\n+  );\n+}\n*** End Patch"}]}...
+"use client";
+
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+export type LoopViewMode = "off" | "overlay" | "lanes";
+
+interface IterationLoopControlsProps {
+  mode: LoopViewMode;
+  onChange: (mode: LoopViewMode) => void;
+  className?: string;
+}
+
+export function IterationLoopControls({ mode, onChange, className }: IterationLoopControlsProps) {
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      <Button
+        size="sm"
+        variant={mode === "off" ? "default" : "outline"}
+        onClick={() => onChange("off")}
+      >
+        Loops Off
+      </Button>
+      <Button
+        size="sm"
+        variant={mode === "overlay" ? "default" : "outline"}
+        onClick={() => onChange("overlay")}
+      >
+        Wave Overlay
+      </Button>
+      <Button
+        size="sm"
+        variant={mode === "lanes" ? "default" : "outline"}
+        onClick={() => onChange("lanes")}
+      >
+        Lane View
+      </Button>
+    </div>
+  );
+}

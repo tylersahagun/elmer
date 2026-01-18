@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   Loader2,
   CheckCircle,
@@ -31,13 +32,22 @@ export function JobStatusIndicator({
   const executionMode = workspace?.settings?.aiExecutionMode || "hybrid";
   const validationMode = workspace?.settings?.aiValidationMode || "schema";
   const fallbackAfterMinutes = workspace?.settings?.aiFallbackAfterMinutes ?? 30;
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (summary.pending === 0) return;
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [summary.pending]);
 
   const hasActivity = summary.pending > 0 || summary.running > 0;
   const oldestPending = activeJobs
     .filter((job) => job.status === "pending")
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
   const pendingAgeMinutes = oldestPending
-    ? Math.max(0, Math.round((Date.now() - new Date(oldestPending.createdAt).getTime()) / 60000))
+    ? Math.max(0, Math.round((now - new Date(oldestPending.createdAt).getTime()) / 60000))
     : 0;
   const fallbackInMinutes = Math.max(0, fallbackAfterMinutes - pendingAgeMinutes);
 

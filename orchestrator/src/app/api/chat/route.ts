@@ -6,7 +6,7 @@ const anthropic = new Anthropic();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, workspaceId, context } = body;
+    const { message, context } = body;
 
     if (!message) {
       return NextResponse.json(

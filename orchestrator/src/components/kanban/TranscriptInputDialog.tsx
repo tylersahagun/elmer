@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -137,7 +137,7 @@ export function TranscriptInputDialog({
                   <p className="font-medium text-purple-400 mb-1">How this works</p>
                   <p>
                     When you move to {targetStage}, Cursor AI will process any context you provide.
-                    Jobs will appear as "Waiting for Agent" until you run{" "}
+                    Jobs will appear as &quot;Waiting for Agent&quot; until you run{" "}
                     <code className="px-1 py-0.5 rounded bg-white/5 text-purple-300">process jobs</code>{" "}
                     in a Cursor chat.
                   </p>

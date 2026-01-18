@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GlassCard, GlassPanel } from "@/components/glass";
+import { GlassCard } from "@/components/glass";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useKanbanStore, useUIStore } from "@/lib/store";
@@ -10,14 +10,10 @@ import { springPresets, staggerContainer, staggerItem } from "@/lib/animations";
 import {
   MessageSquare,
   Sparkles,
-  Send,
   Loader2,
   User,
   Bot,
   X,
-  Lightbulb,
-  AlertTriangle,
-  CheckCircle,
 } from "lucide-react";
 
 interface Message {

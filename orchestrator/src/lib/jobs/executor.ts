@@ -852,7 +852,7 @@ export async function executeJob(
 
       case "generate_tickets": {
         const engSpec = await getDocumentByType(projectId, "engineering_spec");
-        const { raw, parsed } = await generateWithValidation<Array<Record<string, unknown>>>({
+        const { parsed } = await generateWithValidation<Array<Record<string, unknown>>>({
           tool: "generate-tickets",
           input: {
             engineeringSpec: engSpec?.content || "",
