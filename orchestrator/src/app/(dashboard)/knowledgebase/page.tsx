@@ -8,11 +8,9 @@ import { KnowledgeBaseFilesView, type KnowledgeBaseFile } from "@/components/fil
 import { Button } from "@/components/ui/button";
 import { Window } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
-import { CommandChip } from "@/components/chrome/CommandChip";
 // Window is only used for error states now
 import {
   BookOpen,
-  ArrowLeft,
   Loader2,
   AlertCircle,
 } from "lucide-react";
@@ -166,35 +164,10 @@ export default function KnowledgebasePage() {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Header */}
-      <SimpleNavbar
-        path="~/knowledgebase"
-        rightContent={
-          <div className="flex items-center gap-3">
-            {/* Workspace Selector */}
-            <select
-              value={workspaceId}
-              onChange={(e) => setWorkspaceId(e.target.value)}
-              className="h-8 rounded-xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card px-3 text-sm font-mono shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              {(workspaces || []).map((workspace: { id: string; name: string }) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
-            
-            {/* Back Button */}
-            <Link href={workspaceId ? `/workspace/${workspaceId}` : "/"}>
-              <CommandChip size="sm" variant="outline" icon={<ArrowLeft className="w-3.5 h-3.5" />}>
-                Back
-              </CommandChip>
-            </Link>
-          </div>
-        }
-      />
+      <SimpleNavbar path="~/knowledgebase" />
 
-      {/* Main Content - Fill remaining height below header, flush with edges */}
-      <main className="flex-1 min-h-0 overflow-hidden">
+      {/* Main Content - Fill remaining height below header with nice spacing */}
+      <main className="flex-1 min-h-0 overflow-hidden p-4 sm:p-6">
         <KnowledgeBaseFilesView
           key={`kb-${workspaceId}`}
           workspaceId={workspaceId}

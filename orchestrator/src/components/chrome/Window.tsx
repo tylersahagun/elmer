@@ -48,7 +48,7 @@ export const Window = forwardRef<HTMLDivElement, WindowProps>(
         ref={ref}
         className={cn(
           // Base styles
-          "rounded-2xl border",
+          "rounded-2xl border flex flex-col",
           // Light mode
           "bg-white border-[#B8C0CC]",
           // Dark mode
@@ -65,7 +65,7 @@ export const Window = forwardRef<HTMLDivElement, WindowProps>(
         {hasHeader && (
           <div
             className={cn(
-              "flex items-center h-9 px-3.5 border-b",
+              "flex items-center h-9 px-3.5 border-b shrink-0",
               // Light mode
               "bg-[#FAFBFC] border-[#B8C0CC]",
               // Dark mode
@@ -95,6 +95,7 @@ export const Window = forwardRef<HTMLDivElement, WindowProps>(
         {/* Content */}
         <div
           className={cn(
+            "flex-1 flex flex-col min-h-0",
             variant === "default" && "p-4 sm:p-6",
             variant === "compact" && "p-3 sm:p-4",
             variant === "minimal" && "p-0",

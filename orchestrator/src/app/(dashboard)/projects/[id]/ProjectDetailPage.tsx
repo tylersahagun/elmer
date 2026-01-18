@@ -3,17 +3,14 @@
 import { useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { DocumentViewer, DocumentSidebar, UploadDocumentDialog } from "@/components/documents";
 import { MetricsDashboard } from "@/components/metrics";
-import { ProjectFilesView, type FileNode } from "@/components/files";
+import { FilesSidebar, FileViewer, type FileNode } from "@/components/files";
 import { Badge } from "@/components/ui/badge";
 import { Window } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
-import { CommandChip } from "@/components/chrome/CommandChip";
-import { springPresets } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { 
   FileText, 
@@ -21,7 +18,6 @@ import {
   BarChart3, 
   Clock, 
   Users, 
-  ArrowLeft, 
   Loader2,
   AlertCircle,
   FolderGit2,
@@ -35,6 +31,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("documents");
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   // Fetch project data
@@ -116,15 +113,6 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
       {/* Header */}
       <SimpleNavbar
         path={`~/projects/${project.name.toLowerCase().replace(/\s+/g, '-')}`}
-        rightContent={
-          project?.workspaceId && (
-            <Link href={`/workspace/${project.workspaceId}`}>
-              <CommandChip size="sm" variant="outline" icon={<ArrowLeft className="w-3.5 h-3.5" />}>
-                Back
-              </CommandChip>
-            </Link>
-          )
-        }
       />
 
       {/* Main Content */}
@@ -253,19 +241,29 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
 
             <TabsContent value="files" className="mt-6">
               {project.metadata?.gitBranch ? (
-                <div className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] overflow-hidden min-h-[calc(100vh-320px)]">
-                  <ProjectFilesView
+                <div className="flex gap-4 min-h-[calc(100vh-320px)]">
+                  <FilesSidebar
                     projectId={projectId}
                     branchName={project.metadata.gitBranch}
                     files={projectFiles}
-                    onFileSave={async (path, content) => {
-                      console.log("Save file:", path, content);
+                    selectedPath={selectedFile?.path}
+                    onFileSelect={(file) => setSelectedFile(file)}
+                    onFileCreate={() => {
+                      console.log("Create file dialog");
                     }}
-                    onFileCreate={async (path, content) => {
-                      console.log("Create file:", path, content);
+                    onRefresh={() => {
+                      console.log("Refresh files");
                     }}
                     className="h-full"
                   />
+                  <Window title="file-viewer" className="flex-1 h-full" contentClassName="p-0">
+                    <FileViewer
+                      file={selectedFile}
+                      onSave={async (path, content) => {
+                        console.log("Save file:", path, content);
+                      }}
+                    />
+                  </Window>
                 </div>
               ) : (
                 <Window title="git status">

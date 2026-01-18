@@ -17,6 +17,7 @@ import {
   FolderContent,
   FileItem,
 } from "@/components/animate-ui/components/radix/files";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import {
   FileText,
   FolderGit2,
@@ -37,8 +38,6 @@ import {
   Shield,
   Map,
   Sparkles,
-  PanelLeftClose,
-  PanelLeft,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -235,23 +234,35 @@ export function KnowledgeBaseFilesView({
   };
 
   return (
-    <div className={cn("flex", className)} style={{ height: '100%', minHeight: 0 }}>
+    <div className={cn("relative flex gap-4 h-full", className)}>
       {/* Sidebar - conditional render based on open state */}
       {isSidebarOpen ? (
         <motion.div
           key="expanded-sidebar"
-          initial={false}
-          animate={{ width, opacity: 1 }}
-          transition={isResizing ? { duration: 0 } : { duration: 0.2, ease: "easeInOut" }}
-          className="flex-shrink-0 border-r border-border dark:border-[rgba(255,255,255,0.14)] relative"
-          style={{ height: '100%', width }}
+          initial={{ opacity: 0, width: 0 }}
+          animate={{ opacity: 1, width }}
+          exit={{ opacity: 0, width: 0 }}
+          transition={isResizing ? { duration: 0 } : { duration: 0.25, ease: "easeInOut" }}
+          className="h-full relative rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] overflow-hidden"
         >
-          <div className="flex flex-col bg-muted/50 dark:bg-card h-full w-full">
-              {/* Sidebar Header */}
-              <div className="flex items-center justify-between px-3 py-3 border-b border-border dark:border-[rgba(255,255,255,0.14)]">
-                <div className="flex items-center gap-2">
-                  <HeaderIcon className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-mono text-sm text-foreground">{title}</span>
+          <div 
+            className="h-full flex flex-col bg-card"
+            style={{ width }}
+          >
+              {/* Sidebar Header with Traffic Lights */}
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <TrafficLights
+                    size={10}
+                    interactive
+                    onClose={() => {}} // Aesthetic only
+                    onMinimize={() => setIsSidebarOpen(false)}
+                    onMaximize={() => {}} // Already maximized
+                  />
+                  <div className="flex items-center gap-2">
+                    <HeaderIcon className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-mono text-sm text-muted-foreground">{title}</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-0.5">
                   {onFileCreate && (
@@ -259,7 +270,7 @@ export function KnowledgeBaseFilesView({
                       variant="ghost"
                       size="icon"
                       onClick={() => setIsCreating(true)}
-                      className="h-7 w-7 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/50"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -270,19 +281,11 @@ export function KnowledgeBaseFilesView({
                       size="icon"
                       onClick={onRefresh}
                       disabled={isLoading}
-                      className="h-7 w-7 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/50"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
                     >
                       <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsSidebarOpen(false)}
-                    className="h-7 w-7 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/50"
-                  >
-                    <PanelLeftClose className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
 
@@ -323,34 +326,26 @@ export function KnowledgeBaseFilesView({
           />
         </motion.div>
       ) : (
-        /* Collapsed Sidebar Toggle */
-        <motion.div
-          key="collapsed-sidebar"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.15 }}
-          className="flex-shrink-0 flex flex-col items-center py-4 px-2 bg-muted/50 dark:bg-card border-r border-border dark:border-[rgba(255,255,255,0.14)]"
-          style={{ height: '100%' }}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(true)}
-            className="h-8 w-8 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/50"
-          >
-            <PanelLeft className="w-4 h-4" />
-          </Button>
-          <div className="w-px flex-1 bg-slate-300 dark:bg-slate-700/50 mt-2" />
-          <span className="text-xs text-slate-500 dark:text-slate-400 [writing-mode:vertical-lr] rotate-180 mt-3">
+        /* Collapsed Sidebar Toggle - matches DocumentSidebar pattern */
+        <div className="flex-shrink-0 h-full flex flex-col items-center py-3 px-2 bg-card rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)]">
+          <TrafficLights
+            size={10}
+            interactive
+            showOnly="maximize"
+            onMaximize={() => setIsSidebarOpen(true)}
+          />
+          <span className="text-xs text-muted-foreground [writing-mode:vertical-lr] rotate-180 font-mono mt-3">
             {title}
           </span>
-        </motion.div>
+          <div className="flex-1" />
+        </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-card" style={{ height: '100%', minHeight: 0 }}>
-        {/* Top bar */}
+      {/* Main Content - Window-like viewer */}
+      <div className="flex-1 flex flex-col min-w-0 rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card overflow-hidden">
+        {/* Top bar with traffic lights */}
         <div className="flex items-center gap-3 h-12 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/30 flex-shrink-0">
+          <TrafficLights size={10} />
           {/* File path */}
           {selectedFile && (
             <div className="flex items-center gap-2 flex-1 min-w-0">

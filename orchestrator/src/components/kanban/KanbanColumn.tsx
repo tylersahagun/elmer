@@ -10,10 +10,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { columnVariants, springPresets } from "@/lib/animations";
-import { useKanbanStore, type KanbanColumn as KanbanColumnType } from "@/lib/store";
+import { useKanbanStore, useUIStore, type KanbanColumn as KanbanColumnType } from "@/lib/store";
 import { ProjectCard } from "./ProjectCard";
 import { ProjectFlipCard } from "./ProjectFlipCard";
 import { TrafficLights } from "@/components/chrome/TrafficLights";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 // Column display state
 export type ColumnViewState = "normal" | "expanded" | "minimized" | "hidden";
@@ -48,6 +50,7 @@ export const KanbanColumn = memo(function KanbanColumn({
   viewState = "normal",
   onExpand,
   onMinimize,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onClose,
   onRestore,
 }: KanbanColumnProps) {
@@ -55,6 +58,9 @@ export const KanbanColumn = memo(function KanbanColumn({
   const projects = useKanbanStore(
     useShallow((state) => state.projects.filter((p) => p.stage === column.id))
   );
+  
+  // Get the new project modal action for Inbox column
+  const openNewProjectModal = useUIStore((s) => s.openNewProjectModal);
   
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -77,7 +83,7 @@ export const KanbanColumn = memo(function KanbanColumn({
         animate="animate"
         exit="exit"
         data-kanban-column={column.id}
-        className="flex-shrink-0 w-12"
+        className="shrink-0 w-12"
       >
         <div
           className={cn(
@@ -129,7 +135,7 @@ export const KanbanColumn = memo(function KanbanColumn({
       animate="animate"
       exit="exit"
       data-kanban-column={column.id}
-      className={cn("flex-shrink-0 min-w-[260px]", columnWidth)}
+      className={cn("shrink-0 min-w-[260px]", columnWidth)}
       layout
     >
       {/* macOS Window-style Column Container */}
@@ -196,7 +202,7 @@ export const KanbanColumn = memo(function KanbanColumn({
           className="px-3 py-3 min-h-[calc(100vh-220px)]"
         >
           <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <AnimatePresence mode="popLayout">
                 {projects.map((project) => {
                   const isLocked = project.isLocked || 
@@ -216,8 +222,36 @@ export const KanbanColumn = memo(function KanbanColumn({
             </div>
           </SortableContext>
 
-          {/* Empty State */}
-          {projects.length === 0 && (
+          {/* Empty State - Special for Inbox column */}
+          {column.id === "inbox" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={springPresets.gentle}
+              className={cn(
+                "min-h-[80px] flex flex-col items-center justify-center py-4",
+                "rounded-lg",
+                "border border-dashed",
+                "border-border dark:border-[rgba(255,255,255,0.08)]",
+                "transition-all duration-200",
+                projects.length > 0 && "mt-3", // Match spacing with project cards
+                isOver && "border-primary/30 bg-primary/5"
+              )}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={openNewProjectModal}
+                className="gap-1.5 text-xs font-mono text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Create New Project
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Empty State - Default for other columns */}
+          {projects.length === 0 && column.id !== "inbox" && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useUIStore, useKanbanStore } from "@/lib/store";
-import { popInVariants } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { DocumentViewer } from "@/components/documents";
 import type { DocumentType, KnowledgebaseType } from "@/lib/db/schema";
@@ -35,8 +34,8 @@ import {
   Repeat,
   Plus,
   Copy,
+  Info,
 } from "lucide-react";
-// WaveV4D removed from modal header - using stage-colored icon instead
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -99,48 +98,19 @@ interface ProjectDetails {
   priority: number;
   createdAt: string;
   updatedAt: string;
-  workspaceId: string;
   metadata?: {
     gitBranch?: string;
-    baseBranch?: string;
-    stageConfidence?: Record<
-      string,
-      {
-        score: number;
-        summary?: string;
-        strengths?: string[];
-        gaps?: string[];
-        updatedAt: string;
-      }
-    >;
-  };
-  workspace?: {
-    id: string;
-    name: string;
-    githubRepo?: string | null;
-    settings?: {
-      storybookPort?: number;
-      cursorDeepLinkTemplate?: string;
-      knowledgebaseMapping?: Partial<Record<DocumentType, KnowledgebaseType>>;
-    };
+    stageConfidence?: Record<string, { score: number; summary?: string }>;
   };
   documents: ProjectDocument[];
   prototypes: Array<{
     id: string;
-    type: string;
     name: string;
-    storybookPath?: string;
-    chromaticUrl?: string;
+    type: string;
     status: string;
     version: number;
-    createdAt: string;
-  }>;
-  stages: Array<{
-    id: string;
-    stage: string;
-    enteredAt: string;
-    exitedAt?: string;
-    triggeredBy?: string;
+    storybookPath?: string;
+    chromaticUrl?: string;
   }>;
   tickets: Array<{
     id: string;
@@ -150,256 +120,198 @@ interface ProjectDetails {
     priority?: number;
     estimatedPoints?: number;
   }>;
+  stages: Array<{
+    id: string;
+    stage: string;
+    enteredAt: string;
+    exitedAt?: string;
+    triggeredBy?: string;
+  }>;
   juryEvaluations: Array<{
     id: string;
-    phase: "research" | "prd" | "prototype";
-    approvalRate: number | null;
-    conditionalRate: number | null;
-    rejectionRate: number | null;
-    verdict: "pass" | "fail" | "conditional" | null;
-    topConcerns?: string[] | null;
-    topSuggestions?: string[] | null;
+    phase: string;
+    verdict?: string;
+    approvalRate?: number;
+    conditionalRate?: number;
+    rejectionRate?: number;
+    topConcerns?: string[];
+    topSuggestions?: string[];
     createdAt: string;
   }>;
-}
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatDocType(type: string): string {
-  const typeMap: Record<string, string> = {
-    research: "Research",
-    prd: "PRD",
-    design_brief: "Design Brief",
-    engineering_spec: "Engineering Spec",
-    gtm_brief: "GTM Brief",
-    prototype_notes: "Prototype Notes",
-    jury_report: "Jury Report",
+  workspace?: {
+    settings?: {
+      storybookPort?: number;
+      knowledgebaseMapping?: Record<DocumentType, KnowledgebaseType>;
+    };
   };
-  return typeMap[type] || type;
 }
 
 export function ProjectDetailModal() {
   const isOpen = useUIStore((s) => s.projectDetailModalOpen);
+  const activeProjectId = useUIStore((s) => s.activeProjectId);
   const closeModal = useUIStore((s) => s.closeProjectDetailModal);
-  const activeProjectId = useKanbanStore((s) => s.activeProjectId);
   const updateProject = useKanbanStore((s) => s.updateProject);
-  const queryClient = useQueryClient();
-
+  
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
-  const [iterationCount, setIterationCount] = useState(5);
+  const [iterationCount, setIterationCount] = useState(3);
   const [isRunningIterations, setIsRunningIterations] = useState(false);
   const [addDocumentDialogOpen, setAddDocumentDialogOpen] = useState(false);
 
-  // Fetch project details
+  const queryClient = useQueryClient();
+
   const { data: project, isLoading, error, refetch } = useQuery<ProjectDetails>({
     queryKey: ["project", activeProjectId],
     queryFn: async () => {
-      if (!activeProjectId) throw new Error("No project selected");
       const res = await fetch(`/api/projects/${activeProjectId}`);
       if (!res.ok) throw new Error("Failed to fetch project");
       return res.json();
     },
-    enabled: isOpen && !!activeProjectId,
+    enabled: !!activeProjectId && isOpen,
   });
 
-  // Reset tab and selected document when modal opens
+  // Reset states when modal closes
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) {
       setActiveTab("overview");
       setSelectedDocument(null);
     }
   }, [isOpen]);
 
-  // Document save mutation
-  const saveDocumentMutation = useMutation({
-    mutationFn: async ({ docId, content }: { docId: string; content: string }) => {
-      const res = await fetch(`/api/documents/${docId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      if (!res.ok) throw new Error("Failed to save document");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project", activeProjectId] });
-    },
-  });
-
-  const publishDocumentMutation = useMutation({
-    mutationFn: async ({
-      workspaceId,
-      targetType,
-      title,
-      content,
-    }: {
-      workspaceId: string;
-      targetType: KnowledgebaseType;
-      title: string;
-      content: string;
-    }) => {
-      const res = await fetch(`/api/knowledgebase/${targetType}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId, title, content }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || "Failed to publish to knowledge base");
-      }
-      return res.json();
-    },
-  });
-
-  const handleSaveDocument = useCallback(async (content: string) => {
-    if (!selectedDocument || !project) return;
-    await saveDocumentMutation.mutateAsync({ docId: selectedDocument.id, content });
-    // Update local state
-    setSelectedDocument((prev) => (prev ? { ...prev, content } : null));
-
-    const workspaceId = project.workspaceId || project.workspace?.id;
-    if (!workspaceId) return;
-    const stageForScoring = documentStageMap[selectedDocument.type] || project.stage;
-
-    await fetch("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workspaceId,
-        projectId: activeProjectId,
-        type: "score_stage_alignment",
-        input: { stage: stageForScoring },
-      }),
-    });
-    await fetch("/api/jobs/process", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workspaceId }),
-    });
-  }, [selectedDocument, project, activeProjectId, saveDocumentMutation]);
-
-  const handlePublishDocument = useCallback(async () => {
-    if (!selectedDocument || !project) return;
-    const mapping = project.workspace?.settings?.knowledgebaseMapping as
-      | Partial<Record<DocumentType, KnowledgebaseType>>
-      | undefined;
-    const targetType = mapping?.[selectedDocument.type];
-    if (!targetType) return;
-    await publishDocumentMutation.mutateAsync({
-      workspaceId: project.workspaceId,
-      targetType,
-      title: selectedDocument.title,
-      content: selectedDocument.content,
-    });
-  }, [selectedDocument, project, publishDocumentMutation]);
-
-  const handleCopyBranch = useCallback(() => {
-    const branch = project?.metadata?.gitBranch;
-    if (!branch) return;
-    navigator.clipboard?.writeText(branch).catch(() => {});
-  }, [project]);
-
-  const handleRegenerateDocument = useCallback(async () => {
-    if (!selectedDocument || !activeProjectId || !project) return;
-    // Trigger regeneration job based on document type
-    const jobTypeMap: Record<DocumentType, string> = {
-      research: "analyze_transcript",
-      prd: "generate_prd",
-      design_brief: "generate_design_brief",
-      engineering_spec: "generate_engineering_spec",
-      gtm_brief: "generate_gtm_brief",
-      prototype_notes: "build_prototype",
-      jury_report: "run_jury_evaluation",
-    };
-    
-    const jobType = jobTypeMap[selectedDocument.type];
-    if (!jobType) return;
-
-    const workspaceId = project.workspaceId || project.workspace?.id;
-    if (!workspaceId) return;
-
-    await fetch("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workspaceId,
-        projectId: activeProjectId,
-        type: jobType,
-      }),
-    });
-    
-    // Trigger processing
-    await fetch("/api/jobs/process", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workspaceId }),
-    });
-  }, [selectedDocument, activeProjectId, project]);
-
-  const handleScoreAlignment = useCallback(async () => {
-    if (!activeProjectId || !project) return;
-    const workspaceId = project.workspaceId || project.workspace?.id;
-    if (!workspaceId) return;
-    await fetch("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workspaceId,
-        projectId: activeProjectId,
-        type: "score_stage_alignment",
-        input: { stage: project.stage },
-      }),
-    });
-    await fetch("/api/jobs/process", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workspaceId }),
-    });
-  }, [activeProjectId, project]);
-
-  const handleStatusChange = async (newStatus: "active" | "paused" | "archived") => {
+  const handleStatusChange = async (newStatus: string) => {
     if (!activeProjectId) return;
     
     try {
-      const res = await fetch(`/api/projects/${activeProjectId}`, {
+      await fetch(`/api/projects/${activeProjectId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
       
-      if (res.ok) {
-        updateProject(activeProjectId, { status: newStatus });
-        if (newStatus === "archived") {
-          closeModal();
-          return;
-        }
+      if (newStatus === "archived") {
+        closeModal();
+      } else {
         refetch();
       }
+      
+      updateProject(activeProjectId, { status: newStatus });
     } catch (error) {
-      console.error("Failed to update status:", error);
+      console.error("Failed to update project status:", error);
     }
   };
 
-  // Run N iterations with jury evaluation
+  const handleScoreAlignment = async () => {
+    if (!activeProjectId || !project) return;
+    
+    try {
+      await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: project.workspace?.settings ? undefined : undefined,
+          projectId: activeProjectId,
+          type: "score_alignment",
+          input: { stage: project.stage },
+        }),
+      });
+      
+      refetch();
+    } catch (error) {
+      console.error("Failed to score alignment:", error);
+    }
+  };
+
+  const handleCopyBranch = () => {
+    if (project?.metadata?.gitBranch) {
+      navigator.clipboard.writeText(project.metadata.gitBranch);
+    }
+  };
+
+  const handleSaveDocument = useCallback(async (docId: string, content: string) => {
+    try {
+      await fetch(`/api/documents/${docId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      refetch();
+    } catch (error) {
+      console.error("Failed to save document:", error);
+    }
+  }, [refetch]);
+
+  const handleRegenerateDocument = useCallback(async (docId: string) => {
+    if (!activeProjectId) return;
+    
+    const doc = project?.documents.find(d => d.id === docId);
+    if (!doc) return;
+
+    try {
+      await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: activeProjectId,
+          type: "regenerate_document",
+          input: { documentId: docId, documentType: doc.type },
+        }),
+      });
+      refetch();
+    } catch (error) {
+      console.error("Failed to regenerate document:", error);
+    }
+  }, [activeProjectId, project, refetch]);
+
+  const handlePublishDocument = useCallback(async (docId: string) => {
+    if (!activeProjectId || !project) return;
+    
+    const doc = project.documents.find(d => d.id === docId);
+    if (!doc) return;
+
+    const targetKnowledgebase = project.workspace?.settings?.knowledgebaseMapping?.[doc.type];
+    if (!targetKnowledgebase) return;
+
+    try {
+      await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: activeProjectId,
+          type: "publish_to_knowledgebase",
+          input: { 
+            documentId: docId, 
+            knowledgebaseType: targetKnowledgebase 
+          },
+        }),
+      });
+      refetch();
+    } catch (error) {
+      console.error("Failed to publish document:", error);
+    }
+  }, [activeProjectId, project, refetch]);
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDocType = (type: string) => {
+    return type.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  };
+
   const handleRunIterations = async () => {
     if (!activeProjectId || !project) return;
     
-    const workspaceId = project.workspaceId || project.workspace?.id;
-    if (!workspaceId) return;
-
+    const workspaceId = project.workspace?.settings ? undefined : undefined;
+    
     setIsRunningIterations(true);
     
     try {
-      // Queue jury evaluation jobs for each iteration
       for (let i = 0; i < iterationCount; i++) {
         await fetch("/api/jobs", {
           method: "POST",
@@ -417,7 +329,6 @@ export function ProjectDetailModal() {
         });
       }
       
-      // Update project to show iterations are running
       updateProject(activeProjectId, {
         activeJobType: "run_jury_evaluation",
         activeJobProgress: 0,
@@ -425,7 +336,6 @@ export function ProjectDetailModal() {
         isLocked: true,
       });
       
-      // Trigger processing
       await fetch("/api/jobs/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -444,309 +354,340 @@ export function ProjectDetailModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="glass-panel border-white/20 w-[95vw] max-w-3xl p-0! gap-0! h-[90vh] sm:h-[85vh] overflow-hidden">
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              variants={popInVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="flex flex-col h-[90vh] sm:h-[85vh]"
-            >
-              {/* Header */}
-              <DialogHeader className="shrink-0 p-4 sm:p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
+      <DialogContent 
+        showCloseButton={false}
+        className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-[90vw] w-[1200px] !p-0 !gap-0 h-[90vh] overflow-hidden"
+      >
+        <div className="flex flex-col h-[85vh]">
+              {/* Header - macOS window style */}
+              <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
+                <div className="flex items-center gap-1.5 mr-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
+                </div>
                 {isLoading ? (
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
-                    <span className="text-muted-foreground">Loading project...</span>
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    <span className="text-sm font-mono text-muted-foreground">Loading...</span>
                   </div>
                 ) : error ? (
-                  <div className="flex items-center gap-3 text-destructive">
-                    <AlertCircle className="w-5 h-5" />
-                    <span>Failed to load project</span>
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-sm font-mono">Failed to load</span>
                   </div>
                 ) : project ? (
-                  <>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", stageColor.bg)}>
-                          <Layers className={cn("w-5 h-5", stageColor.text)} />
-                        </div>
-                        <div>
-                          <DialogTitle className="text-xl">{project.name}</DialogTitle>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge className={cn("text-xs", stageColor.bg, stageColor.text)}>
-                              {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
-                        {/* Open Project Page button */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(`/projects/${project.id}`, '_blank')}
-                          className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
-                        >
-                          <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          <span className="hidden sm:inline">Open Page</span>
-                        </Button>
-                        {project.status === "active" ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange("paused")}
-                            className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
-                          >
-                            <Pause className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                            <span className="hidden sm:inline">Pause</span>
-                          </Button>
-                        ) : project.status === "paused" ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusChange("active")}
-                            className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
-                          >
-                            <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                            <span className="hidden sm:inline">Resume</span>
-                          </Button>
-                        ) : null}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleStatusChange("archived")}
-                          className="gap-1 sm:gap-1.5 text-muted-foreground hover:text-destructive text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
-                        >
-                          <Archive className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          <span className="hidden sm:inline">Archive</span>
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {project.description && (
-                      <DialogDescription className="mt-3">
-                        {project.description}
-                      </DialogDescription>
-                    )}
-                  </>
+                  <div className="flex items-center gap-2">
+                    <Layers className={cn("w-4 h-4", stageColor.text)} />
+                    <DialogTitle className="text-sm font-mono text-muted-foreground">
+                      {project.name}
+                    </DialogTitle>
+                    <Badge className={cn("text-xs h-5", stageColor.bg, stageColor.text)}>
+                      {project.stage}
+                    </Badge>
+                  </div>
                 ) : null}
+                <DialogDescription className="sr-only">
+                  {project?.name || "Project"} details and management
+                </DialogDescription>
               </DialogHeader>
 
               {/* Content with Tabs */}
               {project && (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                  <div className="shrink-0 px-4 sm:px-6 pt-4 overflow-x-auto scrollbar-hide">
-                    <TabsList className="bg-slate-100/50 dark:bg-slate-800/50 w-max sm:w-auto">
-                      <TabsTrigger value="overview" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
-                        <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        <span className="hidden sm:inline">Overview</span>
-                        <span className="sm:hidden">Info</span>
+                  <div className="flex-shrink-0 px-6 pt-4">
+                    <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-6">
+                      <TabsTrigger value="overview" className="gap-1.5 text-xs">
+                        <Info className="w-3.5 h-3.5" />
+                        Overview
                       </TabsTrigger>
-                      <TabsTrigger value="documents" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
-                        <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        <span className="hidden sm:inline">Documents</span>
-                        <span className="sm:hidden">Docs</span>
+                      <TabsTrigger value="documents" className="gap-1.5 text-xs">
+                        <FileText className="w-3.5 h-3.5" />
+                        Documents
                         {project.documents.length > 0 && (
-                          <span className="ml-1 text-[10px] sm:text-xs bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1 sm:px-1.5 rounded-full">
+                          <span className="ml-1 text-[10px] bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1.5 rounded-full">
                             {project.documents.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="prototypes" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
-                        <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        <span className="hidden sm:inline">Prototypes</span>
-                        <span className="sm:hidden">Proto</span>
+                      <TabsTrigger value="prototypes" className="gap-1.5 text-xs">
+                        <Layers className="w-3.5 h-3.5" />
+                        Prototypes
                         {project.prototypes.length > 0 && (
-                          <span className="ml-1 text-[10px] sm:text-xs bg-pink-500/20 text-pink-600 dark:text-pink-400 px-1 sm:px-1.5 rounded-full">
+                          <span className="ml-1 text-[10px] bg-pink-500/20 text-pink-600 dark:text-pink-400 px-1.5 rounded-full">
                             {project.prototypes.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="history" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
-                        <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        History
-                      </TabsTrigger>
-                      <TabsTrigger value="tickets" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
-                        <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      <TabsTrigger value="tickets" className="gap-1.5 text-xs">
+                        <FileText className="w-3.5 h-3.5" />
                         Tickets
                         {project.tickets.length > 0 && (
-                          <span className="ml-1 text-[10px] sm:text-xs bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1 sm:px-1.5 rounded-full">
+                          <span className="ml-1 text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 rounded-full">
                             {project.tickets.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="validation" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
-                        <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        <span className="hidden sm:inline">Validation</span>
-                        <span className="sm:hidden">Valid</span>
+                      <TabsTrigger value="validation" className="gap-1.5 text-xs">
+                        <Users className="w-3.5 h-3.5" />
+                        Validation
+                      </TabsTrigger>
+                      <TabsTrigger value="history" className="gap-1.5 text-xs">
+                        <Clock className="w-3.5 h-3.5" />
+                        History
                       </TabsTrigger>
                     </TabsList>
                   </div>
 
                   <div className="flex-1 overflow-y-auto min-h-0">
-                    <div className="p-4 sm:p-6 pt-4">
+                    <div className="p-6 pt-4">
                       {/* Overview Tab */}
-                      <TabsContent value="overview" className="mt-0 space-y-4">
-                        {project.metadata?.stageConfidence?.[project.stage] ? (
-                          <div className="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-500/20">
-                            <div className="flex items-center justify-between mb-2">
-                              <div>
-                                <p className="text-xs text-emerald-700/70 dark:text-emerald-300/70">
-                                  Alignment Score
-                                </p>
-                                <p className="text-sm font-medium text-emerald-800/90 dark:text-emerald-200/90">
-                                  {Math.round(
-                                    project.metadata.stageConfidence[project.stage].score * 100
-                                  )}
-                                  %
-                                </p>
-                              </div>
-                              <Button size="sm" variant="outline" onClick={handleScoreAlignment}>
-                                Re-score
-                              </Button>
-                            </div>
-                            <Progress 
-                              value={Math.round(project.metadata.stageConfidence[project.stage].score * 100)}
-                              className="h-2 bg-emerald-200/60 dark:bg-emerald-800/40 [&>div]:bg-linear-to-r [&>div]:from-emerald-400 [&>div]:via-purple-400 [&>div]:to-pink-400"
-                            />
-                            {project.metadata.stageConfidence[project.stage].summary && (
-                              <p className="text-xs text-emerald-700/70 dark:text-emerald-300/70 mt-2">
-                                {project.metadata.stageConfidence[project.stage].summary}
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-700/40 flex items-center justify-between">
-                            <div>
-                              <p className="text-xs text-muted-foreground">Alignment Score</p>
-                              <p className="text-sm">No score yet for this stage</p>
-                            </div>
-                            <Button size="sm" variant="outline" onClick={handleScoreAlignment}>
-                              Score Now
-                            </Button>
-                          </div>
-                        )}
-                        {/* Summary Section */}
-                        {project.documents.length > 0 && (
-                          <div className="p-4 rounded-xl bg-linear-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200/50 dark:border-purple-500/20">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                              <h4 className="font-medium text-sm text-purple-900 dark:text-purple-100">
-                                Project Summary
-                              </h4>
-                            </div>
-                            <p className="text-sm text-purple-800/80 dark:text-purple-200/80 line-clamp-3">
-                              {project.documents[0]?.content?.slice(0, 300) || "No content available yet."}
-                              {(project.documents[0]?.content?.length || 0) > 300 && "..."}
-                            </p>
-                            {project.documents.length > 1 && (
-                              <p className="text-xs text-purple-600/60 dark:text-purple-400/60 mt-2">
-                                + {project.documents.length - 1} more document{project.documents.length > 2 ? "s" : ""}
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Time & Status Info */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                          <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                            <p className="text-xs text-muted-foreground mb-1">Created</p>
-                            <p className="text-sm font-medium">{formatDate(project.createdAt)}</p>
-                          </div>
-                          <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                            <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
-                            <p className="text-sm font-medium">{formatDate(project.updatedAt)}</p>
-                          </div>
-                        </div>
-
-                        {project.metadata?.gitBranch && (
-                          <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                            <p className="text-xs text-muted-foreground mb-2">Git Branch</p>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={project.metadata.gitBranch}
-                                readOnly
-                                className="h-9"
-                              />
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="outline"
-                                onClick={handleCopyBranch}
-                              >
-                                <Copy className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Stage Progress */}
-                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                          <p className="text-xs text-muted-foreground mb-2">Stage Progress</p>
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {project.stages.slice().reverse().map((stage, idx) => (
-                              <div key={stage.id} className="flex items-center">
-                                <Badge 
-                                  className={cn(
-                                    "text-xs",
-                                    stageColors[stage.stage]?.bg || "bg-slate-100",
-                                    stageColors[stage.stage]?.text || "text-slate-700"
-                                  )}
+                      <TabsContent value="overview" className="mt-0 space-y-6">
+                        {/* Two Column Layout */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Left Column */}
+                          <div className="space-y-6">
+                            {/* Project Actions Card */}
+                            <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                              <h4 className="text-sm font-medium mb-3">Project Actions</h4>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(`/projects/${project.id}`, '_blank')}
+                                  className="gap-1.5"
                                 >
-                                  {stage.stage}
-                                </Badge>
-                                {idx < project.stages.length - 1 && (
-                                  <ArrowRight className="w-3 h-3 mx-1 text-muted-foreground" />
-                                )}
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  Open Full Page
+                                </Button>
+                                {project.status === "active" ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleStatusChange("paused")}
+                                    className="gap-1.5"
+                                  >
+                                    <Pause className="w-3.5 h-3.5" />
+                                    Pause
+                                  </Button>
+                                ) : project.status === "paused" ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleStatusChange("active")}
+                                    className="gap-1.5"
+                                  >
+                                    <Play className="w-3.5 h-3.5" />
+                                    Resume
+                                  </Button>
+                                ) : null}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleStatusChange("archived")}
+                                  className="gap-1.5 text-muted-foreground hover:text-destructive"
+                                >
+                                  <Archive className="w-3.5 h-3.5" />
+                                  Archive
+                                </Button>
                               </div>
-                            ))}
-                          </div>
-                          {project.stages.length > 0 && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Current stage: <span className="font-medium capitalize">{project.stage}</span>
-                              {project.stages[0]?.enteredAt && (
-                                <> · Started {formatDate(project.stages[0].enteredAt)}</>
+                            </div>
+
+                            {/* Alignment Score Card */}
+                            <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                              <h4 className="text-sm font-medium mb-3">Alignment Score</h4>
+                              {project.metadata?.stageConfidence?.[project.stage] ? (
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-2xl font-bold">
+                                      {Math.round(project.metadata.stageConfidence[project.stage].score * 100)}%
+                                    </p>
+                                    <Button size="sm" variant="outline" onClick={handleScoreAlignment}>
+                                      Re-score
+                                    </Button>
+                                  </div>
+                                  <Progress 
+                                    value={Math.round(project.metadata.stageConfidence[project.stage].score * 100)}
+                                    className="h-2 bg-muted [&>div]:bg-linear-to-r [&>div]:from-emerald-400 [&>div]:via-purple-400 [&>div]:to-pink-400"
+                                  />
+                                  {project.metadata.stageConfidence[project.stage].summary && (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      {project.metadata.stageConfidence[project.stage].summary}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm text-muted-foreground">No score yet for this stage</p>
+                                  <Button size="sm" variant="outline" onClick={handleScoreAlignment}>
+                                    Score Now
+                                  </Button>
+                                </div>
                               )}
-                            </p>
-                          )}
+                            </div>
+
+                            {/* Timestamps Card */}
+                            <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-1">Created</p>
+                                  <p className="text-sm font-medium">{formatDate(project.createdAt)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-1">Last Updated</p>
+                                  <p className="text-sm font-medium">{formatDate(project.updatedAt)}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Git Branch Card */}
+                            {project.metadata?.gitBranch && (
+                              <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                                <h4 className="text-sm font-medium mb-3">Git Branch</h4>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={project.metadata.gitBranch}
+                                    readOnly
+                                    className="h-9"
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="outline"
+                                    onClick={handleCopyBranch}
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Right Column */}
+                          <div className="space-y-6">
+                            {/* Stage Progress Card */}
+                            <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                              <h4 className="text-sm font-medium mb-3">Stage Progress</h4>
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {project.stages.slice().reverse().map((stage, idx) => (
+                                  <div key={stage.id} className="flex items-center">
+                                    <Badge 
+                                      className={cn(
+                                        "text-xs",
+                                        stageColors[stage.stage]?.bg || "bg-slate-100",
+                                        stageColors[stage.stage]?.text || "text-slate-700"
+                                      )}
+                                    >
+                                      {stage.stage}
+                                    </Badge>
+                                    {idx < project.stages.length - 1 && (
+                                      <ArrowRight className="w-3 h-3 mx-1 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              {project.stages.length > 0 && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Current stage: <span className="font-medium capitalize">{project.stage}</span>
+                                  {project.stages[0]?.enteredAt && (
+                                    <> · Started {formatDate(project.stages[0].enteredAt)}</>
+                                  )}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Quick Stats Card */}
+                            <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                              <h4 className="text-sm font-medium mb-3">Quick Stats</h4>
+                              <div className="grid grid-cols-3 gap-3">
+                                <button 
+                                  onClick={() => setActiveTab("documents")}
+                                  className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-center hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
+                                >
+                                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                    {project.documents.length}
+                                  </p>
+                                  <p className="text-xs text-purple-600/70 dark:text-purple-400/70">Documents</p>
+                                </button>
+                                <button 
+                                  onClick={() => setActiveTab("prototypes")}
+                                  className="p-3 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-center hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors cursor-pointer"
+                                >
+                                  <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+                                    {project.prototypes.length}
+                                  </p>
+                                  <p className="text-xs text-pink-600/70 dark:text-pink-400/70">Prototypes</p>
+                                </button>
+                                <button 
+                                  onClick={() => setActiveTab("history")}
+                                  className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-center hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors cursor-pointer"
+                                >
+                                  <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
+                                    {project.stages.length}
+                                  </p>
+                                  <p className="text-xs text-teal-600/70 dark:text-teal-400/70">Stage Changes</p>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Jury Iteration Loop Card */}
+                            <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                                  <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-sm">Jury Iteration Loop</h4>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Run synthetic user jury evaluations to validate and iterate.
+                                  </p>
+                                  
+                                  <div className="flex items-end gap-3 mt-4">
+                                    <div className="flex-1 max-w-[120px]">
+                                      <Label htmlFor="iterations" className="text-xs text-muted-foreground">
+                                        Iterations
+                                      </Label>
+                                      <Input
+                                        id="iterations"
+                                        type="number"
+                                        min={1}
+                                        max={10}
+                                        value={iterationCount}
+                                        onChange={(e) => setIterationCount(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
+                                        className="h-9"
+                                      />
+                                    </div>
+                                    <Button
+                                      onClick={handleRunIterations}
+                                      disabled={isRunningIterations || project.documents.length === 0}
+                                      className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                                    >
+                                      {isRunningIterations ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          Starting...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Repeat className="w-4 h-4" />
+                                          Run {iterationCount}
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                  
+                                  {project.documents.length === 0 && (
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                                      Generate documents first before running jury evaluations.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
-                        {/* Quick Stats */}
-                        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                          <button 
-                            onClick={() => setActiveTab("documents")}
-                            className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-center hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
-                          >
-                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                              {project.documents.length}
-                            </p>
-                            <p className="text-xs text-purple-600/70 dark:text-purple-400/70">Documents</p>
-                          </button>
-                          <button 
-                            onClick={() => setActiveTab("prototypes")}
-                            className="p-3 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-center hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors cursor-pointer"
-                          >
-                            <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">
-                              {project.prototypes.length}
-                            </p>
-                            <p className="text-xs text-pink-600/70 dark:text-pink-400/70">Prototypes</p>
-                          </button>
-                          <button 
-                            onClick={() => setActiveTab("history")}
-                            className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-center hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors cursor-pointer"
-                          >
-                            <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                              {project.stages.length}
-                            </p>
-                            <p className="text-xs text-teal-600/70 dark:text-teal-400/70">Stage Changes</p>
-                          </button>
-                        </div>
-                        
-                        {/* Next Actions Suggestion */}
+                        {/* Full Width - Next Actions (if no documents) */}
                         {project.documents.length === 0 && (
                           <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-500/20">
                             <div className="flex items-center gap-2 mb-2">
@@ -773,63 +714,26 @@ export function ProjectDetailModal() {
                           </div>
                         )}
 
-                        {/* Iteration Loop Section */}
-                        <div className="p-4 rounded-xl bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/50 dark:border-amber-500/20">
-                          <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                              <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-medium text-sm text-amber-900 dark:text-amber-100">
-                                Jury Iteration Loop
+                        {/* Full Width - Project Summary (if has documents) */}
+                        {project.documents.length > 0 && (
+                          <div className="p-4 rounded-xl bg-linear-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200/50 dark:border-purple-500/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              <h4 className="font-medium text-sm text-purple-900 dark:text-purple-100">
+                                Project Summary
                               </h4>
-                              <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-1">
-                                Run synthetic user jury evaluations to validate and iterate on your work.
-                                Each iteration generates feedback that Cursor AI can use to improve the content.
-                              </p>
-                              
-                              <div className="flex items-end gap-3 mt-4">
-                                <div className="flex-1 max-w-[120px]">
-                                  <Label htmlFor="iterations" className="text-xs text-amber-700 dark:text-amber-300">
-                                    Iterations
-                                  </Label>
-                                  <Input
-                                    id="iterations"
-                                    type="number"
-                                    min={1}
-                                    max={10}
-                                    value={iterationCount}
-                                    onChange={(e) => setIterationCount(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
-                                    className="h-9 bg-white/50 dark:bg-slate-800/50 border-amber-200 dark:border-amber-500/30"
-                                  />
-                                </div>
-                                <Button
-                                  onClick={handleRunIterations}
-                                  disabled={isRunningIterations || project.documents.length === 0}
-                                  className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
-                                >
-                                  {isRunningIterations ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      Starting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Repeat className="w-4 h-4" />
-                                      Run {iterationCount} Iteration{iterationCount !== 1 ? "s" : ""}
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                              
-                              {project.documents.length === 0 && (
-                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                                  Generate documents first before running jury evaluations.
-                                </p>
-                              )}
                             </div>
+                            <p className="text-sm text-purple-800/80 dark:text-purple-200/80 line-clamp-3">
+                              {project.documents[0]?.content?.slice(0, 300) || "No content available yet."}
+                              {(project.documents[0]?.content?.length || 0) > 300 && "..."}
+                            </p>
+                            {project.documents.length > 1 && (
+                              <p className="text-xs text-purple-600/60 dark:text-purple-400/60 mt-2">
+                                + {project.documents.length - 1} more document{project.documents.length > 2 ? "s" : ""}
+                              </p>
+                            )}
                           </div>
-                        </div>
+                        )}
                       </TabsContent>
 
                       {/* Documents Tab */}
@@ -841,9 +745,8 @@ export function ProjectDetailModal() {
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: -20 }}
-                              className="h-[60vh] sm:h-[500px]"
+                              className="h-[60vh]"
                             >
-                              {/* Back button */}
                               <div className="mb-4">
                                 <Button
                                   variant="ghost"
@@ -856,8 +759,7 @@ export function ProjectDetailModal() {
                                 </Button>
                               </div>
                               
-                              {/* Document Viewer */}
-                              <div className="h-[calc(100%-48px)] rounded-xl border border-slate-200/50 dark:border-white/10 overflow-hidden bg-slate-50/50 dark:bg-slate-900/30">
+                              <div className="h-[calc(100%-48px)] rounded-xl border border-border dark:border-[rgba(255,255,255,0.08)] overflow-hidden bg-muted/30">
                                 <DocumentViewer
                                   document={{
                                     ...selectedDocument,
@@ -892,7 +794,6 @@ export function ProjectDetailModal() {
                               exit={{ opacity: 0, x: 20 }}
                               className="space-y-3"
                             >
-                              {/* Add Document Button - Always visible */}
                               <div className="flex justify-end">
                                 <Button
                                   variant="outline"
@@ -906,7 +807,7 @@ export function ProjectDetailModal() {
                               </div>
                               
                               {project.documents.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground border border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
+                                <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
                                   <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
                                   <p className="text-sm">No documents yet</p>
                                   <p className="text-xs mt-1 mb-4">Add research notes, transcripts, or other documentation</p>
@@ -927,7 +828,7 @@ export function ProjectDetailModal() {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     onClick={() => setSelectedDocument(doc)}
-                                    className="w-full text-left p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-500/50 transition-colors"
+                                    className="w-full text-left p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)] hover:border-purple-300 dark:hover:border-purple-500/50 transition-colors"
                                   >
                                     <div className="flex items-start justify-between">
                                       <div className="flex items-center gap-3">
@@ -969,7 +870,7 @@ export function ProjectDetailModal() {
                       {/* Prototypes Tab */}
                       <TabsContent value="prototypes" className="mt-0 space-y-3">
                         {project.prototypes.length === 0 ? (
-                          <div className="text-center py-12 text-muted-foreground">
+                          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
                             <Layers className="w-10 h-10 mx-auto mb-3 opacity-40" />
                             <p className="text-sm">No prototypes yet</p>
                             <p className="text-xs mt-1">Prototypes will appear when built in the Prototype stage</p>
@@ -980,7 +881,7 @@ export function ProjectDetailModal() {
                               key={proto.id}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
-                              className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50"
+                              className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]"
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex items-center gap-3">
@@ -1046,60 +947,10 @@ export function ProjectDetailModal() {
                         )}
                       </TabsContent>
 
-                      {/* History Tab */}
-                      <TabsContent value="history" className="mt-0">
-                        <div className="relative">
-                          {/* Timeline line */}
-                          <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-700" />
-                          
-                          <div className="space-y-4">
-                            {project.stages.map((stage, idx) => {
-                              const color = stageColors[stage.stage] || stageColors.inbox;
-                              return (
-                                <motion.div
-                                  key={stage.id}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: idx * 0.05 }}
-                                  className="relative pl-10"
-                                >
-                                  {/* Timeline dot */}
-                                  <div className={cn(
-                                    "absolute left-2 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900",
-                                    color.bg
-                                  )} />
-                                  
-                                  <div className="p-3 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2">
-                                        <Badge className={cn("text-xs", color.bg, color.text)}>
-                                          {stage.stage}
-                                        </Badge>
-                                        <span className="text-xs text-muted-foreground">
-                                          {stage.triggeredBy === "user" ? "Manual" : stage.triggeredBy || "System"}
-                                        </span>
-                                      </div>
-                                      <span className="text-xs text-muted-foreground">
-                                        {formatDate(stage.enteredAt)}
-                                      </span>
-                                    </div>
-                                    {stage.exitedAt && (
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        Duration: {Math.round((new Date(stage.exitedAt).getTime() - new Date(stage.enteredAt).getTime()) / (1000 * 60 * 60))}h
-                                      </p>
-                                    )}
-                                  </div>
-                                </motion.div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </TabsContent>
-
                       {/* Tickets Tab */}
                       <TabsContent value="tickets" className="mt-0 space-y-3">
                         {project.tickets.length === 0 ? (
-                          <div className="text-center py-12 text-muted-foreground">
+                          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
                             <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
                             <p className="text-sm">No tickets generated yet</p>
                             <p className="text-xs mt-1">Move the project to Tickets stage to generate them</p>
@@ -1110,7 +961,7 @@ export function ProjectDetailModal() {
                               key={ticket.id}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
-                              className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50"
+                              className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]"
                             >
                               <div className="flex items-start justify-between">
                                 <div>
@@ -1147,7 +998,7 @@ export function ProjectDetailModal() {
                       {/* Validation Tab */}
                       <TabsContent value="validation" className="mt-0 space-y-4">
                         {project.juryEvaluations.length === 0 ? (
-                          <div className="text-center py-12 text-muted-foreground">
+                          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
                             <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
                             <p className="text-sm">No validation results yet</p>
                             <p className="text-xs mt-1">Run a jury evaluation to see results</p>
@@ -1158,7 +1009,7 @@ export function ProjectDetailModal() {
                               key={evaluation.id}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
-                              className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50"
+                              className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]"
                             >
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
@@ -1181,20 +1032,20 @@ export function ProjectDetailModal() {
                                   {formatDate(evaluation.createdAt)}
                                 </span>
                               </div>
-                              <div className="flex flex-wrap gap-3 sm:grid sm:grid-cols-3 text-xs">
-                                <div className="min-w-[60px]">
+                              <div className="grid grid-cols-3 gap-3 text-xs">
+                                <div>
                                   <p className="text-muted-foreground">Approval</p>
                                   <p className="font-medium">
                                     {Math.round((evaluation.approvalRate || 0) * 100)}%
                                   </p>
                                 </div>
-                                <div className="min-w-[60px]">
+                                <div>
                                   <p className="text-muted-foreground">Conditional</p>
                                   <p className="font-medium">
                                     {Math.round((evaluation.conditionalRate || 0) * 100)}%
                                   </p>
                                 </div>
-                                <div className="min-w-[60px]">
+                                <div>
                                   <p className="text-muted-foreground">Rejection</p>
                                   <p className="font-medium">
                                     {Math.round((evaluation.rejectionRate || 0) * 100)}%
@@ -1215,13 +1066,59 @@ export function ProjectDetailModal() {
                           ))
                         )}
                       </TabsContent>
+
+                      {/* History Tab */}
+                      <TabsContent value="history" className="mt-0">
+                        <div className="relative">
+                          <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
+                          
+                          <div className="space-y-4">
+                            {project.stages.map((stage, idx) => {
+                              const color = stageColors[stage.stage] || stageColors.inbox;
+                              return (
+                                <motion.div
+                                  key={stage.id}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: idx * 0.05 }}
+                                  className="relative pl-10"
+                                >
+                                  <div className={cn(
+                                    "absolute left-2 w-5 h-5 rounded-full border-2 border-card",
+                                    color.bg
+                                  )} />
+                                  
+                                  <div className="p-3 rounded-lg bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <Badge className={cn("text-xs", color.bg, color.text)}>
+                                          {stage.stage}
+                                        </Badge>
+                                        <span className="text-xs text-muted-foreground">
+                                          {stage.triggeredBy === "user" ? "Manual" : stage.triggeredBy || "System"}
+                                        </span>
+                                      </div>
+                                      <span className="text-xs text-muted-foreground">
+                                        {formatDate(stage.enteredAt)}
+                                      </span>
+                                    </div>
+                                    {stage.exitedAt && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Duration: {Math.round((new Date(stage.exitedAt).getTime() - new Date(stage.enteredAt).getTime()) / (1000 * 60 * 60))}h
+                                      </p>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </TabsContent>
                     </div>
                   </div>
                 </Tabs>
               )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
       </DialogContent>
       
       {/* Add Document Dialog */}

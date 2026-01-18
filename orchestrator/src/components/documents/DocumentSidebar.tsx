@@ -158,20 +158,19 @@ export function DocumentSidebar({
 
   return (
     <div className={cn("relative flex h-full", className)}>
-      {/* Collapsed state - vertical sidebar with traffic light */}
+      {/* Collapsed state - vertical sidebar with green button only */}
       {!isOpen && (
         <div className="flex-shrink-0 h-full flex flex-col items-center py-3 px-2 bg-card rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)]">
           <TrafficLights
             size={10}
             interactive
-            onClose={() => {}} // Aesthetic only
-            onMinimize={() => {}} // Already minimized
+            showOnly="maximize"
             onMaximize={handleExpand}
           />
-          <div className="w-px flex-1 bg-border dark:bg-[rgba(255,255,255,0.14)] my-3" />
-          <span className="text-xs text-muted-foreground [writing-mode:vertical-lr] rotate-180 font-mono">
+          <span className="text-xs text-muted-foreground [writing-mode:vertical-lr] rotate-180 font-mono mt-3">
             Documents
           </span>
+          <div className="flex-1" />
         </div>
       )}
 

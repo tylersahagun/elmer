@@ -7,8 +7,10 @@ interface GridBackgroundProps {
   className?: string;
   /** Grid line size in pixels */
   gridSize?: number;
-  /** Grid line opacity (0-1) */
+  /** Grid line opacity (0-1) for light mode */
   gridOpacity?: number;
+  /** Grid line opacity (0-1) for dark mode */
+  darkGridOpacity?: number;
   /** Whether to apply vignette fade effect */
   vignette?: boolean;
   /** Children to render on top */
@@ -18,7 +20,8 @@ interface GridBackgroundProps {
 export function GridBackground({
   className,
   gridSize = 24,
-  gridOpacity = 0.04,
+  gridOpacity = 0.08,
+  darkGridOpacity = 0.06,
   vignette = true,
   children,
 }: GridBackgroundProps) {
@@ -32,31 +35,7 @@ export function GridBackground({
       )}
       aria-hidden="true"
     >
-      {/* Grid pattern layer */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(0, 0, 0, ${gridOpacity}) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0, 0, 0, ${gridOpacity}) 1px, transparent 1px)
-          `,
-          backgroundSize: `${gridSize}px ${gridSize}px`,
-        }}
-      />
-      
-      {/* Dark mode grid overlay */}
-      <div
-        className="absolute inset-0 hidden dark:block"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, rgba(255, 255, 255, ${gridOpacity * 0.8}) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, ${gridOpacity * 0.8}) 1px, transparent 1px)
-          `,
-          backgroundSize: `${gridSize}px ${gridSize}px`,
-        }}
-      />
-      
-      {/* Hide light mode grid in dark mode */}
+      {/* Light mode grid - black lines on warm white */}
       <div
         className="absolute inset-0 dark:hidden"
         style={{
@@ -67,16 +46,28 @@ export function GridBackground({
           backgroundSize: `${gridSize}px ${gridSize}px`,
         }}
       />
+      
+      {/* Dark mode grid - white lines on dark background */}
+      <div
+        className="absolute inset-0 hidden dark:block"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgba(255, 255, 255, ${darkGridOpacity}) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, ${darkGridOpacity}) 1px, transparent 1px)
+          `,
+          backgroundSize: `${gridSize}px ${gridSize}px`,
+        }}
+      />
 
-      {/* Vignette fade - stronger at top and bottom, lighter in center */}
+      {/* Subtle vignette fade - gentle at edges */}
       {vignette && (
         <div
           className={cn(
             "absolute inset-0 pointer-events-none",
-            // Light mode vignette
-            "bg-gradient-to-b from-[#FBFBF7]/80 via-transparent to-[#FBFBF7]/80",
-            // Dark mode vignette
-            "dark:from-[#0B0F14]/80 dark:via-transparent dark:to-[#0B0F14]/80"
+            // Light mode vignette - subtle
+            "bg-gradient-to-b from-[#FBFBF7]/40 via-transparent to-[#FBFBF7]/40",
+            // Dark mode vignette - subtle
+            "dark:from-[#0B0F14]/40 dark:via-transparent dark:to-[#0B0F14]/40"
           )}
         />
       )}
@@ -92,12 +83,14 @@ export function DotGridBackground({
   dotSize = 1,
   dotSpacing = 20,
   dotOpacity = 0.15,
+  darkDotOpacity = 0.10,
   vignette = true,
 }: {
   className?: string;
   dotSize?: number;
   dotSpacing?: number;
   dotOpacity?: number;
+  darkDotOpacity?: number;
   vignette?: boolean;
 }) {
   return (
@@ -109,9 +102,9 @@ export function DotGridBackground({
       )}
       aria-hidden="true"
     >
-      {/* Dot pattern */}
+      {/* Light mode dots */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 dark:hidden"
         style={{
           backgroundImage: `radial-gradient(circle, rgba(0, 0, 0, ${dotOpacity}) ${dotSize}px, transparent ${dotSize}px)`,
           backgroundSize: `${dotSpacing}px ${dotSpacing}px`,
@@ -122,7 +115,7 @@ export function DotGridBackground({
       <div
         className="absolute inset-0 hidden dark:block"
         style={{
-          backgroundImage: `radial-gradient(circle, rgba(255, 255, 255, ${dotOpacity * 0.6}) ${dotSize}px, transparent ${dotSize}px)`,
+          backgroundImage: `radial-gradient(circle, rgba(255, 255, 255, ${darkDotOpacity}) ${dotSize}px, transparent ${dotSize}px)`,
           backgroundSize: `${dotSpacing}px ${dotSpacing}px`,
         }}
       />
@@ -131,8 +124,8 @@ export function DotGridBackground({
         <div
           className={cn(
             "absolute inset-0 pointer-events-none",
-            "bg-gradient-to-b from-[#FBFBF7]/70 via-transparent to-[#FBFBF7]/70",
-            "dark:from-[#0B0F14]/70 dark:via-transparent dark:to-[#0B0F14]/70"
+            "bg-gradient-to-b from-[#FBFBF7]/40 via-transparent to-[#FBFBF7]/40",
+            "dark:from-[#0B0F14]/40 dark:via-transparent dark:to-[#0B0F14]/40"
           )}
         />
       )}
