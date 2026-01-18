@@ -190,7 +190,7 @@ interface UIState {
 
 export const useUIStore = create<UIState>((set) => ({
   // Initial state
-  sidebarOpen: true,
+  sidebarOpen: false,
   sidebarTab: "chat",
   newProjectModalOpen: false,
   projectDetailModalOpen: false,

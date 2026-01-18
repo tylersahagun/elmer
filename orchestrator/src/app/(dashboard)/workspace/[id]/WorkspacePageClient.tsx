@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useKanbanStore, useUIStore, type KanbanColumn, type ProjectCard } from "@/lib/store";
 import { KanbanBoard, WorkspaceSettingsModal, ArchivedProjectsModal } from "@/components/kanban";
 import { NewProjectDialog } from "@/components/kanban/NewProjectDialog";
@@ -197,15 +198,17 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       >
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center gap-2 sm:gap-4">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={springPresets.bouncy}
-              className="flex items-center gap-1"
-            >
-              <WaveV4D size={36} palette="forest" className="sm:w-11 sm:h-11" />
-              <ElmerWordmark width={80} height={26} palette="forest" className="hidden sm:block sm:w-[100px] sm:h-8" />
-            </motion.div>
+            <Link href="/">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={springPresets.bouncy}
+                className="flex items-center gap-0.5 hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <WaveV4D size={36} palette="forest" className="sm:w-11 sm:h-11" />
+                <ElmerWordmark width={80} height={26} palette="forest" className="hidden sm:block sm:w-[100px] sm:h-8" />
+              </motion.div>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}

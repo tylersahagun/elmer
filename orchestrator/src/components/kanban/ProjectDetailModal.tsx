@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -18,7 +17,6 @@ import { useUIStore, useKanbanStore } from "@/lib/store";
 import { popInVariants } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { DocumentViewer } from "@/components/documents";
-import { buildCursorDeepLink } from "@/lib/cursor/links";
 import type { DocumentType, KnowledgebaseType } from "@/lib/db/schema";
 import {
   FileText,
@@ -309,12 +307,6 @@ export function ProjectDetailModal() {
     navigator.clipboard?.writeText(branch).catch(() => {});
   }, [project]);
 
-  const cursorLink = buildCursorDeepLink({
-    template: project?.workspace?.settings?.cursorDeepLinkTemplate,
-    repo: project?.workspace?.githubRepo,
-    branch: project?.metadata?.gitBranch,
-  });
-
   const handleRegenerateDocument = useCallback(async () => {
     if (!selectedDocument || !activeProjectId || !project) return;
     // Trigger regeneration job based on document type
@@ -484,62 +476,40 @@ export function ProjectDetailModal() {
                             <Badge className={cn("text-xs", stageColor.bg, stageColor.text)}>
                               {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
                             </Badge>
-                            <Badge variant={project.status === "active" ? "default" : "secondary"} className="text-xs">
-                              {project.status}
-                            </Badge>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            if (cursorLink) {
-                              window.location.href = cursorLink;
-                            }
-                          }}
-                          disabled={!cursorLink}
-                          className="h-9 w-9"
-                        >
-                          <Image
-                            src="/cursor/cursor-cube-light.svg"
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="w-4 h-4 dark:invert"
-                          />
-                        </Button>
+                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
                         {project.status === "active" ? (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleStatusChange("paused")}
-                            className="gap-1.5"
+                            className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                           >
-                            <Pause className="w-3.5 h-3.5" />
-                            Pause
+                            <Pause className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <span className="hidden sm:inline">Pause</span>
                           </Button>
                         ) : project.status === "paused" ? (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleStatusChange("active")}
-                            className="gap-1.5"
+                            className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                           >
-                            <Play className="w-3.5 h-3.5" />
-                            Resume
+                            <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <span className="hidden sm:inline">Resume</span>
                           </Button>
                         ) : null}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleStatusChange("archived")}
-                          className="gap-1.5 text-muted-foreground hover:text-destructive"
+                          className="gap-1 sm:gap-1.5 text-muted-foreground hover:text-destructive text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
                         >
-                          <Archive className="w-3.5 h-3.5" />
-                          Archive
+                          <Archive className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          <span className="hidden sm:inline">Archive</span>
                         </Button>
                       </div>
                     </div>
@@ -556,7 +526,7 @@ export function ProjectDetailModal() {
               {/* Content with Tabs */}
               {project && (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                  <div className="shrink-0 px-4 sm:px-6 pt-4 overflow-x-auto">
+                  <div className="shrink-0 px-4 sm:px-6 pt-4 overflow-x-auto scrollbar-hide">
                     <TabsList className="bg-slate-100/50 dark:bg-slate-800/50 w-max sm:w-auto">
                       <TabsTrigger value="overview" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
                         <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -880,7 +850,7 @@ export function ProjectDetailModal() {
                               </div>
                               
                               {/* Document Viewer */}
-                              <div className="h-[calc(100%-48px)] rounded-xl border border-white/10 overflow-hidden bg-black/20">
+                              <div className="h-[calc(100%-48px)] rounded-xl border border-slate-200/50 dark:border-white/10 overflow-hidden bg-slate-50/50 dark:bg-slate-900/30">
                                 <DocumentViewer
                                   document={{
                                     ...selectedDocument,
@@ -1204,20 +1174,20 @@ export function ProjectDetailModal() {
                                   {formatDate(evaluation.createdAt)}
                                 </span>
                               </div>
-                              <div className="grid grid-cols-3 gap-3 text-xs">
-                                <div>
+                              <div className="flex flex-wrap gap-3 sm:grid sm:grid-cols-3 text-xs">
+                                <div className="min-w-[60px]">
                                   <p className="text-muted-foreground">Approval</p>
                                   <p className="font-medium">
                                     {Math.round((evaluation.approvalRate || 0) * 100)}%
                                   </p>
                                 </div>
-                                <div>
+                                <div className="min-w-[60px]">
                                   <p className="text-muted-foreground">Conditional</p>
                                   <p className="font-medium">
                                     {Math.round((evaluation.conditionalRate || 0) * 100)}%
                                   </p>
                                 </div>
-                                <div>
+                                <div className="min-w-[60px]">
                                   <p className="text-muted-foreground">Rejection</p>
                                   <p className="font-medium">
                                     {Math.round((evaluation.rejectionRate || 0) * 100)}%

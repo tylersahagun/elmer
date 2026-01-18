@@ -24,11 +24,14 @@ export const palettes = {
 export type PaletteKey = keyof typeof palettes;
 
 // Wave V4-D: Layered ribbon with transparency - The selected logo mark
-export const WaveV4D: React.FC<{ size?: number; palette?: PaletteKey }> = ({
+export const WaveV4D: React.FC<{ size?: number; palette?: PaletteKey; className?: string }> = ({
   size = 32,
   palette = "forest",
+  className,
 }) => {
   const colors = palettes[palette]?.colors || palettes.forest.colors;
+  const reactId = useId();
+  const filterId = `wave-soft-${reactId}`;
 
   return (
     <svg
@@ -37,25 +40,34 @@ export const WaveV4D: React.FC<{ size?: number; palette?: PaletteKey }> = ({
       viewBox="0 0 64 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      className={className}
     >
-      {/* Back ribbon */}
-      <path
-        d="M0 40 Q16 24, 32 36 Q48 48, 64 32 L64 40 Q48 56, 32 44 Q16 32, 0 48 Z"
-        fill={colors[2]}
-        opacity="0.3"
-      />
-      {/* Middle ribbon */}
-      <path
-        d="M0 36 Q16 20, 32 32 Q48 44, 64 28 L64 36 Q48 52, 32 40 Q16 28, 0 44 Z"
-        fill={colors[1]}
-        opacity="0.5"
-      />
-      {/* Front ribbon */}
-      <path
-        d="M0 32 Q16 16, 32 28 Q48 40, 64 24 L64 32 Q48 48, 32 36 Q16 24, 0 40 Z"
-        fill={colors[0]}
-        opacity="0.8"
-      />
+      <defs>
+        {/* Soft blur filter for smoother edges */}
+        <filter id={filterId} x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" />
+        </filter>
+      </defs>
+      <g filter={`url(#${filterId})`}>
+        {/* Back ribbon */}
+        <path
+          d="M0 40 Q16 24, 32 36 Q48 48, 64 32 L64 40 Q48 56, 32 44 Q16 32, 0 48 Z"
+          fill={colors[2]}
+          opacity="0.3"
+        />
+        {/* Middle ribbon */}
+        <path
+          d="M0 36 Q16 20, 32 32 Q48 44, 64 28 L64 36 Q48 52, 32 40 Q16 28, 0 44 Z"
+          fill={colors[1]}
+          opacity="0.5"
+        />
+        {/* Front ribbon */}
+        <path
+          d="M0 32 Q16 16, 32 28 Q48 40, 64 24 L64 32 Q48 48, 32 36 Q16 24, 0 40 Z"
+          fill={colors[0]}
+          opacity="0.8"
+        />
+      </g>
     </svg>
   );
 };
@@ -65,7 +77,8 @@ export const ElmerWordmark: React.FC<{
   width?: number;
   height?: number;
   palette?: PaletteKey;
-}> = ({ width = 80, height = 24, palette = "forest" }) => {
+  className?: string;
+}> = ({ width = 80, height = 24, palette = "forest", className }) => {
   const colors = palettes[palette]?.colors || palettes.forest.colors;
   const reactId = useId();
   const id = `elmer-wordmark-${palette}-${reactId}`;
@@ -77,6 +90,7 @@ export const ElmerWordmark: React.FC<{
       viewBox="0 0 80 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      className={className}
     >
       <defs>
         <linearGradient id={id} x1="0%" y1="50%" x2="100%" y2="50%">

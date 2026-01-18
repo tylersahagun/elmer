@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -26,12 +25,14 @@ import {
   Columns3,
   Workflow,
   Info,
-  Sparkles,
   Save,
   ArrowUp,
   ArrowDown,
   Plus,
   Trash2,
+  Palette,
+  Users,
+  Bot,
 } from "lucide-react";
 
 // Stage color mapping
@@ -47,25 +48,6 @@ const stageColors: Record<string, { bg: string; text: string; glow: string }> = 
   cyan: { bg: "bg-cyan-400/80", text: "text-cyan-700", glow: "shadow-[0_0_8px_rgba(34,211,238,0.5)]" },
   indigo: { bg: "bg-indigo-400/80", text: "text-indigo-700", glow: "shadow-[0_0_8px_rgba(129,140,248,0.5)]" },
   emerald: { bg: "bg-emerald-400/80", text: "text-emerald-700", glow: "shadow-[0_0_8px_rgba(52,211,153,0.5)]" },
-};
-
-const formatJobType = (type: string): string => {
-  const typeMap: Record<string, string> = {
-    analyze_transcript: "Analyze Transcript",
-    generate_prd: "Generate PRD",
-    generate_design_brief: "Generate Design Brief",
-    generate_engineering_spec: "Generate Eng Spec",
-    generate_gtm_brief: "Generate GTM Brief",
-    build_prototype: "Build Prototype",
-    run_jury_evaluation: "Run Jury Evaluation",
-    generate_tickets: "Generate Tickets",
-    validate_tickets: "Validate Tickets",
-    score_stage_alignment: "Score Alignment",
-    deploy_chromatic: "Deploy Chromatic",
-    iterate_prototype: "Iterate Prototype",
-    create_feature_branch: "Create Feature Branch",
-  };
-  return typeMap[type] || type;
 };
 
 const knowledgebaseOptions: Array<{ value: KnowledgebaseType; label: string }> = [
@@ -93,8 +75,6 @@ export function WorkspaceSettingsModal() {
   const updateWorkspace = useKanbanStore((s) => s.updateWorkspace);
   const setColumns = useKanbanStore((s) => s.setColumns);
   const columns = useKanbanStore((s) => s.columns);
-
-  const enabledColumns = columns.filter((c) => c.enabled).sort((a, b) => a.order - b.order);
 
   const [githubRepo, setGithubRepo] = useState("");
   const [contextPaths, setContextPaths] = useState<string[]>(["elmer-docs/"]);
@@ -427,7 +407,7 @@ export function WorkspaceSettingsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="glass-panel border-white/20 max-w-2xl !p-0 !gap-0 max-h-[85vh] overflow-hidden">
+      <DialogContent className="glass-panel border-white/20 max-w-5xl !p-0 !gap-0 max-h-[85vh] overflow-hidden">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -453,18 +433,30 @@ export function WorkspaceSettingsModal() {
               </DialogHeader>
 
               {/* Content with Tabs */}
-              <Tabs defaultValue="pipeline" className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="flex-shrink-0 px-6 pt-4">
-                  <TabsList className="bg-slate-100/50 dark:bg-slate-800/50">
-                    <TabsTrigger value="pipeline" className="gap-1.5">
+                  <TabsList className="bg-slate-100/50 dark:bg-slate-800/50 grid w-full grid-cols-6">
+                    <TabsTrigger value="general" className="gap-1.5 text-xs">
+                      <Settings className="w-3.5 h-3.5" />
+                      General
+                    </TabsTrigger>
+                    <TabsTrigger value="pipeline" className="gap-1.5 text-xs">
                       <Workflow className="w-3.5 h-3.5" />
                       Pipeline
                     </TabsTrigger>
-                    <TabsTrigger value="columns" className="gap-1.5">
+                    <TabsTrigger value="columns" className="gap-1.5 text-xs">
                       <Columns3 className="w-3.5 h-3.5" />
                       Columns
                     </TabsTrigger>
-                    <TabsTrigger value="about" className="gap-1.5">
+                    <TabsTrigger value="display" className="gap-1.5 text-xs">
+                      <Palette className="w-3.5 h-3.5" />
+                      Display
+                    </TabsTrigger>
+                    <TabsTrigger value="personas" className="gap-1.5 text-xs">
+                      <Users className="w-3.5 h-3.5" />
+                      Personas
+                    </TabsTrigger>
+                    <TabsTrigger value="about" className="gap-1.5 text-xs">
                       <Info className="w-3.5 h-3.5" />
                       About
                     </TabsTrigger>
@@ -473,121 +465,134 @@ export function WorkspaceSettingsModal() {
 
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <div className="p-6 pt-4">
-                    {/* Config Tab */}
-                    <TabsContent value="pipeline" className="mt-0 space-y-6">
-                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                        <h4 className="text-sm font-medium mb-3">Workspace Configuration</h4>
-                        <div className="grid gap-4">
-                          <div className="grid gap-2">
-                            <Label htmlFor="githubRepo">GitHub Repo Path</Label>
-                            <Input
-                              id="githubRepo"
-                              placeholder="product-repos/ask-elephant"
-                              value={githubRepo}
-                              onChange={(e) => setGithubRepo(e.target.value)}
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label>Context Paths</Label>
-                            <p className="text-xs text-muted-foreground">
-                              The first path is used as the default knowledge base root.
-                            </p>
-                            <div className="space-y-2">
-                              {contextPaths.map((path, idx) => (
-                                <div key={`context-path-${idx}`} className="flex items-center gap-2">
-                                  <Input
-                                    placeholder="elmer-docs/"
-                                    value={path}
-                                    onChange={(e) => updateContextPath(idx, e.target.value)}
-                                  />
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => moveContextPath(idx, idx - 1)}
-                                    disabled={idx === 0}
-                                  >
-                                    <ArrowUp className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => moveContextPath(idx, idx + 1)}
-                                    disabled={idx === contextPaths.length - 1}
-                                  >
-                                    <ArrowDown className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => removeContextPath(idx)}
-                                    disabled={contextPaths.length === 1}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              ))}
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="gap-2"
-                                onClick={addContextPath}
-                              >
-                                <Plus className="w-4 h-4" />
-                                Add Context Path
-                              </Button>
+                    {/* General Tab - Basic workspace config */}
+                    <TabsContent value="general" className="mt-0 space-y-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                          <h4 className="text-sm font-medium mb-3">Repository Settings</h4>
+                          <div className="grid gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="githubRepo">GitHub Repo Path</Label>
+                              <Input
+                                id="githubRepo"
+                                placeholder="product-repos/ask-elephant"
+                                value={githubRepo}
+                                onChange={(e) => setGithubRepo(e.target.value)}
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="baseBranch">Base Branch</Label>
+                              <Input
+                                id="baseBranch"
+                                placeholder="main"
+                                value={baseBranch}
+                                onChange={(e) => setBaseBranch(e.target.value)}
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="cursorDeepLinkTemplate">Cursor Deep Link Template</Label>
+                              <Input
+                                id="cursorDeepLinkTemplate"
+                                placeholder="cursor://open?repo={repo}&branch={branch}"
+                                value={cursorDeepLinkTemplate}
+                                onChange={(e) => setCursorDeepLinkTemplate(e.target.value)}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Supports {"{repo}"} and {"{branch}"} placeholders.
+                              </p>
                             </div>
                           </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="prototypesPath">Prototypes Path</Label>
-                            <Input
-                              id="prototypesPath"
-                              placeholder="src/components/prototypes/"
-                              value={prototypesPath}
-                              onChange={(e) => setPrototypesPath(e.target.value)}
-                            />
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                          <h4 className="text-sm font-medium mb-3">Prototypes & Storybook</h4>
+                          <div className="grid gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="prototypesPath">Prototypes Path</Label>
+                              <Input
+                                id="prototypesPath"
+                                placeholder="src/components/prototypes/"
+                                value={prototypesPath}
+                                onChange={(e) => setPrototypesPath(e.target.value)}
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="storybookPort">Storybook Port</Label>
+                              <Input
+                                id="storybookPort"
+                                type="number"
+                                min="1"
+                                max="65535"
+                                value={storybookPort}
+                                onChange={(e) => setStorybookPort(e.target.value)}
+                              />
+                            </div>
                           </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="storybookPort">Storybook Port</Label>
-                            <Input
-                              id="storybookPort"
-                              type="number"
-                              min="1"
-                              max="65535"
-                              value={storybookPort}
-                              onChange={(e) => setStorybookPort(e.target.value)}
-                            />
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 lg:col-span-2">
+                          <h4 className="text-sm font-medium mb-3">Context Paths</h4>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            The first path is used as the default knowledge base root.
+                          </p>
+                          <div className="space-y-2">
+                            {contextPaths.map((path, idx) => (
+                              <div key={`context-path-${idx}`} className="flex items-center gap-2">
+                                <Input
+                                  placeholder="elmer-docs/"
+                                  value={path}
+                                  onChange={(e) => updateContextPath(idx, e.target.value)}
+                                />
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => moveContextPath(idx, idx - 1)}
+                                  disabled={idx === 0}
+                                >
+                                  <ArrowUp className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => moveContextPath(idx, idx + 1)}
+                                  disabled={idx === contextPaths.length - 1}
+                                >
+                                  <ArrowDown className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => removeContextPath(idx)}
+                                  disabled={contextPaths.length === 1}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={addContextPath}
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add Context Path
+                            </Button>
                           </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="baseBranch">Base Branch</Label>
-                            <Input
-                              id="baseBranch"
-                              placeholder="main"
-                              value={baseBranch}
-                              onChange={(e) => setBaseBranch(e.target.value)}
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="cursorDeepLinkTemplate">Cursor Deep Link Template</Label>
-                            <Input
-                              id="cursorDeepLinkTemplate"
-                              placeholder="cursor://open?repo={repo}&branch={branch}"
-                              value={cursorDeepLinkTemplate}
-                              onChange={(e) => setCursorDeepLinkTemplate(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Supports {"{repo}"} and {"{branch}"} placeholders.
-                            </p>
-                          </div>
-                          <div className="grid gap-3">
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 lg:col-span-2">
+                          <h4 className="text-sm font-medium mb-3">Git Automation</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
                               <div>
                                 <Label className="text-sm">Auto-create feature branch</Label>
                                 <p className="text-xs text-muted-foreground">
-                                  Create a new branch when projects are added to the inbox.
+                                  Create a new branch when projects are added.
                                 </p>
                               </div>
                               <Switch
@@ -599,7 +604,7 @@ export function WorkspaceSettingsModal() {
                               <div>
                                 <Label className="text-sm">Auto-commit job output</Label>
                                 <p className="text-xs text-muted-foreground">
-                                  Commit and push files written by automation jobs.
+                                  Commit and push files from automation jobs.
                                 </p>
                               </div>
                               <Switch
@@ -608,8 +613,29 @@ export function WorkspaceSettingsModal() {
                               />
                             </div>
                           </div>
-                          <div className="grid gap-4">
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          className="gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          {isSaving ? "Saving..." : "Save Settings"}
+                        </Button>
+                      </div>
+                    </TabsContent>
+                    
+                    {/* Pipeline Tab - Automation and AI settings */}
+                    <TabsContent value="pipeline" className="mt-0 space-y-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Bot className="w-4 h-4 text-purple-500" />
                             <h4 className="text-sm font-medium">AI Job Execution</h4>
+                          </div>
+                          <div className="grid gap-4">
                             <div className="grid gap-2">
                               <Label htmlFor="aiExecutionMode">Execution Mode</Label>
                               <select
@@ -651,8 +677,14 @@ export function WorkspaceSettingsModal() {
                               />
                             </div>
                           </div>
-                          <div className="grid gap-4">
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Workflow className="w-4 h-4 text-emerald-500" />
                             <h4 className="text-sm font-medium">Automation Depth</h4>
+                          </div>
+                          <div className="grid gap-4">
                             <div className="grid gap-2">
                               <Label htmlFor="automationMode">Automation Mode</Label>
                               <select
@@ -710,119 +742,52 @@ export function WorkspaceSettingsModal() {
                               </select>
                             </div>
                           </div>
-                          <div className="grid gap-3">
-                            <h4 className="text-sm font-medium">Knowledge Base Publishing</h4>
-                            <p className="text-xs text-muted-foreground">
-                              Map document types to knowledge base sections. Leave as “None” to disable publish.
-                            </p>
-                            <div className="space-y-2">
-                              {sortedDocumentTypes.map((docType) => (
-                                <div key={docType} className="grid grid-cols-3 items-center gap-3">
-                                  <Label className="text-xs text-muted-foreground">
-                                    {documentTypeLabels[docType]}
-                                  </Label>
-                                  <select
-                                    value={knowledgebaseMapping[docType] || ""}
-                                    onChange={(e) =>
-                                      setKnowledgebaseMapping((prev) => ({
-                                        ...prev,
-                                        [docType]: e.target.value,
-                                      }))
-                                    }
-                                    className="col-span-2 h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs"
-                                  >
-                                    <option value="">None</option>
-                                    {knowledgebaseOptions.map((option) => (
-                                      <option key={option.value} value={option.value}>
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex justify-end">
-                            <Button
-                              onClick={handleSave}
-                              disabled={isSaving}
-                              className="gap-2"
-                            >
-                              <Save className="w-4 h-4" />
-                              {isSaving ? "Saving..." : "Save Settings"}
-                            </Button>
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 lg:col-span-2">
+                          <h4 className="text-sm font-medium mb-2">Knowledge Base Publishing</h4>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Map document types to knowledge base sections. Leave as &quot;None&quot; to disable publish.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {sortedDocumentTypes.map((docType) => (
+                              <div key={docType} className="flex items-center gap-2">
+                                <Label className="text-xs text-muted-foreground w-24 flex-shrink-0">
+                                  {documentTypeLabels[docType]}
+                                </Label>
+                                <select
+                                  value={knowledgebaseMapping[docType] || ""}
+                                  onChange={(e) =>
+                                    setKnowledgebaseMapping((prev) => ({
+                                      ...prev,
+                                      [docType]: e.target.value,
+                                    }))
+                                  }
+                                  className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-xs shadow-xs"
+                                >
+                                  <option value="">None</option>
+                                  {knowledgebaseOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
-
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Your project pipeline stages and their automation configuration.
-                          Projects flow through these stages from left to right.
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {enabledColumns.map((column, idx) => {
-                          const colorConfig = stageColors[column.color] || stageColors.slate;
-                          return (
-                            <div
-                              key={column.id}
-                              className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="flex items-center justify-center w-6 h-6">
-                                    <div className={cn(
-                                      "w-3 h-3 rounded-full",
-                                      colorConfig.bg,
-                                      colorConfig.glow
-                                    )} />
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-sm">{column.displayName}</p>
-                                    <p className="text-xs text-muted-foreground capitalize">{column.id}</p>
-                                  </div>
-                                </div>
-                                <Badge variant="outline" className="text-xs">
-                                  Stage {idx + 1}
-                                </Badge>
-                              </div>
-                              
-                              {column.autoTriggerJobs && column.autoTriggerJobs.length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
-                                  <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3" />
-                                    Auto-triggered jobs
-                                  </p>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {column.autoTriggerJobs.map((job) => (
-                                      <Badge
-                                        key={job}
-                                        variant="secondary"
-                                        className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                                      >
-                                        {formatJobType(job)}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {column.humanInLoop && (
-                                <div className="mt-2 flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-500/30">
-                                    Human Review Required
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          className="gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          {isSaving ? "Saving..." : "Save Settings"}
+                        </Button>
                       </div>
                     </TabsContent>
-
-                    {/* Pipeline Tab */}
 
                     {/* Columns Tab */}
                     <TabsContent value="columns" className="mt-0 space-y-4">
@@ -1096,6 +1061,92 @@ export function WorkspaceSettingsModal() {
                       <p className="text-xs text-muted-foreground italic">
                         Visibility changes save immediately. Use Save to persist other edits.
                       </p>
+                    </TabsContent>
+
+                    {/* Display Tab */}
+                    <TabsContent value="display" className="mt-0 space-y-6">
+                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                        <h4 className="text-sm font-medium mb-3">Visual Settings</h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Customize the visual appearance of your workspace.
+                        </p>
+                        <div className="grid gap-4">
+                          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                            <div>
+                              <Label className="text-sm">Aurora Background</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Show animated gradient background on the kanban board.
+                              </p>
+                            </div>
+                            <Switch defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                            <div>
+                              <Label className="text-sm">Column Gradients</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Show color gradients on kanban columns.
+                              </p>
+                            </div>
+                            <Switch defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                            <div>
+                              <Label className="text-sm">Compact Mode</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Use a more compact layout for project cards.
+                              </p>
+                            </div>
+                            <Switch />
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        Display settings are applied immediately and saved to your browser.
+                      </p>
+                    </TabsContent>
+
+                    {/* Personas Tab */}
+                    <TabsContent value="personas" className="mt-0 space-y-6">
+                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Users className="w-4 h-4 text-amber-500" />
+                          <h4 className="text-sm font-medium">Synthetic User Personas</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Configure personas for jury validation. These synthetic users will evaluate your prototypes and PRDs.
+                        </p>
+                        <div className="grid gap-3">
+                          <div className="p-3 rounded-lg bg-amber-50/50 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-500/20">
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                              Personas are loaded from <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded">elmer-docs/personas/</code>
+                            </p>
+                          </div>
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No personas configured</p>
+                            <p className="text-xs">Add persona files to the personas directory to enable jury validation.</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                        <h4 className="text-sm font-medium mb-3">Jury Configuration</h4>
+                        <div className="grid gap-4">
+                          <div className="grid gap-2">
+                            <Label>Minimum Jury Size</Label>
+                            <Input type="number" min="1" max="10" defaultValue="3" className="w-32" />
+                            <p className="text-xs text-muted-foreground">
+                              Number of personas to include in each validation jury.
+                            </p>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label>Approval Threshold</Label>
+                            <Input type="number" min="50" max="100" defaultValue="70" className="w-32" />
+                            <p className="text-xs text-muted-foreground">
+                              Percentage of positive votes required to pass validation.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </TabsContent>
 
                     {/* About Tab */}

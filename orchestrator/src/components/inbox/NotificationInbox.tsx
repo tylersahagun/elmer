@@ -293,16 +293,16 @@ export function NotificationInbox({
 
       <DropdownMenuContent 
         align="end" 
-        className="w-[380px] p-0 backdrop-blur-xl bg-black/80 border-white/10"
+        className="w-[calc(100vw-2rem)] sm:w-[380px] max-w-[380px] p-0 backdrop-blur-2xl bg-slate-100/90 dark:bg-slate-900/80 border border-white/20 dark:border-white/10 shadow-xl rounded-2xl overflow-hidden"
         sideOffset={8}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200/60 dark:border-white/10 bg-white/50 dark:bg-white/5">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-purple-400" />
-            <span className="font-medium">Inbox</span>
+            <Bell className="w-4 h-4 text-emerald-500 dark:text-purple-400" />
+            <span className="font-medium text-slate-900 dark:text-white">Inbox</span>
             {unreadCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs">
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 dark:bg-purple-500/20 text-emerald-600 dark:text-purple-400 text-xs font-medium">
                 {unreadCount} new
               </span>
             )}
@@ -313,7 +313,7 @@ export function NotificationInbox({
               size="sm"
               onClick={() => markAllReadMutation.mutate()}
               disabled={markAllReadMutation.isPending}
-              className="text-xs text-muted-foreground hover:text-white"
+              className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-white"
             >
               <CheckCheck className="w-3 h-3 mr-1" />
               Mark all read
@@ -328,9 +328,9 @@ export function NotificationInbox({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="border-b border-white/10"
+              className="border-b border-slate-200/60 dark:border-white/10"
             >
-              <div className="px-4 py-3 bg-purple-500/10">
+              <div className="px-4 py-3 bg-emerald-50/80 dark:bg-purple-500/10">
                 <div className="flex items-center gap-3">
                   {jobSummary.running > 0 ? (
                     <>
@@ -338,14 +338,14 @@ export function NotificationInbox({
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       >
-                        <Loader2 className="w-5 h-5 text-purple-400" />
+                        <Loader2 className="w-5 h-5 text-emerald-500 dark:text-purple-400" />
                       </motion.div>
                       <div>
-                        <p className="text-sm font-medium text-purple-300">
+                        <p className="text-sm font-medium text-emerald-700 dark:text-purple-300">
                           Processing {jobSummary.running} job{jobSummary.running > 1 ? "s" : ""}
                         </p>
                         {jobSummary.pending > 0 && (
-                          <p className="text-xs text-purple-400/70">
+                          <p className="text-xs text-emerald-600/70 dark:text-purple-400/70">
                             {jobSummary.pending} more queued
                           </p>
                         )}
@@ -353,12 +353,12 @@ export function NotificationInbox({
                     </>
                   ) : (
                     <>
-                      <Clock className="w-5 h-5 text-amber-400" />
+                      <Clock className="w-5 h-5 text-amber-500 dark:text-amber-400" />
                       <div>
-                        <p className="text-sm font-medium text-amber-300">
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                           {jobSummary.pending} job{jobSummary.pending > 1 ? "s" : ""} queued
                         </p>
-                        <p className="text-xs text-amber-400/70">
+                        <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
                           Waiting to process
                         </p>
                       </div>
@@ -381,7 +381,7 @@ export function NotificationInbox({
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : visibleNotifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-muted-foreground">
               <Bell className="w-8 h-8 mb-2 opacity-50" />
               <p className="text-sm">No notifications</p>
               <p className="text-xs">You&apos;re all caught up!</p>
@@ -405,12 +405,12 @@ export function NotificationInbox({
         {/* Footer */}
         {visibleNotifications.length > 0 && (
           <>
-            <DropdownMenuSeparator className="bg-white/10" />
-            <div className="px-4 py-2 text-center">
+            <DropdownMenuSeparator className="bg-slate-200/60 dark:bg-white/10" />
+            <div className="px-4 py-2 text-center bg-white/30 dark:bg-white/5">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-xs text-muted-foreground hover:text-white"
+                className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-white"
                 onClick={() => {
                   // TODO: Navigate to full inbox page
                   setIsOpen(false);
@@ -452,8 +452,8 @@ function NotificationItem({
       animate={{ opacity: 1, x: 0 }}
       className={cn(
         "group relative px-4 py-3 cursor-pointer transition-colors",
-        "hover:bg-white/5",
-        isUnread && "bg-purple-500/5"
+        "hover:bg-slate-200/50 dark:hover:bg-white/5",
+        isUnread && "bg-emerald-50/60 dark:bg-purple-500/5"
       )}
       onClick={() => onClick(notification)}
     >
@@ -461,21 +461,21 @@ function NotificationItem({
         {/* Icon */}
         <div className={cn(
           "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-          "bg-white/5"
+          "bg-slate-200/80 dark:bg-white/5"
         )}>
           <Icon className={cn("w-4 h-4", iconColor)} />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <p className={cn(
-                "text-sm font-medium truncate",
-                isUnread ? "text-white" : "text-white/80"
-              )}>
-                {notification.title}
-              </p>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <p className={cn(
+                  "text-sm font-medium truncate",
+                  isUnread ? "text-slate-900 dark:text-white" : "text-slate-700 dark:text-white/80"
+                )}>
+                  {notification.title}
+                </p>
               {notification.priority !== "medium" && (
                 <span className={cn(
                   "px-1.5 py-0.5 rounded text-[10px] font-medium",
@@ -485,18 +485,18 @@ function NotificationItem({
                 </span>
               )}
             </div>
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            <span className="text-[10px] text-slate-500 dark:text-muted-foreground whitespace-nowrap">
               {formatRelativeTime(notification.createdAt)}
             </span>
           </div>
 
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+          <p className="text-xs text-slate-600 dark:text-muted-foreground mt-0.5 line-clamp-2">
             {notification.message}
           </p>
 
           {/* Project context */}
           {notification.project && (
-            <p className="text-[10px] text-purple-400/70 mt-1">
+            <p className="text-[10px] text-emerald-600/70 dark:text-purple-400/70 mt-1">
               {notification.project.name}
             </p>
           )}
@@ -506,7 +506,7 @@ function NotificationItem({
             <Button
               variant="ghost"
               size="sm"
-              className="mt-2 h-7 px-2 text-xs bg-white/5 hover:bg-white/10"
+              className="mt-2 h-7 px-2 text-xs bg-slate-200/80 dark:bg-white/5 hover:bg-slate-300/80 dark:hover:bg-white/10 text-slate-700 dark:text-white"
               onClick={(e) => {
                 e.stopPropagation();
                 onAction(notification);
@@ -528,7 +528,7 @@ function NotificationItem({
 
         {/* Unread indicator */}
         {isUnread && (
-          <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-purple-400" />
+          <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-purple-400" />
         )}
 
         {/* Dismiss button (on hover) */}

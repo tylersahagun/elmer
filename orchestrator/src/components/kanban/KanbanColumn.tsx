@@ -16,19 +16,19 @@ interface KanbanColumnProps {
   projects: ProjectCardType[];
 }
 
-// Glowing orb colors for stage indicators
-const columnGlowMap: Record<string, { bg: string; glow: string; accent: string }> = {
-  slate: { bg: "bg-slate-400/80", glow: "shadow-[0_0_12px_rgba(148,163,184,0.6)]", accent: "from-slate-400/20" },
-  teal: { bg: "bg-teal-400/80", glow: "shadow-[0_0_12px_rgba(45,212,191,0.6)]", accent: "from-teal-400/20" },
-  purple: { bg: "bg-purple-400/80", glow: "shadow-[0_0_12px_rgba(192,132,252,0.6)]", accent: "from-purple-400/20" },
-  blue: { bg: "bg-blue-400/80", glow: "shadow-[0_0_12px_rgba(96,165,250,0.6)]", accent: "from-blue-400/20" },
-  pink: { bg: "bg-pink-400/80", glow: "shadow-[0_0_12px_rgba(244,114,182,0.6)]", accent: "from-pink-400/20" },
-  amber: { bg: "bg-amber-400/80", glow: "shadow-[0_0_12px_rgba(251,191,36,0.6)]", accent: "from-amber-400/20" },
-  orange: { bg: "bg-orange-400/80", glow: "shadow-[0_0_12px_rgba(251,146,60,0.6)]", accent: "from-orange-400/20" },
-  green: { bg: "bg-green-400/80", glow: "shadow-[0_0_12px_rgba(74,222,128,0.6)]", accent: "from-green-400/20" },
-  cyan: { bg: "bg-cyan-400/80", glow: "shadow-[0_0_12px_rgba(34,211,238,0.6)]", accent: "from-cyan-400/20" },
-  indigo: { bg: "bg-indigo-400/80", glow: "shadow-[0_0_12px_rgba(129,140,248,0.6)]", accent: "from-indigo-400/20" },
-  emerald: { bg: "bg-emerald-400/80", glow: "shadow-[0_0_12px_rgba(52,211,153,0.6)]", accent: "from-emerald-400/20" },
+// Glowing orb colors for stage indicators with vertical gradient fade
+const columnGlowMap: Record<string, { bg: string; glow: string; accent: string; gradient: string }> = {
+  slate: { bg: "bg-slate-400/80", glow: "shadow-[0_0_12px_rgba(148,163,184,0.6)]", accent: "from-slate-400/20", gradient: "from-slate-400/15 via-slate-400/5 to-transparent" },
+  teal: { bg: "bg-teal-400/80", glow: "shadow-[0_0_12px_rgba(45,212,191,0.6)]", accent: "from-teal-400/20", gradient: "from-teal-400/15 via-teal-400/5 to-transparent" },
+  purple: { bg: "bg-purple-400/80", glow: "shadow-[0_0_12px_rgba(192,132,252,0.6)]", accent: "from-purple-400/20", gradient: "from-purple-400/15 via-purple-400/5 to-transparent" },
+  blue: { bg: "bg-blue-400/80", glow: "shadow-[0_0_12px_rgba(96,165,250,0.6)]", accent: "from-blue-400/20", gradient: "from-blue-400/15 via-blue-400/5 to-transparent" },
+  pink: { bg: "bg-pink-400/80", glow: "shadow-[0_0_12px_rgba(244,114,182,0.6)]", accent: "from-pink-400/20", gradient: "from-pink-400/15 via-pink-400/5 to-transparent" },
+  amber: { bg: "bg-amber-400/80", glow: "shadow-[0_0_12px_rgba(251,191,36,0.6)]", accent: "from-amber-400/20", gradient: "from-amber-400/15 via-amber-400/5 to-transparent" },
+  orange: { bg: "bg-orange-400/80", glow: "shadow-[0_0_12px_rgba(251,146,60,0.6)]", accent: "from-orange-400/20", gradient: "from-orange-400/15 via-orange-400/5 to-transparent" },
+  green: { bg: "bg-green-400/80", glow: "shadow-[0_0_12px_rgba(74,222,128,0.6)]", accent: "from-green-400/20", gradient: "from-green-400/15 via-green-400/5 to-transparent" },
+  cyan: { bg: "bg-cyan-400/80", glow: "shadow-[0_0_12px_rgba(34,211,238,0.6)]", accent: "from-cyan-400/20", gradient: "from-cyan-400/15 via-cyan-400/5 to-transparent" },
+  indigo: { bg: "bg-indigo-400/80", glow: "shadow-[0_0_12px_rgba(129,140,248,0.6)]", accent: "from-indigo-400/20", gradient: "from-indigo-400/15 via-indigo-400/5 to-transparent" },
+  emerald: { bg: "bg-emerald-400/80", glow: "shadow-[0_0_12px_rgba(52,211,153,0.6)]", accent: "from-emerald-400/20", gradient: "from-emerald-400/15 via-emerald-400/5 to-transparent" },
 };
 
 export function KanbanColumn({ column, projects }: KanbanColumnProps) {
@@ -57,7 +57,7 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
         transition={springPresets.bouncy}
         className={cn(
           // Pill shape with full rounding
-          "rounded-[28px] overflow-hidden",
+          "rounded-[28px] overflow-hidden relative",
           // Deep glass effect - the "groove" in the table
           "bg-slate-500/[0.04] dark:bg-black/[0.15]",
           "backdrop-blur-xl",
@@ -77,16 +77,24 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
           ]
         )}
       >
-        {/* Gradient accent at top based on column color */}
+        {/* Vertical gradient fade from top to bottom */}
         <div 
           className={cn(
-            "h-1 w-full bg-gradient-to-r to-transparent opacity-60",
+            "absolute inset-0 bg-gradient-to-b pointer-events-none rounded-[28px]",
+            colorConfig.gradient
+          )}
+        />
+        
+        {/* Gradient accent line at top based on column color */}
+        <div 
+          className={cn(
+            "h-1 w-full bg-gradient-to-r to-transparent opacity-60 relative z-10",
             colorConfig.accent
           )}
         />
         
         {/* Column Header - Inside the glass */}
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3 relative z-10">
           <div className="flex items-center gap-2.5">
             {/* Glowing orb indicator */}
             <div className={cn(
@@ -109,7 +117,7 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
         {/* Column Body - Drop zone */}
         <div
           ref={setNodeRef}
-          className="px-3 pb-4 min-h-[200px] sm:min-h-[calc(100vh-300px)]"
+          className="px-3 pb-4 min-h-[200px] sm:min-h-[calc(100vh-300px)] relative z-10"
         >
           <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-3">

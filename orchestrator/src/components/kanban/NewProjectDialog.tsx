@@ -24,17 +24,19 @@ import {
   Link2,
   Upload,
   Loader2,
+  Globe,
+  CheckCircle2,
 } from "lucide-react";
 import { v4 as uuid } from "uuid";
 
-type InputType = "text" | "audio" | "video" | "link" | "transcript";
+type InputType = "text" | "audio" | "video" | "link" | "files";
 
-const inputTypes: { type: InputType; icon: React.ElementType; label: string }[] = [
+const inputTypes: { type: InputType; icon: React.ElementType; label: string; comingSoon?: boolean }[] = [
   { type: "text", icon: FileText, label: "Text" },
-  { type: "audio", icon: Mic, label: "Audio" },
-  { type: "video", icon: Video, label: "Video" },
+  { type: "files", icon: Upload, label: "Files" },
   { type: "link", icon: Link2, label: "Link" },
-  { type: "transcript", icon: Upload, label: "Transcript" },
+  { type: "audio", icon: Mic, label: "Audio", comingSoon: true },
+  { type: "video", icon: Video, label: "Video", comingSoon: true },
 ];
 
 export function NewProjectDialog() {
@@ -50,6 +52,12 @@ export function NewProjectDialog() {
   const [contextText, setContextText] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapedData, setScrapedData] = useState<{
+    title: string;
+    description: string;
+    content: string;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +100,7 @@ export function NewProjectDialog() {
         setContextText("");
         setLinkUrl("");
         setUploadedFile(null);
+        setScrapedData(null);
         closeModal();
       }
     } catch (error) {
@@ -115,6 +124,7 @@ export function NewProjectDialog() {
       setContextText("");
       setLinkUrl("");
       setUploadedFile(null);
+      setScrapedData(null);
       closeModal();
     } finally {
       setIsSubmitting(false);
@@ -162,9 +172,16 @@ export function NewProjectDialog() {
 
     if (inputType === "link" && linkUrl.trim()) {
       await createMemory(`Link: ${linkUrl.trim()}`, { source: "link", url: linkUrl.trim() });
+      // If we have scraped content, also create a research doc
+      if (scrapedData?.content) {
+        await createResearchDoc(
+          scrapedData.title || `Content from ${new URL(linkUrl).hostname}`,
+          `Source: ${linkUrl}\n\n${scrapedData.description ? `> ${scrapedData.description}\n\n` : ""}${scrapedData.content}`
+        );
+      }
     }
 
-    if (["transcript", "audio", "video"].includes(inputType) && uploadedFile) {
+    if (["files"].includes(inputType) && uploadedFile) {
       const formData = new FormData();
       formData.append("file", uploadedFile);
       formData.append("workspaceId", workspace.id);
@@ -249,22 +266,30 @@ export function NewProjectDialog() {
                   <div className="space-y-2">
                     <Label>Add Initial Context</Label>
                     <div className="grid grid-cols-5 gap-2">
-                      {inputTypes.map(({ type, icon: Icon, label }) => (
+                      {inputTypes.map(({ type, icon: Icon, label, comingSoon }) => (
                         <button
                           key={type}
                           type="button"
-                          onClick={() => setInputType(type)}
+                          onClick={() => !comingSoon && setInputType(type)}
+                          disabled={comingSoon}
                           className={`
                             flex flex-col items-center gap-1 p-3 rounded-xl
-                            border transition-all duration-200
-                            ${inputType === type 
-                              ? "border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-400" 
-                              : "border-slate-200 bg-white/50 hover:bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:text-slate-400"
+                            border transition-all duration-200 relative
+                            ${comingSoon 
+                              ? "border-slate-200/50 bg-slate-100/50 text-slate-400 cursor-not-allowed dark:border-slate-700/50 dark:bg-slate-800/30 dark:text-slate-500"
+                              : inputType === type 
+                                ? "border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-400" 
+                                : "border-slate-200 bg-white/50 hover:bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:text-slate-400"
                             }
                           `}
                         >
                           <Icon className="w-5 h-5" />
                           <span className="text-xs font-medium">{label}</span>
+                          {comingSoon && (
+                            <span className="absolute -top-1 -right-1 px-1 py-0.5 text-[8px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 rounded">
+                              Soon
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -284,20 +309,20 @@ export function NewProjectDialog() {
                     </div>
                   )}
 
-                  {inputType === "transcript" && (
+                  {inputType === "files" && (
                     <div className="space-y-2">
-                      <Label>Upload Transcript</Label>
+                      <Label>Upload Files</Label>
                       <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer block">
                         <Upload className="w-8 h-8 mx-auto mb-2 text-slate-500 dark:text-slate-400" />
                         <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
                           {uploadedFile ? uploadedFile.name : "Drop a file or click to upload"}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          .txt, .md, .json supported
+                          .txt, .md, .json, .pdf supported
                         </p>
                         <input
                           type="file"
-                          accept=".txt,.md,.json,text/plain,application/json"
+                          accept=".txt,.md,.json,.pdf,text/plain,application/json,application/pdf"
                           className="hidden"
                           onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
                         />
@@ -306,59 +331,116 @@ export function NewProjectDialog() {
                   )}
 
                   {inputType === "link" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="link">Video/Recording Link</Label>
-                      <Input
-                        id="link"
-                        placeholder="https://..."
-                        value={linkUrl}
-                        onChange={(e) => setLinkUrl(e.target.value)}
-                        className="glass-card border-white/20"
-                      />
+                    <div className="space-y-3">
+                      <Label htmlFor="link">Web Link</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="link"
+                          placeholder="https://..."
+                          value={linkUrl}
+                          onChange={(e) => {
+                            setLinkUrl(e.target.value);
+                            setScrapedData(null);
+                          }}
+                          className="glass-card border-white/20 flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={async () => {
+                            if (!linkUrl.trim()) return;
+                            setIsScraping(true);
+                            setScrapedData(null);
+                            try {
+                              const res = await fetch("/api/scrape", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ url: linkUrl.trim() }),
+                              });
+                              if (res.ok) {
+                                const data = await res.json();
+                                setScrapedData({
+                                  title: data.title,
+                                  description: data.description,
+                                  content: data.content,
+                                });
+                              }
+                            } catch (err) {
+                              console.error("Scrape failed:", err);
+                            } finally {
+                              setIsScraping(false);
+                            }
+                          }}
+                          disabled={!linkUrl.trim() || isScraping}
+                          className="gap-2 shrink-0"
+                        >
+                          {isScraping ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Globe className="w-4 h-4" />
+                          )}
+                          {isScraping ? "Fetching..." : "Extract"}
+                        </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground">
-                        Supports Loom, YouTube, Google Drive, etc.
+                        Paste any URL to extract content. Works with articles, docs, and web pages.
                       </p>
+                      
+                      {/* Scraped content preview */}
+                      {scrapedData && (
+                        <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30">
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200 truncate">
+                                {scrapedData.title}
+                              </p>
+                              {scrapedData.description && (
+                                <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1 line-clamp-2">
+                                  {scrapedData.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                                {scrapedData.content.length.toLocaleString()} characters extracted
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {inputType === "audio" && (
                     <div className="space-y-2">
-                      <Label>Record Audio</Label>
-                      <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors block cursor-pointer">
-                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
-                          <Mic className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                      <Label>Audio Recording</Label>
+                      <div className="border-2 border-dashed border-slate-200/50 dark:border-slate-700/50 rounded-xl p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                          <Mic className="w-8 h-8 text-slate-400 dark:text-slate-500" />
                         </div>
-                        <Button type="button" variant="outline" className="glass-card">
-                          {uploadedFile ? uploadedFile.name : "Upload Audio"}
-                        </Button>
-                        <input
-                          type="file"
-                          accept="audio/*"
-                          className="hidden"
-                          onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
-                        />
-                      </label>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
+                          Coming Soon
+                        </p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                          Record audio directly or upload audio files for transcription.
+                        </p>
+                      </div>
                     </div>
                   )}
 
                   {inputType === "video" && (
                     <div className="space-y-2">
-                      <Label>Upload Video</Label>
-                      <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer block">
-                        <Video className="w-8 h-8 mx-auto mb-2 text-slate-500 dark:text-slate-400" />
-                        <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                          {uploadedFile ? uploadedFile.name : "Drop a video or click to upload"}
+                      <Label>Video Upload</Label>
+                      <div className="border-2 border-dashed border-slate-200/50 dark:border-slate-700/50 rounded-xl p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                          <Video className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                        </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
+                          Coming Soon
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          .mp4, .mov, .webm supported
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                          Upload video recordings for automatic transcription and analysis.
                         </p>
-                        <input
-                          type="file"
-                          accept="video/*"
-                          className="hidden"
-                          onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
-                        />
-                      </label>
+                      </div>
                     </div>
                   )}
                 </div>

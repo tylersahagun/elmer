@@ -15,7 +15,6 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flag, Pause, User, Zap } from "lucide-react";
 import { useKanbanStore, type ProjectCard as ProjectCardType, type KanbanColumn as KanbanColumnType } from "@/lib/store";
 import type { ProjectStage } from "@/lib/db/schema";
 import { KanbanColumn } from "./KanbanColumn";
@@ -23,7 +22,7 @@ import { ProjectCardOverlay } from "./ProjectCard";
 import { TranscriptInputDialog } from "./TranscriptInputDialog";
 import { IterationLoopOverlay } from "./IterationLoopOverlay";
 import { IterationLoopLanes } from "./IterationLoopLanes";
-import { IterationLoopControls, type LoopViewMode } from "./IterationLoopControls";
+import type { LoopViewMode } from "./IterationLoopControls";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
 
@@ -166,10 +165,39 @@ export function KanbanBoard() {
   }, [jobSummary]);
 
   const [activeProject, setActiveProject] = useState<ProjectCardType | null>(null);
-  const [loopViewMode, setLoopViewMode] = useState<LoopViewMode>("off");
+  const [loopViewMode] = useState<LoopViewMode>("off");
+  const [scrollProgress, setScrollProgress] = useState(0);
   // Track the original stage when drag started (for cancellation)
   const originalStageRef = useRef<string | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const auroraRef = useRef<HTMLDivElement | null>(null);
+  
+  // Parallax effect on horizontal scroll + scroll progress tracking
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    const auroraEl = auroraRef.current;
+    
+    if (!scrollContainer) return;
+    
+    const handleScroll = () => {
+      const scrollLeft = scrollContainer.scrollLeft;
+      const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+      
+      // Calculate scroll progress (0-1)
+      const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+      setScrollProgress(progress);
+      
+      // Move background at 0.3x speed for subtle parallax effect
+      if (auroraEl) {
+        const parallaxOffset = -scrollLeft * 0.3;
+        auroraEl.style.setProperty('--parallax-offset', `${parallaxOffset}px`);
+      }
+    };
+    
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, []);
   
   // State for transcript input dialog
   const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
@@ -484,9 +512,6 @@ export function KanbanBoard() {
     return acc;
   }, {} as Record<ProjectStage, ProjectCardType[]>);
 
-  const automationMode = workspace?.settings?.automationMode || "manual";
-  const stopStage = workspace?.settings?.automationStopStage;
-
   return (
     <DndContext
       sensors={sensors}
@@ -496,26 +521,20 @@ export function KanbanBoard() {
       onDragEnd={handleDragEnd}
     >
       <div className="relative">
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 pt-4">
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <div>
-              Automation: {automationMode}
-              {automationMode === "auto_to_stage" && stopStage && ` → ${stopStage}`}
-            </div>
-            <AutomationLegend automationMode={automationMode} />
-          </div>
-          <IterationLoopControls mode={loopViewMode} onChange={setLoopViewMode} />
-        </div>
+        {/* Parallax Aurora Background */}
+        <div ref={auroraRef} className="kanban-aurora-bg" />
+        
         <div ref={boardRef} className="relative">
           {loopViewMode === "lanes" && <IterationLoopLanes columns={columns} className="px-4 sm:px-6" />}
           {loopViewMode === "overlay" && (
             <IterationLoopOverlay containerRef={boardRef} columns={columns} />
           )}
           <motion.div
+            ref={scrollContainerRef}
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            className="flex gap-3 sm:gap-4 p-4 sm:p-6 overflow-x-auto min-h-[60vh] sm:min-h-[calc(100vh-200px)]"
+            className="flex gap-3 sm:gap-4 p-4 sm:p-6 overflow-x-auto min-h-[60vh] sm:min-h-[calc(100vh-200px)] relative z-10 kanban-scroll-container"
           >
             <AnimatePresence mode="popLayout">
               {columns.map((column) => (
@@ -533,6 +552,20 @@ export function KanbanBoard() {
               ))}
             </AnimatePresence>
           </motion.div>
+          
+          {/* Wave Scroll Indicator */}
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none z-20">
+            <div className="relative w-48 h-1.5 bg-slate-200/30 dark:bg-slate-700/30 rounded-full overflow-hidden">
+              <motion.div
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 rounded-full wave-scroll-indicator"
+                style={{
+                  width: '20%',
+                  left: `${scrollProgress * 80}%`,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -555,39 +588,5 @@ export function KanbanBoard() {
         onSkip={handleTranscriptSkip}
       />
     </DndContext>
-  );
-}
-
-function AutomationLegend({
-  automationMode,
-}: {
-  automationMode: "manual" | "auto_to_stage" | "auto_all";
-}) {
-  if (automationMode === "manual") {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30">
-          <Pause className="w-3 h-3 text-slate-500" />
-          Manual rail
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30">
-        <Zap className="w-3 h-3 text-emerald-500" />
-        Auto rail
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30">
-        <User className="w-3 h-3 text-amber-500" />
-        Human checkpoint
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30">
-        <Flag className="w-3 h-3 text-rose-500" />
-        Stop stage
-      </span>
-    </div>
   );
 }
