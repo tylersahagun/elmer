@@ -22,7 +22,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   className,
 }) => {
   const [visible, setVisible] = React.useState(false);
-  const timeoutRef = React.useRef<NodeJS.Timeout>();
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
 
   const showTooltip = () => {
     timeoutRef.current = setTimeout(() => setVisible(true), delay);

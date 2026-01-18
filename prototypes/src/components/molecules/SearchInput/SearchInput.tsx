@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Input, InputProps } from '../../atoms/Input';
+import type { InputProps } from '../../atoms/Input';
 import { Spinner } from '../../atoms/Spinner';
 
 const SearchIcon = () => (

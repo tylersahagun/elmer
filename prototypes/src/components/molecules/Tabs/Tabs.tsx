@@ -91,7 +91,7 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
   ({ className, value, children, ...props }, ref) => {
     const { value: selectedValue, onValueChange } = useTabs();
     const isSelected = selectedValue === value;
-    const parentVariant = (props as any)['data-variant'];
+    // Note: parentVariant can be accessed via (props as any)['data-variant'] if needed
 
     return (
       <button

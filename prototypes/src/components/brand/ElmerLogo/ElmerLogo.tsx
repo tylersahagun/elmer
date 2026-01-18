@@ -141,8 +141,9 @@ const GradientE: React.FC<{ size: number; palette: PaletteKey }> = ({ size, pale
   );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ElmerLogo = React.forwardRef<SVGSVGElement, ElmerLogoProps>(
-  ({ className, size = 40, palette = 'aurora', variant = 'simple', showText, ...props }, ref) => {
+  function ElmerLogoComponent({ className, size = 40, palette = 'aurora', variant = 'simple', showText }) {
     const LogoComponent = {
       simple: SimpleE,
       layered: LayeredE,

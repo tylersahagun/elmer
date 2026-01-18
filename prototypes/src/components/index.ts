@@ -25,6 +25,5 @@ export * from './organisms';
 // Brand - elmer brand components
 export * from './brand';
 
-// Legacy UI components (shadcn/ui style)
-// These are kept for backwards compatibility
-export * from './ui';
+// Note: ./ui contains shadcn/ui primitives and is NOT exported here
+// to avoid duplicate exports. Import directly from './ui' if needed.

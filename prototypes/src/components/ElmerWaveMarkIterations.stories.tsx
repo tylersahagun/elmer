@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import {
   ElmerWaveMarkIterations,
@@ -13,7 +12,6 @@ import {
   WaveV4_C,
   WaveV4_D,
   GradientWordmark,
-  CombinationMark,
   palettes,
   type PaletteKey,
 } from './ElmerWaveMarkIterations';

@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import {
   ElmerLogoRefinements,
-  refinedPalettes,
   RotatedPlanes_A,
   RotatedPlanes_B,
   RotatedPlanes_C,
