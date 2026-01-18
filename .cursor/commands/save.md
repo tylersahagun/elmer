@@ -14,6 +14,7 @@ Create atomic commits with proper conventional commit messages.
 2. Checks for changes to commit
 3. Creates an atomic commit with conventional format
 4. Pushes to your branch on GitHub
+5. Checks CI status (if PR exists for this branch)
 
 ## Process
 
@@ -111,8 +112,77 @@ If push fails due to upstream, set it:
 git push -u origin $(git branch --show-current)
 ```
 
-### Step 7: Success Message
+### Step 7: Check CI Status (using GitHub CLI)
 
+After pushing, check if there's a PR for this branch and show CI status:
+
+```bash
+BRANCH=$(git branch --show-current)
+
+# Check if PR exists for this branch
+PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null)
+
+if [ -n "$PR_NUMBER" ]; then
+    # PR exists - check CI status
+    echo "📋 PR #$PR_NUMBER exists - checking CI..."
+    
+    # Get the latest workflow runs for this branch
+    gh run list --branch "$BRANCH" --limit 3 --json status,conclusion,name,databaseId \
+        --jq '.[] | "\(.status) \(.conclusion // "pending") \(.name)"'
+else
+    echo "ℹ️  No PR yet - CI will run when you create one with /share"
+fi
+```
+
+**CI Status Display:**
+
+If PR exists and CI is running:
+```
+📋 PR #42 exists - checking CI...
+
+| Workflow | Status |
+|----------|--------|
+| CI | 🔄 in_progress |
+| PR Standards | ✅ completed (success) |
+
+💡 CI is running. Check back in a few minutes or view at:
+   https://github.com/tylersahagun/elmer/actions
+```
+
+If PR exists and CI completed:
+```
+📋 PR #42 - CI Status:
+
+| Workflow | Status |
+|----------|--------|
+| CI | ✅ success |
+| PR Standards | ✅ success |
+
+All checks passing! Ready to merge when approved.
+```
+
+If PR exists and CI failed:
+```
+📋 PR #42 - CI Status:
+
+| Workflow | Status |
+|----------|--------|
+| CI | ❌ failure |
+| PR Standards | ✅ success |
+
+⚠️  CI failed! View details:
+   gh run view [run-id] --log-failed
+```
+
+If no PR exists:
+```
+ℹ️  No PR yet for branch 'fix/reduce-polling-frequency'
+   CI will run automatically when you create a PR with /share
+```
+
+### Step 8: Success Message
+
+**If no PR exists:**
 ```
 ╔═══════════════════════════════════════════════════╗
 ║              ✅ Work Saved!                       ║
@@ -124,9 +194,75 @@ git push -u origin $(git branch --show-current)
 ║                                                   ║
 ║  Your work is safely backed up on GitHub.         ║
 ║                                                   ║
+║  ℹ️  No PR yet - CI will run when you /share      ║
+║                                                   ║
 ║  Next steps:                                      ║
 ║  • Keep working and /save again anytime           ║
 ║  • Run /share when ready for review               ║
+║                                                   ║
+╚═══════════════════════════════════════════════════╝
+```
+
+**If PR exists with CI passing:**
+```
+╔═══════════════════════════════════════════════════╗
+║              ✅ Work Saved!                       ║
+╠═══════════════════════════════════════════════════╣
+║                                                   ║
+║  Message: [commit message]                        ║
+║  Branch:  [branch name]                           ║
+║  Files:   [X] files changed                       ║
+║                                                   ║
+║  Your work is safely backed up on GitHub.         ║
+║                                                   ║
+║  📋 PR #[number] CI Status:                       ║
+║     ✅ CI - success                               ║
+║     ✅ PR Standards - success                     ║
+║                                                   ║
+║  All checks passing! Ready for review.            ║
+║                                                   ║
+╚═══════════════════════════════════════════════════╝
+```
+
+**If PR exists with CI running:**
+```
+╔═══════════════════════════════════════════════════╗
+║              ✅ Work Saved!                       ║
+╠═══════════════════════════════════════════════════╣
+║                                                   ║
+║  Message: [commit message]                        ║
+║  Branch:  [branch name]                           ║
+║  Files:   [X] files changed                       ║
+║                                                   ║
+║  Your work is safely backed up on GitHub.         ║
+║                                                   ║
+║  📋 PR #[number] CI Status:                       ║
+║     🔄 CI - in_progress                           ║
+║     ✅ PR Standards - success                     ║
+║                                                   ║
+║  CI is running... check back in a few minutes.    ║
+║                                                   ║
+╚═══════════════════════════════════════════════════╝
+```
+
+**If PR exists with CI failed:**
+```
+╔═══════════════════════════════════════════════════╗
+║              ✅ Work Saved (CI Failed!)           ║
+╠═══════════════════════════════════════════════════╣
+║                                                   ║
+║  Message: [commit message]                        ║
+║  Branch:  [branch name]                           ║
+║  Files:   [X] files changed                       ║
+║                                                   ║
+║  Your work is safely backed up on GitHub.         ║
+║                                                   ║
+║  📋 PR #[number] CI Status:                       ║
+║     ❌ CI - failure                               ║
+║     ✅ PR Standards - success                     ║
+║                                                   ║
+║  ⚠️  CI failed! View logs with:                   ║
+║     gh run view [run-id] --log-failed             ║
 ║                                                   ║
 ╚═══════════════════════════════════════════════════╝
 ```
@@ -147,6 +283,20 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 cd /Users/tylersahagun/Source/elmer
 ```
+
+## Prerequisites
+
+This command uses the GitHub CLI (`gh`) to check CI status. If not installed:
+
+```bash
+# macOS
+brew install gh
+
+# Then authenticate
+gh auth login
+```
+
+If `gh` is not available, the CI check step will be skipped and the save will still work.
 
 ## Error Handling
 
@@ -173,6 +323,33 @@ If you need help, ask Tyler or another team member.
 ### "No upstream branch"
 
 This is automatically handled by setting the upstream on first push.
+
+### CI Check Failed
+
+If the `gh` CLI command fails (not authenticated, rate limited, etc.):
+```
+⚠️ Couldn't check CI status (gh CLI error)
+
+Your code is saved and pushed successfully.
+Check CI manually at: https://github.com/tylersahagun/elmer/actions
+```
+
+### Viewing CI Logs
+
+To view detailed CI logs when a check fails:
+```bash
+# List recent runs
+gh run list --branch $(git branch --show-current)
+
+# View a specific run's logs
+gh run view [RUN_ID]
+
+# View only failed logs
+gh run view [RUN_ID] --log-failed
+
+# Watch a running workflow
+gh run watch [RUN_ID]
+```
 
 ## Atomic Commit Guidelines
 

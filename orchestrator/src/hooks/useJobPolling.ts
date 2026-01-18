@@ -5,11 +5,51 @@
  * 1. Automatic polling for job status updates
  * 2. Trigger job processing after stage changes
  * 3. Real-time progress updates for active jobs
+ * 
+ * OPTIMIZATION: Uses adaptive polling and visibility detection to minimize
+ * serverless function invocations:
+ * - Fast polling (5s) when jobs are actively running
+ * - Slow polling (60s) when idle
+ * - No polling when tab is hidden
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useKanbanStore } from "@/lib/store";
 import type { JobStatus, JobType } from "@/lib/db/schema";
+
+// ============================================
+// VISIBILITY DETECTION HOOK
+// ============================================
+
+function usePageVisibility(): boolean {
+  const [isVisible, setIsVisible] = useState(() => {
+    // SSR safety: default to visible
+    if (typeof document === "undefined") return true;
+    return document.visibilityState === "visible";
+  });
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleVisibilityChange = () => {
+      setIsVisible(document.visibilityState === "visible");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  return isVisible;
+}
+
+// ============================================
+// POLLING INTERVALS
+// ============================================
+
+const POLL_INTERVAL_ACTIVE = 5000;   // 5s when jobs are running
+const POLL_INTERVAL_IDLE = 60000;    // 60s when no active jobs
 
 interface Job {
   id: string;
@@ -37,7 +77,8 @@ interface JobStatusSummary {
 interface UseJobPollingOptions {
   workspaceId: string;
   enabled?: boolean;
-  pollInterval?: number; // ms
+  /** @deprecated Use adaptive polling instead. This is ignored. */
+  pollInterval?: number;
   autoProcess?: boolean; // Automatically trigger processing when pending jobs exist
 }
 
@@ -46,6 +87,7 @@ interface UseJobPollingReturn {
   summary: JobStatusSummary | null;
   isPolling: boolean;
   isProcessing: boolean;
+  isTabVisible: boolean;
   error: string | null;
   // Actions
   startPolling: () => void;
@@ -58,7 +100,7 @@ interface UseJobPollingReturn {
 }
 
 export function useJobPolling(options: UseJobPollingOptions): UseJobPollingReturn {
-  const { workspaceId, enabled = true, pollInterval = 2000, autoProcess = true } = options;
+  const { workspaceId, enabled = true, autoProcess = false } = options;
   
   const [jobs, setJobs] = useState<Job[]>([]);
   const [summary, setSummary] = useState<JobStatusSummary | null>(null);
@@ -66,9 +108,13 @@ export function useJobPolling(options: UseJobPollingOptions): UseJobPollingRetur
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const isTabVisible = usePageVisibility();
   const updateProject = useKanbanStore((s) => s.updateProject);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const processingRef = useRef(false);
+  
+  // Track if we have active jobs to determine polling speed
+  const hasActiveJobs = summary ? (summary.pending > 0 || summary.running > 0) : false;
 
   // Fetch jobs from API
   const fetchJobs = useCallback(async () => {
@@ -233,16 +279,28 @@ export function useJobPolling(options: UseJobPollingOptions): UseJobPollingRetur
     }
   }, [refreshJobs]);
 
-  // Start polling
+  // Calculate current poll interval based on active jobs
+  const getCurrentPollInterval = useCallback(() => {
+    return hasActiveJobs ? POLL_INTERVAL_ACTIVE : POLL_INTERVAL_IDLE;
+  }, [hasActiveJobs]);
+
+  // Start polling with adaptive interval
   const startPolling = useCallback(() => {
-    if (pollIntervalRef.current) return;
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
     
     setIsPolling(true);
     
-    // Initial fetch
+    // Initial fetch when starting
     refreshJobs();
 
-    // Set up interval
+    const pollInterval = getCurrentPollInterval();
+    console.log(`📊 Polling started (interval: ${pollInterval / 1000}s, active jobs: ${hasActiveJobs})`);
+
+    // Set up interval with current speed
     pollIntervalRef.current = setInterval(async () => {
       await refreshJobs();
 
@@ -252,7 +310,7 @@ export function useJobPolling(options: UseJobPollingOptions): UseJobPollingRetur
         triggerProcessing();
       }
     }, pollInterval);
-  }, [refreshJobs, pollInterval, autoProcess, summary, triggerProcessing]);
+  }, [refreshJobs, getCurrentPollInterval, hasActiveJobs, autoProcess, summary, triggerProcessing]);
 
   // Stop polling
   const stopPolling = useCallback(() => {
@@ -263,24 +321,47 @@ export function useJobPolling(options: UseJobPollingOptions): UseJobPollingRetur
     setIsPolling(false);
   }, []);
 
-  // Start/stop polling based on enabled prop
+  // Restart polling when active job status changes (to adjust interval)
   useEffect(() => {
-    if (enabled && workspaceId) {
+    if (isPolling && isTabVisible && enabled && workspaceId) {
+      // Restart with new interval when hasActiveJobs changes
+      startPolling();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasActiveJobs]);
+
+  // Main effect: Start/stop polling based on enabled, visibility, and workspace
+  useEffect(() => {
+    if (enabled && workspaceId && isTabVisible) {
+      console.log("👁️ Tab visible - starting polling");
       startPolling();
     } else {
+      if (!isTabVisible && isPolling) {
+        console.log("👁️ Tab hidden - pausing polling");
+      }
       stopPolling();
     }
 
     return () => {
       stopPolling();
     };
-  }, [enabled, workspaceId, startPolling, stopPolling]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, workspaceId, isTabVisible]);
+
+  // Immediate refresh when tab becomes visible again
+  useEffect(() => {
+    if (isTabVisible && enabled && workspaceId && !isPolling) {
+      console.log("👁️ Tab visible again - refreshing immediately");
+      refreshJobs();
+    }
+  }, [isTabVisible, enabled, workspaceId, isPolling, refreshJobs]);
 
   return {
     jobs,
     summary,
     isPolling,
     isProcessing,
+    isTabVisible,
     error,
     startPolling,
     stopPolling,
@@ -299,16 +380,16 @@ export function useJobPolling(options: UseJobPollingOptions): UseJobPollingRetur
 interface UseProjectJobsOptions {
   projectId: string;
   enabled?: boolean;
-  pollInterval?: number;
 }
 
 export function useProjectJobs(options: UseProjectJobsOptions) {
-  const { projectId, enabled = true, pollInterval = 2000 } = options;
+  const { projectId, enabled = true } = options;
   
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
+  const isTabVisible = usePageVisibility();
   const updateProject = useKanbanStore((s) => s.updateProject);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -348,23 +429,45 @@ export function useProjectJobs(options: UseProjectJobsOptions) {
     }
   }, [projectId, updateProject]);
 
+  // Calculate poll interval: fast when job is active, slow when idle
+  const pollInterval = activeJob ? POLL_INTERVAL_ACTIVE : POLL_INTERVAL_IDLE;
+
   useEffect(() => {
-    if (!enabled || !projectId) return;
+    // Don't poll if disabled, no project, or tab is hidden
+    if (!enabled || !projectId || !isTabVisible) {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Initial fetch
     fetchProjectJobs();
 
+    // Set up polling with adaptive interval
     pollIntervalRef.current = setInterval(fetchProjectJobs, pollInterval);
 
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
       }
     };
-  }, [enabled, projectId, pollInterval, fetchProjectJobs]);
+  }, [enabled, projectId, isTabVisible, pollInterval, fetchProjectJobs]);
+
+  // Immediate refresh when tab becomes visible
+  useEffect(() => {
+    if (isTabVisible && enabled && projectId) {
+      fetchProjectJobs();
+    }
+  }, [isTabVisible, enabled, projectId, fetchProjectJobs]);
 
   return {
     jobs,
     activeJob,
     isLoading,
+    isTabVisible,
     hasActiveJob: !!activeJob,
     refresh: fetchProjectJobs,
   };

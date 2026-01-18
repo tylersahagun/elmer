@@ -2,11 +2,40 @@
  * useRealtimeJobs - Hook for real-time job status via Server-Sent Events
  * 
  * Provides truly real-time updates without polling overhead.
+ * 
+ * OPTIMIZATION: Disconnects SSE when tab is hidden to avoid wasting
+ * server resources and bandwidth.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useKanbanStore } from "@/lib/store";
 import type { JobStatus, JobType } from "@/lib/db/schema";
+
+// ============================================
+// VISIBILITY DETECTION HOOK
+// ============================================
+
+function usePageVisibility(): boolean {
+  const [isVisible, setIsVisible] = useState(() => {
+    if (typeof document === "undefined") return true;
+    return document.visibilityState === "visible";
+  });
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleVisibilityChange = () => {
+      setIsVisible(document.visibilityState === "visible");
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  return isVisible;
+}
 
 interface Job {
   id: string;
@@ -66,6 +95,7 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isTabVisible = usePageVisibility();
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectRef = useRef<() => void>(() => {});
@@ -251,6 +281,20 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
     };
   }, [workspaceId, enabled, processMessage]);
 
+  // Disconnect function
+  const disconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    if (eventSourceRef.current) {
+      console.log("🔌 SSE disconnected (tab hidden)");
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+      setIsConnected(false);
+    }
+  }, []);
+
   // Reconnect function
   const reconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -279,12 +323,16 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
     connectRef.current = connect;
   }, [connect]);
 
-  // Connect on mount and when workspace/enabled changes
+  // Connect/disconnect based on visibility
   // NOTE: We intentionally exclude `connect` from deps to prevent infinite reconnection loops.
   // The connect function is stored in connectRef and called from there.
   useEffect(() => {
-    if (enabled && workspaceId) {
+    if (enabled && workspaceId && isTabVisible) {
+      console.log("👁️ Tab visible - connecting SSE");
       connectRef.current();
+    } else if (!isTabVisible) {
+      // Disconnect when tab is hidden to save resources
+      disconnect();
     }
 
     return () => {
@@ -297,7 +345,7 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, workspaceId]);
+  }, [enabled, workspaceId, isTabVisible, disconnect]);
 
   return {
     jobs,

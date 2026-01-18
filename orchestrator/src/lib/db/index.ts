@@ -1,5 +1,7 @@
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import pg from "pg";
 import * as schema from "./schema";
 
 // Get database URL from environment
@@ -9,11 +11,32 @@ if (!DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
-// Create Neon SQL client
-const sql = neon(DATABASE_URL);
+// Detect if we're using Neon (serverless) or standard PostgreSQL
+// Neon URLs contain "neon.tech" or start with specific patterns
+const isNeonDatabase = DATABASE_URL.includes("neon.tech") || DATABASE_URL.includes("neon.database");
+
+// Create the appropriate Drizzle instance based on the database URL
+function createDb() {
+  if (isNeonDatabase) {
+    // Use Neon serverless HTTP driver (optimized for edge/serverless)
+    console.log("Using Neon serverless database driver");
+    const sql = neon(DATABASE_URL);
+    return drizzleNeon(sql, { schema });
+  } else {
+    // Use standard pg driver (for local development or self-hosted PostgreSQL)
+    console.log("Using standard PostgreSQL driver");
+    const pool = new pg.Pool({
+      connectionString: DATABASE_URL,
+    });
+    return drizzlePg(pool, { schema });
+  }
+}
 
 // Create Drizzle instance with schema
-export const db = drizzle(sql, { schema });
+export const db = createDb();
+
+// Export the detection flag for use in migrations, etc.
+export const isServerless = isNeonDatabase;
 
 // Export schema types
 export * from "./schema";

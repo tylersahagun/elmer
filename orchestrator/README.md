@@ -24,19 +24,39 @@ npm install
 
 ### 2. Set Up Environment
 
-Create `.env.local`:
+Copy the example environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` and add your Anthropic API key:
 
 ```env
 ANTHROPIC_API_KEY=your_api_key_here
 ```
 
-### 3. Initialize Database
+### 3. Start Local PostgreSQL (Docker)
+
+```bash
+docker compose up -d
+```
+
+This starts a PostgreSQL 16 container with:
+- **Host**: localhost:5432
+- **Database**: orchestrator
+- **User**: elmer
+- **Password**: elmer_local_dev
+
+> **Note**: Data persists in a Docker volume. Use `docker compose down -v` to reset.
+
+### 4. Initialize Database
 
 ```bash
 npm run db:migrate
 ```
 
-### 4. Start Development Server
+### 5. Start Development Server
 
 ```bash
 npm run dev
@@ -151,7 +171,7 @@ springPresets.layout   // Drag-drop reordering
 | Animations | Framer Motion |
 | Drag/Drop | @dnd-kit |
 | State | Zustand, TanStack Query |
-| Database | SQLite (Drizzle ORM) |
+| Database | PostgreSQL (Drizzle ORM) |
 | AI | Claude API (Anthropic SDK) |
 
 ## Scripts
@@ -163,6 +183,39 @@ npm run db:generate  # Generate migrations
 npm run db:migrate   # Run migrations
 npm run db:studio    # Open Drizzle Studio
 ```
+
+## Database Options
+
+The app supports two database configurations:
+
+### Local Development (Recommended)
+
+Uses Docker PostgreSQL with the standard `pg` driver:
+
+```bash
+# Start PostgreSQL
+docker compose up -d
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f postgres
+
+# Stop (keeps data)
+docker compose stop
+
+# Stop and remove data
+docker compose down -v
+```
+
+Connection string: `postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator`
+
+### Neon Serverless (Production)
+
+If your `DATABASE_URL` contains `neon.tech`, the app automatically uses the Neon serverless HTTP driver (optimized for Vercel Edge).
+
+The app auto-detects which driver to use based on the connection string pattern.
 
 ## License
 

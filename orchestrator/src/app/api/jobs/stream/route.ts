@@ -3,12 +3,20 @@
  * 
  * Provides real-time job status updates via SSE.
  * Clients connect and receive updates as jobs change status.
+ * 
+ * OPTIMIZATION: Uses adaptive polling to minimize database load:
+ * - Fast polling (5s) when jobs are actively running
+ * - Slow polling (30s) when idle
  */
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { jobs } from "@/lib/db/schema";
 import { eq, and, or } from "drizzle-orm";
+
+// Polling intervals
+const POLL_INTERVAL_ACTIVE = 5000;  // 5s when jobs are running
+const POLL_INTERVAL_IDLE = 30000;   // 30s when no active jobs
 
 // Store for active connections per workspace
 const activeConnections = new Map<string, Set<ReadableStreamDefaultController>>();
@@ -74,8 +82,12 @@ export async function GET(request: NextRequest) {
         }
       })();
 
-      // Set up periodic polling for job changes (fallback for when broadcasts aren't triggered)
-      const pollInterval = setInterval(async () => {
+      // Set up adaptive polling for job changes
+      // Uses faster polling when jobs are active, slower when idle
+      let pollTimeoutId: NodeJS.Timeout | null = null;
+      let hasActiveJobsLastPoll = false;
+
+      const poll = async () => {
         try {
           const activeJobs = await db.query.jobs.findMany({
             where: and(
@@ -87,7 +99,7 @@ export async function GET(request: NextRequest) {
             ),
           });
 
-          // Get recently completed jobs (last 5 seconds)
+          // Get recently completed jobs
           const recentJobs = await db.query.jobs.findMany({
             where: eq(jobs.workspaceId, workspaceId),
             orderBy: (jobs, { desc }) => [desc(jobs.completedAt)],
@@ -103,14 +115,25 @@ export async function GET(request: NextRequest) {
             },
             recentCompleted: recentJobs.filter(j => j.status === "completed" || j.status === "failed"),
           })}\n\n`));
+
+          // Determine next poll interval based on active jobs
+          hasActiveJobsLastPoll = activeJobs.length > 0;
+          const nextInterval = hasActiveJobsLastPoll ? POLL_INTERVAL_ACTIVE : POLL_INTERVAL_IDLE;
+          pollTimeoutId = setTimeout(poll, nextInterval);
         } catch {
-          // Connection might be closed
+          // Connection might be closed, try to continue polling
+          pollTimeoutId = setTimeout(poll, POLL_INTERVAL_IDLE);
         }
-      }, 2000); // Poll every 2 seconds
+      };
+
+      // Start polling (initial delay to let the initial data send first)
+      pollTimeoutId = setTimeout(poll, POLL_INTERVAL_ACTIVE);
 
       // Cleanup on close
       request.signal.addEventListener("abort", () => {
-        clearInterval(pollInterval);
+        if (pollTimeoutId) {
+          clearTimeout(pollTimeoutId);
+        }
         const connections = activeConnections.get(workspaceId);
         if (connections) {
           connections.delete(controller);

@@ -1,6 +1,9 @@
 import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { migrate } from "drizzle-orm/neon-http/migrator";
+import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
+import { migrate as migrateNeon } from "drizzle-orm/neon-http/migrator";
+import { migrate as migratePg } from "drizzle-orm/node-postgres/migrator";
+import pg from "pg";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -8,15 +11,33 @@ if (!DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
-const sql = neon(DATABASE_URL);
-const db = drizzle(sql);
+// Detect if we're using Neon (serverless) or standard PostgreSQL
+const isNeonDatabase = DATABASE_URL.includes("neon.tech") || DATABASE_URL.includes("neon.database");
 
-console.log("Running migrations...");
-migrate(db, { migrationsFolder: "./drizzle" })
-  .then(() => {
-    console.log("Migrations complete!");
-    process.exit(0);
-  })
+async function runMigrations() {
+  console.log("Running migrations...");
+  console.log(`Database type: ${isNeonDatabase ? "Neon (serverless)" : "PostgreSQL (standard)"}`);
+
+  if (isNeonDatabase) {
+    // Use Neon serverless driver
+    const sql = neon(DATABASE_URL);
+    const db = drizzleNeon(sql);
+    await migrateNeon(db, { migrationsFolder: "./drizzle" });
+  } else {
+    // Use standard pg driver
+    const pool = new pg.Pool({
+      connectionString: DATABASE_URL,
+    });
+    const db = drizzlePg(pool);
+    await migratePg(db, { migrationsFolder: "./drizzle" });
+    await pool.end();
+  }
+
+  console.log("Migrations complete!");
+}
+
+runMigrations()
+  .then(() => process.exit(0))
   .catch((error) => {
     console.error("Migration failed:", error);
     process.exit(1);
