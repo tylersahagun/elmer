@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { GlassCard, GlassPanel } from "@/components/glass";
+import { Window, MiniWindow } from "@/components/chrome/Window";
+import { SimpleNavbar } from "@/components/chrome/Navbar";
+import { CommandChip, CommandText, CommandCaret } from "@/components/chrome/CommandChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,21 +17,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { motion, AnimatePresence } from "framer-motion";
-import { staggerContainer, staggerItem, springPresets, popInVariants } from "@/lib/animations";
 import { 
   Plus, 
   Sparkles, 
   FolderOpen,
   Loader2,
   ArrowRight,
-  Sun,
-  Moon,
+  GitBranch,
+  Zap,
+  FileText,
+  Users,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { StarsBackground } from "@/components/animate-ui/backgrounds";
 import { WaveV4D, ElmerWordmark } from "@/components/brand/ElmerLogo";
-import { RotatingTextContainer, RotatingText } from "@/components/animate-ui/primitives/texts/rotating";
 
 function HomeContent() {
   const router = useRouter();
@@ -37,22 +37,6 @@ function HomeContent() {
   const [showNewWorkspace, setShowNewWorkspace] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
-  const [isLightMode, setIsLightMode] = useState(false);
-
-  // Load theme preference from localStorage
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("elmer-landing-theme");
-    if (savedTheme === "light") {
-      setIsLightMode(true);
-    }
-  }, []);
-
-  // Save theme preference
-  const toggleTheme = () => {
-    const newMode = !isLightMode;
-    setIsLightMode(newMode);
-    localStorage.setItem("elmer-landing-theme", newMode ? "light" : "dark");
-  };
 
   // Fetch workspaces
   const { data: workspaces, isLoading } = useQuery({
@@ -93,262 +77,250 @@ function HomeContent() {
   };
 
   return (
-    <StarsBackground 
-      className={`min-h-screen h-full transition-colors duration-500 ${isLightMode ? "!bg-[radial-gradient(ellipse_at_bottom,_#f8fafc_0%,_#e2e8f0_100%)]" : ""}`} 
-      speed={80} 
-      starColor={isLightMode ? "rgba(30,41,59,0.6)" : "rgba(255,255,255,0.8)"}
-    >
-      <main className={`relative z-10 min-h-screen h-full p-4 sm:p-6 md:p-8 transition-colors duration-500 ${isLightMode ? "text-slate-900" : ""}`}>
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-          className="max-w-7xl mx-auto space-y-8"
+    <div className="min-h-screen">
+      {/* Navbar */}
+      <SimpleNavbar />
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+        {/* Hero Section */}
+        <Window
+          title="main.ts"
+          className="animate-fade-up"
+          contentClassName="py-12 sm:py-16"
         >
-          {/* Hero Section with Full Logo */}
-          <motion.header variants={staggerItem} className="text-center py-12 sm:py-20">
-            {/* Animated Logo */}
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              transition={{ ...springPresets.bouncy, delay: 0.1 }}
-              className="flex flex-col items-center justify-center mb-8"
-            >
-              {/* Large Wave Logo */}
-              <div>
-                <WaveV4D size={120} palette="aurora" className="drop-shadow-2xl" animate={false} />
+          <div className="text-center space-y-6">
+            {/* Logo */}
+            <div className="flex flex-col items-center justify-center">
+              <WaveV4D size={100} palette="aurora" className="drop-shadow-lg" animate={false} />
+              <div className="mt-4">
+                <ElmerWordmark width={180} height={50} palette="aurora" />
               </div>
-              
-              {/* Wordmark with gradient animation */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-                className="mt-4"
-              >
-                <ElmerWordmark width={200} height={60} palette="aurora" />
-              </motion.div>
-            </motion.div>
+            </div>
 
-            {/* Rotating Marketing Text */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="flex flex-col items-center gap-2"
+            {/* Terminal-style heading */}
+            <div className="space-y-2">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-heading flex items-center justify-center gap-3">
+                <CommandCaret className="text-2xl sm:text-3xl md:text-4xl" />
+                <span>PM Orchestrator</span>
+              </h1>
+              <p className="font-mono text-muted-foreground">
+                // AI-powered product management workflow
+              </p>
+            </div>
+
+            {/* Feature chips */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+              <CommandChip size="sm" variant="outline">
+                <CommandText command="research" args="--analyze" />
+              </CommandChip>
+              <CommandChip size="sm" variant="outline">
+                <CommandText command="prd" args="--generate" />
+              </CommandChip>
+              <CommandChip size="sm" variant="outline">
+                <CommandText command="prototype" args="--build" />
+              </CommandChip>
+              <CommandChip size="sm" variant="outline">
+                <CommandText command="validate" args="--jury" />
+              </CommandChip>
+            </div>
+          </div>
+        </Window>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-up stagger-1">
+          <MiniWindow title="workflows">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Zap className="w-4 h-4 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-heading text-emerald-500">5</p>
+                <p className="text-xs text-muted-foreground font-mono">active</p>
+              </div>
+            </div>
+          </MiniWindow>
+          
+          <MiniWindow title="documents">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <FileText className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-heading text-blue-500">12</p>
+                <p className="text-xs text-muted-foreground font-mono">PRDs</p>
+              </div>
+            </div>
+          </MiniWindow>
+          
+          <MiniWindow title="prototypes">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <GitBranch className="w-4 h-4 text-purple-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-heading text-purple-500">8</p>
+                <p className="text-xs text-muted-foreground font-mono">built</p>
+              </div>
+            </div>
+          </MiniWindow>
+          
+          <MiniWindow title="personas">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Users className="w-4 h-4 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-heading text-orange-500">24</p>
+                <p className="text-xs text-muted-foreground font-mono">synthetic</p>
+              </div>
+            </div>
+          </MiniWindow>
+        </div>
+
+        {/* Workspaces Section */}
+        <Window
+          title="ls ./workspaces/"
+          rightMeta={
+            <Button
+              size="sm"
+              className="h-7 gap-1.5"
+              onClick={() => setShowNewWorkspace(true)}
             >
-              <span className={`text-lg sm:text-xl ${isLightMode ? "text-slate-600" : "text-white/70"}`}>Your AI-powered PM copilot for</span>
-              <RotatingTextContainer
-                text={[
-                  "Research & Discovery",
-                  "PRD Generation",
-                  "Prototype Building",
-                  "User Validation",
-                  "Sprint Planning",
-                ]}
-                duration={2500}
-                y={-30}
-                className="h-12 flex items-center justify-center"
-              >
-                <RotatingText className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent" />
-              </RotatingTextContainer>
-            </motion.div>
+              <Plus className="w-3.5 h-3.5" />
+              New
+            </Button>
+          }
+          className="animate-fade-up stagger-2"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
+              <span className="text-emerald-500">$</span>
+              <span>Select a workspace or create a new one</span>
+            </div>
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className={`text-base sm:text-lg max-w-2xl mx-auto px-4 mt-6 ${isLightMode ? "text-slate-500" : "text-white/60"}`}
-            >
-              From idea to shipped feature. Orchestrate your product workflow with intelligent AI agents.
-            </motion.p>
-          </motion.header>
-
-          {/* Workspaces Section */}
-          <motion.div variants={staggerItem}>
-            <GlassPanel className={`p-8 ${isLightMode ? "bg-white/70 border-slate-200" : "bg-black/40"}`}>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className={`text-2xl font-semibold mb-1 ${isLightMode ? "text-slate-900" : "text-white"}`}>Your Workspaces</h2>
-                  <p className={isLightMode ? "text-slate-500" : "text-white/60"}>Select a workspace or create a new one</p>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : workspaces && workspaces.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {workspaces.map((workspace: { id: string; name: string; description?: string; updatedAt: string }) => (
+                  <div
+                    key={workspace.id}
+                    className="group cursor-pointer rounded-2xl border border-[#B8C0CC] dark:border-white/[0.14] bg-[#F5F7FA] dark:bg-[#1A2332]/50 p-4 transition-all duration-200 hover:border-[#A0A8B4] dark:hover:border-white/20 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                    onClick={() => router.push(`/workspace/${workspace.id}`)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                        <FolderOpen className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <h3 className="font-semibold mb-1">{workspace.name}</h3>
+                    {workspace.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {workspace.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-3 font-mono">
+                      Updated {new Date(workspace.updatedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
+                  <FolderOpen className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <Button liquid className="gap-2" onClick={() => setShowNewWorkspace(true)}>
+                <h3 className="font-semibold mb-2">No workspaces yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first workspace to get started
+                </p>
+                <Button onClick={() => setShowNewWorkspace(true)} className="gap-2">
                   <Plus className="w-4 h-4" />
-                  New Workspace
+                  Create Workspace
                 </Button>
               </div>
+            )}
+          </div>
+        </Window>
 
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-                </div>
-              ) : workspaces && workspaces.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <AnimatePresence mode="popLayout">
-                    {workspaces.map((workspace: { id: string; name: string; description?: string; updatedAt: string }) => (
-                      <motion.div
-                        key={workspace.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                      >
-                        <GlassCard 
-                          interactive 
-                          className={`p-5 cursor-pointer group ${isLightMode ? "bg-white/80 hover:bg-white/90 border-slate-200" : "bg-black/30 hover:bg-black/40"}`}
-                          onClick={() => router.push(`/workspace/${workspace.id}`)}
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${isLightMode ? "from-purple-500/20 to-pink-500/20" : "from-purple-500/30 to-pink-500/30"} flex items-center justify-center`}>
-                              <FolderOpen className={`w-5 h-5 ${isLightMode ? "text-purple-600" : "text-purple-300"}`} />
-                            </div>
-                            <ArrowRight className={`w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity ${isLightMode ? "text-slate-400" : "text-white/50"}`} />
-                          </div>
-                          <h3 className={`font-semibold mb-1 ${isLightMode ? "text-slate-900" : "text-white"}`}>{workspace.name}</h3>
-                          {workspace.description && (
-                            <p className={`text-sm line-clamp-2 ${isLightMode ? "text-slate-500" : "text-white/60"}`}>
-                              {workspace.description}
-                            </p>
-                          )}
-                          <p className={`text-xs mt-3 ${isLightMode ? "text-slate-400" : "text-white/40"}`}>
-                            Updated {new Date(workspace.updatedAt).toLocaleDateString()}
-                          </p>
-                        </GlassCard>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center ${isLightMode ? "bg-slate-100" : "bg-white/10"}`}>
-                    <FolderOpen className={`w-8 h-8 ${isLightMode ? "text-slate-400" : "text-white/50"}`} />
-                  </div>
-                  <h3 className={`font-semibold mb-2 ${isLightMode ? "text-slate-900" : "text-white"}`}>No workspaces yet</h3>
-                  <p className={`mb-4 ${isLightMode ? "text-slate-500" : "text-white/60"}`}>
-                    Create your first workspace to get started
-                  </p>
-                  <Button liquid onClick={() => setShowNewWorkspace(true)} className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Create Workspace
-                  </Button>
-                </div>
-              )}
-            </GlassPanel>
-          </motion.div>
-
-          {/* Footer with Theme Toggle */}
-          <motion.footer variants={staggerItem} className="text-center py-8 space-y-4">
-            {/* Theme Toggle Button */}
-            <motion.button
-              onClick={toggleTheme}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`mx-auto flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-300 ${
-                isLightMode 
-                  ? "bg-slate-900/10 border-slate-300 text-slate-700 hover:bg-slate-900/20" 
-                  : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"
-              }`}
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={isLightMode ? "sun" : "moon"}
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {isLightMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                </motion.div>
-              </AnimatePresence>
-              <span className="text-sm">{isLightMode ? "Dark Mode" : "Light Mode"}</span>
-            </motion.button>
-            
-            <p className={`text-sm ${isLightMode ? "text-slate-500" : "text-white/40"}`}>
-              Built with Next.js, Motion, and Claude AI
-            </p>
-          </motion.footer>
-        </motion.div>
-
-        {/* New Workspace Dialog */}
-        <Dialog open={showNewWorkspace} onOpenChange={setShowNewWorkspace}>
-          <DialogContent className="glass-panel border-white/20 max-w-md">
-            <AnimatePresence>
-              {showNewWorkspace && (
-                <motion.div
-                  variants={popInVariants}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                >
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-purple-400" />
-                      New Workspace
-                    </DialogTitle>
-                    <DialogDescription>
-                      Create a workspace for your product or project
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="workspace-name">Workspace Name</Label>
-                      <Input
-                        id="workspace-name"
-                        placeholder="e.g., AskElephant"
-                        value={newWorkspaceName}
-                        onChange={(e) => setNewWorkspaceName(e.target.value)}
-                        className="glass-card border-white/20"
-                        autoFocus
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="workspace-description">Description (optional)</Label>
-                      <Input
-                        id="workspace-description"
-                        placeholder="Brief description..."
-                        value={newWorkspaceDescription}
-                        onChange={(e) => setNewWorkspaceDescription(e.target.value)}
-                        className="glass-card border-white/20"
-                      />
-                    </div>
-                  </div>
-
-                  <DialogFooter className="mt-6">
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowNewWorkspace(false)}
-                      disabled={createWorkspace.isPending}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      liquid
-                      onClick={handleCreateWorkspace}
-                      disabled={!newWorkspaceName.trim() || createWorkspace.isPending}
-                      className="gap-2"
-                    >
-                      {createWorkspace.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4" />
-                          Create
-                        </>
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </DialogContent>
-        </Dialog>
+        {/* Footer */}
+        <footer className="text-center py-8">
+          <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground font-mono">
+            <span className="text-emerald-500">$</span>
+            <span>Built with Next.js + Claude AI</span>
+          </div>
+        </footer>
       </main>
-    </StarsBackground>
+
+      {/* New Workspace Dialog */}
+      <Dialog open={showNewWorkspace} onOpenChange={setShowNewWorkspace}>
+        <DialogContent className="rounded-2xl border-[#B8C0CC] dark:border-white/[0.14] bg-white dark:bg-[#0F1620] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              New Workspace
+            </DialogTitle>
+            <DialogDescription>
+              Create a workspace for your product or project
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="workspace-name">Workspace Name</Label>
+              <Input
+                id="workspace-name"
+                placeholder="e.g., AskElephant"
+                value={newWorkspaceName}
+                onChange={(e) => setNewWorkspaceName(e.target.value)}
+                className="rounded-xl border-[#B8C0CC] dark:border-white/[0.14]"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="workspace-description">Description (optional)</Label>
+              <Input
+                id="workspace-description"
+                placeholder="Brief description..."
+                value={newWorkspaceDescription}
+                onChange={(e) => setNewWorkspaceDescription(e.target.value)}
+                className="rounded-xl border-[#B8C0CC] dark:border-white/[0.14]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="mt-6">
+            <Button
+              variant="ghost"
+              onClick={() => setShowNewWorkspace(false)}
+              disabled={createWorkspace.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateWorkspace}
+              disabled={!newWorkspaceName.trim() || createWorkspace.isPending}
+              className="gap-2"
+            >
+              {createWorkspace.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Create
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
