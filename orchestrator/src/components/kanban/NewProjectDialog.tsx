@@ -213,7 +213,7 @@ export function NewProjectDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="glass-panel border-white/20 max-w-lg !p-0 !gap-0">
+      <DialogContent className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-lg !p-0 !gap-0">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -223,13 +223,13 @@ export function NewProjectDialog() {
               exit="exit"
               className="flex flex-col max-h-[calc(100vh-6rem)]"
             >
-              {/* Fixed Header */}
-              <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
+              {/* Fixed Header - macOS window style */}
+              <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b border-border dark:border-[rgba(255,255,255,0.14)]">
                 <DialogTitle className="flex items-center gap-2 text-xl">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  <Sparkles className="w-5 h-5 text-purple-500 dark:text-purple-400" />
                   New Project
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-muted-foreground">
                   Start a new initiative. Add context via text, audio, video, or transcript.
                 </DialogDescription>
               </DialogHeader>
@@ -245,7 +245,6 @@ export function NewProjectDialog() {
                       placeholder="e.g., CRM Agent Configuration"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="glass-card border-white/20"
                       autoFocus
                     />
                   </div>
@@ -258,7 +257,7 @@ export function NewProjectDialog() {
                       placeholder="Brief description of the project..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="glass-card border-white/20 min-h-[80px] max-h-[120px] overflow-y-auto resize-none"
+                      className="min-h-[80px] max-h-[120px] overflow-y-auto resize-none"
                     />
                   </div>
 
@@ -276,17 +275,17 @@ export function NewProjectDialog() {
                             flex flex-col items-center gap-1 p-3 rounded-xl
                             border transition-all duration-200 relative
                             ${comingSoon 
-                              ? "border-slate-200/50 bg-slate-100/50 text-slate-400 cursor-not-allowed dark:border-slate-700/50 dark:bg-slate-800/30 dark:text-slate-500"
+                              ? "border-border bg-muted/50 text-muted-foreground cursor-not-allowed"
                               : inputType === type 
-                                ? "border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-400" 
-                                : "border-slate-200 bg-white/50 hover:bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:text-slate-400"
+                                ? "border-purple-500 dark:border-purple-400 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-200" 
+                                : "border-border dark:border-[rgba(255,255,255,0.14)] bg-card hover:bg-accent text-muted-foreground"
                             }
                           `}
                         >
                           <Icon className="w-5 h-5" />
                           <span className="text-xs font-medium">{label}</span>
                           {comingSoon && (
-                            <span className="absolute -top-1 -right-1 px-1 py-0.5 text-[8px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 rounded">
+                            <span className="absolute -top-1 -right-1 px-1 py-0.5 text-[8px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded">
                               Soon
                             </span>
                           )}
@@ -304,7 +303,7 @@ export function NewProjectDialog() {
                         placeholder="Paste meeting notes, user feedback, or initial thoughts..."
                         value={contextText}
                         onChange={(e) => setContextText(e.target.value)}
-                        className="glass-card border-white/20 min-h-[120px] max-h-[200px] overflow-y-auto resize-none"
+                        className="min-h-[120px] max-h-[200px] overflow-y-auto resize-none"
                       />
                     </div>
                   )}
@@ -312,12 +311,12 @@ export function NewProjectDialog() {
                   {inputType === "files" && (
                     <div className="space-y-2">
                       <Label>Upload Files</Label>
-                      <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer block">
-                        <Upload className="w-8 h-8 mx-auto mb-2 text-slate-500 dark:text-slate-400" />
-                        <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+                      <label className="border-2 border-dashed border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl p-8 text-center hover:border-purple-400 dark:hover:border-purple-500 transition-colors cursor-pointer block">
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm text-foreground font-medium">
                           {uploadedFile ? uploadedFile.name : "Drop a file or click to upload"}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           .txt, .md, .json, .pdf supported
                         </p>
                         <input
@@ -342,7 +341,7 @@ export function NewProjectDialog() {
                             setLinkUrl(e.target.value);
                             setScrapedData(null);
                           }}
-                          className="glass-card border-white/20 flex-1"
+                          className="flex-1"
                         />
                         <Button
                           type="button"
@@ -388,7 +387,7 @@ export function NewProjectDialog() {
                       
                       {/* Scraped content preview */}
                       {scrapedData && (
-                        <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30">
+                        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30">
                           <div className="flex items-start gap-2">
                             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
                             <div className="min-w-0 flex-1">
@@ -413,14 +412,14 @@ export function NewProjectDialog() {
                   {inputType === "audio" && (
                     <div className="space-y-2">
                       <Label>Audio Recording</Label>
-                      <div className="border-2 border-dashed border-slate-200/50 dark:border-slate-700/50 rounded-xl p-8 text-center">
-                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                          <Mic className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                      <div className="border-2 border-dashed border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+                          <Mic className="w-8 h-8 text-muted-foreground" />
                         </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
+                        <p className="text-sm text-muted-foreground font-medium mb-1">
                           Coming Soon
                         </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                        <p className="text-xs text-muted-foreground/70">
                           Record audio directly or upload audio files for transcription.
                         </p>
                       </div>
@@ -430,14 +429,14 @@ export function NewProjectDialog() {
                   {inputType === "video" && (
                     <div className="space-y-2">
                       <Label>Video Upload</Label>
-                      <div className="border-2 border-dashed border-slate-200/50 dark:border-slate-700/50 rounded-xl p-8 text-center">
-                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                          <Video className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                      <div className="border-2 border-dashed border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+                          <Video className="w-8 h-8 text-muted-foreground" />
                         </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
+                        <p className="text-sm text-muted-foreground font-medium mb-1">
                           Coming Soon
                         </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                        <p className="text-xs text-muted-foreground/70">
                           Upload video recordings for automatic transcription and analysis.
                         </p>
                       </div>
@@ -446,7 +445,7 @@ export function NewProjectDialog() {
                 </div>
 
                 {/* Fixed Footer */}
-                <DialogFooter className="flex-shrink-0 p-6 pt-3 pb-3 border-t border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
+                <DialogFooter className="flex-shrink-0 p-6 pt-3 pb-3 border-t border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/30">
                   <Button 
                     type="button" 
                     variant="ghost" 

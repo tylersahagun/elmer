@@ -113,12 +113,24 @@ export function Navbar({
   );
 }
 
-// Simplified navbar for the home page
-export function SimpleNavbar({
-  className,
-}: {
+interface SimpleNavbarProps {
+  /** Path to display (e.g., "~/elmer", "~/projects/my-project") */
+  path?: string;
+  /** Custom right side content (back buttons, actions, etc.) */
+  rightContent?: ReactNode;
+  /** Whether to show the theme toggle (default: true) */
+  showThemeToggle?: boolean;
+  /** Additional className */
   className?: string;
-}) {
+}
+
+// Simplified navbar for inner pages
+export function SimpleNavbar({
+  path = "~/elmer",
+  rightContent,
+  showThemeToggle = true,
+  className,
+}: SimpleNavbarProps) {
   const { theme, setTheme } = useTheme();
 
   return (
@@ -132,26 +144,34 @@ export function SimpleNavbar({
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-14 gap-4">
           {/* Left: Status + path */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0 min-w-0">
             <StatusPill status="ready" />
-            <span className="font-mono text-sm font-medium">~/elmer</span>
+            <span className="font-mono text-sm font-medium text-foreground truncate">
+              {path}
+            </span>
           </div>
 
-          {/* Right: Theme toggle */}
-          <CommandChip
-            variant="ghost"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Toggle theme"
-            className="w-[34px] h-[34px] p-0 justify-center"
-          >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
+          {/* Right: Custom content + Theme toggle */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {rightContent}
+            
+            {showThemeToggle && (
+              <CommandChip
+                variant="ghost"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+                className="w-[34px] h-[34px] p-0 justify-center"
+              >
+                {theme === "dark" ? (
+                  <Sun className="w-4 h-4" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
+              </CommandChip>
             )}
-          </CommandChip>
+          </div>
         </div>
       </div>
     </header>

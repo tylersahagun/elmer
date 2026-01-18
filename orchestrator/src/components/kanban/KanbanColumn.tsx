@@ -170,24 +170,24 @@ export const KanbanColumn = memo(function KanbanColumn({
               onMinimize={onMinimize}
               onMaximize={onExpand}
             />
-            <div className="flex items-center gap-2">
-              {/* Color indicator dot */}
-              <div className={cn("w-2 h-2 rounded-full", colorConfig.bg)} />
-              <span className="font-mono text-sm text-muted-foreground">
-                {column.displayName}
-              </span>
-            </div>
+            <span className="font-mono text-sm text-muted-foreground">
+              {column.displayName}
+            </span>
           </div>
 
-          {/* Right side: Project count */}
-          <span className={cn(
-            "text-xs px-2 py-0.5 rounded-full",
-            "bg-muted dark:bg-muted/50",
-            "text-muted-foreground",
-            "font-mono tabular-nums"
-          )}>
-            {projects.length}
-          </span>
+          {/* Right side: Color indicator + Project count */}
+          <div className="flex items-center gap-2">
+            {/* Color indicator dot - moved to right side, left of count */}
+            <div className={cn("w-2 h-2 rounded-full", colorConfig.bg)} />
+            <span className={cn(
+              "text-xs px-2 py-0.5 rounded-full",
+              "bg-muted dark:bg-muted/50",
+              "text-muted-foreground",
+              "font-mono tabular-nums"
+            )}>
+              {projects.length}
+            </span>
+          </div>
         </div>
 
         {/* Column Body - Drop zone */}

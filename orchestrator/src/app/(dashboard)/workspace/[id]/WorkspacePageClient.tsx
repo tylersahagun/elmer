@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useKanbanStore, useUIStore, type KanbanColumn, type ProjectCard } from "@/lib/store";
 import { KanbanBoard, WorkspaceSettingsModal, ArchivedProjectsModal } from "@/components/kanban";
@@ -15,13 +15,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
 import { cn } from "@/lib/utils";
 import { Window } from "@/components/chrome/Window";
 import { StatusPill } from "@/components/chrome/StatusPill";
-import { CommandChip } from "@/components/chrome/CommandChip";
+import { CommandChip, CommandText } from "@/components/chrome/CommandChip";
 import { useTheme } from "next-themes";
 import { 
   Plus, 
@@ -44,6 +45,7 @@ interface WorkspacePageClientProps {
 
 export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const setWorkspace = useKanbanStore((s) => s.setWorkspace);
   const setColumns = useKanbanStore((s) => s.setColumns);
@@ -178,6 +180,11 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
 
   const isLoading = workspaceLoading || projectsLoading;
 
+  // Check active state for nav items
+  const isKnowledgebaseActive = pathname?.includes('/knowledgebase');
+  const isPersonasActive = pathname?.includes('/personas');
+  const isWorkspaceActive = !isKnowledgebaseActive && !isPersonasActive;
+
 
   if (workspaceError) {
     return (
@@ -211,7 +218,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       >
         <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
           {/* Left: Logo + Status + Path */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
             <Link href="/">
               <div className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer">
                 <WaveV4D size={32} palette="forest" />
@@ -220,39 +227,53 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             </Link>
             <div className="hidden sm:block h-4 w-px bg-[#B8C0CC] dark:bg-white/[0.14]" />
             <StatusPill status="ready" className="hidden sm:flex" />
-            <span className="hidden md:block font-mono text-sm text-muted-foreground">
+            <span className="hidden md:block font-mono text-sm text-muted-foreground truncate max-w-[200px]">
               ~/workspace/{storeWorkspace?.name?.toLowerCase().replace(/\s+/g, '-') || 'loading'}
             </span>
           </div>
 
-          {/* Center: Command chips (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-2">
-            <CommandChip variant="outline" onClick={openNewProjectModal}>
-              $ new --project
+          {/* Center: Command chips (Desktop) - Terminal-style nav with colored $ */}
+          <nav className="hidden lg:flex items-center gap-2 flex-1 justify-center overflow-x-auto px-4">
+            <CommandChip 
+              variant="outline" 
+              onClick={openNewProjectModal}
+              icon={<Plus className="w-3.5 h-3.5" />}
+            >
+              <CommandText command="new" args="--project" />
             </CommandChip>
+            
             <Link href="/knowledgebase">
-              <CommandChip variant="outline">
-                $ cd /files
+              <CommandChip 
+                variant="outline" 
+                active={isKnowledgebaseActive}
+                icon={<BookOpen className="w-3.5 h-3.5" />}
+              >
+                <CommandText command="cd" args="/files" />
               </CommandChip>
             </Link>
+            
             <Link href="/personas">
-              <CommandChip variant="outline">
-                $ ls personas/
+              <CommandChip 
+                variant="outline" 
+                active={isPersonasActive}
+                icon={<Users className="w-3.5 h-3.5" />}
+              >
+                <CommandText command="ls" args="personas/" />
               </CommandChip>
             </Link>
           </nav>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-1.5">
               <Button
                 size="sm"
                 onClick={openNewProjectModal}
-                className="gap-1.5 h-8"
+                className="gap-1.5 h-8 lg:hidden"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span className="hidden lg:inline">New</span>
+                <span>New</span>
               </Button>
               
               <CommandChip 
@@ -302,7 +323,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               </CommandChip>
             </div>
 
-            {/* Mobile Navigation */}
+            {/* Mobile Navigation - Hamburger Menu */}
             <div className="flex md:hidden items-center gap-1">
               <Button
                 size="icon"
@@ -326,36 +347,59 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
                   align="end" 
-                  className="w-48 rounded-xl border-[#B8C0CC] dark:border-white/[0.14]"
+                  className="w-56 rounded-2xl border-border dark:border-[rgba(255,255,255,0.14)]"
                 >
-                  <DropdownMenuItem onClick={openNewProjectModal} className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    New Project
+                  {/* Primary Actions */}
+                  <DropdownMenuItem onClick={openNewProjectModal} className="gap-2 font-mono text-sm">
+                    <span className="text-emerald-500">$</span>
+                    <span>new --project</span>
                   </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  {/* Navigation - with colored command text */}
+                  <Link href="/knowledgebase" className="w-full">
+                    <DropdownMenuItem className={cn(
+                      "gap-2 font-mono text-sm",
+                      isKnowledgebaseActive && "bg-accent"
+                    )}>
+                      <span className="text-emerald-500">$</span>
+                      <span>cd</span>
+                      <span className="text-muted-foreground">/files</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  
+                  <Link href="/personas" className="w-full">
+                    <DropdownMenuItem className={cn(
+                      "gap-2 font-mono text-sm",
+                      isPersonasActive && "bg-accent"
+                    )}>
+                      <span className="text-emerald-500">$</span>
+                      <span>ls</span>
+                      <span className="text-muted-foreground">personas/</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  {/* Utilities */}
                   <DropdownMenuItem onClick={openArchivedProjectsModal} className="gap-2">
                     <Archive className="w-4 h-4" />
-                    Archived
+                    Archived Projects
                   </DropdownMenuItem>
-                  <Link href="/knowledgebase" className="w-full">
-                    <DropdownMenuItem className="gap-2">
-                      <BookOpen className="w-4 h-4" />
-                      Files
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link href="/personas" className="w-full">
-                    <DropdownMenuItem className="gap-2">
-                      <Users className="w-4 h-4" />
-                      Personas
-                    </DropdownMenuItem>
-                  </Link>
+                  
                   <DropdownMenuItem onClick={toggleSidebar} className="gap-2">
                     <MessageSquare className="w-4 h-4" />
                     AI Assistant
                   </DropdownMenuItem>
+                  
                   <DropdownMenuItem onClick={openSettingsModal} className="gap-2">
                     <Settings className="w-4 h-4" />
                     Settings
                   </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
                   <DropdownMenuItem 
                     onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
                     className="gap-2"

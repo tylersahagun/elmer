@@ -10,7 +10,9 @@
     "worker": "tsx src/worker.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/lib/db/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "start:local": "./scripts/start-local.sh",
+    "tunnel": "cloudflared tunnel run elmer"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
