@@ -12,8 +12,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Primary - Aurora gradient (cyan → indigo → violet)
-        primary: 'bg-gradient-to-r from-cyan-500 via-indigo-500 to-violet-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]',
+        // Primary - Aurora gradient (teal → purple → pink)
+        primary: 'bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]',
         // Secondary - Subtle with border
         secondary: 'bg-white/10 backdrop-blur-sm border border-white/20 text-slate-700 dark:text-white hover:bg-white/20 hover:border-white/30',
         // Destructive - Red for dangerous actions

@@ -1,22 +1,23 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import Database from "better-sqlite3";
-import { existsSync, mkdirSync } from "fs";
-import { dirname, join } from "path";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { migrate } from "drizzle-orm/neon-http/migrator";
 
-const DB_PATH = process.env.DATABASE_PATH || join(process.cwd(), "data", "orchestrator.db");
+const DATABASE_URL = process.env.DATABASE_URL;
 
-// Ensure data directory exists
-const dbDir = dirname(DB_PATH);
-if (!existsSync(dbDir)) {
-  mkdirSync(dbDir, { recursive: true });
+if (!DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
 }
 
-const sqlite = new Database(DB_PATH);
-const db = drizzle(sqlite);
+const sql = neon(DATABASE_URL);
+const db = drizzle(sql);
 
 console.log("Running migrations...");
-migrate(db, { migrationsFolder: "./drizzle" });
-console.log("Migrations complete!");
-
-sqlite.close();
+migrate(db, { migrationsFolder: "./drizzle" })
+  .then(() => {
+    console.log("Migrations complete!");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Migration failed:", error);
+    process.exit(1);
+  });

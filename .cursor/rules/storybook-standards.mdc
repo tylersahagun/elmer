@@ -1,0 +1,177 @@
+---
+description: "Enforce Storybook standards for all UI components"
+globs: ["prototypes/src/components/**/*.tsx", "!prototypes/src/components/**/*.stories.tsx"]
+alwaysApply: true
+---
+
+# Storybook Standards
+
+**CRITICAL**: Every UI component MUST have a corresponding Storybook story. This ensures:
+- Visual regression testing via Chromatic
+- Component documentation
+- Design system consistency
+
+## Mandatory Rule
+
+When creating or modifying a `.tsx` component file in `prototypes/src/components/`:
+
+1. **Check for existing story file**: Look for `[ComponentName].stories.tsx`
+2. **Create story if missing**: Every component needs stories
+3. **Update existing stories**: If component props or behavior changes, update stories
+
+## Component + Story Pattern
+
+```
+ComponentName/
+├── ComponentName.tsx           # Component implementation
+├── ComponentName.stories.tsx   # REQUIRED - Storybook stories
+├── index.ts                    # Barrel export
+└── types.ts                    # Optional - shared types
+```
+
+## Story File Template
+
+When creating a new component, ALWAYS create the story file:
+
+```typescript
+import type { Meta, StoryObj } from '@storybook/react';
+import { ComponentName } from './ComponentName';
+
+const meta: Meta<typeof ComponentName> = {
+  title: '[Category]/ComponentName',  // e.g., 'Atoms/Button', 'Molecules/Card'
+  component: ComponentName,
+  parameters: {
+    layout: 'centered',
+    docs: {
+      description: {
+        component: 'Description of what this component does.',
+      },
+    },
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    // Define controls for props
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+// Default state
+export const Default: Story = {
+  args: {
+    // Default props
+  },
+};
+
+// Add variants, states, and use cases
+```
+
+## Story Categories (title prefix)
+
+Use consistent categorization in story titles:
+
+| Category | Use For | Example |
+|----------|---------|---------|
+| `Atoms/` | Basic building blocks | `Atoms/Button`, `Atoms/Input` |
+| `Molecules/` | Compound components | `Molecules/Card`, `Molecules/FormField` |
+| `Organisms/` | Complex UI patterns | `Organisms/Dialog`, `Organisms/Navigation` |
+| `Brand/` | Brand-specific elements | `Brand/ElmerLogo` |
+| `Prototypes/` | Work-in-progress features | `Prototypes/UserOnboarding/WelcomeCard` |
+
+## Required Story Exports
+
+### For Basic Components
+
+```typescript
+export const Default: Story = { ... };
+export const AllVariants: Story = { ... };  // If component has variants
+export const AllSizes: Story = { ... };     // If component has sizes
+export const Disabled: Story = { ... };     // If component can be disabled
+```
+
+### For Interactive Components
+
+```typescript
+export const Default: Story = { ... };
+export const Loading: Story = { ... };
+export const Error: Story = { ... };
+export const Empty: Story = { ... };
+export const WithData: Story = { ... };
+```
+
+### For AI-Powered Components
+
+```typescript
+export const Loading: Story = { ... };
+export const LoadingLong: Story = { ... };  // 3+ seconds
+export const Success: Story = { ... };
+export const Error: Story = { ... };
+export const LowConfidence: Story = { ... };
+export const Empty: Story = { ... };
+```
+
+## Validation Commands
+
+Before committing, validate story coverage:
+
+```bash
+cd prototypes
+npm run storybook:validate   # Check for missing stories
+npm run storybook            # View stories locally
+npm run build-storybook      # Verify build
+```
+
+## CI/CD Integration
+
+GitHub Actions automatically:
+1. **Validates** story coverage on PRs
+2. **Builds** Storybook to catch errors
+3. **Deploys** to Chromatic for visual review
+4. **Comments** preview URLs on PRs
+
+## When Modifying Existing Components
+
+If you change a component's:
+- **Props**: Update story argTypes and args
+- **Variants**: Add stories for new variants
+- **States**: Add stories for new states
+- **Behavior**: Update interactive stories
+
+## When NOT to Create Stories
+
+These files don't need stories:
+- `index.ts` - barrel exports
+- `types.ts` - type definitions
+- `hooks/use*.ts` - custom hooks (test separately)
+- `utils/*.ts` - utility functions (unit test instead)
+- Files in `ui/` folder (these are shadcn/ui primitives)
+
+## Quick Reference
+
+```bash
+# Create component with story
+/component [name]    # Use cursor command to scaffold both files
+
+# Validate locally
+npm run storybook:validate
+
+# Preview locally
+npm run storybook
+
+# Deploy preview
+git push  # CI automatically deploys to Chromatic
+```
+
+## Chromatic URLs
+
+- **Production Storybook**: https://main--696c2c54e35ea5bca2a772d8.chromatic.com
+- **Chromatic Dashboard**: https://www.chromatic.com/builds?appId=696c2c54e35ea5bca2a772d8
+
+## Anti-Patterns
+
+🚩 **Component without story** - NEVER commit a component without its story
+🚩 **Outdated stories** - Update stories when component changes
+🚩 **Missing states** - Cover all component states in stories
+🚩 **No interactive examples** - Show real-world usage
+🚩 **Missing controls** - Enable prop exploration via argTypes

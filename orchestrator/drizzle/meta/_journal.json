@@ -1,26 +1,12 @@
 {
   "version": "7",
-  "dialect": "sqlite",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1768616137684,
-      "tag": "0000_fearless_warpath",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1768675140458,
-      "tag": "0001_deep_prowler",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1737158400000,
-      "tag": "0002_swift_messenger",
+      "version": "7",
+      "when": 1768699040138,
+      "tag": "0000_magenta_sharon_carter",
       "breakpoints": true
     }
   ]

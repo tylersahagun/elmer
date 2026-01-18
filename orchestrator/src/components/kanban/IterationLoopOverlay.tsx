@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { WaveV4D } from "@/components/brand/ElmerLogo";
 
 interface IterationLoopOverlayProps {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   columns: KanbanColumn[];
   className?: string;
 }

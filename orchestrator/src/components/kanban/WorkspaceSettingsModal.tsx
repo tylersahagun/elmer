@@ -16,7 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useUIStore, useKanbanStore } from "@/lib/store";
+import { useUIStore, useKanbanStore, type KanbanColumn } from "@/lib/store";
+import type { ProjectStage } from "@/lib/db/schema";
 import { popInVariants } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import type { DocumentType, KnowledgebaseType } from "@/lib/db/schema";
@@ -262,8 +263,8 @@ export function WorkspaceSettingsModal() {
       loopTargets?: string[];
       dependencyNotes?: string;
     };
-  }) => ({
-    id: column.stage,
+  }): KanbanColumn => ({
+    id: column.stage as ProjectStage,
     configId: column.id,
     displayName: column.displayName,
     color: column.color,

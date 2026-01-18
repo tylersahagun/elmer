@@ -1,26 +1,19 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
-import { existsSync, mkdirSync } from "fs";
-import { dirname, join } from "path";
 
-// Database file location
-const DB_PATH = process.env.DATABASE_PATH || join(process.cwd(), "data", "orchestrator.db");
+// Get database URL from environment
+const DATABASE_URL = process.env.DATABASE_URL;
 
-// Ensure data directory exists
-const dbDir = dirname(DB_PATH);
-if (!existsSync(dbDir)) {
-  mkdirSync(dbDir, { recursive: true });
+if (!DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
 }
 
-// Create SQLite connection
-const sqlite = new Database(DB_PATH);
-
-// Enable WAL mode for better concurrent access
-sqlite.pragma("journal_mode = WAL");
+// Create Neon SQL client
+const sql = neon(DATABASE_URL);
 
 // Create Drizzle instance with schema
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(sql, { schema });
 
 // Export schema types
 export * from "./schema";

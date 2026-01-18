@@ -284,7 +284,7 @@ const validateDeployChromatic: JobExecutor = async () => {
 const validateCreateFeatureBranch: JobExecutor = async (ctx) => {
   const project = await getProject(ctx.projectId);
   if (!project) return { success: false, error: "Project not found" };
-  const repoRoot = getRepoRoot(project.workspace?.githubRepo);
+  const repoRoot = getRepoRoot(project.workspace?.githubRepo ?? undefined);
   if (!repoRoot) {
     return { success: false, error: "Workspace GitHub repo path not configured" };
   }
@@ -975,7 +975,7 @@ export async function executeJob(
       }
 
       case "build_prototype": {
-        const repoRoot = getRepoRoot(project.workspace?.githubRepo);
+        const repoRoot = getRepoRoot(project.workspace?.githubRepo ?? undefined);
         const prototypesPath = project.workspace?.settings?.prototypesPath || "src/components/prototypes";
         if (!repoRoot) {
           return { success: false, error: "Workspace GitHub repo path not configured" };
@@ -1093,7 +1093,7 @@ export const Default: Story = {};
       }
 
       case "deploy_chromatic": {
-        const repoRoot = getRepoRoot(project.workspace?.githubRepo);
+        const repoRoot = getRepoRoot(project.workspace?.githubRepo ?? undefined);
         if (!repoRoot) {
           return { success: false, error: "Workspace GitHub repo path not configured" };
         }
@@ -1138,7 +1138,7 @@ export const Default: Story = {};
       }
 
       case "create_feature_branch": {
-        const repoRoot = getRepoRoot(project.workspace?.githubRepo);
+        const repoRoot = getRepoRoot(project.workspace?.githubRepo ?? undefined);
         if (!repoRoot) {
           return { success: false, error: "Workspace GitHub repo path not configured" };
         }

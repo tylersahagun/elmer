@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "chromatic": "chromatic"
+    "chromatic": "chromatic",
+    "storybook:validate": "node scripts/validate-stories.js",
+    "storybook:check": "npm run storybook:validate && npm run build-storybook"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.0",

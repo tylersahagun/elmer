@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, timestamp, boolean, jsonb, bytea } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // ============================================
@@ -282,9 +282,9 @@ export const memoryEntries = pgTable("memory_entries", {
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   type: text("type").$type<MemoryType>().notNull(),
   content: text("content").notNull(),
-  embedding: blob("embedding", { mode: "buffer" }), // Vector embedding for semantic search
-  metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  embedding: text("embedding"), // Vector embedding for semantic search (base64 encoded)
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull(),
 });
 
 // ============================================
@@ -296,8 +296,8 @@ export const linearMappings = pgTable("linear_mappings", {
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   linearProjectId: text("linear_project_id").notNull(),
   linearTeamId: text("linear_team_id").notNull(),
-  syncedAt: integer("synced_at", { mode: "timestamp" }),
-  metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
+  syncedAt: timestamp("synced_at"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
 });
 
 export const tickets = pgTable("tickets", {
@@ -311,9 +311,9 @@ export const tickets = pgTable("tickets", {
   priority: integer("priority"),
   prototypeComponentLink: text("prototype_component_link"), // Link to specific Storybook component
   estimatedPoints: integer("estimated_points"),
-  metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
 });
 
 // ============================================
@@ -329,11 +329,11 @@ export const juryEvaluations = pgTable("jury_evaluations", {
   conditionalRate: real("conditional_rate"),
   rejectionRate: real("rejection_rate"),
   verdict: text("verdict").$type<"pass" | "fail" | "conditional">(),
-  topConcerns: text("top_concerns", { mode: "json" }).$type<string[]>(),
-  topSuggestions: text("top_suggestions", { mode: "json" }).$type<string[]>(),
-  rawResults: text("raw_results", { mode: "json" }),
+  topConcerns: jsonb("top_concerns").$type<string[]>(),
+  topSuggestions: jsonb("top_suggestions").$type<string[]>(),
+  rawResults: jsonb("raw_results"),
   reportPath: text("report_path"), // Path to markdown report
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  createdAt: timestamp("created_at").notNull(),
 });
 
 // ============================================
@@ -347,13 +347,13 @@ export const columnConfigs = pgTable("column_configs", {
   displayName: text("display_name").notNull(),
   order: integer("order").notNull(),
   color: text("color"),
-  autoTriggerJobs: text("auto_trigger_jobs", { mode: "json" }).$type<JobType[]>(),
-  requiredDocuments: text("required_documents", { mode: "json" }).$type<DocumentType[]>(),
+  autoTriggerJobs: jsonb("auto_trigger_jobs").$type<JobType[]>(),
+  requiredDocuments: jsonb("required_documents").$type<DocumentType[]>(),
   requiredApprovals: integer("required_approvals").default(0),
   aiIterations: integer("ai_iterations").default(0),
-  rules: text("rules", { mode: "json" }).$type<Record<string, unknown>>(),
-  humanInLoop: integer("human_in_loop", { mode: "boolean" }).default(false),
-  enabled: integer("enabled", { mode: "boolean" }).default(true),
+  rules: jsonb("rules").$type<Record<string, unknown>>(),
+  humanInLoop: boolean("human_in_loop").default(false),
+  enabled: boolean("enabled").default(true),
 });
 
 // ============================================
@@ -374,8 +374,8 @@ export const knowledgebaseEntries = pgTable("knowledgebase_entries", {
   title: text("title").notNull(),
   content: text("content").notNull(),
   filePath: text("file_path"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
 });
 
 // ============================================
@@ -386,9 +386,9 @@ export const knowledgeSources = pgTable("knowledge_sources", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // "notion" | "confluence" | "drive"
-  config: text("config", { mode: "json" }).$type<Record<string, unknown>>(),
-  lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  config: jsonb("config").$type<Record<string, unknown>>(),
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").notNull(),
 });
 
 // ============================================
@@ -400,8 +400,8 @@ export const prototypeVersions = pgTable("prototype_versions", {
   prototypeId: text("prototype_id").notNull().references(() => prototypes.id, { onDelete: "cascade" }),
   storybookPath: text("storybook_path"),
   chromaticUrl: text("chromatic_url"),
-  metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull(),
 });
 
 // ============================================

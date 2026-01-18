@@ -24,6 +24,7 @@ import {
   type NotificationPriority,
   type NotificationStatus,
   type NotificationMetadata,
+  type KnowledgebaseType,
 } from "./schema";
 import { eq, and, desc, asc, isNull, ne, or, lt, gte } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
@@ -563,9 +564,14 @@ export async function storeMemory(data: {
   type: "decision" | "feedback" | "context" | "artifact" | "conversation";
   content: string;
   metadata?: Record<string, unknown>;
-  embedding?: Buffer;
+  embedding?: Buffer | string;
 }) {
   const id = uuid();
+  
+  // Convert Buffer to base64 string for Postgres text storage
+  const embeddingStr: string | undefined = data.embedding instanceof Buffer 
+    ? data.embedding.toString("base64") 
+    : (typeof data.embedding === "string" ? data.embedding : undefined);
   
   await db.insert(memoryEntries).values({
     id,
@@ -574,7 +580,7 @@ export async function storeMemory(data: {
     type: data.type,
     content: data.content,
     metadata: data.metadata,
-    embedding: data.embedding,
+    embedding: embeddingStr,
     createdAt: new Date(),
   });
 
@@ -708,7 +714,7 @@ export async function getKnowledgebaseEntries(workspaceId: string) {
   });
 }
 
-export async function getKnowledgebaseEntryByType(workspaceId: string, type: string) {
+export async function getKnowledgebaseEntryByType(workspaceId: string, type: KnowledgebaseType) {
   return db.query.knowledgebaseEntries.findFirst({
     where: and(eq(knowledgebaseEntries.workspaceId, workspaceId), eq(knowledgebaseEntries.type, type)),
   });
@@ -716,7 +722,7 @@ export async function getKnowledgebaseEntryByType(workspaceId: string, type: str
 
 export async function upsertKnowledgebaseEntry(data: {
   workspaceId: string;
-  type: string;
+  type: KnowledgebaseType;
   title: string;
   content: string;
   filePath?: string;

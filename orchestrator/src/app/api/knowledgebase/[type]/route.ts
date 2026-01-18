@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWorkspace, getKnowledgebaseEntryByType, upsertKnowledgebaseEntry } from "@/lib/db/queries";
 import { resolveKnowledgePath, readKnowledgeFile, writeKnowledgeFile } from "@/lib/knowledgebase";
+import type { KnowledgebaseType } from "@/lib/db/schema";
 
 export async function GET(
   request: NextRequest,
@@ -23,9 +24,9 @@ export async function GET(
     workspace.settings?.contextPaths?.[0] ||
     workspace.contextPath ||
     "elmer-docs/";
-  const filePath = resolveKnowledgePath(contextRoot, type);
+  const filePath = resolveKnowledgePath(contextRoot, type as KnowledgebaseType);
   const content = await readKnowledgeFile(filePath);
-  const entry = await getKnowledgebaseEntryByType(workspaceId, type);
+  const entry = await getKnowledgebaseEntryByType(workspaceId, type as KnowledgebaseType);
 
   return NextResponse.json({
     type,
@@ -62,12 +63,12 @@ export async function PUT(
     workspace.settings?.contextPaths?.[0] ||
     workspace.contextPath ||
     "elmer-docs/";
-  const resolvedPath = resolveKnowledgePath(contextRoot, type, filePath);
+  const resolvedPath = resolveKnowledgePath(contextRoot, type as KnowledgebaseType, filePath);
   await writeKnowledgeFile(resolvedPath, content || "");
 
   const entry = await upsertKnowledgebaseEntry({
     workspaceId,
-    type,
+    type: type as KnowledgebaseType,
     title,
     content: content || "",
     filePath: resolvedPath,

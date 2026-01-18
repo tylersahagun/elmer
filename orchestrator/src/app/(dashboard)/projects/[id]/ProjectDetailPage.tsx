@@ -122,7 +122,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
         </TabsContent>
 
         <TabsContent value="metrics" className="mt-6">
-          <MetricsDashboard projectId={project.id} projectName={project.name} />
+          <MetricsDashboard projectName={project.name} />
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
