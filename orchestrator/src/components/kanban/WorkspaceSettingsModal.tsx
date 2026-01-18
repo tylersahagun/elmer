@@ -246,7 +246,13 @@ export function WorkspaceSettingsModal() {
     humanInLoop?: boolean;
     requiredDocuments?: string[];
     requiredApprovals?: number;
-    rules?: { contextPaths?: string[]; contextNotes?: string };
+    rules?: {
+      contextPaths?: string[];
+      contextNotes?: string;
+      loopGroupId?: string;
+      loopTargets?: string[];
+      dependencyNotes?: string;
+    };
   }) => ({
     id: column.stage,
     configId: column.id,
@@ -260,18 +266,40 @@ export function WorkspaceSettingsModal() {
     requiredApprovals: column.requiredApprovals,
     contextPaths: column.rules?.contextPaths,
     contextNotes: column.rules?.contextNotes,
+    loopGroupId: column.rules?.loopGroupId,
+    loopTargets: column.rules?.loopTargets,
+    dependencyNotes: column.rules?.dependencyNotes,
   });
 
   const buildColumnPayload = (column: (typeof columns)[number], updates: Record<string, unknown>) => {
-    const { contextPaths: updatedPaths, contextNotes: updatedNotes, ...rest } = updates as {
+    const {
+      contextPaths: updatedPaths,
+      contextNotes: updatedNotes,
+      loopGroupId: updatedLoopGroupId,
+      loopTargets: updatedLoopTargets,
+      dependencyNotes: updatedDependencyNotes,
+      ...rest
+    } = updates as {
       contextPaths?: string[];
       contextNotes?: string;
+      loopGroupId?: string;
+      loopTargets?: string[];
+      dependencyNotes?: string;
     };
     const payload: Record<string, unknown> = { ...rest };
-    if (updatedPaths !== undefined || updatedNotes !== undefined) {
+    if (
+      updatedPaths !== undefined ||
+      updatedNotes !== undefined ||
+      updatedLoopGroupId !== undefined ||
+      updatedLoopTargets !== undefined ||
+      updatedDependencyNotes !== undefined
+    ) {
       payload.rules = {
         contextPaths: updatedPaths ?? column.contextPaths ?? [],
         contextNotes: updatedNotes ?? column.contextNotes ?? "",
+        loopGroupId: updatedLoopGroupId ?? column.loopGroupId ?? "",
+        loopTargets: updatedLoopTargets ?? column.loopTargets ?? [],
+        dependencyNotes: updatedDependencyNotes ?? column.dependencyNotes ?? "",
       };
     }
     return payload;
@@ -739,6 +767,19 @@ export function WorkspaceSettingsModal() {
                           const contextNotesValue = String(
                             getColumnEdit(column.id, "contextNotes", column.contextNotes || "")
                           );
+                          const loopGroupIdValue = String(
+                            getColumnEdit(column.id, "loopGroupId", column.loopGroupId || "")
+                          );
+                          const loopTargetsValue = String(
+                            getColumnEdit(
+                              column.id,
+                              "loopTargets",
+                              (column.loopTargets || []).join(", ")
+                            )
+                          );
+                          const dependencyNotesValue = String(
+                            getColumnEdit(column.id, "dependencyNotes", column.dependencyNotes || "")
+                          );
                           const colorOptions = colorKeys.includes(colorKey)
                             ? colorKeys
                             : [...colorKeys, colorKey];
@@ -899,6 +940,46 @@ export function WorkspaceSettingsModal() {
                                       onChange={(e) => updateColumnEdit(column.id, "contextNotes", e.target.value)}
                                       className="min-h-[88px]"
                                       placeholder="Optional notes for this stage"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">Iteration Loop Group</Label>
+                                    <Input
+                                      value={loopGroupIdValue}
+                                      onChange={(e) =>
+                                        updateColumnEdit(column.id, "loopGroupId", e.target.value.trim())
+                                      }
+                                      className="h-8"
+                                      placeholder="e.g. discovery-prd-loop"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">Loop Targets (stage ids)</Label>
+                                    <Input
+                                      value={loopTargetsValue}
+                                      onChange={(e) =>
+                                        updateColumnEdit(
+                                          column.id,
+                                          "loopTargets",
+                                          e.target.value
+                                            .split(",")
+                                            .map((v) => v.trim())
+                                            .filter(Boolean)
+                                        )
+                                      }
+                                      className="h-8"
+                                      placeholder="e.g. discovery, prd"
+                                    />
+                                  </div>
+                                  <div className="space-y-2 lg:col-span-2">
+                                    <Label className="text-xs text-muted-foreground">Dependency Notes</Label>
+                                    <Textarea
+                                      value={dependencyNotesValue}
+                                      onChange={(e) =>
+                                        updateColumnEdit(column.id, "dependencyNotes", e.target.value)
+                                      }
+                                      className="min-h-[72px]"
+                                      placeholder="Describe validation criteria or dependency behavior"
                                     />
                                   </div>
                                 </div>

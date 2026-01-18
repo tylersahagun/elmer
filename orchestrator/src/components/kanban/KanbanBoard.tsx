@@ -20,6 +20,9 @@ import type { ProjectStage } from "@/lib/db/schema";
 import { KanbanColumn } from "./KanbanColumn";
 import { ProjectCardOverlay } from "./ProjectCard";
 import { TranscriptInputDialog } from "./TranscriptInputDialog";
+import { IterationLoopOverlay } from "./IterationLoopOverlay";
+import { IterationLoopLanes } from "./IterationLoopLanes";
+import { IterationLoopControls, type LoopViewMode } from "./IterationLoopControls";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
 
@@ -161,8 +164,10 @@ export function KanbanBoard() {
   }, [jobSummary]);
 
   const [activeProject, setActiveProject] = useState<ProjectCardType | null>(null);
+  const [loopViewMode, setLoopViewMode] = useState<LoopViewMode>("off");
   // Track the original stage when drag started (for cancellation)
   const originalStageRef = useRef<string | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
   
   // State for transcript input dialog
   const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
@@ -400,28 +405,39 @@ export function KanbanBoard() {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <motion.div
-        variants={staggerContainer}
-        initial="initial"
-        animate="animate"
-        className="flex gap-4 p-6 overflow-x-auto min-h-[calc(100vh-200px)]"
-      >
-        <AnimatePresence mode="popLayout">
-          {columns.map((column) => (
-            <motion.div
-              key={column.id}
-              variants={staggerItem}
-              layout
-              className="group"
-            >
-              <KanbanColumn
-                column={column}
-                projects={projectsByStage[column.id] || []}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
+      <div className="relative">
+        <div className="flex justify-end px-6 pt-4">
+          <IterationLoopControls mode={loopViewMode} onChange={setLoopViewMode} />
+        </div>
+        <div ref={boardRef} className="relative">
+          {loopViewMode === "lanes" && <IterationLoopLanes columns={columns} className="px-6" />}
+          {loopViewMode === "overlay" && (
+            <IterationLoopOverlay containerRef={boardRef} columns={columns} />
+          )}
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="flex gap-4 p-6 overflow-x-auto min-h-[calc(100vh-200px)]"
+          >
+            <AnimatePresence mode="popLayout">
+              {columns.map((column) => (
+                <motion.div
+                  key={column.id}
+                  variants={staggerItem}
+                  layout
+                  className="group"
+                >
+                  <KanbanColumn
+                    column={column}
+                    projects={projectsByStage[column.id] || []}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      </div>
 
       <DragOverlay dropAnimation={{
         duration: 200,

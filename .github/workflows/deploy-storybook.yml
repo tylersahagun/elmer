@@ -49,4 +49,4 @@ jobs:
           echo "🎨 Storybook URL: ${{ steps.chromatic.outputs.storybookUrl }}"
           echo "🔗 Build URL: ${{ steps.chromatic.outputs.buildUrl }}"
           echo ""
-          echo "📱 Permanent URL: https://main--695ece8a989a140b6546402c.chromatic.com"
+          echo "📱 Permanent URL: https://main--696c2c54e35ea5bca2a772d8.chromatic.com"

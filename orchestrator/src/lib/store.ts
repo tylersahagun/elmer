@@ -42,6 +42,9 @@ export interface KanbanColumn {
   requiredApprovals?: number;
   contextPaths?: string[];
   contextNotes?: string;
+  loopGroupId?: string;
+  loopTargets?: string[];
+  dependencyNotes?: string;
 }
 
 export interface WorkspaceState {

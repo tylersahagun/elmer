@@ -45,6 +45,7 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
       initial="initial"
       animate="animate"
       exit="exit"
+      data-kanban-column={column.id}
       className="flex-shrink-0 w-72"
     >
       {/* Liquid Glass Lane Container */}
