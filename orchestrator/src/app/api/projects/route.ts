@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProjects, createProject } from "@/lib/db/queries";
+import { getProjects, createProject, getWorkspace, createJob } from "@/lib/db/queries";
+import { buildFeatureBranchName } from "@/lib/git/branches";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspaceId");
+    const includeArchived = searchParams.get("includeArchived") === "true";
 
     if (!workspaceId) {
       return NextResponse.json(
@@ -13,7 +15,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const projects = await getProjects(workspaceId);
+    const projects = await getProjects(workspaceId, { includeArchived });
     return NextResponse.json(projects);
   } catch (error) {
     console.error("Failed to get projects:", error);
@@ -36,12 +38,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const workspace = await getWorkspace(workspaceId);
+    if (!workspace) {
+      return NextResponse.json(
+        { error: "Workspace not found" },
+        { status: 404 }
+      );
+    }
+
+    const baseBranch = workspace.settings?.baseBranch || "main";
+    const preferredBranch = buildFeatureBranchName(name);
+
     const project = await createProject({
       workspaceId,
       name,
       description,
       stage,
+      metadata: {
+        gitBranch: preferredBranch,
+        baseBranch,
+      },
     });
+
+    const shouldCreateBranch = workspace.settings?.autoCreateFeatureBranch ?? true;
+    if (shouldCreateBranch) {
+      await createJob({
+        workspaceId,
+        projectId: project?.id,
+        type: "create_feature_branch",
+        input: {
+          preferredBranch,
+          baseBranch,
+        },
+      });
+    }
 
     return NextResponse.json(project, { status: 201 });
   } catch (error) {

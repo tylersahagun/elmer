@@ -10,13 +10,10 @@ import { cn } from "@/lib/utils";
 import { columnVariants, springPresets } from "@/lib/animations";
 import type { KanbanColumn as KanbanColumnType, ProjectCard as ProjectCardType } from "@/lib/store";
 import { ProjectCard } from "./ProjectCard";
-import { Plus, Settings2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface KanbanColumnProps {
   column: KanbanColumnType;
   projects: ProjectCardType[];
-  onAddProject?: () => void;
 }
 
 // Glowing orb colors for stage indicators
@@ -34,7 +31,7 @@ const columnGlowMap: Record<string, { bg: string; glow: string; accent: string }
   emerald: { bg: "bg-emerald-400/80", glow: "shadow-[0_0_12px_rgba(52,211,153,0.6)]", accent: "from-emerald-400/20" },
 };
 
-export function KanbanColumn({ column, projects, onAddProject }: KanbanColumnProps) {
+export function KanbanColumn({ column, projects }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
@@ -105,24 +102,6 @@ export function KanbanColumn({ column, projects, onAddProject }: KanbanColumnPro
             )}>
               {projects.length}
             </span>
-          </div>
-          
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-7 w-7 rounded-lg hover:bg-white/10"
-              onClick={onAddProject}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-7 w-7 rounded-lg hover:bg-white/10"
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-            </Button>
           </div>
         </div>
 

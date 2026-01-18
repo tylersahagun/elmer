@@ -8,9 +8,15 @@
  */
 
 import { db } from "@/lib/db";
-import { jobs } from "@/lib/db/schema";
-import { eq, and, asc } from "drizzle-orm";
-import { updateJobStatus } from "@/lib/db/queries";
+import { jobs, projects } from "@/lib/db/schema";
+import { eq, and, asc, lt } from "drizzle-orm";
+import {
+  updateJobStatus,
+  createJobRun,
+  updateJobRunStatus,
+  createJobNotification,
+  getWorkspace,
+} from "@/lib/db/queries";
 import { executeJob } from "./executor";
 import type { JobType, JobStatus } from "@/lib/db/schema";
 
@@ -32,7 +38,8 @@ async function getPendingJobs(workspaceId?: string, limit: number = 10) {
     return db.query.jobs.findMany({
       where: and(
         eq(jobs.workspaceId, workspaceId),
-        eq(jobs.status, "pending")
+        eq(jobs.status, "pending"),
+        lt(jobs.attempts, jobs.maxAttempts)
       ),
       orderBy: [asc(jobs.createdAt)],
       limit,
@@ -40,7 +47,7 @@ async function getPendingJobs(workspaceId?: string, limit: number = 10) {
   }
 
   return db.query.jobs.findMany({
-    where: eq(jobs.status, "pending"),
+    where: and(eq(jobs.status, "pending"), lt(jobs.attempts, jobs.maxAttempts)),
     orderBy: [asc(jobs.createdAt)],
     limit,
   });
@@ -81,10 +88,63 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     };
   }
 
+  const workspace = await getWorkspace(job.workspaceId);
+  const aiExecutionMode = workspace?.settings?.aiExecutionMode || "hybrid";
+  const aiFallbackAfterMinutes = workspace?.settings?.aiFallbackAfterMinutes ?? 30;
+
+  if (aiExecutionMode === "cursor") {
+    return {
+      jobId,
+      type: job.type,
+      status: "pending",
+      error: "Awaiting Cursor runner",
+      duration: Date.now() - startTime,
+    };
+  }
+
+  if (aiExecutionMode === "hybrid") {
+    const createdAt =
+      job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt);
+    const ageMinutes = (Date.now() - createdAt.getTime()) / 60000;
+    if (ageMinutes < aiFallbackAfterMinutes) {
+      return {
+        jobId,
+        type: job.type,
+        status: "pending",
+        error: `Awaiting Cursor runner (age ${Math.round(ageMinutes)}m)`,
+        duration: Date.now() - startTime,
+      };
+    }
+  }
+
   console.log(`🚀 Processing job ${jobId} (${job.type})`);
 
-  // Mark as running
-  await updateJobStatus(jobId, "running", { progress: 0 });
+  const attempt = (job.attempts || 0) + 1;
+
+  // Mark as running + increment attempts
+  await db.update(jobs)
+    .set({
+      status: "running",
+      attempts: attempt,
+      startedAt: new Date(),
+      progress: 0,
+    })
+    .where(eq(jobs.id, jobId));
+
+  const jobRun = await createJobRun({
+    jobId,
+    status: "running",
+    attempt,
+  });
+
+  // Get project name for notification context
+  let projectName: string | undefined;
+  if (job.projectId) {
+    const project = await db.query.projects.findFirst({
+      where: eq(projects.id, job.projectId),
+    });
+    projectName = project?.name;
+  }
 
   try {
     // Execute the job
@@ -97,10 +157,25 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     );
 
     if (result.success) {
+      if (jobRun?.id) {
+        await updateJobRunStatus(jobRun.id, "completed");
+      }
       await updateJobStatus(jobId, "completed", {
         output: result.output,
         progress: 1,
       });
+
+      // Create completion notification
+      await createJobNotification(
+        {
+          id: jobId,
+          workspaceId: job.workspaceId,
+          projectId: job.projectId,
+          type: job.type,
+          status: "completed",
+        },
+        projectName
+      );
 
       console.log(`✅ Job ${jobId} completed successfully`);
 
@@ -112,17 +187,40 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
         duration: Date.now() - startTime,
       };
     } else {
-      await updateJobStatus(jobId, "failed", {
-        error: result.error,
-        progress: 0,
-      });
-
+      if (jobRun?.id) {
+        await updateJobRunStatus(jobRun.id, "failed", result.error || "Job failed");
+      }
+      const shouldRetry = attempt < (job.maxAttempts || 3);
+      if (shouldRetry) {
+        await updateJobStatus(jobId, "pending", {
+          error: result.error,
+          progress: 0,
+        });
+      } else {
+        await updateJobStatus(jobId, "failed", {
+          error: result.error,
+          progress: 0,
+        });
+        
+        // Create failure notification only on final failure
+        await createJobNotification(
+          {
+            id: jobId,
+            workspaceId: job.workspaceId,
+            projectId: job.projectId,
+            type: job.type,
+            status: "failed",
+            error: result.error,
+          },
+          projectName
+        );
+      }
       console.error(`❌ Job ${jobId} failed: ${result.error}`);
 
       return {
         jobId,
         type: job.type,
-        status: "failed",
+        status: shouldRetry ? "pending" : "failed",
         error: result.error,
         duration: Date.now() - startTime,
       };
@@ -130,17 +228,37 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     
-    await updateJobStatus(jobId, "failed", {
+    if (jobRun?.id) {
+      await updateJobRunStatus(jobRun.id, "failed", errorMessage);
+    }
+
+    const shouldRetry = attempt < (job.maxAttempts || 3);
+    await updateJobStatus(jobId, shouldRetry ? "pending" : "failed", {
       error: errorMessage,
       progress: 0,
     });
+
+    // Create failure notification only on final failure
+    if (!shouldRetry) {
+      await createJobNotification(
+        {
+          id: jobId,
+          workspaceId: job.workspaceId,
+          projectId: job.projectId,
+          type: job.type,
+          status: "failed",
+          error: errorMessage,
+        },
+        projectName
+      );
+    }
 
     console.error(`❌ Job ${jobId} threw error: ${errorMessage}`);
 
     return {
       jobId,
       type: job.type,
-      status: "failed",
+      status: shouldRetry ? "pending" : "failed",
       error: errorMessage,
       duration: Date.now() - startTime,
     };

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { GlassCard } from "@/components/glass";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
+import { useKanbanStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 interface JobStatusIndicatorProps {
@@ -22,12 +23,23 @@ export function JobStatusIndicator({
   workspaceId,
   className,
 }: JobStatusIndicatorProps) {
-  const { summary, isConnected, error, reconnect } = useRealtimeJobs({
+  const { summary, isConnected, error, reconnect, activeJobs, triggerProcessing } = useRealtimeJobs({
     workspaceId,
     enabled: !!workspaceId,
   });
+  const workspace = useKanbanStore((s) => s.workspace);
+  const executionMode = workspace?.settings?.aiExecutionMode || "hybrid";
+  const validationMode = workspace?.settings?.aiValidationMode || "schema";
+  const fallbackAfterMinutes = workspace?.settings?.aiFallbackAfterMinutes ?? 30;
 
   const hasActivity = summary.pending > 0 || summary.running > 0;
+  const oldestPending = activeJobs
+    .filter((job) => job.status === "pending")
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+  const pendingAgeMinutes = oldestPending
+    ? Math.max(0, Math.round((Date.now() - new Date(oldestPending.createdAt).getTime()) / 60000))
+    : 0;
+  const fallbackInMinutes = Math.max(0, fallbackAfterMinutes - pendingAgeMinutes);
 
   return (
     <AnimatePresence>
@@ -88,8 +100,26 @@ export function JobStatusIndicator({
               ) : summary.pending > 0 ? (
                 <span className="text-amber-300">
                   {summary.pending} job{summary.pending > 1 ? "s" : ""} queued
+                  {executionMode === "cursor" && " (Cursor runner)"}
+                  {executionMode === "server" && " (Server runner)"}
+                  {executionMode === "hybrid" && " (Hybrid)"}
                 </span>
               ) : null}
+              {summary.pending > 0 && executionMode === "hybrid" && (
+                <div className="text-[11px] text-muted-foreground">
+                  Server fallback in ~{fallbackInMinutes}m
+                </div>
+              )}
+              {summary.pending > 0 && executionMode === "server" && (
+                <div className="text-[11px] text-muted-foreground">
+                  Server runner enabled
+                </div>
+              )}
+              {summary.pending > 0 && executionMode === "cursor" && (
+                <div className="text-[11px] text-muted-foreground">
+                  Waiting for Cursor runner
+                </div>
+              )}
             </div>
 
             {/* Live indicator */}
@@ -110,6 +140,22 @@ export function JobStatusIndicator({
               </motion.div>
             )}
           </GlassCard>
+
+          {summary.pending > 0 && (executionMode === "server" || executionMode === "hybrid") && (
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={triggerProcessing}
+                className="text-xs text-purple-300 hover:text-purple-200 transition-colors"
+              >
+                Run server now
+              </button>
+            </div>
+          )}
+          {summary.pending > 0 && (
+            <div className="mt-1 text-[10px] text-muted-foreground">
+              Validation: {validationMode}
+            </div>
+          )}
 
           {/* Error indicator */}
           {error && (

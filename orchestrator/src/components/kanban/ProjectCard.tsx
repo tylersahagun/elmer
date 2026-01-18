@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { buildCursorDeepLink } from "@/lib/cursor/links";
 import { springPresets } from "@/lib/animations";
 import type { ProjectCard as ProjectCardType } from "@/lib/store";
 import { useKanbanStore, useUIStore } from "@/lib/store";
@@ -67,6 +68,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
   const setActiveProject = useKanbanStore((s) => s.setActiveProject);
   const updateProject = useKanbanStore((s) => s.updateProject);
   const openProjectDetailModal = useUIStore((s) => s.openProjectDetailModal);
+  const workspace = useKanbanStore((s) => s.workspace);
 
   // Check if project is locked (has active/pending jobs)
   const isLocked = project.isLocked || 
@@ -103,11 +105,28 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
     openProjectDetailModal();
   };
 
+  const handleOpenPage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.location.href = `/projects/${project.id}`;
+  };
+
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     // Open modal in edit mode (for now, same as view details)
     setActiveProject(project.id);
     openProjectDetailModal();
+  };
+
+  const cursorLink = buildCursorDeepLink({
+    template: workspace?.settings?.cursorDeepLinkTemplate,
+    repo: workspace?.githubRepo,
+    branch: project.metadata?.gitBranch,
+  });
+
+  const handleOpenCursor = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!cursorLink) return;
+    window.location.href = cursorLink;
   };
 
   const handleStatusChange = async (e: React.MouseEvent, newStatus: "active" | "paused" | "archived") => {
@@ -210,6 +229,22 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
               <DropdownMenuItem onClick={handleViewDetails} className="gap-2">
                 <Eye className="w-3.5 h-3.5" />
                 View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleOpenPage} className="gap-2">
+                <FileText className="w-3.5 h-3.5" />
+                Open Project Page
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleOpenCursor}
+                className="gap-2"
+                disabled={!cursorLink}
+              >
+                <img
+                  src="/cursor/cursor-cube-light.svg"
+                  alt=""
+                  className="w-3.5 h-3.5 dark:invert"
+                />
+                View in Cursor
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleEdit} className="gap-2">
                 <Pencil className="w-3.5 h-3.5" />
@@ -315,6 +350,7 @@ function formatJobType(type: string): string {
     build_prototype: "Prototype",
     run_jury_evaluation: "Jury Eval",
     generate_tickets: "Tickets",
+    create_feature_branch: "Branch",
   };
   return typeMap[type] || type;
 }

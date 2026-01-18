@@ -13,12 +13,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useUIStore, useKanbanStore } from "@/lib/store";
 import { popInVariants, springPresets } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import { DocumentViewer } from "@/components/documents";
-import type { DocumentType } from "@/lib/db/schema";
+import { buildCursorDeepLink } from "@/lib/cursor/links";
+import type { DocumentType, KnowledgebaseType } from "@/lib/db/schema";
 import {
   FileText,
   Layers,
@@ -36,9 +36,13 @@ import {
   RefreshCw,
   Users,
   Repeat,
+  Plus,
+  Copy,
 } from "lucide-react";
+import { WaveV4D } from "@/components/brand/ElmerLogo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AddDocumentDialog } from "./AddDocumentDialog";
 
 // Stage color mapping
 const stageColors: Record<string, { bg: string; text: string }> = {
@@ -61,6 +65,14 @@ const jobStatusColors: Record<string, { bg: string; text: string; icon: React.El
   running: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-600 dark:text-blue-400", icon: Loader2 },
   completed: { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-600 dark:text-green-400", icon: CheckCircle2 },
   failed: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-600 dark:text-red-400", icon: AlertCircle },
+};
+
+const knowledgebaseLabels: Record<KnowledgebaseType, string> = {
+  company_context: "Company Context",
+  strategic_guardrails: "Guardrails",
+  personas: "Personas",
+  roadmap: "Roadmap",
+  rules: "Rules",
 };
 
 interface ProjectDocument {
@@ -88,9 +100,19 @@ interface ProjectDetails {
   createdAt: string;
   updatedAt: string;
   workspaceId: string;
+  metadata?: {
+    gitBranch?: string;
+    baseBranch?: string;
+  };
   workspace?: {
     id: string;
     name: string;
+    githubRepo?: string | null;
+    settings?: {
+      storybookPort?: number;
+      cursorDeepLinkTemplate?: string;
+      knowledgebaseMapping?: Partial<Record<DocumentType, KnowledgebaseType>>;
+    };
   };
   documents: ProjectDocument[];
   prototypes: Array<{
@@ -109,6 +131,25 @@ interface ProjectDetails {
     enteredAt: string;
     exitedAt?: string;
     triggeredBy?: string;
+  }>;
+  tickets: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    status?: string;
+    priority?: number;
+    estimatedPoints?: number;
+  }>;
+  juryEvaluations: Array<{
+    id: string;
+    phase: "research" | "prd" | "prototype";
+    approvalRate: number | null;
+    conditionalRate: number | null;
+    rejectionRate: number | null;
+    verdict: "pass" | "fail" | "conditional" | null;
+    topConcerns?: string[] | null;
+    topSuggestions?: string[] | null;
+    createdAt: string;
   }>;
 }
 
@@ -146,6 +187,7 @@ export function ProjectDetailModal() {
   const [selectedDocument, setSelectedDocument] = useState<ProjectDocument | null>(null);
   const [iterationCount, setIterationCount] = useState(5);
   const [isRunningIterations, setIsRunningIterations] = useState(false);
+  const [addDocumentDialogOpen, setAddDocumentDialogOpen] = useState(false);
 
   // Fetch project details
   const { data: project, isLoading, error, refetch } = useQuery<ProjectDetails>({
@@ -183,12 +225,64 @@ export function ProjectDetailModal() {
     },
   });
 
+  const publishDocumentMutation = useMutation({
+    mutationFn: async ({
+      workspaceId,
+      targetType,
+      title,
+      content,
+    }: {
+      workspaceId: string;
+      targetType: KnowledgebaseType;
+      title: string;
+      content: string;
+    }) => {
+      const res = await fetch(`/api/knowledgebase/${targetType}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId, title, content }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to publish to knowledge base");
+      }
+      return res.json();
+    },
+  });
+
   const handleSaveDocument = useCallback(async (content: string) => {
     if (!selectedDocument) return;
     await saveDocumentMutation.mutateAsync({ docId: selectedDocument.id, content });
     // Update local state
     setSelectedDocument((prev) => prev ? { ...prev, content } : null);
   }, [selectedDocument, saveDocumentMutation]);
+
+  const handlePublishDocument = useCallback(async () => {
+    if (!selectedDocument || !project) return;
+    const mapping = project.workspace?.settings?.knowledgebaseMapping as
+      | Partial<Record<DocumentType, KnowledgebaseType>>
+      | undefined;
+    const targetType = mapping?.[selectedDocument.type];
+    if (!targetType) return;
+    await publishDocumentMutation.mutateAsync({
+      workspaceId: project.workspaceId,
+      targetType,
+      title: selectedDocument.title,
+      content: selectedDocument.content,
+    });
+  }, [selectedDocument, project, publishDocumentMutation]);
+
+  const handleCopyBranch = useCallback(() => {
+    const branch = project?.metadata?.gitBranch;
+    if (!branch) return;
+    navigator.clipboard?.writeText(branch).catch(() => {});
+  }, [project]);
+
+  const cursorLink = buildCursorDeepLink({
+    template: project?.workspace?.settings?.cursorDeepLinkTemplate,
+    repo: project?.workspace?.githubRepo,
+    branch: project?.metadata?.gitBranch,
+  });
 
   const handleRegenerateDocument = useCallback(async () => {
     if (!selectedDocument || !activeProjectId || !project) return;
@@ -239,6 +333,10 @@ export function ProjectDetailModal() {
       
       if (res.ok) {
         updateProject(activeProjectId, { status: newStatus });
+        if (newStatus === "archived") {
+          closeModal();
+          return;
+        }
         refetch();
       }
     } catch (error) {
@@ -301,7 +399,7 @@ export function ProjectDetailModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="glass-panel border-white/20 max-w-3xl !p-0 !gap-0 max-h-[85vh]">
+      <DialogContent className="glass-panel border-white/20 max-w-3xl p-0! gap-0! max-h-[85vh] overflow-hidden">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -309,10 +407,10 @@ export function ProjectDetailModal() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="flex flex-col h-full max-h-[85vh]"
+              className="flex flex-col max-h-[85vh]"
             >
               {/* Header */}
-              <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
+              <DialogHeader className="shrink-0 p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
                 {isLoading ? (
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
@@ -327,9 +425,7 @@ export function ProjectDetailModal() {
                   <>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                          <Sparkles className="w-5 h-5 text-white" />
-                        </div>
+                        <WaveV4D size={40} palette="forest" />
                         <div>
                           <DialogTitle className="text-xl">{project.name}</DialogTitle>
                           <div className="flex items-center gap-2 mt-1">
@@ -344,6 +440,23 @@ export function ProjectDetailModal() {
                       </div>
                       
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (cursorLink) {
+                              window.location.href = cursorLink;
+                            }
+                          }}
+                          disabled={!cursorLink}
+                          className="h-9 w-9"
+                        >
+                          <img
+                            src="/cursor/cursor-cube-light.svg"
+                            alt=""
+                            className="w-4 h-4 dark:invert"
+                          />
+                        </Button>
                         {project.status === "active" ? (
                           <Button
                             variant="outline"
@@ -388,8 +501,8 @@ export function ProjectDetailModal() {
 
               {/* Content with Tabs */}
               {project && (
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-                  <div className="flex-shrink-0 px-6 pt-4">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                  <div className="shrink-0 px-6 pt-4">
                     <TabsList className="bg-slate-100/50 dark:bg-slate-800/50">
                       <TabsTrigger value="overview" className="gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" />
@@ -417,13 +530,48 @@ export function ProjectDetailModal() {
                         <Clock className="w-3.5 h-3.5" />
                         History
                       </TabsTrigger>
+                      <TabsTrigger value="tickets" className="gap-1.5">
+                        <FileText className="w-3.5 h-3.5" />
+                        Tickets
+                        {project.tickets.length > 0 && (
+                          <span className="ml-1 text-xs bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 rounded-full">
+                            {project.tickets.length}
+                          </span>
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger value="validation" className="gap-1.5">
+                        <Users className="w-3.5 h-3.5" />
+                        Validation
+                      </TabsTrigger>
                     </TabsList>
                   </div>
 
-                  <ScrollArea className="flex-1 min-h-0">
+                  <div className="flex-1 overflow-y-auto min-h-0">
                     <div className="p-6 pt-4">
                       {/* Overview Tab */}
                       <TabsContent value="overview" className="mt-0 space-y-4">
+                        {/* Summary Section */}
+                        {project.documents.length > 0 && (
+                          <div className="p-4 rounded-xl bg-linear-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200/50 dark:border-purple-500/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              <h4 className="font-medium text-sm text-purple-900 dark:text-purple-100">
+                                Project Summary
+                              </h4>
+                            </div>
+                            <p className="text-sm text-purple-800/80 dark:text-purple-200/80 line-clamp-3">
+                              {project.documents[0]?.content?.slice(0, 300) || "No content available yet."}
+                              {(project.documents[0]?.content?.length || 0) > 300 && "..."}
+                            </p>
+                            {project.documents.length > 1 && (
+                              <p className="text-xs text-purple-600/60 dark:text-purple-400/60 mt-2">
+                                + {project.documents.length - 1} more document{project.documents.length > 2 ? "s" : ""}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Time & Status Info */}
                         <div className="grid grid-cols-2 gap-4">
                           <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
                             <p className="text-xs text-muted-foreground mb-1">Created</p>
@@ -435,6 +583,28 @@ export function ProjectDetailModal() {
                           </div>
                         </div>
 
+                        {project.metadata?.gitBranch && (
+                          <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+                            <p className="text-xs text-muted-foreground mb-2">Git Branch</p>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={project.metadata.gitBranch}
+                                readOnly
+                                className="h-9"
+                              />
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="outline"
+                                onClick={handleCopyBranch}
+                              >
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Stage Progress */}
                         <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
                           <p className="text-xs text-muted-foreground mb-2">Stage Progress</p>
                           <div className="flex items-center gap-1 flex-wrap">
@@ -455,32 +625,76 @@ export function ProjectDetailModal() {
                               </div>
                             ))}
                           </div>
+                          {project.stages.length > 0 && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Current stage: <span className="font-medium capitalize">{project.stage}</span>
+                              {project.stages[0]?.enteredAt && (
+                                <> · Started {formatDate(project.stages[0].enteredAt)}</>
+                              )}
+                            </p>
+                          )}
                         </div>
 
                         {/* Quick Stats */}
                         <div className="grid grid-cols-3 gap-3">
-                          <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-center">
+                          <button 
+                            onClick={() => setActiveTab("documents")}
+                            className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-center hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
+                          >
                             <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                               {project.documents.length}
                             </p>
                             <p className="text-xs text-purple-600/70 dark:text-purple-400/70">Documents</p>
-                          </div>
-                          <div className="p-3 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-center">
+                          </button>
+                          <button 
+                            onClick={() => setActiveTab("prototypes")}
+                            className="p-3 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-center hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors cursor-pointer"
+                          >
                             <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">
                               {project.prototypes.length}
                             </p>
                             <p className="text-xs text-pink-600/70 dark:text-pink-400/70">Prototypes</p>
-                          </div>
-                          <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-center">
+                          </button>
+                          <button 
+                            onClick={() => setActiveTab("history")}
+                            className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-center hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors cursor-pointer"
+                          >
                             <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
                               {project.stages.length}
                             </p>
                             <p className="text-xs text-teal-600/70 dark:text-teal-400/70">Stage Changes</p>
-                          </div>
+                          </button>
                         </div>
+                        
+                        {/* Next Actions Suggestion */}
+                        {project.documents.length === 0 && (
+                          <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-500/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100">
+                                Suggested Next Step
+                              </h4>
+                            </div>
+                            <p className="text-sm text-blue-800/80 dark:text-blue-200/80">
+                              Add research documents or transcripts to get started. Click the Documents tab to add your first document.
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setActiveTab("documents");
+                                setAddDocumentDialogOpen(true);
+                              }}
+                              className="mt-3 gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-500/30 dark:text-blue-300"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add Document
+                            </Button>
+                          </div>
+                        )}
 
                         {/* Iteration Loop Section */}
-                        <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/50 dark:border-amber-500/20">
+                        <div className="p-4 rounded-xl bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/50 dark:border-amber-500/20">
                           <div className="flex items-start gap-3">
                             <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
                               <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -572,6 +786,21 @@ export function ProjectDetailModal() {
                                   }}
                                   onSave={handleSaveDocument}
                                   onRegenerate={handleRegenerateDocument}
+                                  onPublish={handlePublishDocument}
+                                  publishLabel={
+                                    project?.workspace?.settings?.knowledgebaseMapping?.[selectedDocument.type]
+                                      ? `Publish to ${
+                                          knowledgebaseLabels[
+                                            project.workspace.settings
+                                              .knowledgebaseMapping[selectedDocument.type] as KnowledgebaseType
+                                          ] ||
+                                          project.workspace.settings.knowledgebaseMapping[selectedDocument.type]
+                                        }`
+                                      : "Publish"
+                                  }
+                                  publishDisabled={
+                                    !project?.workspace?.settings?.knowledgebaseMapping?.[selectedDocument.type]
+                                  }
                                 />
                               </div>
                             </motion.div>
@@ -583,11 +812,33 @@ export function ProjectDetailModal() {
                               exit={{ opacity: 0, x: 20 }}
                               className="space-y-3"
                             >
+                              {/* Add Document Button - Always visible */}
+                              <div className="flex justify-end">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setAddDocumentDialogOpen(true)}
+                                  className="gap-1.5"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  Add Document
+                                </Button>
+                              </div>
+                              
                               {project.documents.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
+                                <div className="text-center py-8 text-muted-foreground border border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
                                   <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
                                   <p className="text-sm">No documents yet</p>
-                                  <p className="text-xs mt-1">Documents will be generated as the project progresses</p>
+                                  <p className="text-xs mt-1 mb-4">Add research notes, transcripts, or other documentation</p>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setAddDocumentDialogOpen(true)}
+                                    className="gap-1.5"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    Add Your First Document
+                                  </Button>
                                 </div>
                               ) : (
                                 project.documents.map((doc) => (
@@ -686,7 +937,10 @@ export function ProjectDetailModal() {
                                       className="gap-1.5 text-xs"
                                       asChild
                                     >
-                                      <a href={`http://localhost:6006/?path=/story/${proto.storybookPath}`} target="_blank">
+                                      <a
+                                        href={`http://localhost:${project.workspace?.settings?.storybookPort || 6006}/?path=/story/${proto.storybookPath}`}
+                                        target="_blank"
+                                      >
                                         <ExternalLink className="w-3 h-3" />
                                         Storybook
                                       </a>
@@ -761,14 +1015,147 @@ export function ProjectDetailModal() {
                           </div>
                         </div>
                       </TabsContent>
+
+                      {/* Tickets Tab */}
+                      <TabsContent value="tickets" className="mt-0 space-y-3">
+                        {project.tickets.length === 0 ? (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                            <p className="text-sm">No tickets generated yet</p>
+                            <p className="text-xs mt-1">Move the project to Tickets stage to generate them</p>
+                          </div>
+                        ) : (
+                          project.tickets.map((ticket) => (
+                            <motion.div
+                              key={ticket.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-medium text-sm">{ticket.title}</p>
+                                  {ticket.description && (
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                      {ticket.description}
+                                    </p>
+                                  )}
+                                </div>
+                                {ticket.estimatedPoints && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {ticket.estimatedPoints} pts
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                {ticket.status && (
+                                  <Badge variant="secondary" className="text-xs capitalize">
+                                    {ticket.status}
+                                  </Badge>
+                                )}
+                                {ticket.priority !== undefined && (
+                                  <Badge variant="outline" className="text-xs">
+                                    Priority {ticket.priority}
+                                  </Badge>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))
+                        )}
+                      </TabsContent>
+
+                      {/* Validation Tab */}
+                      <TabsContent value="validation" className="mt-0 space-y-4">
+                        {project.juryEvaluations.length === 0 ? (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                            <p className="text-sm">No validation results yet</p>
+                            <p className="text-xs mt-1">Run a jury evaluation to see results</p>
+                          </div>
+                        ) : (
+                          project.juryEvaluations.map((evaluation) => (
+                            <motion.div
+                              key={evaluation.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Badge className="capitalize">{evaluation.phase}</Badge>
+                                  {evaluation.verdict && (
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-xs",
+                                        evaluation.verdict === "pass" && "border-green-500/50 text-green-400",
+                                        evaluation.verdict === "fail" && "border-red-500/50 text-red-400",
+                                        evaluation.verdict === "conditional" && "border-amber-500/50 text-amber-400"
+                                      )}
+                                    >
+                                      {evaluation.verdict}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDate(evaluation.createdAt)}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-3 text-xs">
+                                <div>
+                                  <p className="text-muted-foreground">Approval</p>
+                                  <p className="font-medium">
+                                    {Math.round((evaluation.approvalRate || 0) * 100)}%
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Conditional</p>
+                                  <p className="font-medium">
+                                    {Math.round((evaluation.conditionalRate || 0) * 100)}%
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground">Rejection</p>
+                                  <p className="font-medium">
+                                    {Math.round((evaluation.rejectionRate || 0) * 100)}%
+                                  </p>
+                                </div>
+                              </div>
+                              {(evaluation.topConcerns?.length || evaluation.topSuggestions?.length) && (
+                                <div className="mt-3 text-xs text-muted-foreground">
+                                  {evaluation.topConcerns?.length ? (
+                                    <p>Top concerns: {evaluation.topConcerns.join(", ")}</p>
+                                  ) : null}
+                                  {evaluation.topSuggestions?.length ? (
+                                    <p>Top suggestions: {evaluation.topSuggestions.join(", ")}</p>
+                                  ) : null}
+                                </div>
+                              )}
+                            </motion.div>
+                          ))
+                        )}
+                      </TabsContent>
                     </div>
-                  </ScrollArea>
+                  </div>
                 </Tabs>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </DialogContent>
+      
+      {/* Add Document Dialog */}
+      {activeProjectId && (
+        <AddDocumentDialog
+          open={addDocumentDialogOpen}
+          onOpenChange={setAddDocumentDialogOpen}
+          projectId={activeProjectId}
+          onDocumentAdded={() => {
+            refetch();
+            setActiveTab("documents");
+          }}
+        />
+      )}
     </Dialog>
   );
 }

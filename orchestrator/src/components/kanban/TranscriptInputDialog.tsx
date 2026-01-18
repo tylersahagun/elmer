@@ -82,8 +82,9 @@ export function TranscriptInputDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] glass-card border-white/20">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] glass-card border-white/20 !p-0 !gap-0 flex flex-col">
+        {/* Fixed Header */}
+        <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
               <FileText className="w-5 h-5 text-purple-400" />
@@ -96,54 +97,58 @@ export function TranscriptInputDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="transcript" className="text-sm font-medium">
-              {info.description}
-            </Label>
-            <Textarea
-              id="transcript"
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              placeholder={info.placeholder}
-              className={cn(
-                "min-h-[200px] resize-none",
-                "bg-white/5 border-white/10",
-                "focus:border-purple-500/50 focus:ring-purple-500/20",
-                "placeholder:text-muted-foreground/50"
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="transcript" className="text-sm font-medium">
+                {info.description}
+              </Label>
+              <Textarea
+                id="transcript"
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder={info.placeholder}
+                className={cn(
+                  "min-h-[200px] max-h-[300px] resize-none overflow-y-auto",
+                  "bg-white/5 border-white/10",
+                  "focus:border-purple-500/50 focus:ring-purple-500/20",
+                  "placeholder:text-muted-foreground/50"
+                )}
+              />
+            </div>
+
+            {/* Character count and tips */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{transcript.length} characters</span>
+              {transcript.length > 0 && transcript.length < 100 && (
+                <span className="flex items-center gap-1 text-amber-400">
+                  <AlertCircle className="w-3 h-3" />
+                  More context helps generate better insights
+                </span>
               )}
-            />
-          </div>
+            </div>
 
-          {/* Character count and tips */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{transcript.length} characters</span>
-            {transcript.length > 0 && transcript.length < 100 && (
-              <span className="flex items-center gap-1 text-amber-400">
-                <AlertCircle className="w-3 h-3" />
-                More context helps generate better insights
-              </span>
-            )}
-          </div>
-
-          {/* Info box */}
-          <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
-            <div className="flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400 mt-0.5" />
-              <div className="text-xs text-muted-foreground">
-                <p className="font-medium text-purple-400 mb-1">How this works</p>
-                <p>
-                  When you move to {targetStage}, Cursor AI will process any context you provide.
-                  Jobs will appear as "Waiting for Agent" until you run{" "}
-                  <code className="px-1 py-0.5 rounded bg-white/5 text-purple-300">process jobs</code>{" "}
-                  in a Cursor chat.
-                </p>
+            {/* Info box */}
+            <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/10">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-purple-400 mt-0.5" />
+                <div className="text-xs text-muted-foreground">
+                  <p className="font-medium text-purple-400 mb-1">How this works</p>
+                  <p>
+                    When you move to {targetStage}, Cursor AI will process any context you provide.
+                    Jobs will appear as "Waiting for Agent" until you run{" "}
+                    <code className="px-1 py-0.5 rounded bg-white/5 text-purple-300">process jobs</code>{" "}
+                    in a Cursor chat.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="flex gap-2 sm:gap-2">
+        {/* Fixed Footer */}
+        <DialogFooter className="flex-shrink-0 p-6 pt-4 border-t border-slate-200/50 dark:border-slate-700/50 gap-2 sm:gap-2">
           <Button
             variant="ghost"
             onClick={handleClose}

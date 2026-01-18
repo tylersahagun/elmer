@@ -17,6 +17,10 @@ export interface ProjectCard {
   // Computed/joined data
   documentCount?: number;
   prototypeCount?: number;
+  metadata?: {
+    gitBranch?: string;
+    baseBranch?: string;
+  };
   // Job state
   activeJobType?: string;
   activeJobProgress?: number;
@@ -27,18 +31,38 @@ export interface ProjectCard {
 
 export interface KanbanColumn {
   id: ProjectStageType;
+  configId?: string;
   displayName: string;
   color: string;
   order: number;
   enabled: boolean;
   autoTriggerJobs?: string[];
   humanInLoop?: boolean;
+  requiredDocuments?: string[];
+  requiredApprovals?: number;
+  contextPaths?: string[];
+  contextNotes?: string;
 }
 
 export interface WorkspaceState {
   id: string;
   name: string;
   description?: string;
+  githubRepo?: string;
+  contextPath?: string;
+  settings?: {
+    prototypesPath?: string;
+    storybookPort?: number;
+    contextPaths?: string[];
+    baseBranch?: string;
+    autoCreateFeatureBranch?: boolean;
+    autoCommitJobs?: boolean;
+    cursorDeepLinkTemplate?: string;
+    aiExecutionMode?: "cursor" | "server" | "hybrid";
+    aiValidationMode?: "none" | "light" | "schema";
+    aiFallbackAfterMinutes?: number;
+    knowledgebaseMapping?: Record<string, string>;
+  };
 }
 
 // ============================================
@@ -58,6 +82,7 @@ interface KanbanState {
   
   // Actions
   setWorkspace: (workspace: WorkspaceState) => void;
+  updateWorkspace: (updates: Partial<WorkspaceState>) => void;
   setColumns: (columns: KanbanColumn[]) => void;
   setProjects: (projects: ProjectCard[]) => void;
   addProject: (project: ProjectCard) => void;
@@ -79,6 +104,10 @@ export const useKanbanStore = create<KanbanState>((set) => ({
 
   // Actions
   setWorkspace: (workspace) => set({ workspace }),
+
+  updateWorkspace: (updates) => set((state) => ({
+    workspace: state.workspace ? { ...state.workspace, ...updates } : state.workspace,
+  })),
   
   setColumns: (columns) => set({ columns }),
   
@@ -88,11 +117,19 @@ export const useKanbanStore = create<KanbanState>((set) => ({
     projects: [...state.projects, project],
   })),
   
-  updateProject: (id, updates) => set((state) => ({
-    projects: state.projects.map((p) =>
-      p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p
-    ),
-  })),
+  updateProject: (id, updates) => set((state) => {
+    if (updates.status === "archived") {
+      return {
+        projects: state.projects.filter((p) => p.id !== id),
+        activeProjectId: state.activeProjectId === id ? null : state.activeProjectId,
+      };
+    }
+    return {
+      projects: state.projects.map((p) =>
+        p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p
+      ),
+    };
+  }),
   
   moveProject: (projectId, toStage) => set((state) => ({
     projects: state.projects.map((p) =>
@@ -120,6 +157,7 @@ interface UIState {
   newProjectModalOpen: boolean;
   projectDetailModalOpen: boolean;
   settingsModalOpen: boolean;
+  archivedProjectsModalOpen: boolean;
   
   // Actions
   toggleSidebar: () => void;
@@ -130,6 +168,8 @@ interface UIState {
   closeProjectDetailModal: () => void;
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
+  openArchivedProjectsModal: () => void;
+  closeArchivedProjectsModal: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -139,6 +179,7 @@ export const useUIStore = create<UIState>((set) => ({
   newProjectModalOpen: false,
   projectDetailModalOpen: false,
   settingsModalOpen: false,
+  archivedProjectsModalOpen: false,
 
   // Actions
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -149,6 +190,8 @@ export const useUIStore = create<UIState>((set) => ({
   closeProjectDetailModal: () => set({ projectDetailModalOpen: false }),
   openSettingsModal: () => set({ settingsModalOpen: true }),
   closeSettingsModal: () => set({ settingsModalOpen: false }),
+  openArchivedProjectsModal: () => set({ archivedProjectsModalOpen: true }),
+  closeArchivedProjectsModal: () => set({ archivedProjectsModalOpen: false }),
 }));
 
 // ============================================

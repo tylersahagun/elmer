@@ -22,6 +22,15 @@ export interface WorkspaceSettings {
   linearTeamId?: string;
   notionWorkspaceId?: string;
   posthogProjectId?: string;
+  contextPaths?: string[];
+  baseBranch?: string;
+  autoCreateFeatureBranch?: boolean;
+  autoCommitJobs?: boolean;
+  cursorDeepLinkTemplate?: string;
+  aiExecutionMode?: "cursor" | "server" | "hybrid";
+  aiValidationMode?: "none" | "light" | "schema";
+  aiFallbackAfterMinutes?: number;
+  knowledgebaseMapping?: Record<string, string>;
 }
 
 // ============================================
@@ -61,6 +70,8 @@ export interface ProjectMetadata {
   hypothesis?: string;
   linkedIssues?: string[];
   tags?: string[];
+  gitBranch?: string;
+  baseBranch?: string;
 }
 
 // ============================================
@@ -155,7 +166,8 @@ export type JobType =
   | "iterate_prototype"
   | "generate_tickets"
   | "validate_tickets"
-  | "deploy_chromatic";
+  | "deploy_chromatic"
+  | "create_feature_branch";
 
 export type JobStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
 
@@ -165,6 +177,9 @@ export const jobs = sqliteTable("jobs", {
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   type: text("type").$type<JobType>().notNull(),
   status: text("status").$type<JobStatus>().notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(3),
+  priority: integer("priority").default(0),
   input: text("input", { mode: "json" }).$type<Record<string, unknown>>(),
   output: text("output", { mode: "json" }).$type<Record<string, unknown>>(),
   error: text("error"),
@@ -173,6 +188,73 @@ export const jobs = sqliteTable("jobs", {
   completedAt: integer("completed_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
+
+export const jobRuns = sqliteTable("job_runs", {
+  id: text("id").primaryKey(),
+  jobId: text("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  status: text("status").$type<JobStatus>().notNull(),
+  attempt: integer("attempt").notNull(),
+  startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+  error: text("error"),
+});
+
+// ============================================
+// NOTIFICATIONS (Human-in-the-Loop Inbox)
+// ============================================
+
+export type NotificationType = 
+  | "job_failed"           // A background job failed and needs attention
+  | "job_completed"        // A job completed successfully (info)
+  | "missing_transcript"   // Project needs a transcript to proceed
+  | "missing_document"     // Project needs a document to proceed
+  | "approval_required"    // Stage transition needs human approval
+  | "jury_failed"          // Jury evaluation didn't pass
+  | "integration_error"    // External integration failed (Linear, Notion, etc.)
+  | "stage_blocked"        // Project is blocked from progressing
+  | "action_required";     // Generic action needed
+
+export type NotificationPriority = "low" | "medium" | "high" | "urgent";
+export type NotificationStatus = "unread" | "read" | "actioned" | "dismissed";
+
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  jobId: text("job_id").references(() => jobs.id, { onDelete: "set null" }),
+  
+  type: text("type").$type<NotificationType>().notNull(),
+  priority: text("priority").$type<NotificationPriority>().notNull().default("medium"),
+  status: text("status").$type<NotificationStatus>().notNull().default("unread"),
+  
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  
+  // Action configuration
+  actionType: text("action_type"), // "navigate" | "approve" | "retry" | "provide_input" | "dismiss"
+  actionLabel: text("action_label"), // Button text
+  actionUrl: text("action_url"), // Where to navigate or what to do
+  actionData: text("action_data", { mode: "json" }).$type<Record<string, unknown>>(), // Additional action context
+  
+  // Metadata
+  metadata: text("metadata", { mode: "json" }).$type<NotificationMetadata>(),
+  
+  readAt: integer("read_at", { mode: "timestamp" }),
+  actionedAt: integer("actioned_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }), // Auto-dismiss after this time
+});
+
+export interface NotificationMetadata {
+  errorDetails?: string;
+  suggestedFix?: string;
+  relatedEntity?: {
+    type: "document" | "prototype" | "ticket" | "integration";
+    id: string;
+    name?: string;
+  };
+  context?: Record<string, unknown>;
+}
 
 // ============================================
 // MEMORY ENTRIES
@@ -252,10 +334,60 @@ export const columnConfigs = sqliteTable("column_configs", {
   order: integer("order").notNull(),
   color: text("color"),
   autoTriggerJobs: text("auto_trigger_jobs", { mode: "json" }).$type<JobType[]>(),
+  requiredDocuments: text("required_documents", { mode: "json" }).$type<DocumentType[]>(),
   requiredApprovals: integer("required_approvals").default(0),
   aiIterations: integer("ai_iterations").default(0),
+  rules: text("rules", { mode: "json" }).$type<Record<string, unknown>>(),
   humanInLoop: integer("human_in_loop", { mode: "boolean" }).default(false),
   enabled: integer("enabled", { mode: "boolean" }).default(true),
+});
+
+// ============================================
+// KNOWLEDGEBASE ENTRIES
+// ============================================
+
+export type KnowledgebaseType =
+  | "company_context"
+  | "strategic_guardrails"
+  | "personas"
+  | "roadmap"
+  | "rules";
+
+export const knowledgebaseEntries = sqliteTable("knowledgebase_entries", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  type: text("type").$type<KnowledgebaseType>().notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  filePath: text("file_path"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================
+// KNOWLEDGE SOURCES (Integrations)
+// ============================================
+
+export const knowledgeSources = sqliteTable("knowledge_sources", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "notion" | "confluence" | "drive"
+  config: text("config", { mode: "json" }).$type<Record<string, unknown>>(),
+  lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
+// ============================================
+// PROTOTYPE VERSIONS
+// ============================================
+
+export const prototypeVersions = sqliteTable("prototype_versions", {
+  id: text("id").primaryKey(),
+  prototypeId: text("prototype_id").notNull().references(() => prototypes.id, { onDelete: "cascade" }),
+  storybookPath: text("storybook_path"),
+  chromaticUrl: text("chromatic_url"),
+  metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
 // ============================================
@@ -267,6 +399,9 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   jobs: many(jobs),
   memoryEntries: many(memoryEntries),
   columnConfigs: many(columnConfigs),
+  knowledgebaseEntries: many(knowledgebaseEntries),
+  knowledgeSources: many(knowledgeSources),
+  notifications: many(notifications),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -280,6 +415,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   tickets: many(tickets),
   juryEvaluations: many(juryEvaluations),
   linearMapping: one(linearMappings),
+  notifications: many(notifications),
 }));
 
 export const projectStagesRelations = relations(projectStages, ({ one }) => ({
@@ -303,6 +439,13 @@ export const prototypesRelations = relations(prototypes, ({ one }) => ({
   }),
 }));
 
+export const prototypeVersionsRelations = relations(prototypeVersions, ({ one }) => ({
+  prototype: one(prototypes, {
+    fields: [prototypeVersions.prototypeId],
+    references: [prototypes.id],
+  }),
+}));
+
 export const jobsRelations = relations(jobs, ({ one }) => ({
   project: one(projects, {
     fields: [jobs.projectId],
@@ -311,6 +454,28 @@ export const jobsRelations = relations(jobs, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [jobs.workspaceId],
     references: [workspaces.id],
+  }),
+}));
+
+export const jobRunsRelations = relations(jobRuns, ({ one }) => ({
+  job: one(jobs, {
+    fields: [jobRuns.jobId],
+    references: [jobs.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [notifications.workspaceId],
+    references: [workspaces.id],
+  }),
+  project: one(projects, {
+    fields: [notifications.projectId],
+    references: [projects.id],
+  }),
+  job: one(jobs, {
+    fields: [notifications.jobId],
+    references: [jobs.id],
   }),
 }));
 
@@ -349,6 +514,20 @@ export const juryEvaluationsRelations = relations(juryEvaluations, ({ one }) => 
 export const columnConfigsRelations = relations(columnConfigs, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [columnConfigs.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const knowledgebaseEntriesRelations = relations(knowledgebaseEntries, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [knowledgebaseEntries.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const knowledgeSourcesRelations = relations(knowledgeSources, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [knowledgeSources.workspaceId],
     references: [workspaces.id],
   }),
 }));

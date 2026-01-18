@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProject, updateProjectStage, updateProjectStatus } from "@/lib/db/queries";
+import { getProject, updateProjectStage, updateProjectStatus, deleteProject } from "@/lib/db/queries";
+import { validateStageTransition } from "@/lib/rules/engine";
 import type { ProjectStage, ProjectStatus } from "@/lib/db/schema";
 
 export async function GET(
@@ -38,6 +39,13 @@ export async function PATCH(
 
     // Handle stage update
     if (stage) {
+      const validation = await validateStageTransition(id, stage as ProjectStage);
+      if (!validation.allowed) {
+        return NextResponse.json(
+          { error: validation.reason || "Stage transition blocked by rules" },
+          { status: 400 }
+        );
+      }
       const project = await updateProjectStage(
         id,
         stage as ProjectStage,
@@ -63,6 +71,23 @@ export async function PATCH(
     console.error("Failed to update project:", error);
     return NextResponse.json(
       { error: "Failed to update project" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await deleteProject(id);
+    return NextResponse.json({ id }, { status: 200 });
+  } catch (error) {
+    console.error("Failed to delete project:", error);
+    return NextResponse.json(
+      { error: "Failed to delete project" },
       { status: 500 }
     );
   }

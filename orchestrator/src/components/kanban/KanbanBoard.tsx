@@ -33,7 +33,7 @@ async function persistStageChange(
   column: KanbanColumnType | undefined,
   workspaceId: string | undefined,
   inputData?: { transcript?: string }
-) {
+): Promise<boolean> {
   try {
     // 1. Persist stage change to database
     const stageRes = await fetch(`/api/projects/${projectId}`, {
@@ -44,7 +44,7 @@ async function persistStageChange(
 
     if (!stageRes.ok) {
       console.error("Failed to persist stage change");
-      return;
+      return false;
     }
 
     console.log(`✅ Stage change persisted: ${projectId} → ${newStage}`);
@@ -61,6 +61,22 @@ async function persistStageChange(
           // Add transcript for analyze_transcript jobs
           if (jobType === "analyze_transcript" && inputData?.transcript) {
             jobInput.transcript = inputData.transcript;
+
+            // Persist transcript as a research document
+            await fetch("/api/documents", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                projectId,
+                type: "research",
+                title: "Transcript Intake",
+                content: inputData.transcript,
+                metadata: {
+                  generatedBy: "user",
+                  reviewStatus: "draft",
+                },
+              }),
+            });
           }
           
           const jobRes = await fetch("/api/jobs", {
@@ -87,7 +103,9 @@ async function persistStageChange(
     }
   } catch (error) {
     console.error("Error in persistStageChange:", error);
+    return false;
   }
+  return true;
 }
 
 export function KanbanBoard() {
@@ -261,7 +279,12 @@ export function KanbanBoard() {
         overColumnId as ProjectStage,
         targetColumn,
         workspace?.id
-      ).then(() => {
+      ).then((ok) => {
+        if (!ok && originalStageRef.current) {
+          moveProject(activeId, originalStageRef.current as ProjectStage);
+          return;
+        }
+
         // Update the project with any active job info if auto-jobs were triggered
         if (targetColumn?.autoTriggerJobs && targetColumn.autoTriggerJobs.length > 0) {
           updateProject(activeId, {

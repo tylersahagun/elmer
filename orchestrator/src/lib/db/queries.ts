@@ -6,17 +6,26 @@ import {
   documents, 
   prototypes, 
   jobs,
+  jobRuns,
   memoryEntries,
   tickets,
   juryEvaluations,
   columnConfigs,
+  knowledgebaseEntries,
+  knowledgeSources,
+  prototypeVersions,
+  notifications,
   type ProjectStage as ProjectStageType,
   type JobType,
   type JobStatus,
   type DocumentType,
   type PrototypeType,
+  type NotificationType,
+  type NotificationPriority,
+  type NotificationStatus,
+  type NotificationMetadata,
 } from "./schema";
-import { eq, and, desc, asc, isNull } from "drizzle-orm";
+import { eq, and, desc, asc, isNull, ne, or, lt, gte } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
 // ============================================
@@ -61,14 +70,14 @@ export async function createWorkspace(data: {
   });
 
   // Create default column configs
-  const defaultStages: { stage: ProjectStageType; name: string; color: string; autoJobs?: JobType[] }[] = [
+  const defaultStages: { stage: ProjectStageType; name: string; color: string; autoJobs?: JobType[]; requiredDocuments?: DocumentType[] }[] = [
     { stage: "inbox", name: "Inbox", color: "slate" },
     { stage: "discovery", name: "Discovery", color: "teal", autoJobs: ["analyze_transcript"] },
-    { stage: "prd", name: "PRD", color: "purple", autoJobs: ["generate_prd", "generate_design_brief"] },
-    { stage: "design", name: "Design", color: "blue", autoJobs: ["generate_engineering_spec"] },
-    { stage: "prototype", name: "Prototype", color: "pink", autoJobs: ["build_prototype"] },
-    { stage: "validate", name: "Validate", color: "amber", autoJobs: ["run_jury_evaluation"] },
-    { stage: "tickets", name: "Tickets", color: "orange", autoJobs: ["generate_tickets", "validate_tickets"] },
+    { stage: "prd", name: "PRD", color: "purple", autoJobs: ["generate_prd", "generate_design_brief"], requiredDocuments: ["research"] },
+    { stage: "design", name: "Design", color: "blue", autoJobs: ["generate_engineering_spec"], requiredDocuments: ["prd"] },
+    { stage: "prototype", name: "Prototype", color: "pink", autoJobs: ["build_prototype"], requiredDocuments: ["prd"] },
+    { stage: "validate", name: "Validate", color: "amber", autoJobs: ["run_jury_evaluation"], requiredDocuments: ["prototype_notes"] },
+    { stage: "tickets", name: "Tickets", color: "orange", autoJobs: ["generate_tickets", "validate_tickets"], requiredDocuments: ["engineering_spec"] },
     { stage: "build", name: "Build", color: "green" },
     { stage: "alpha", name: "Alpha", color: "cyan" },
     { stage: "beta", name: "Beta", color: "indigo" },
@@ -85,9 +94,44 @@ export async function createWorkspace(data: {
       order: i,
       color: s.color,
       autoTriggerJobs: s.autoJobs || [],
+      requiredDocuments: s.requiredDocuments || [],
       humanInLoop: ["prd", "prototype", "validate"].includes(s.stage),
     });
   }
+
+  return getWorkspace(id);
+}
+
+export async function updateWorkspace(
+  id: string,
+  data: {
+    name?: string;
+    description?: string;
+    githubRepo?: string;
+    contextPath?: string;
+    settings?: {
+      prototypesPath?: string;
+      storybookPort?: number;
+      contextPaths?: string[];
+      baseBranch?: string;
+      autoCreateFeatureBranch?: boolean;
+      autoCommitJobs?: boolean;
+      cursorDeepLinkTemplate?: string;
+    };
+  }
+) {
+  const now = new Date();
+
+  await db.update(workspaces)
+    .set({
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.githubRepo !== undefined && { githubRepo: data.githubRepo }),
+      ...(data.contextPath !== undefined && { contextPath: data.contextPath }),
+      ...(data.settings !== undefined && { settings: data.settings }),
+      updatedAt: now,
+    })
+    .where(eq(workspaces.id, id));
 
   return getWorkspace(id);
 }
@@ -96,9 +140,19 @@ export async function createWorkspace(data: {
 // PROJECT QUERIES
 // ============================================
 
-export async function getProjects(workspaceId: string) {
+export async function getProjects(
+  workspaceId: string,
+  options: { includeArchived?: boolean } = {}
+) {
+  const includeArchived = options.includeArchived === true;
+  const whereClause = includeArchived
+    ? eq(projects.workspaceId, workspaceId)
+    : and(
+        eq(projects.workspaceId, workspaceId),
+        ne(projects.status, "archived")
+      );
   return db.query.projects.findMany({
-    where: eq(projects.workspaceId, workspaceId),
+    where: whereClause,
     orderBy: [desc(projects.updatedAt)],
     with: {
       documents: true,
@@ -158,6 +212,7 @@ export async function createProject(data: {
   name: string;
   description?: string;
   stage?: ProjectStageType;
+  metadata?: Record<string, unknown>;
 }) {
   const id = uuid();
   const now = new Date();
@@ -169,6 +224,7 @@ export async function createProject(data: {
     name: data.name,
     description: data.description,
     stage,
+    metadata: data.metadata,
     createdAt: now,
     updatedAt: now,
   });
@@ -183,6 +239,17 @@ export async function createProject(data: {
   });
 
   return getProject(id);
+}
+
+export async function updateProjectMetadata(
+  projectId: string,
+  metadata: Record<string, unknown>
+) {
+  const now = new Date();
+  await db.update(projects)
+    .set({ metadata, updatedAt: now })
+    .where(eq(projects.id, projectId));
+  return getProject(projectId);
 }
 
 export async function updateProjectStage(
@@ -232,6 +299,11 @@ export async function updateProjectStatus(
     .where(eq(projects.id, projectId));
 
   return getProject(projectId);
+}
+
+export async function deleteProject(projectId: string) {
+  await db.delete(projects).where(eq(projects.id, projectId));
+  return { id: projectId };
 }
 
 // ============================================
@@ -363,6 +435,45 @@ export async function updateJobStatus(
   return db.query.jobs.findFirst({ where: eq(jobs.id, jobId) });
 }
 
+export async function createJobRun(data: {
+  jobId: string;
+  status: JobStatus;
+  attempt: number;
+  error?: string | null;
+}) {
+  const id = uuid();
+  const now = new Date();
+
+  await db.insert(jobRuns).values({
+    id,
+    jobId: data.jobId,
+    status: data.status,
+    attempt: data.attempt,
+    startedAt: now,
+    completedAt: ["completed", "failed", "cancelled"].includes(data.status) ? now : null,
+    error: data.error || null,
+  });
+
+  return db.query.jobRuns.findFirst({ where: eq(jobRuns.id, id) });
+}
+
+export async function updateJobRunStatus(
+  jobRunId: string,
+  status: JobStatus,
+  error?: string | null
+) {
+  const now = new Date();
+  await db.update(jobRuns)
+    .set({
+      status,
+      completedAt: ["completed", "failed", "cancelled"].includes(status) ? now : null,
+      error: error || null,
+    })
+    .where(eq(jobRuns.id, jobRunId));
+
+  return db.query.jobRuns.findFirst({ where: eq(jobRuns.id, jobRunId) });
+}
+
 // ============================================
 // PROTOTYPE QUERIES
 // ============================================
@@ -419,6 +530,27 @@ export async function updatePrototype(
     .where(eq(prototypes.id, id));
 
   return db.query.prototypes.findFirst({ where: eq(prototypes.id, id) });
+}
+
+export async function createPrototypeVersion(data: {
+  prototypeId: string;
+  storybookPath?: string;
+  chromaticUrl?: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const id = uuid();
+  const now = new Date();
+
+  await db.insert(prototypeVersions).values({
+    id,
+    prototypeId: data.prototypeId,
+    storybookPath: data.storybookPath,
+    chromaticUrl: data.chromaticUrl,
+    metadata: data.metadata,
+    createdAt: now,
+  });
+
+  return db.query.prototypeVersions.findFirst({ where: eq(prototypeVersions.id, id) });
 }
 
 // ============================================
@@ -482,4 +614,492 @@ export async function createJuryEvaluation(data: {
   });
 
   return db.query.juryEvaluations.findFirst({ where: eq(juryEvaluations.id, id) });
+}
+
+// ============================================
+// COLUMN CONFIG QUERIES
+// ============================================
+
+export async function getColumnConfigs(workspaceId: string) {
+  return db.query.columnConfigs.findMany({
+    where: eq(columnConfigs.workspaceId, workspaceId),
+    orderBy: [asc(columnConfigs.order)],
+  });
+}
+
+export async function createColumnConfig(data: {
+  workspaceId: string;
+  stage: ProjectStageType;
+  displayName: string;
+  order: number;
+  color?: string;
+  autoTriggerJobs?: JobType[];
+  requiredDocuments?: DocumentType[];
+  requiredApprovals?: number;
+  aiIterations?: number;
+  rules?: Record<string, unknown>;
+  humanInLoop?: boolean;
+  enabled?: boolean;
+}) {
+  const id = uuid();
+  await db.insert(columnConfigs).values({
+    id,
+    workspaceId: data.workspaceId,
+    stage: data.stage,
+    displayName: data.displayName,
+    order: data.order,
+    color: data.color,
+    autoTriggerJobs: data.autoTriggerJobs || [],
+    requiredDocuments: data.requiredDocuments || [],
+    requiredApprovals: data.requiredApprovals || 0,
+    aiIterations: data.aiIterations || 0,
+    rules: data.rules || {},
+    humanInLoop: data.humanInLoop || false,
+    enabled: data.enabled ?? true,
+  });
+
+  return db.query.columnConfigs.findFirst({ where: eq(columnConfigs.id, id) });
+}
+
+export async function updateColumnConfig(
+  id: string,
+  data: Partial<{
+    displayName: string;
+    order: number;
+    color: string;
+    autoTriggerJobs: JobType[];
+    requiredDocuments: DocumentType[];
+    requiredApprovals: number;
+    aiIterations: number;
+    rules: Record<string, unknown>;
+    humanInLoop: boolean;
+    enabled: boolean;
+  }>
+) {
+  await db.update(columnConfigs)
+    .set(data)
+    .where(eq(columnConfigs.id, id));
+
+  return db.query.columnConfigs.findFirst({ where: eq(columnConfigs.id, id) });
+}
+
+export async function deleteColumnConfig(id: string) {
+  await db.delete(columnConfigs).where(eq(columnConfigs.id, id));
+  return true;
+}
+
+export async function reorderColumnConfigs(workspaceId: string, orderedIds: string[]) {
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db.update(columnConfigs)
+      .set({ order: i })
+      .where(and(eq(columnConfigs.id, orderedIds[i]), eq(columnConfigs.workspaceId, workspaceId)));
+  }
+  return getColumnConfigs(workspaceId);
+}
+
+// ============================================
+// KNOWLEDGEBASE QUERIES
+// ============================================
+
+export async function getKnowledgebaseEntries(workspaceId: string) {
+  return db.query.knowledgebaseEntries.findMany({
+    where: eq(knowledgebaseEntries.workspaceId, workspaceId),
+    orderBy: [asc(knowledgebaseEntries.updatedAt)],
+  });
+}
+
+export async function getKnowledgebaseEntryByType(workspaceId: string, type: string) {
+  return db.query.knowledgebaseEntries.findFirst({
+    where: and(eq(knowledgebaseEntries.workspaceId, workspaceId), eq(knowledgebaseEntries.type, type)),
+  });
+}
+
+export async function upsertKnowledgebaseEntry(data: {
+  workspaceId: string;
+  type: string;
+  title: string;
+  content: string;
+  filePath?: string;
+}) {
+  const existing = await getKnowledgebaseEntryByType(data.workspaceId, data.type);
+  const now = new Date();
+
+  if (existing) {
+    await db.update(knowledgebaseEntries)
+      .set({
+        title: data.title,
+        content: data.content,
+        filePath: data.filePath,
+        updatedAt: now,
+      })
+      .where(eq(knowledgebaseEntries.id, existing.id));
+
+    return db.query.knowledgebaseEntries.findFirst({ where: eq(knowledgebaseEntries.id, existing.id) });
+  }
+
+  const id = uuid();
+  await db.insert(knowledgebaseEntries).values({
+    id,
+    workspaceId: data.workspaceId,
+    type: data.type,
+    title: data.title,
+    content: data.content,
+    filePath: data.filePath,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return db.query.knowledgebaseEntries.findFirst({ where: eq(knowledgebaseEntries.id, id) });
+}
+
+// ============================================
+// KNOWLEDGE SOURCES
+// ============================================
+
+export async function getKnowledgeSources(workspaceId: string) {
+  return db.query.knowledgeSources.findMany({
+    where: eq(knowledgeSources.workspaceId, workspaceId),
+    orderBy: [desc(knowledgeSources.createdAt)],
+  });
+}
+
+export async function createKnowledgeSource(data: {
+  workspaceId: string;
+  type: string;
+  config?: Record<string, unknown>;
+}) {
+  const id = uuid();
+  const now = new Date();
+  await db.insert(knowledgeSources).values({
+    id,
+    workspaceId: data.workspaceId,
+    type: data.type,
+    config: data.config,
+    createdAt: now,
+  });
+  return db.query.knowledgeSources.findFirst({ where: eq(knowledgeSources.id, id) });
+}
+
+export async function updateKnowledgeSource(id: string, data: {
+  config?: Record<string, unknown>;
+  lastSyncedAt?: Date | null;
+}) {
+  await db.update(knowledgeSources)
+    .set({
+      ...(data.config !== undefined && { config: data.config }),
+      ...(data.lastSyncedAt !== undefined && { lastSyncedAt: data.lastSyncedAt }),
+    })
+    .where(eq(knowledgeSources.id, id));
+
+  return db.query.knowledgeSources.findFirst({ where: eq(knowledgeSources.id, id) });
+}
+
+export async function deleteKnowledgeSource(id: string) {
+  await db.delete(knowledgeSources).where(eq(knowledgeSources.id, id));
+  return true;
+}
+
+// ============================================
+// TICKET QUERIES
+// ============================================
+
+export async function getTickets(projectId: string) {
+  return db.query.tickets.findMany({
+    where: eq(tickets.projectId, projectId),
+    orderBy: [desc(tickets.updatedAt)],
+  });
+}
+
+export async function createTickets(projectId: string, items: Array<{
+  title: string;
+  description?: string;
+  priority?: number;
+  estimatedPoints?: number;
+  metadata?: Record<string, unknown>;
+}>) {
+  const now = new Date();
+  const ticketIds: string[] = [];
+
+  for (const item of items) {
+    const id = uuid();
+    await db.insert(tickets).values({
+      id,
+      projectId,
+      title: item.title,
+      description: item.description,
+      priority: item.priority,
+      estimatedPoints: item.estimatedPoints,
+      metadata: item.metadata,
+      createdAt: now,
+      updatedAt: now,
+    });
+    ticketIds.push(id);
+  }
+
+  return db.query.tickets.findMany({
+    where: eq(tickets.projectId, projectId),
+    orderBy: [desc(tickets.updatedAt)],
+  });
+}
+
+// ============================================
+// NOTIFICATION QUERIES
+// ============================================
+
+export async function getNotifications(
+  workspaceId: string,
+  options: {
+    status?: NotificationStatus | NotificationStatus[];
+    type?: NotificationType | NotificationType[];
+    limit?: number;
+    includeExpired?: boolean;
+  } = {}
+) {
+  const { status, type, limit = 50, includeExpired = false } = options;
+  const now = new Date();
+  
+  // Build conditions
+  const conditions = [eq(notifications.workspaceId, workspaceId)];
+  
+  if (status) {
+    if (Array.isArray(status)) {
+      conditions.push(or(...status.map(s => eq(notifications.status, s)))!);
+    } else {
+      conditions.push(eq(notifications.status, status));
+    }
+  }
+  
+  if (type) {
+    if (Array.isArray(type)) {
+      conditions.push(or(...type.map(t => eq(notifications.type, t)))!);
+    } else {
+      conditions.push(eq(notifications.type, type));
+    }
+  }
+  
+  if (!includeExpired) {
+    conditions.push(
+      or(
+        isNull(notifications.expiresAt),
+        gte(notifications.expiresAt, now)
+      )!
+    );
+  }
+  
+  const results = await db.query.notifications.findMany({
+    where: and(...conditions),
+    orderBy: [desc(notifications.createdAt)],
+    limit,
+    with: {
+      project: true,
+      job: true,
+    },
+  });
+  
+  return results;
+}
+
+export async function getNotification(id: string) {
+  return db.query.notifications.findFirst({
+    where: eq(notifications.id, id),
+    with: {
+      project: true,
+      job: true,
+    },
+  });
+}
+
+export async function getUnreadNotificationCount(workspaceId: string) {
+  const now = new Date();
+  const results = await db.query.notifications.findMany({
+    where: and(
+      eq(notifications.workspaceId, workspaceId),
+      eq(notifications.status, "unread"),
+      or(
+        isNull(notifications.expiresAt),
+        gte(notifications.expiresAt, now)
+      )
+    ),
+  });
+  return results.length;
+}
+
+export async function createNotification(data: {
+  workspaceId: string;
+  projectId?: string;
+  jobId?: string;
+  type: NotificationType;
+  priority?: NotificationPriority;
+  title: string;
+  message: string;
+  actionType?: string;
+  actionLabel?: string;
+  actionUrl?: string;
+  actionData?: Record<string, unknown>;
+  metadata?: NotificationMetadata;
+  expiresAt?: Date;
+}) {
+  const id = uuid();
+  const now = new Date();
+  
+  await db.insert(notifications).values({
+    id,
+    workspaceId: data.workspaceId,
+    projectId: data.projectId,
+    jobId: data.jobId,
+    type: data.type,
+    priority: data.priority || "medium",
+    status: "unread",
+    title: data.title,
+    message: data.message,
+    actionType: data.actionType,
+    actionLabel: data.actionLabel,
+    actionUrl: data.actionUrl,
+    actionData: data.actionData,
+    metadata: data.metadata,
+    createdAt: now,
+    expiresAt: data.expiresAt,
+  });
+  
+  return getNotification(id);
+}
+
+export async function updateNotificationStatus(
+  id: string,
+  status: NotificationStatus
+) {
+  const now = new Date();
+  
+  await db.update(notifications)
+    .set({
+      status,
+      ...(status === "read" && { readAt: now }),
+      ...(status === "actioned" && { actionedAt: now, readAt: now }),
+    })
+    .where(eq(notifications.id, id));
+  
+  return getNotification(id);
+}
+
+export async function markAllNotificationsRead(workspaceId: string) {
+  const now = new Date();
+  
+  await db.update(notifications)
+    .set({
+      status: "read",
+      readAt: now,
+    })
+    .where(
+      and(
+        eq(notifications.workspaceId, workspaceId),
+        eq(notifications.status, "unread")
+      )
+    );
+  
+  return { success: true };
+}
+
+export async function dismissNotification(id: string) {
+  const now = new Date();
+  
+  await db.update(notifications)
+    .set({
+      status: "dismissed",
+      readAt: now,
+    })
+    .where(eq(notifications.id, id));
+  
+  return { success: true };
+}
+
+export async function deleteNotification(id: string) {
+  await db.delete(notifications).where(eq(notifications.id, id));
+  return { success: true };
+}
+
+export async function cleanupExpiredNotifications(workspaceId: string) {
+  const now = new Date();
+  
+  await db.delete(notifications).where(
+    and(
+      eq(notifications.workspaceId, workspaceId),
+      lt(notifications.expiresAt, now)
+    )
+  );
+  
+  return { success: true };
+}
+
+// Helper to create job-related notifications
+export async function createJobNotification(
+  job: {
+    id: string;
+    workspaceId: string;
+    projectId: string | null;
+    type: JobType;
+    status: JobStatus;
+    error?: string | null;
+  },
+  projectName?: string
+) {
+  const jobTypeLabels: Record<JobType, string> = {
+    generate_prd: "PRD Generation",
+    generate_design_brief: "Design Brief Generation",
+    generate_engineering_spec: "Engineering Spec Generation",
+    generate_gtm_brief: "GTM Brief Generation",
+    analyze_transcript: "Transcript Analysis",
+    run_jury_evaluation: "Jury Evaluation",
+    build_prototype: "Prototype Build",
+    iterate_prototype: "Prototype Iteration",
+    generate_tickets: "Ticket Generation",
+    validate_tickets: "Ticket Validation",
+    deploy_chromatic: "Chromatic Deployment",
+    create_feature_branch: "Branch Creation",
+  };
+  
+  const label = jobTypeLabels[job.type] || job.type;
+  
+  if (job.status === "failed") {
+    return createNotification({
+      workspaceId: job.workspaceId,
+      projectId: job.projectId || undefined,
+      jobId: job.id,
+      type: "job_failed",
+      priority: "high",
+      title: `${label} Failed`,
+      message: job.error || `The ${label.toLowerCase()} job failed. Click to view details and retry.`,
+      actionType: "retry",
+      actionLabel: "Retry Job",
+      actionUrl: job.projectId ? `/workspace/${job.workspaceId}?project=${job.projectId}` : undefined,
+      actionData: { jobId: job.id, jobType: job.type },
+      metadata: {
+        errorDetails: job.error || undefined,
+        relatedEntity: projectName ? {
+          type: "document",
+          id: job.projectId || "",
+          name: projectName,
+        } : undefined,
+      },
+    });
+  }
+  
+  if (job.status === "completed") {
+    return createNotification({
+      workspaceId: job.workspaceId,
+      projectId: job.projectId || undefined,
+      jobId: job.id,
+      type: "job_completed",
+      priority: "low",
+      title: `${label} Complete`,
+      message: projectName 
+        ? `${label} completed for "${projectName}".`
+        : `${label} completed successfully.`,
+      actionType: "navigate",
+      actionLabel: "View Result",
+      actionUrl: job.projectId ? `/workspace/${job.workspaceId}?project=${job.projectId}` : undefined,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Expires in 24 hours
+    });
+  }
+  
+  return null;
 }

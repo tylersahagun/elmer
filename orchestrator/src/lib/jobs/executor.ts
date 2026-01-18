@@ -1,20 +1,32 @@
 /**
- * Job Executor - Creates jobs for Cursor AI to process via MCP
- * 
- * This module no longer executes AI calls directly. Instead:
- * 1. Jobs are created with status "pending"
- * 2. Cursor AI processes them via MCP tools (get-pending-jobs, complete-job)
- * 3. The UI polls for job status updates
- * 
- * The actual AI generation happens in Cursor using its credentials.
+ * Job Executor - Validates and (optionally) executes jobs
+ *
+ * Execution can be configured per workspace:
+ * - Cursor runner (jobs stay pending for MCP tools)
+ * - Server runner (jobs execute here using /api/ai/generate)
+ * - Hybrid (Cursor first, server fallback after a threshold)
  */
 
 import { 
-  getProject, 
-  getDocumentByType, 
-  updateJobStatus,
+  getProject,
+  getDocumentByType,
+  createDocument,
+  createJuryEvaluation,
+  createTickets,
+  getTickets,
+  createPrototype,
+  updatePrototype,
+  createPrototypeVersion,
+  updateProjectMetadata,
 } from "@/lib/db/queries";
 import type { JobType } from "@/lib/db/schema";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { exec as execCallback } from "node:child_process";
+import { promisify } from "node:util";
+import { getRepoComponentList } from "@/lib/prototypes/context";
+import { getWorkspaceContext, getProjectContext } from "@/lib/context/resolve";
+import { commitAndPushChanges, createFeatureBranch } from "@/lib/git/branches";
 
 // Types for job execution
 interface JobContext {
@@ -31,6 +43,10 @@ interface ExecutionResult {
 }
 
 type JobExecutor = (ctx: JobContext, updateProgress: (progress: number) => Promise<void>) => Promise<ExecutionResult>;
+
+type ValidationMode = "none" | "light" | "schema";
+
+const exec = promisify(execCallback);
 
 // ============================================
 // JOB VALIDATORS
@@ -253,6 +269,22 @@ const validateDeployChromatic: JobExecutor = async () => {
   };
 };
 
+const validateCreateFeatureBranch: JobExecutor = async (ctx) => {
+  const project = await getProject(ctx.projectId);
+  if (!project) return { success: false, error: "Project not found" };
+  const repoRoot = getRepoRoot(project.workspace?.githubRepo);
+  if (!repoRoot) {
+    return { success: false, error: "Workspace GitHub repo path not configured" };
+  }
+  return {
+    success: true,
+    output: {
+      status: "pending",
+      message: "Job ready for processing by Cursor AI",
+    },
+  };
+};
+
 // ============================================
 // VALIDATOR REGISTRY
 // ============================================
@@ -269,6 +301,274 @@ const validators: Record<JobType, JobExecutor> = {
   generate_tickets: validateGenerateTickets,
   validate_tickets: validateValidateTickets,
   deploy_chromatic: validateDeployChromatic,
+  create_feature_branch: validateCreateFeatureBranch,
+};
+
+// ============================================
+// AI GENERATION HELPERS
+// ============================================
+
+function getAppBaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    "http://localhost:3000"
+  );
+}
+
+function getWorkspaceRoot() {
+  return path.resolve(process.cwd(), "..");
+}
+
+function getRepoRoot(githubRepo?: string) {
+  if (!githubRepo) return null;
+  if (path.isAbsolute(githubRepo)) return githubRepo;
+  return path.join(getWorkspaceRoot(), githubRepo);
+}
+
+function toComponentName(name: string) {
+  return name.replace(/[^a-zA-Z0-9 ]/g, " ").split(" ").filter(Boolean).map((part) =>
+    part.charAt(0).toUpperCase() + part.slice(1)
+  ).join("");
+}
+
+function toStoryId(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+async function callAiGenerate(tool: string, input: Record<string, unknown>) {
+  const res = await fetch(`${getAppBaseUrl()}/api/ai/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tool, input }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || "AI generation failed");
+  }
+
+  const data = await res.json();
+  return data.content as string;
+}
+
+function safeJsonParse<T>(value: string): T | null {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    const fencedMatch = value.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fencedMatch?.[1]) {
+      try {
+        return JSON.parse(fencedMatch[1]) as T;
+      } catch {
+        // fall through
+      }
+    }
+    const bracketMatch = value.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+    if (bracketMatch?.[1]) {
+      try {
+        return JSON.parse(bracketMatch[1]) as T;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+function formatResearchMarkdown(data: {
+  summary?: string;
+  keyInsights?: string[];
+  userProblems?: Array<{ problem: string; quote?: string; severity?: string }>;
+  featureRequests?: Array<{ request: string; frequency?: string }>;
+  painPoints?: string[];
+  positives?: string[];
+  actionItems?: string[];
+}) {
+  const lines: string[] = [];
+  if (data.summary) {
+    lines.push(`# Research Summary`, "", data.summary, "");
+  }
+  if (data.keyInsights?.length) {
+    lines.push(`## Key Insights`, ...data.keyInsights.map((i) => `- ${i}`), "");
+  }
+  if (data.userProblems?.length) {
+    lines.push(`## User Problems`);
+    data.userProblems.forEach((p) => {
+      lines.push(`- ${p.problem}${p.severity ? ` (severity: ${p.severity})` : ""}`);
+      if (p.quote) lines.push(`  - Quote: "${p.quote}"`);
+    });
+    lines.push("");
+  }
+  if (data.featureRequests?.length) {
+    lines.push(`## Feature Requests`);
+    data.featureRequests.forEach((r) => {
+      lines.push(`- ${r.request}${r.frequency ? ` (${r.frequency})` : ""}`);
+    });
+    lines.push("");
+  }
+  if (data.painPoints?.length) {
+    lines.push(`## Pain Points`, ...data.painPoints.map((p) => `- ${p}`), "");
+  }
+  if (data.positives?.length) {
+    lines.push(`## Positive Feedback`, ...data.positives.map((p) => `- ${p}`), "");
+  }
+  if (data.actionItems?.length) {
+    lines.push(`## Action Items`, ...data.actionItems.map((a) => `- ${a}`), "");
+  }
+  return lines.join("\n").trim();
+}
+
+function normalizeHeading(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function validateMarkdownSections(content: string, requiredSections: string[]) {
+  const headings = content
+    .split("\n")
+    .filter((line) => line.trim().startsWith("#"))
+    .map((line) => normalizeHeading(line.replace(/^#+\s*/, "")));
+  const missing = requiredSections.filter(
+    (section) => !headings.includes(normalizeHeading(section))
+  );
+  return missing;
+}
+
+function validateResearchJson(data: Record<string, unknown>) {
+  const errors: string[] = [];
+  if (typeof data.summary !== "string" || data.summary.trim().length === 0) {
+    errors.push("summary must be a non-empty string");
+  }
+  if (!Array.isArray(data.keyInsights)) {
+    errors.push("keyInsights must be an array of strings");
+  }
+  if (data.userProblems && !Array.isArray(data.userProblems)) {
+    errors.push("userProblems must be an array");
+  }
+  if (data.featureRequests && !Array.isArray(data.featureRequests)) {
+    errors.push("featureRequests must be an array");
+  }
+  return errors;
+}
+
+function validateJuryJson(data: Record<string, unknown>) {
+  const errors: string[] = [];
+  if (typeof data.verdict !== "string") {
+    errors.push("verdict must be a string");
+  }
+  if (typeof data.approvalRate !== "number") {
+    errors.push("approvalRate must be a number");
+  }
+  if (typeof data.conditionalRate !== "number") {
+    errors.push("conditionalRate must be a number");
+  }
+  if (typeof data.rejectionRate !== "number") {
+    errors.push("rejectionRate must be a number");
+  }
+  if (data.evaluations && !Array.isArray(data.evaluations)) {
+    errors.push("evaluations must be an array");
+  }
+  return errors;
+}
+
+function validateTicketsJson(data: Array<Record<string, unknown>>) {
+  const errors: string[] = [];
+  if (!Array.isArray(data) || data.length === 0) {
+    return ["tickets must be a non-empty array"];
+  }
+  data.forEach((ticket, index) => {
+    if (typeof ticket.title !== "string" || ticket.title.trim().length === 0) {
+      errors.push(`tickets[${index}].title must be a non-empty string`);
+    }
+    if (typeof ticket.description !== "string") {
+      errors.push(`tickets[${index}].description must be a string`);
+    }
+  });
+  return errors;
+}
+
+function validateTicketValidationJson(data: Record<string, unknown>) {
+  const errors: string[] = [];
+  if (typeof data.isValid !== "boolean") {
+    errors.push("isValid must be a boolean");
+  }
+  if (typeof data.coverage !== "number") {
+    errors.push("coverage must be a number");
+  }
+  if (data.missingTickets && !Array.isArray(data.missingTickets)) {
+    errors.push("missingTickets must be an array");
+  }
+  if (data.suggestions && !Array.isArray(data.suggestions)) {
+    errors.push("suggestions must be an array");
+  }
+  return errors;
+}
+
+async function generateWithValidation<TParsed>({
+  tool,
+  input,
+  validationMode,
+  maxAttempts = 2,
+  validate,
+}: {
+  tool: string;
+  input: Record<string, unknown>;
+  validationMode: ValidationMode;
+  maxAttempts?: number;
+  validate: (raw: string) => { ok: boolean; parsed?: TParsed; error?: string };
+}) {
+  let lastError = "";
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const raw = await callAiGenerate(tool, {
+      ...input,
+      validationHint: lastError || undefined,
+    });
+    const result = validate(raw);
+    if (result.ok) {
+      return { raw, parsed: result.parsed };
+    }
+    if (validationMode === "none") {
+      return { raw };
+    }
+    lastError = result.error || "Validation failed";
+    if (attempt === maxAttempts) {
+      if (validationMode === "light") {
+        return { raw };
+      }
+      throw new Error(lastError);
+    }
+  }
+  return { raw: "" };
+}
+
+const markdownRequirements: Partial<Record<JobType, string[]>> = {
+  generate_prd: [
+    "Problem Statement",
+    "Target Personas",
+    "Success Metrics",
+    "User Journey",
+    "MVP Scope",
+    "Out of Scope",
+    "Open Questions",
+  ],
+  generate_design_brief: [
+    "Design Goals",
+    "User Experience",
+    "Visual Design",
+    "Accessibility",
+  ],
+  generate_engineering_spec: [
+    "Technical Overview",
+    "Data Models",
+    "API",
+    "Testing Strategy",
+  ],
+  generate_gtm_brief: [
+    "Positioning",
+    "Target Audience",
+    "Launch Timeline",
+    "Success Metrics",
+  ],
 };
 
 // ============================================
@@ -306,19 +606,469 @@ export async function executeJob(
     input,
   };
 
-  // No-op progress updater since we're just validating
+  // No-op progress updater for now
   const updateProgress = async () => {};
 
   try {
-    const result = await validator(ctx, updateProgress);
-    
-    if (result.success) {
-      // Job is valid and ready for Cursor AI to process
-      // Keep it in "pending" status - Cursor will pick it up via MCP
-      console.log(`[Job ${jobId}] Validated and ready for Cursor AI processing`);
+    const validation = await validator(ctx, updateProgress);
+    if (!validation.success) {
+      return validation;
     }
-    
-    return result;
+
+    const project = await getProject(projectId);
+    if (!project) {
+      return { success: false, error: "Project not found" };
+    }
+    const validationMode = (project.workspace?.settings?.aiValidationMode || "schema") as ValidationMode;
+
+    switch (jobType) {
+      case "analyze_transcript": {
+        const transcript = (input.transcript as string) || "";
+        const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({
+          tool: "analyze-transcript",
+          input: { transcript },
+          validationMode,
+          validate: (value) => {
+            const parsedValue = safeJsonParse<Record<string, unknown>>(value);
+            if (!parsedValue) {
+              return { ok: false, error: "Invalid JSON" };
+            }
+            const errors = validateResearchJson(parsedValue);
+            return errors.length
+              ? { ok: false, error: errors.join("; ") }
+              : { ok: true, parsed: parsedValue };
+          },
+        });
+        const content = parsed
+          ? formatResearchMarkdown(parsed as Parameters<typeof formatResearchMarkdown>[0])
+          : `# Research Summary\n\n\`\`\`json\n${raw}\n\`\`\``;
+        await createDocument({
+          projectId,
+          type: "research",
+          title: "Research Insights",
+          content,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+        return { success: true, output: { summary: "Research insights generated" } };
+      }
+
+      case "generate_prd": {
+        const research = await getDocumentByType(projectId, "research");
+        const workspaceContext = await getWorkspaceContext(project.workspaceId);
+        const projectContext = await getProjectContext(projectId);
+        const { raw } = await generateWithValidation({
+          tool: "generate-prd",
+          input: {
+            projectName: project.name,
+            research: research?.content,
+            companyContext: workspaceContext,
+            transcript: projectContext,
+          },
+          validationMode,
+          validate: (value) => {
+            const required = markdownRequirements.generate_prd || [];
+            const missing = validateMarkdownSections(value, required);
+            return missing.length
+              ? { ok: false, error: `Missing sections: ${missing.join(", ")}` }
+              : { ok: true };
+          },
+        });
+        await createDocument({
+          projectId,
+          type: "prd",
+          title: `${project.name} PRD`,
+          content: raw,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+        return { success: true, output: { summary: "PRD generated" } };
+      }
+
+      case "generate_design_brief": {
+        const prd = await getDocumentByType(projectId, "prd");
+        const { raw } = await generateWithValidation({
+          tool: "generate-design-brief",
+          input: {
+            prd: prd?.content || "",
+            designLanguage: await getWorkspaceContext(project.workspaceId),
+          },
+          validationMode,
+          validate: (value) => {
+            const required = markdownRequirements.generate_design_brief || [];
+            const missing = validateMarkdownSections(value, required);
+            return missing.length
+              ? { ok: false, error: `Missing sections: ${missing.join(", ")}` }
+              : { ok: true };
+          },
+        });
+        await createDocument({
+          projectId,
+          type: "design_brief",
+          title: `${project.name} Design Brief`,
+          content: raw,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+        return { success: true, output: { summary: "Design brief generated" } };
+      }
+
+      case "generate_engineering_spec": {
+        const prd = await getDocumentByType(projectId, "prd");
+        const designBrief = await getDocumentByType(projectId, "design_brief");
+        const { raw } = await generateWithValidation({
+          tool: "generate-engineering-spec",
+          input: {
+            prd: prd?.content || "",
+            designBrief: designBrief?.content,
+            techStack: await getWorkspaceContext(project.workspaceId),
+          },
+          validationMode,
+          validate: (value) => {
+            const required = markdownRequirements.generate_engineering_spec || [];
+            const missing = validateMarkdownSections(value, required);
+            return missing.length
+              ? { ok: false, error: `Missing sections: ${missing.join(", ")}` }
+              : { ok: true };
+          },
+        });
+        await createDocument({
+          projectId,
+          type: "engineering_spec",
+          title: `${project.name} Engineering Spec`,
+          content: raw,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+        return { success: true, output: { summary: "Engineering spec generated" } };
+      }
+
+      case "generate_gtm_brief": {
+        const prd = await getDocumentByType(projectId, "prd");
+        const { raw } = await generateWithValidation({
+          tool: "generate-gtm-brief",
+          input: {
+            prd: prd?.content || "",
+            marketingGuidelines: await getWorkspaceContext(project.workspaceId),
+          },
+          validationMode,
+          validate: (value) => {
+            const required = markdownRequirements.generate_gtm_brief || [];
+            const missing = validateMarkdownSections(value, required);
+            return missing.length
+              ? { ok: false, error: `Missing sections: ${missing.join(", ")}` }
+              : { ok: true };
+          },
+        });
+        await createDocument({
+          projectId,
+          type: "gtm_brief",
+          title: `${project.name} GTM Brief`,
+          content: raw,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+        return { success: true, output: { summary: "GTM brief generated" } };
+      }
+
+      case "run_jury_evaluation": {
+        const phase = (input.phase as "research" | "prd" | "prototype") || "prd";
+        const contentDoc =
+          phase === "research"
+            ? await getDocumentByType(projectId, "research")
+            : phase === "prototype"
+            ? await getDocumentByType(projectId, "prototype_notes")
+            : await getDocumentByType(projectId, "prd");
+        const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({
+          tool: "run-jury-evaluation",
+          input: {
+            phase,
+            content: contentDoc?.content || "",
+            jurySize: input.jurySize || 12,
+          },
+          validationMode,
+          validate: (value) => {
+            const parsedValue = safeJsonParse<Record<string, unknown>>(value);
+            if (!parsedValue) {
+              return { ok: false, error: "Invalid JSON" };
+            }
+            const errors = validateJuryJson(parsedValue);
+            return errors.length
+              ? { ok: false, error: errors.join("; ") }
+              : { ok: true, parsed: parsedValue };
+          },
+        });
+        if (parsed) {
+          await createJuryEvaluation({
+            projectId,
+            phase,
+            jurySize: Number(parsed.jurySize || input.jurySize || 12),
+            approvalRate: Number(parsed.approvalRate || 0),
+            conditionalRate: Number(parsed.conditionalRate || 0),
+            rejectionRate: Number(parsed.rejectionRate || 0),
+            verdict: (parsed.verdict as "pass" | "fail" | "conditional") || "conditional",
+            topConcerns: (parsed.topConcerns as string[]) || [],
+            topSuggestions: (parsed.topSuggestions as string[]) || [],
+            rawResults: parsed,
+          });
+        }
+        await createDocument({
+          projectId,
+          type: "jury_report",
+          title: `Jury Report - ${phase.toUpperCase()}`,
+          content: parsed ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`` : raw,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+        return { success: true, output: { summary: "Jury evaluation complete" } };
+      }
+
+      case "generate_tickets": {
+        const engSpec = await getDocumentByType(projectId, "engineering_spec");
+        const { raw, parsed } = await generateWithValidation<Array<Record<string, unknown>>>({
+          tool: "generate-tickets",
+          input: {
+            engineeringSpec: engSpec?.content || "",
+            maxTickets: input.maxTickets || 20,
+          },
+          validationMode,
+          validate: (value) => {
+            const parsedValue = safeJsonParse<Array<Record<string, unknown>>>(value);
+            if (!parsedValue) {
+              return { ok: false, error: "Invalid JSON array" };
+            }
+            const errors = validateTicketsJson(parsedValue);
+            return errors.length
+              ? { ok: false, error: errors.join("; ") }
+              : { ok: true, parsed: parsedValue };
+          },
+        });
+        if (parsed && parsed.length > 0) {
+          await createTickets(projectId, parsed.map((t) => ({
+            title: String(t.title || "Untitled"),
+            description: String(t.description || ""),
+            estimatedPoints: Number(t.estimatedPoints || 0),
+            metadata: t,
+          })));
+        }
+        return { success: true, output: { summary: "Tickets generated", count: parsed?.length || 0 } };
+      }
+
+      case "validate_tickets": {
+        const prd = await getDocumentByType(projectId, "prd");
+        const currentTickets = await getTickets(projectId);
+        const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({
+          tool: "validate-tickets",
+          input: {
+            prd: prd?.content || "",
+            tickets: currentTickets,
+          },
+          validationMode,
+          validate: (value) => {
+            const parsedValue = safeJsonParse<Record<string, unknown>>(value);
+            if (!parsedValue) {
+              return { ok: false, error: "Invalid JSON" };
+            }
+            const errors = validateTicketValidationJson(parsedValue);
+            return errors.length
+              ? { ok: false, error: errors.join("; ") }
+              : { ok: true, parsed: parsedValue };
+          },
+        });
+        await createDocument({
+          projectId,
+          type: "jury_report",
+          title: "Ticket Validation",
+          content: parsed ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`` : raw,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+        return { success: true, output: { summary: "Tickets validated" } };
+      }
+
+      case "build_prototype": {
+        const repoRoot = getRepoRoot(project.workspace?.githubRepo);
+        const prototypesPath = project.workspace?.settings?.prototypesPath || "src/components/prototypes";
+        if (!repoRoot) {
+          return { success: false, error: "Workspace GitHub repo path not configured" };
+        }
+
+        const componentName = toComponentName(project.name) || "Prototype";
+        const folderName = toStoryId(project.name) || "prototype";
+        const componentDir = path.join(repoRoot, prototypesPath, componentName);
+        const componentFile = path.join(componentDir, `${componentName}.tsx`);
+        const storyFile = path.join(componentDir, `${componentName}.stories.tsx`);
+
+        await mkdir(componentDir, { recursive: true });
+
+        const componentSource = `import { GlassCard } from "@/components/glass";
+
+export function ${componentName}() {
+  return (
+    <GlassCard className="p-6">
+      <h3 className="text-lg font-semibold mb-2">${project.name}</h3>
+      <p className="text-sm text-muted-foreground">
+        Prototype placeholder for ${project.name}. Replace with generated UI.
+      </p>
+    </GlassCard>
+  );
+}
+`;
+
+        const storyTitle = `Prototypes/${componentName}`;
+        const storySource = `import type { Meta, StoryObj } from "@storybook/react";
+import { ${componentName} } from "./${componentName}";
+
+const meta: Meta<typeof ${componentName}> = {
+  title: "${storyTitle}",
+  component: ${componentName},
+};
+
+export default meta;
+type Story = StoryObj<typeof ${componentName}>;
+
+export const Default: Story = {};
+`;
+
+        await writeFile(componentFile, componentSource, "utf8");
+        await writeFile(storyFile, storySource, "utf8");
+
+        if (
+          project.workspace?.settings?.autoCommitJobs &&
+          project.metadata?.gitBranch
+        ) {
+          try {
+            await commitAndPushChanges({
+              repoRoot,
+              branch: project.metadata.gitBranch,
+              message: `feat: prototype scaffold for ${project.name}`,
+            });
+          } catch (error) {
+            console.error("Auto-commit failed:", error);
+          }
+        }
+
+        const prototype = await createPrototype({
+          projectId,
+          type: (input.type as "standalone" | "context") || "standalone",
+          name: `${project.name} Prototype`,
+          storybookPath: `${toStoryId(storyTitle)}--default`,
+        });
+
+        const contextComponents = (input.type === "context" && repoRoot)
+          ? await getRepoComponentList(repoRoot)
+          : [];
+
+        if (prototype?.id) {
+          await updatePrototype(prototype.id, {
+            status: "ready",
+            storybookPath: `${toStoryId(storyTitle)}--default`,
+            metadata: {
+              stories: [storyFile],
+              components: [componentFile],
+              placementAnalysis: {
+                suggestedLocation: path.join("src", "components", folderName),
+                existingPatterns: contextComponents,
+              },
+            },
+          });
+          await createPrototypeVersion({
+            prototypeId: prototype.id,
+            storybookPath: `${toStoryId(storyTitle)}--default`,
+            metadata: {
+              source: "build_prototype",
+            },
+          });
+        }
+
+        await createDocument({
+          projectId,
+          type: "prototype_notes",
+          title: `${project.name} Prototype Notes`,
+          content: `# Prototype Notes\n\n- Component: ${componentName}\n- Story: ${storyTitle}\n- Location: ${componentDir}\n`,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+
+        return { success: true, output: { summary: "Prototype built", componentName } };
+      }
+
+      case "iterate_prototype": {
+        const feedback = String(input.feedback || "");
+        await createDocument({
+          projectId,
+          type: "prototype_notes",
+          title: `${project.name} Prototype Iteration`,
+          content: `# Iteration Feedback\n\n${feedback}`,
+          metadata: { generatedBy: "user", reviewStatus: "draft" },
+        });
+        return { success: true, output: { summary: "Prototype iteration noted" } };
+      }
+
+      case "deploy_chromatic": {
+        const repoRoot = getRepoRoot(project.workspace?.githubRepo);
+        if (!repoRoot) {
+          return { success: false, error: "Workspace GitHub repo path not configured" };
+        }
+        const chromaticToken = process.env.CHROMATIC_PROJECT_TOKEN;
+        if (!chromaticToken) {
+          return { success: false, error: "CHROMATIC_PROJECT_TOKEN is not set" };
+        }
+
+        const { stdout, stderr } = await exec(
+          `npx chromatic --project-token=${chromaticToken} --exit-once-uploaded`,
+          { cwd: repoRoot }
+        );
+        const output = `${stdout}\n${stderr}`;
+        const urlMatch = output.match(/https?:\/\/[^\s]+chromatic\.com[^\s]*/i);
+        const chromaticUrl = urlMatch ? urlMatch[0] : undefined;
+
+        if (chromaticUrl) {
+          await createDocument({
+            projectId,
+            type: "prototype_notes",
+            title: `${project.name} Chromatic Build`,
+            content: `# Chromatic Build\n\n${chromaticUrl}`,
+            metadata: { generatedBy: "ai", model: "chromatic" },
+          });
+
+          const latestPrototype = project.prototypes?.[0];
+          if (latestPrototype?.id) {
+            await updatePrototype(latestPrototype.id, {
+              chromaticUrl,
+            });
+            await createPrototypeVersion({
+              prototypeId: latestPrototype.id,
+              chromaticUrl,
+              metadata: {
+                source: "deploy_chromatic",
+              },
+            });
+          }
+        }
+
+        return { success: true, output: { summary: "Chromatic deployed", chromaticUrl } };
+      }
+
+      case "create_feature_branch": {
+        const repoRoot = getRepoRoot(project.workspace?.githubRepo);
+        if (!repoRoot) {
+          return { success: false, error: "Workspace GitHub repo path not configured" };
+        }
+        const baseBranch = String(input.baseBranch || project.workspace?.settings?.baseBranch || "main");
+        const preferredBranch = String(input.preferredBranch || "");
+        if (!preferredBranch) {
+          return { success: false, error: "Preferred branch name is required" };
+        }
+        const branch = await createFeatureBranch({
+          repoRoot,
+          baseBranch,
+          preferredBranch,
+        });
+        const nextMetadata = {
+          ...(project.metadata || {}),
+          gitBranch: branch,
+          baseBranch,
+        };
+        await updateProjectMetadata(projectId, nextMetadata);
+        return { success: true, output: { summary: "Branch created", branch } };
+      }
+
+      default:
+        return { success: true, output: validation.output };
+    }
   } catch (error) {
     return {
       success: false,

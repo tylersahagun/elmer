@@ -27,6 +27,7 @@ import {
   Clock,
   Sparkles,
   RefreshCw,
+  Upload,
 } from "lucide-react";
 import type { DocumentType } from "@/lib/db/schema";
 
@@ -100,6 +101,9 @@ interface DocumentViewerProps {
   document: Document;
   onSave?: (content: string) => Promise<void>;
   onRegenerate?: () => Promise<void>;
+  onPublish?: () => Promise<void>;
+  publishLabel?: string;
+  publishDisabled?: boolean;
   className?: string;
   readOnly?: boolean;
 }
@@ -108,13 +112,20 @@ export function DocumentViewer({
   document,
   onSave,
   onRegenerate,
+  onPublish,
+  publishLabel,
+  publishDisabled = false,
   className,
   readOnly = false,
 }: DocumentViewerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(document.content);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [publishNotice, setPublishNotice] = useState<{ type: "success" | "error"; message: string } | null>(
+    null
+  );
 
   const typeInfo = DOCUMENT_TYPES[document.type];
   const Icon = typeInfo.icon;
@@ -140,6 +151,22 @@ export function DocumentViewer({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [document.content]);
+
+  const handlePublish = useCallback(async () => {
+    if (!onPublish) return;
+    setIsPublishing(true);
+    try {
+      await onPublish();
+      setPublishNotice({ type: "success", message: "Published to knowledge base" });
+      setTimeout(() => setPublishNotice(null), 3000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Publish failed";
+      setPublishNotice({ type: "error", message });
+      setTimeout(() => setPublishNotice(null), 4000);
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [onPublish]);
 
   return (
     <motion.div
@@ -217,6 +244,20 @@ export function DocumentViewer({
             </Button>
           )}
 
+          {onPublish && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePublish}
+              disabled={publishDisabled || isPublishing}
+              title={publishDisabled ? "Configure knowledge base mapping in settings" : undefined}
+              className="gap-1.5"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              {isPublishing ? "Publishing..." : publishLabel || "Publish"}
+            </Button>
+          )}
+
           {!readOnly && onSave && (
             <Button
               variant={isEditing ? "default" : "outline"}
@@ -250,6 +291,21 @@ export function DocumentViewer({
           )}
         </div>
       </div>
+      {publishNotice && (
+        <div className="px-4 pt-3">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-xs",
+              publishNotice.type === "success"
+                ? "border-green-500/50 text-green-400"
+                : "border-red-500/50 text-red-400"
+            )}
+          >
+            {publishNotice.message}
+          </Badge>
+        </div>
+      )}
 
       {/* Content */}
       <ScrollArea className="flex-1">

@@ -293,6 +293,14 @@ Return ONLY valid JSON.`;
         userPrompt = JSON.stringify(input);
     }
 
+    const validationHint =
+      typeof (input as { validationHint?: unknown }).validationHint === "string"
+        ? String((input as { validationHint?: unknown }).validationHint)
+        : "";
+    if (validationHint) {
+      userPrompt += `\n\n## Validation Issues\n${validationHint}\n\nReturn corrected output only.`;
+    }
+
     // Call Claude
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",

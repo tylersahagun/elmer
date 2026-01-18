@@ -47,6 +47,9 @@ export function NewProjectDialog() {
   const [description, setDescription] = useState("");
   const [inputType, setInputType] = useState<InputType>("text");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contextText, setContextText] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,11 +81,17 @@ export function NewProjectDialog() {
           createdAt: new Date(project.createdAt),
           updatedAt: new Date(project.updatedAt),
         });
+
+        // Persist initial context as memory + optional research document
+        await handleContextSubmit(project.id);
         
         // Reset form
         setName("");
         setDescription("");
         setInputType("text");
+        setContextText("");
+        setLinkUrl("");
+        setUploadedFile(null);
         closeModal();
       }
     } catch (error) {
@@ -99,12 +108,89 @@ export function NewProjectDialog() {
         updatedAt: new Date(),
       };
       addProject(newProject);
+      await handleContextSubmit(newProject.id);
       setName("");
       setDescription("");
       setInputType("text");
+      setContextText("");
+      setLinkUrl("");
+      setUploadedFile(null);
       closeModal();
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleContextSubmit = async (projectId: string) => {
+    if (!workspace) return;
+
+    const createMemory = async (content: string, metadata?: Record<string, unknown>) => {
+      await fetch("/api/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: workspace.id,
+          projectId,
+          type: "context",
+          content,
+          metadata,
+        }),
+      });
+    };
+
+    const createResearchDoc = async (title: string, content: string) => {
+      await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          type: "research",
+          title,
+          content,
+          metadata: {
+            generatedBy: "user",
+            reviewStatus: "draft",
+          },
+        }),
+      });
+    };
+
+    if (inputType === "text" && contextText.trim()) {
+      await createMemory(contextText.trim(), { source: "text" });
+      await createResearchDoc("Initial Context", contextText.trim());
+    }
+
+    if (inputType === "link" && linkUrl.trim()) {
+      await createMemory(`Link: ${linkUrl.trim()}`, { source: "link", url: linkUrl.trim() });
+    }
+
+    if (["transcript", "audio", "video"].includes(inputType) && uploadedFile) {
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+      formData.append("workspaceId", workspace.id);
+      formData.append("projectId", projectId);
+      const uploadRes = await fetch("/api/uploads", {
+        method: "POST",
+        body: formData,
+      });
+      if (uploadRes.ok) {
+        const uploadMeta = await uploadRes.json();
+        await createMemory(`Uploaded file: ${uploadMeta.path}`, {
+          source: inputType,
+          fileName: uploadMeta.fileName,
+          path: uploadMeta.path,
+          mimeType: uploadMeta.type,
+          size: uploadMeta.size,
+        });
+      }
+
+      // If it's a text-based file, also create a research doc from contents
+      if (uploadedFile.type.startsWith("text/") || /\.(txt|md|json)$/i.test(uploadedFile.name)) {
+        const content = await uploadedFile.text();
+        if (content.trim()) {
+          await createResearchDoc(`Transcript - ${uploadedFile.name}`, content.trim());
+        }
+      }
     }
   };
 
@@ -191,6 +277,8 @@ export function NewProjectDialog() {
                       <Textarea
                         id="context"
                         placeholder="Paste meeting notes, user feedback, or initial thoughts..."
+                        value={contextText}
+                        onChange={(e) => setContextText(e.target.value)}
                         className="glass-card border-white/20 min-h-[120px] max-h-[200px] overflow-y-auto resize-none"
                       />
                     </div>
@@ -199,15 +287,21 @@ export function NewProjectDialog() {
                   {inputType === "transcript" && (
                     <div className="space-y-2">
                       <Label>Upload Transcript</Label>
-                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer">
+                      <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer block">
                         <Upload className="w-8 h-8 mx-auto mb-2 text-slate-500 dark:text-slate-400" />
                         <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                          Drop a file or click to upload
+                          {uploadedFile ? uploadedFile.name : "Drop a file or click to upload"}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           .txt, .md, .json supported
                         </p>
-                      </div>
+                        <input
+                          type="file"
+                          accept=".txt,.md,.json,text/plain,application/json"
+                          className="hidden"
+                          onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                        />
+                      </label>
                     </div>
                   )}
 
@@ -217,6 +311,8 @@ export function NewProjectDialog() {
                       <Input
                         id="link"
                         placeholder="https://..."
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
                         className="glass-card border-white/20"
                       />
                       <p className="text-xs text-muted-foreground">
@@ -228,29 +324,41 @@ export function NewProjectDialog() {
                   {inputType === "audio" && (
                     <div className="space-y-2">
                       <Label>Record Audio</Label>
-                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors">
+                      <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors block cursor-pointer">
                         <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
                           <Mic className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                         </div>
                         <Button type="button" variant="outline" className="glass-card">
-                          Start Recording
+                          {uploadedFile ? uploadedFile.name : "Upload Audio"}
                         </Button>
-                      </div>
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          className="hidden"
+                          onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                        />
+                      </label>
                     </div>
                   )}
 
                   {inputType === "video" && (
                     <div className="space-y-2">
                       <Label>Upload Video</Label>
-                      <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer">
+                      <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer block">
                         <Video className="w-8 h-8 mx-auto mb-2 text-slate-500 dark:text-slate-400" />
                         <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                          Drop a video or click to upload
+                          {uploadedFile ? uploadedFile.name : "Drop a video or click to upload"}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           .mp4, .mov, .webm supported
                         </p>
-                      </div>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                        />
+                      </label>
                     </div>
                   )}
                 </div>

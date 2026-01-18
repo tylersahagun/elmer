@@ -43,6 +43,8 @@ export type NewPrototype = typeof schema.prototypes.$inferInsert;
 
 export type Job = typeof schema.jobs.$inferSelect;
 export type NewJob = typeof schema.jobs.$inferInsert;
+export type JobRun = typeof schema.jobRuns.$inferSelect;
+export type NewJobRun = typeof schema.jobRuns.$inferInsert;
 
 export type MemoryEntry = typeof schema.memoryEntries.$inferSelect;
 export type NewMemoryEntry = typeof schema.memoryEntries.$inferInsert;
@@ -58,3 +60,12 @@ export type NewJuryEvaluation = typeof schema.juryEvaluations.$inferInsert;
 
 export type ColumnConfig = typeof schema.columnConfigs.$inferSelect;
 export type NewColumnConfig = typeof schema.columnConfigs.$inferInsert;
+
+export type KnowledgebaseEntry = typeof schema.knowledgebaseEntries.$inferSelect;
+export type NewKnowledgebaseEntry = typeof schema.knowledgebaseEntries.$inferInsert;
+
+export type KnowledgeSource = typeof schema.knowledgeSources.$inferSelect;
+export type NewKnowledgeSource = typeof schema.knowledgeSources.$inferInsert;
+
+export type PrototypeVersion = typeof schema.prototypeVersions.$inferSelect;
+export type NewPrototypeVersion = typeof schema.prototypeVersions.$inferInsert;
