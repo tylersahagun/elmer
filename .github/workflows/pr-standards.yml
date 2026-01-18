@@ -56,11 +56,11 @@ jobs:
         run: |
           echo "🔍 Checking commit messages..."
           
-          # Get all commit messages in this PR
-          COMMITS=$(git log origin/main..HEAD --pretty=format:"%s")
+          # Get all commit messages in this PR (excluding merge commits)
+          COMMITS=$(git log origin/main..HEAD --pretty=format:"%s" --no-merges)
           
           # Conventional commit pattern
-          PATTERN="^(feat|fix|docs|style|refactor|test|chore|proto|research)(\([a-z0-9-]+\))?: .+"
+          PATTERN="^(feat|fix|docs|style|refactor|test|chore|proto|research|ci)(\([a-z0-9-]+\))?: .+"
           
           INVALID_COUNT=0
           while IFS= read -r commit; do
@@ -73,7 +73,7 @@ jobs:
             else
               echo "  ⚠️ $commit"
               echo "     ^ Does not follow conventional commit format"
-              ((INVALID_COUNT++))
+              INVALID_COUNT=$((INVALID_COUNT + 1))
             fi
           done <<< "$COMMITS"
           
@@ -92,6 +92,9 @@ jobs:
             echo ""
             echo "✅ All commit messages follow convention"
           fi
+          
+          # Always exit 0 - this is just informational
+          exit 0
 
       - name: PR summary comment
         uses: actions/github-script@v7
