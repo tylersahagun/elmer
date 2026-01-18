@@ -113,9 +113,6 @@ export const KanbanColumn = memo(function KanbanColumn({
           )}>
             {projects.length}
           </span>
-          
-          {/* Vertical line indicator */}
-          <div className="absolute inset-x-0 top-1/4 bottom-1/4 mx-auto w-px bg-border" />
         </div>
       </motion.div>
     );
@@ -169,7 +166,7 @@ export const KanbanColumn = memo(function KanbanColumn({
             <TrafficLights
               size={10}
               interactive
-              onClose={onClose}
+              onClose={() => {}} // Red traffic light is aesthetic only
               onMinimize={onMinimize}
               onMaximize={onExpand}
             />

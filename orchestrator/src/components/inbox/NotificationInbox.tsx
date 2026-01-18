@@ -164,6 +164,44 @@ export function NotificationInbox({
   const hasActivity = jobSummary.pending > 0 || jobSummary.running > 0;
   const totalBadgeCount = unreadCount + (hasActivity ? 1 : 0);
 
+  // Show browser notifications for new notifications
+  useEffect(() => {
+    if (!notifications.length) return;
+    
+    // Find new notifications that we haven't seen before
+    const newNotifications = notifications.filter(
+      (n) => n.status === "unread" && !previousNotificationIds.current.has(n.id)
+    );
+
+    // Update the set of seen notification IDs
+    notifications.forEach((n) => previousNotificationIds.current.add(n.id));
+
+    // Show browser notifications for new items (only if tab is not focused)
+    if (document.hidden && newNotifications.length > 0) {
+      newNotifications.forEach((notification) => {
+        const notificationType = 
+          notification.type === "job_completed" ? "completed" :
+          notification.type === "job_failed" ? "failed" :
+          notification.type === "approval_required" || notification.type === "action_required" 
+            ? "requires_attention" : null;
+
+        if (notificationType) {
+          showJobNotification(
+            notificationType,
+            notification.job?.type || notification.type,
+            notification.project?.name,
+            () => {
+              setIsOpen(true);
+              if (notification.actionUrl && onNavigate) {
+                onNavigate(notification.actionUrl);
+              }
+            }
+          );
+        }
+      });
+    }
+  }, [notifications, showJobNotification, onNavigate]);
+
   // Mark as read mutation
   const markReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
@@ -312,18 +350,32 @@ export function NotificationInbox({
               </span>
             )}
           </div>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => markAllReadMutation.mutate()}
-              disabled={markAllReadMutation.isPending}
-              className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-white"
-            >
-              <CheckCheck className="w-3 h-3 mr-1" />
-              Mark all read
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {/* Browser notification permission button */}
+            {browserNotificationsSupported && permission !== "granted" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={requestPermission}
+                className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-white"
+                title="Enable browser notifications"
+              >
+                <BellRing className="w-3 h-3" />
+              </Button>
+            )}
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => markAllReadMutation.mutate()}
+                disabled={markAllReadMutation.isPending}
+                className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-white"
+              >
+                <CheckCheck className="w-3 h-3 mr-1" />
+                Mark all read
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Job Status Section (if active) */}

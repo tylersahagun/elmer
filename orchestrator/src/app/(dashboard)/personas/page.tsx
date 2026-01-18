@@ -286,28 +286,20 @@ export default function PersonasPage() {
         }
       />
 
-      {/* Main Content - Fill remaining height below header */}
+      {/* Main Content - Fill remaining height below header, flush with edges */}
       <main className="flex-1 min-h-0 overflow-hidden">
-        <Window
-          title="ls ./personas"
-          showTrafficLights
-          className="h-full rounded-none border-x-0 border-b-0"
-          contentClassName="p-0 h-full"
-        >
-          <KnowledgeBaseFilesView
-            workspaceId={workspaceId}
-            files={personaFiles || []}
-            title="Synthetic Personas"
-            description="For jury validation of prototypes and PRDs"
-            headerIcon={Users}
-            onFileSave={handleFileSave}
-            onFileCreate={handleFileCreate}
-            onRefresh={handleRefresh}
-            isLoading={isLoading}
-            showHeader={false}
-            className="h-full"
-          />
-        </Window>
+        <KnowledgeBaseFilesView
+          workspaceId={workspaceId}
+          files={personaFiles || []}
+          title="Synthetic Personas"
+          description="For jury validation of prototypes and PRDs"
+          headerIcon={Users}
+          onFileSave={handleFileSave}
+          onFileCreate={handleFileCreate}
+          onRefresh={handleRefresh}
+          isLoading={isLoading}
+          className="h-full"
+        />
       </main>
     </div>
   );

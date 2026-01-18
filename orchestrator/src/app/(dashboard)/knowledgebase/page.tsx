@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Window } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { CommandChip } from "@/components/chrome/CommandChip";
+// Window is only used for error states now
 import {
   BookOpen,
   ArrowLeft,
@@ -192,28 +193,20 @@ export default function KnowledgebasePage() {
         }
       />
 
-      {/* Main Content - Fill remaining height below header */}
+      {/* Main Content - Fill remaining height below header, flush with edges */}
       <main className="flex-1 min-h-0 overflow-hidden">
-        <Window
-          title="cat ./knowledgebase"
-          showTrafficLights
-          className="h-full rounded-none border-x-0 border-b-0"
-          contentClassName="p-0 h-full"
-        >
-          <KnowledgeBaseFilesView
-            key={`kb-${workspaceId}`}
-            workspaceId={workspaceId}
-            files={knowledgeFiles || []}
-            title="Knowledge Base"
-            description="Company context, personas, roadmap & more"
-            headerIcon={BookOpen}
-            onFileSave={handleFileSave}
-            onRefresh={handleRefresh}
-            isLoading={isLoading}
-            showHeader={false}
-            className="h-full"
-          />
-        </Window>
+        <KnowledgeBaseFilesView
+          key={`kb-${workspaceId}`}
+          workspaceId={workspaceId}
+          files={knowledgeFiles || []}
+          title="Knowledge Base"
+          description="Company context, personas, roadmap & more"
+          headerIcon={BookOpen}
+          onFileSave={handleFileSave}
+          onRefresh={handleRefresh}
+          isLoading={isLoading}
+          className="h-full"
+        />
       </main>
     </div>
   );

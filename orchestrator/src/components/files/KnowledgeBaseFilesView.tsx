@@ -222,8 +222,9 @@ export function KnowledgeBaseFilesView({
           key={node.path}
           icon={Icon} 
           className={cn(
-            "cursor-pointer text-foreground hover:bg-muted rounded-md transition-all",
-            isSelected && "ring-1 ring-ring bg-accent"
+            "cursor-pointer text-foreground rounded-md transition-colors",
+            "hover:bg-accent/50",
+            isSelected && "bg-accent text-accent-foreground"
           )}
           onClick={() => handleFileClick(node)}
         >

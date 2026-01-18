@@ -16,11 +16,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useUIStore, useKanbanStore, type KanbanColumn } from "@/lib/store";
-import type { ProjectStage, BackgroundSettings, DisplayMode } from "@/lib/db/schema";
+import type { ProjectStage } from "@/lib/db/schema";
 import { popInVariants } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import type { DocumentType, KnowledgebaseType } from "@/lib/db/schema";
-import { useDisplaySettings } from "@/components/display";
 import {
   Settings,
   Columns3,
@@ -31,18 +30,10 @@ import {
   ArrowDown,
   Plus,
   Trash2,
-  Palette,
   Users,
   Bot,
   Sparkles,
-  Circle,
-  Waves,
-  Sun,
-  Moon,
-  Magnet,
-  Target,
-  Eye,
-  Focus,
+  Bell,
 } from "lucide-react";
 
 // Stage color mapping
@@ -85,9 +76,6 @@ export function WorkspaceSettingsModal() {
   const updateWorkspace = useKanbanStore((s) => s.updateWorkspace);
   const setColumns = useKanbanStore((s) => s.setColumns);
   const columns = useKanbanStore((s) => s.columns);
-  
-  // Display settings from context
-  const { displayMode, setDisplayMode } = useDisplaySettings();
 
   const [githubRepo, setGithubRepo] = useState("");
   const [contextPaths, setContextPaths] = useState<string[]>(["elmer-docs/"]);
@@ -108,25 +96,19 @@ export function WorkspaceSettingsModal() {
   );
   const [automationStopStage, setAutomationStopStage] = useState("");
   const [automationNotifyStage, setAutomationNotifyStage] = useState("");
+  // Background Worker Settings
+  const [workerEnabled, setWorkerEnabled] = useState(true);
+  const [workerMaxConcurrency, setWorkerMaxConcurrency] = useState("10");
+  // Browser Notification Settings
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
+  const [notifyOnJobComplete, setNotifyOnJobComplete] = useState(true);
+  const [notifyOnJobFailed, setNotifyOnJobFailed] = useState(true);
+  const [notifyOnApprovalRequired, setNotifyOnApprovalRequired] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [columnEdits, setColumnEdits] = useState<Record<string, Record<string, unknown>>>({});
   const [newColumnStage, setNewColumnStage] = useState("");
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnColor, setNewColumnColor] = useState("slate");
-  
-  // Background settings
-  const [backgroundSettings, setBackgroundSettings] = useState<BackgroundSettings>({
-    type: "bubble",
-    primaryColor: "#7c3aed",
-    secondaryColor: "#ec4899",
-    speed: 1,
-    interactive: true,
-  });
-  const [backgroundSettingsChanged, setBackgroundSettingsChanged] = useState(false);
-  
-  // Display settings
-  const [columnGradients, setColumnGradients] = useState(true);
-  const [compactMode, setCompactMode] = useState(false);
 
   const colorKeys = Object.keys(stageColors);
 
@@ -135,109 +117,6 @@ export function WorkspaceSettingsModal() {
   useEffect(() => {
     workspaceSettingsRef.current = workspace?.settings;
   }, [workspace?.settings]);
-
-  // Auto-save background settings when they change
-  useEffect(() => {
-    if (!backgroundSettingsChanged || !workspace?.id) return;
-    
-    const saveBackgroundSettings = async () => {
-      try {
-        const res = await fetch(`/api/workspaces/${workspace.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            settings: {
-              ...workspaceSettingsRef.current,
-              background: backgroundSettings,
-            },
-          }),
-        });
-        if (res.ok) {
-          // Don't update store again - we already did optimistically
-          console.log("Background settings auto-saved");
-        }
-      } catch (error) {
-        console.error("Failed to auto-save background settings:", error);
-      }
-      setBackgroundSettingsChanged(false);
-    };
-
-    // Debounce the save
-    const timeoutId = setTimeout(saveBackgroundSettings, 500);
-    return () => clearTimeout(timeoutId);
-  }, [backgroundSettings, backgroundSettingsChanged, workspace?.id]);
-
-  // Helper to update background settings
-  // This updates the store IMMEDIATELY (optimistic) and saves to the database
-  const updateBackgroundSettings = async (updates: Partial<BackgroundSettings>, saveImmediately = false) => {
-    const newSettings = { ...backgroundSettings, ...updates };
-    setBackgroundSettings(newSettings);
-    
-    // Immediately update the store for instant visual feedback
-    updateWorkspace({
-      settings: {
-        ...workspace?.settings,
-        background: newSettings,
-      },
-    });
-
-    // For type changes, save immediately (no debounce) since modal may close
-    if (saveImmediately || 'type' in updates) {
-      try {
-        await fetch(`/api/workspaces/${workspace?.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            settings: {
-              ...workspaceSettingsRef.current,
-              background: newSettings,
-            },
-          }),
-        });
-        console.log("Background settings saved immediately");
-      } catch (error) {
-        console.error("Failed to save background settings:", error);
-      }
-    } else {
-      // For other changes (colors, speed), use debounced save
-      setBackgroundSettingsChanged(true);
-    }
-  };
-
-  // Helper to update display settings (column gradients, compact mode)
-  const updateDisplaySetting = async (key: 'columnGradients' | 'compactMode', value: boolean) => {
-    // Update local state immediately for instant feedback
-    if (key === 'columnGradients') {
-      setColumnGradients(value);
-    } else {
-      setCompactMode(value);
-    }
-    
-    // Update store optimistically
-    updateWorkspace({
-      settings: {
-        ...workspace?.settings,
-        [key]: value,
-      },
-    });
-    
-    // Save to database
-    try {
-      await fetch(`/api/workspaces/${workspace?.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          settings: {
-            ...workspaceSettingsRef.current,
-            [key]: value,
-          },
-        }),
-      });
-      console.log(`Display setting ${key} saved`);
-    } catch (error) {
-      console.error(`Failed to save display setting ${key}:`, error);
-    }
-  };
 
   useEffect(() => {
     if (workspace) {
@@ -268,15 +147,18 @@ export function WorkspaceSettingsModal() {
       setAutomationMode(workspace.settings?.automationMode || "manual");
       setAutomationStopStage(workspace.settings?.automationStopStage || "");
       setAutomationNotifyStage(workspace.settings?.automationNotifyStage || "");
-      setBackgroundSettings(workspace.settings?.background || {
-        type: "bubble",
-        primaryColor: "#7c3aed",
-        secondaryColor: "#ec4899",
-        speed: 1,
-        interactive: true,
-      });
-      setColumnGradients(workspace.settings?.columnGradients ?? true);
-      setCompactMode(workspace.settings?.compactMode ?? false);
+      // Background Worker Settings
+      setWorkerEnabled(workspace.settings?.workerEnabled ?? true);
+      setWorkerMaxConcurrency(
+        workspace.settings?.workerMaxConcurrency
+          ? String(workspace.settings.workerMaxConcurrency)
+          : "10"
+      );
+      // Browser Notification Settings
+      setBrowserNotificationsEnabled(workspace.settings?.browserNotificationsEnabled ?? true);
+      setNotifyOnJobComplete(workspace.settings?.notifyOnJobComplete ?? true);
+      setNotifyOnJobFailed(workspace.settings?.notifyOnJobFailed ?? true);
+      setNotifyOnApprovalRequired(workspace.settings?.notifyOnApprovalRequired ?? true);
     }
   }, [workspace]);
 
@@ -533,7 +415,16 @@ export function WorkspaceSettingsModal() {
             automationMode,
             automationStopStage: automationStopStage || undefined,
             automationNotifyStage: automationNotifyStage || undefined,
-            background: backgroundSettings,
+            // Background Worker Settings
+            workerEnabled,
+            workerMaxConcurrency: workerMaxConcurrency
+              ? Number(workerMaxConcurrency)
+              : undefined,
+            // Browser Notification Settings
+            browserNotificationsEnabled,
+            notifyOnJobComplete,
+            notifyOnJobFailed,
+            notifyOnApprovalRequired,
           },
         }),
       });
@@ -553,7 +444,7 @@ export function WorkspaceSettingsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-7xl !p-0 !gap-0 h-[90vh] overflow-hidden">
+      <DialogContent className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-[90vw] w-[1400px] !p-0 !gap-0 h-[90vh] overflow-hidden">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -584,7 +475,7 @@ export function WorkspaceSettingsModal() {
               {/* Content with Tabs */}
               <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="flex-shrink-0 px-6 pt-4">
-                  <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-6">
+                  <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-5">
                     <TabsTrigger value="general" className="gap-1.5 text-xs">
                       <Settings className="w-3.5 h-3.5" />
                       General
@@ -596,10 +487,6 @@ export function WorkspaceSettingsModal() {
                     <TabsTrigger value="columns" className="gap-1.5 text-xs">
                       <Columns3 className="w-3.5 h-3.5" />
                       Columns
-                    </TabsTrigger>
-                    <TabsTrigger value="display" className="gap-1.5 text-xs">
-                      <Palette className="w-3.5 h-3.5" />
-                      Display
                     </TabsTrigger>
                     <TabsTrigger value="personas" className="gap-1.5 text-xs">
                       <Users className="w-3.5 h-3.5" />
@@ -925,6 +812,110 @@ export function WorkspaceSettingsModal() {
                             ))}
                           </div>
                         </div>
+
+                        {/* Background Worker Settings */}
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Sparkles className="w-4 h-4 text-amber-500" />
+                            <h4 className="text-sm font-medium">Background Worker</h4>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Configure the background agent that automatically processes jobs.
+                          </p>
+                          <div className="grid gap-4">
+                            <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                              <div>
+                                <Label className="text-sm">Enable Auto-Execution</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Automatically process jobs when projects move stages.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={workerEnabled}
+                                onCheckedChange={setWorkerEnabled}
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="workerMaxConcurrency">Max Concurrent Jobs</Label>
+                              <Input
+                                id="workerMaxConcurrency"
+                                type="number"
+                                min="1"
+                                max="50"
+                                value={workerMaxConcurrency}
+                                onChange={(e) => setWorkerMaxConcurrency(e.target.value)}
+                                disabled={!workerEnabled}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Maximum number of jobs to run simultaneously.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Browser Notification Settings */}
+                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Bell className="w-4 h-4 text-blue-500" />
+                            <h4 className="text-sm font-medium">Browser Notifications</h4>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Configure when to receive browser notifications.
+                          </p>
+                          <div className="grid gap-3">
+                            <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                              <div>
+                                <Label className="text-sm">Enable Notifications</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Show browser notifications for job events.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={browserNotificationsEnabled}
+                                onCheckedChange={setBrowserNotificationsEnabled}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                              <div>
+                                <Label className="text-sm">Job Completed</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Notify when a job finishes successfully.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={notifyOnJobComplete}
+                                onCheckedChange={setNotifyOnJobComplete}
+                                disabled={!browserNotificationsEnabled}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                              <div>
+                                <Label className="text-sm">Job Failed</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Notify when a job fails or errors out.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={notifyOnJobFailed}
+                                onCheckedChange={setNotifyOnJobFailed}
+                                disabled={!browserNotificationsEnabled}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                              <div>
+                                <Label className="text-sm">Approval Required</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Notify when human input is needed.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={notifyOnApprovalRequired}
+                                onCheckedChange={setNotifyOnApprovalRequired}
+                                disabled={!browserNotificationsEnabled}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       <div className="flex justify-end">
                         <Button
@@ -1210,237 +1201,6 @@ export function WorkspaceSettingsModal() {
                       <p className="text-xs text-muted-foreground italic">
                         Visibility changes save immediately. Use Save to persist other edits.
                       </p>
-                    </TabsContent>
-
-                    {/* Display Tab */}
-                    <TabsContent value="display" className="mt-0 space-y-6">
-                      {/* Display Mode Selection */}
-                      <div className="p-4 rounded-2xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
-                        <h4 className="text-sm font-medium mb-3">Display Mode</h4>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Choose between an immersive experience with animations or a clean, focused interface for productivity.
-                        </p>
-                        <div className="grid grid-cols-2 gap-4">
-                          <button
-                            onClick={() => setDisplayMode("immersive")}
-                            className={cn(
-                              "p-4 rounded-xl border-2 transition-all text-left",
-                              displayMode === "immersive"
-                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                                : "border-slate-200/50 dark:border-slate-700/50 hover:border-purple-300"
-                            )}
-                          >
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className={cn(
-                                "w-10 h-10 rounded-lg flex items-center justify-center",
-                                displayMode === "immersive" 
-                                  ? "bg-gradient-to-br from-purple-500 to-pink-500" 
-                                  : "bg-slate-200 dark:bg-slate-700"
-                              )}>
-                                <Eye className={cn(
-                                  "w-5 h-5",
-                                  displayMode === "immersive" ? "text-white" : "text-muted-foreground"
-                                )} />
-                              </div>
-                              <div>
-                                <p className="font-medium">Immersive</p>
-                                <p className="text-xs text-muted-foreground">Dynamic & beautiful</p>
-                              </div>
-                            </div>
-                            <ul className="text-xs text-muted-foreground space-y-1 mt-3 ml-1">
-                              <li>• Animated backgrounds</li>
-                              <li>• Glassmorphism effects</li>
-                              <li>• Smooth animations</li>
-                            </ul>
-                          </button>
-                          
-                          <button
-                            onClick={() => setDisplayMode("focus")}
-                            className={cn(
-                              "p-4 rounded-xl border-2 transition-all text-left",
-                              displayMode === "focus"
-                                ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
-                                : "border-slate-200/50 dark:border-slate-700/50 hover:border-emerald-300"
-                            )}
-                          >
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className={cn(
-                                "w-10 h-10 rounded-lg flex items-center justify-center",
-                                displayMode === "focus" 
-                                  ? "bg-gradient-to-br from-emerald-500 to-teal-500" 
-                                  : "bg-slate-200 dark:bg-slate-700"
-                              )}>
-                                <Focus className={cn(
-                                  "w-5 h-5",
-                                  displayMode === "focus" ? "text-white" : "text-muted-foreground"
-                                )} />
-                              </div>
-                              <div>
-                                <p className="font-medium">Focus</p>
-                                <p className="text-xs text-muted-foreground">Clean & productive</p>
-                              </div>
-                            </div>
-                            <ul className="text-xs text-muted-foreground space-y-1 mt-3 ml-1">
-                              <li>• Solid backgrounds</li>
-                              <li>• High contrast text</li>
-                              <li>• Minimal motion</li>
-                            </ul>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Background Selection - Only show in Immersive mode */}
-                      {displayMode === "immersive" && (
-                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
-                        <h4 className="text-sm font-medium mb-3">Background Style</h4>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Choose an animated background for your workspace.
-                        </p>
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                          {[
-                            { type: "stars" as const, icon: Sparkles, label: "Stars", desc: "Twinkling starfield" },
-                            { type: "bubble" as const, icon: Circle, label: "Bubbles", desc: "Floating bubbles" },
-                            { type: "gradient" as const, icon: Waves, label: "Gradient", desc: "Flowing gradients" },
-                            { type: "gravity-stars" as const, icon: Magnet, label: "Gravity", desc: "Interactive stars" },
-                            { type: "hole" as const, icon: Target, label: "Hole", desc: "Black hole effect" },
-                            { type: "aurora" as const, icon: Sun, label: "Aurora", desc: "Northern lights" },
-                            { type: "none" as const, icon: Moon, label: "None", desc: "Solid background" },
-                          ].map(({ type, icon: Icon, label, desc }) => (
-                            <button
-                              key={type}
-                              onClick={() => updateBackgroundSettings({ type })}
-                              className={cn(
-                                "p-3 rounded-xl border-2 transition-all text-left",
-                                backgroundSettings.type === type
-                                  ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                                  : "border-slate-200/50 dark:border-slate-700/50 hover:border-purple-300"
-                              )}
-                            >
-                              <Icon className={cn(
-                                "w-5 h-5 mb-2",
-                                backgroundSettings.type === type ? "text-purple-500" : "text-muted-foreground"
-                              )} />
-                              <p className="text-sm font-medium">{label}</p>
-                              <p className="text-xs text-muted-foreground">{desc}</p>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      )}
-
-                      {/* Background Customization */}
-                      {displayMode === "immersive" && backgroundSettings.type !== "none" && (
-                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
-                          <h4 className="text-sm font-medium mb-3">Background Customization</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="primaryColor">Primary Color</Label>
-                              <div className="flex gap-2">
-                                <input
-                                  type="color"
-                                  id="primaryColor"
-                                  value={backgroundSettings.primaryColor || "#7c3aed"}
-                                  onChange={(e) => updateBackgroundSettings({ primaryColor: e.target.value })}
-                                  className="w-10 h-9 rounded-md border border-input cursor-pointer"
-                                />
-                                <Input
-                                  value={backgroundSettings.primaryColor || "#7c3aed"}
-                                  onChange={(e) => updateBackgroundSettings({ primaryColor: e.target.value })}
-                                  placeholder="#7c3aed"
-                                  className="flex-1"
-                                />
-                              </div>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="secondaryColor">Secondary Color</Label>
-                              <div className="flex gap-2">
-                                <input
-                                  type="color"
-                                  id="secondaryColor"
-                                  value={backgroundSettings.secondaryColor || "#ec4899"}
-                                  onChange={(e) => updateBackgroundSettings({ secondaryColor: e.target.value })}
-                                  className="w-10 h-9 rounded-md border border-input cursor-pointer"
-                                />
-                                <Input
-                                  value={backgroundSettings.secondaryColor || "#ec4899"}
-                                  onChange={(e) => updateBackgroundSettings({ secondaryColor: e.target.value })}
-                                  placeholder="#ec4899"
-                                  className="flex-1"
-                                />
-                              </div>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="speed">Animation Speed</Label>
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="range"
-                                  id="speed"
-                                  min="0.1"
-                                  max="3"
-                                  step="0.1"
-                                  value={backgroundSettings.speed || 1}
-                                  onChange={(e) => updateBackgroundSettings({ speed: parseFloat(e.target.value) })}
-                                  className="flex-1"
-                                />
-                                <span className="text-sm text-muted-foreground w-12">
-                                  {backgroundSettings.speed || 1}x
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                              <div>
-                                <Label className="text-sm">Interactive</Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Respond to mouse movement
-                                </p>
-                              </div>
-                              <Switch
-                                checked={backgroundSettings.interactive ?? true}
-                                onCheckedChange={(checked) => updateBackgroundSettings({ interactive: checked })}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Other Display Settings */}
-                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
-                        <h4 className="text-sm font-medium mb-3">Other Visual Settings</h4>
-                        <div className="grid gap-4">
-                          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                            <div>
-                              <Label className="text-sm">Column Gradients</Label>
-                              <p className="text-xs text-muted-foreground">
-                                Show color gradients on kanban columns.
-                              </p>
-                            </div>
-                            <Switch 
-                              checked={columnGradients}
-                              onCheckedChange={(checked) => updateDisplaySetting('columnGradients', checked)}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                            <div>
-                              <Label className="text-sm">Compact Mode</Label>
-                              <p className="text-xs text-muted-foreground">
-                                Use a more compact layout for project cards.
-                              </p>
-                            </div>
-                            <Switch 
-                              checked={compactMode}
-                              onCheckedChange={(checked) => updateDisplaySetting('compactMode', checked)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Auto-save indicator */}
-                      <div className="flex justify-end">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                          Changes save automatically
-                        </span>
-                      </div>
                     </TabsContent>
 
                     {/* Personas Tab - Redirect to dedicated page */}
