@@ -84,6 +84,8 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          # Use placeholder for build-time validation (actual DB used at runtime)
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
