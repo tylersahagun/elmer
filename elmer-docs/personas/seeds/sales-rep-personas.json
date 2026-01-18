@@ -1,0 +1,118 @@
+[
+  {
+    "id": "seed_sr001",
+    "archetype_id": "sales-rep",
+    "demographics": {
+      "name": "Marcus Chen",
+      "age": 28,
+      "location": "San Francisco, CA",
+      "years_experience": 4
+    },
+    "firmographics": {
+      "industry": "B2B SaaS",
+      "company_size": "51-200",
+      "funding_stage": "series-b"
+    },
+    "psychographics": {
+      "tech_literacy": "advanced",
+      "ai_adoption_stage": "early-adopter",
+      "trust_in_ai": 0.72,
+      "tool_fatigue": 0.45,
+      "patience_for_learning": 0.68,
+      "communication_style": "driver",
+      "complexity_tolerance": 0.7,
+      "migration_sensitivity": 0.4
+    },
+    "context": {
+      "primary_pain": "Spending too much time on CRM updates instead of selling",
+      "fear": "AI making mistakes that hurt my deals"
+    }
+  },
+  {
+    "id": "seed_sr002",
+    "archetype_id": "sales-rep",
+    "demographics": {
+      "name": "Sarah Thompson",
+      "age": 34,
+      "location": "Chicago, IL",
+      "years_experience": 8
+    },
+    "firmographics": {
+      "industry": "Financial Services",
+      "company_size": "1000+",
+      "funding_stage": "public"
+    },
+    "psychographics": {
+      "tech_literacy": "intermediate",
+      "ai_adoption_stage": "skeptic",
+      "trust_in_ai": 0.28,
+      "tool_fatigue": 0.82,
+      "patience_for_learning": 0.35,
+      "communication_style": "analytical",
+      "complexity_tolerance": 0.4,
+      "migration_sensitivity": 0.8
+    },
+    "context": {
+      "primary_pain": "Too many tools and not enough time to learn them all",
+      "fear": "Being micromanaged through AI surveillance"
+    }
+  },
+  {
+    "id": "seed_sr003",
+    "archetype_id": "sales-rep",
+    "demographics": {
+      "name": "Diego Rodriguez",
+      "age": 26,
+      "location": "Austin, TX",
+      "years_experience": 2
+    },
+    "firmographics": {
+      "industry": "HR Tech",
+      "company_size": "1-50",
+      "funding_stage": "seed"
+    },
+    "psychographics": {
+      "tech_literacy": "novice",
+      "ai_adoption_stage": "curious",
+      "trust_in_ai": 0.55,
+      "tool_fatigue": 0.38,
+      "patience_for_learning": 0.72,
+      "communication_style": "amiable",
+      "complexity_tolerance": 0.5,
+      "migration_sensitivity": 0.3
+    },
+    "context": {
+      "primary_pain": "Missing follow-up signals in customer conversations",
+      "fear": "Tool complexity slowing me down instead of speeding me up"
+    }
+  },
+  {
+    "id": "seed_sr004",
+    "archetype_id": "sales-rep",
+    "demographics": {
+      "name": "Jennifer Williams",
+      "age": 42,
+      "location": "Boston, MA",
+      "years_experience": 15
+    },
+    "firmographics": {
+      "industry": "Healthcare IT",
+      "company_size": "201-1000",
+      "funding_stage": "series-c+"
+    },
+    "psychographics": {
+      "tech_literacy": "intermediate",
+      "ai_adoption_stage": "skeptic",
+      "trust_in_ai": 0.22,
+      "tool_fatigue": 0.75,
+      "patience_for_learning": 0.42,
+      "communication_style": "expressive",
+      "complexity_tolerance": 0.45,
+      "migration_sensitivity": 0.85
+    },
+    "context": {
+      "primary_pain": "My current process works fine, don't want to change",
+      "fear": "Losing my job to AI automation"
+    }
+  }
+]

@@ -1,0 +1,118 @@
+[
+  {
+    "id": "seed_sc001",
+    "archetype_id": "strategic-consultant",
+    "demographics": {
+      "name": "Robert Hayes",
+      "age": 48,
+      "location": "New York, NY",
+      "years_experience": 22
+    },
+    "firmographics": {
+      "industry": "Management Consulting",
+      "company_size": "1-50",
+      "funding_stage": "bootstrapped"
+    },
+    "psychographics": {
+      "tech_literacy": "advanced",
+      "ai_adoption_stage": "early-adopter",
+      "trust_in_ai": 0.65,
+      "tool_fatigue": 0.42,
+      "patience_for_learning": 0.78,
+      "communication_style": "analytical",
+      "complexity_tolerance": 0.82,
+      "migration_sensitivity": 0.35
+    },
+    "context": {
+      "primary_pain": "Client conversations contain gold but extracting insights takes hours",
+      "fear": "AI diluting the quality that clients pay premium for"
+    }
+  },
+  {
+    "id": "seed_sc002",
+    "archetype_id": "strategic-consultant",
+    "demographics": {
+      "name": "Sandra Kim",
+      "age": 39,
+      "location": "San Francisco, CA",
+      "years_experience": 14
+    },
+    "firmographics": {
+      "industry": "Revenue Consulting",
+      "company_size": "1-50",
+      "funding_stage": "bootstrapped"
+    },
+    "psychographics": {
+      "tech_literacy": "expert",
+      "ai_adoption_stage": "power-user",
+      "trust_in_ai": 0.78,
+      "tool_fatigue": 0.32,
+      "patience_for_learning": 0.85,
+      "communication_style": "driver",
+      "complexity_tolerance": 0.88,
+      "migration_sensitivity": 0.25
+    },
+    "context": {
+      "primary_pain": "Can't scale my expertise without hiring",
+      "fear": "Getting caught using unapproved tools with client data"
+    }
+  },
+  {
+    "id": "seed_sc003",
+    "archetype_id": "strategic-consultant",
+    "demographics": {
+      "name": "Thomas Anderson",
+      "age": 52,
+      "location": "Chicago, IL",
+      "years_experience": 25
+    },
+    "firmographics": {
+      "industry": "GTM Consulting",
+      "company_size": "1-50",
+      "funding_stage": "bootstrapped"
+    },
+    "psychographics": {
+      "tech_literacy": "intermediate",
+      "ai_adoption_stage": "curious",
+      "trust_in_ai": 0.48,
+      "tool_fatigue": 0.55,
+      "patience_for_learning": 0.62,
+      "communication_style": "expressive",
+      "complexity_tolerance": 0.65,
+      "migration_sensitivity": 0.52
+    },
+    "context": {
+      "primary_pain": "Clients expect AI insights but my tools are legacy",
+      "fear": "AI missing nuance that costs us the engagement"
+    }
+  },
+  {
+    "id": "seed_sc004",
+    "archetype_id": "strategic-consultant",
+    "demographics": {
+      "name": "Vanessa Chen",
+      "age": 35,
+      "location": "Austin, TX",
+      "years_experience": 10
+    },
+    "firmographics": {
+      "industry": "Sales Consulting",
+      "company_size": "1-50",
+      "funding_stage": "bootstrapped"
+    },
+    "psychographics": {
+      "tech_literacy": "advanced",
+      "ai_adoption_stage": "early-adopter",
+      "trust_in_ai": 0.72,
+      "tool_fatigue": 0.38,
+      "patience_for_learning": 0.75,
+      "communication_style": "amiable",
+      "complexity_tolerance": 0.72,
+      "migration_sensitivity": 0.38
+    },
+    "context": {
+      "primary_pain": "Knowledge lives in my head and can't be shared easily",
+      "fear": "Recommendations I can't defend to C-suite clients"
+    }
+  }
+]

@@ -1,0 +1,43 @@
+{
+  "archetype_id": "csm",
+  "name": "Customer Success Manager",
+  "description": "Responsible for customer health, retention, and expansion",
+  "role": {
+    "title": "Customer Success Manager / Account Manager",
+    "responsibilities": ["Onboarding", "QBRs", "Health monitoring", "Expansion", "Renewal"],
+    "decision_authority": "Tool adoption for personal workflow, input on CS team tools"
+  },
+  "pains": [
+    "Managing too many accounts means missing early churn signals",
+    "QBR prep takes hours that could be spent with customers",
+    "Expansion opportunities are buried in call notes",
+    "Can't scale personalization with current book of business",
+    "Health scores don't reflect actual customer sentiment"
+  ],
+  "success_criteria": [
+    "Retain customers and grow revenue",
+    "Spot churn risk before it's too late",
+    "Prepare for QBRs quickly with relevant insights",
+    "Build genuine relationships at scale"
+  ],
+  "evaluation_heuristics": [
+    "Will this help me be more personal, not less?",
+    "Can I trust the health signals it surfaces?",
+    "Does it help me prioritize my time effectively?",
+    "Will customers feel surveilled or supported?"
+  ],
+  "typical_tools": ["CRM", "CS platform (Gainsight, Totango)", "Email", "Calendar", "BI dashboards"],
+  "fears": [
+    "AI flagging false positives that waste time",
+    "Automation feeling robotic to customers",
+    "Missing the human touch that builds relationships",
+    "Customers feeling analyzed rather than valued"
+  ],
+  "psychographic_ranges": {
+    "tech_literacy": ["novice", "intermediate", "advanced"],
+    "ai_adoption_stage": ["skeptic", "curious", "early-adopter"],
+    "tool_fatigue": [0.4, 0.8],
+    "patience_for_learning": [0.4, 0.8],
+    "trust_in_ai": [0.3, 0.7]
+  }
+}

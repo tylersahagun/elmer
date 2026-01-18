@@ -301,9 +301,29 @@ def calculate_stats(personas: List[Dict]) -> Dict:
 
 
 if __name__ == "__main__":
-    script_dir = Path(__file__).parent.parent.parent
-    input_dir = script_dir / "personas" / "generated" / "batch-2026-01-08"
-    output_file = input_dir / "all-personas.json"
+    import argparse
+    from datetime import datetime
     
-    expand_personas(input_dir, output_file, target_count=1000)
+    parser = argparse.ArgumentParser(description="Expand seed personas to larger batch")
+    parser.add_argument("--count", type=int, default=1000, help="Target persona count")
+    parser.add_argument("--output-dir", type=str, help="Output directory (default: auto-generated batch)")
+    args = parser.parse_args()
+    
+    script_dir = Path(__file__).parent.parent.parent
+    seeds_dir = script_dir / "personas" / "seeds"
+    
+    # Create batch directory with today's date
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+    else:
+        batch_name = f"batch-{datetime.now().strftime('%Y-%m-%d')}"
+        output_dir = script_dir / "personas" / "generated" / batch_name
+    
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / "all-personas.json"
+    
+    print(f"📁 Seeds directory: {seeds_dir}")
+    print(f"📁 Output directory: {output_dir}")
+    
+    expand_personas(seeds_dir, output_file, target_count=args.count)
 

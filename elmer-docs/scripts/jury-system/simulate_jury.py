@@ -2,6 +2,10 @@
 """
 Simulated Jury Evaluation - demonstrates system without API calls.
 Uses probabilistic modeling based on persona characteristics.
+
+Now uses persona_loader for robust persona loading:
+- Automatically finds latest generated batch OR falls back to seeds
+- No hard-coded batch paths required
 """
 
 import json
@@ -10,10 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
 
-# Load personas
-def load_personas(path: Path) -> List[Dict]:
-    with open(path) as f:
-        return json.load(f)
+# Import the shared persona loader
+from persona_loader import load_personas_for_jury, get_persona_stats
 
 
 def simulate_persona_evaluation(persona: Dict, phase: str) -> Dict:
@@ -458,15 +460,13 @@ The probability that the majority verdict is correct approaches certainty with j
 def main():
     import argparse
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--initiative", required=True)
-    parser.add_argument("--phase", default="research")
-    parser.add_argument("--jury-size", type=int, default=100)
+    parser = argparse.ArgumentParser(
+        description="Run simulated jury evaluation for an initiative"
+    )
+    parser.add_argument("--initiative", required=True, help="Initiative name")
+    parser.add_argument("--phase", default="research", help="Phase: research, prd, prototype")
+    parser.add_argument("--jury-size", type=int, default=100, help="Number of jury members")
     args = parser.parse_args()
-    
-    # Setup paths
-    script_dir = Path(__file__).parent.parent.parent
-    personas_path = script_dir / "personas" / "generated" / "batch-2026-01-08" / "all-personas.json"
     
     print(f"\n🏛️  CONDORCET JURY EVALUATION (Simulation)")
     print(f"=" * 50)
@@ -475,15 +475,21 @@ def main():
     print(f"Jury Size: {args.jury_size}")
     print(f"=" * 50)
     
-    # Load personas
-    personas = load_personas(personas_path)
-    print(f"📦 Loaded {len(personas)} personas")
+    # Load personas using the shared loader (auto-finds generated or seeds)
+    try:
+        jury = load_personas_for_jury(jury_size=args.jury_size)
+    except FileNotFoundError as e:
+        print(f"\n❌ Error: {e}")
+        return None, None
     
-    # Sample jury
-    jury = sample_stratified_jury(personas, args.jury_size)
-    skeptics = len([j for j in jury if j.get("psychographics", {}).get("ai_adoption_stage") == "skeptic"])
+    # Get stats
+    stats = get_persona_stats(jury)
+    skeptics = stats["by_adoption"].get("skeptic", {}).get("count", 0)
     print(f"👥 Sampled {len(jury)} jury members")
     print(f"   - Including {skeptics} skeptics ({skeptics/len(jury)*100:.1f}%)")
+    
+    # Setup output path
+    script_dir = Path(__file__).parent.parent.parent
     
     # Run simulated evaluations
     print(f"🧪 Running {len(jury)} simulated evaluations...")

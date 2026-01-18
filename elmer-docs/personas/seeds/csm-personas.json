@@ -1,0 +1,118 @@
+[
+  {
+    "id": "seed_csm001",
+    "archetype_id": "csm",
+    "demographics": {
+      "name": "Emily Davis",
+      "age": 30,
+      "location": "Portland, OR",
+      "years_experience": 6
+    },
+    "firmographics": {
+      "industry": "B2B SaaS",
+      "company_size": "51-200",
+      "funding_stage": "series-b"
+    },
+    "psychographics": {
+      "tech_literacy": "intermediate",
+      "ai_adoption_stage": "curious",
+      "trust_in_ai": 0.52,
+      "tool_fatigue": 0.55,
+      "patience_for_learning": 0.68,
+      "communication_style": "amiable",
+      "complexity_tolerance": 0.58,
+      "migration_sensitivity": 0.48
+    },
+    "context": {
+      "primary_pain": "Managing too many accounts means missing churn signals",
+      "fear": "AI flagging false positives that waste my time"
+    }
+  },
+  {
+    "id": "seed_csm002",
+    "archetype_id": "csm",
+    "demographics": {
+      "name": "Brian Murphy",
+      "age": 36,
+      "location": "Boston, MA",
+      "years_experience": 10
+    },
+    "firmographics": {
+      "industry": "Enterprise Software",
+      "company_size": "1000+",
+      "funding_stage": "public"
+    },
+    "psychographics": {
+      "tech_literacy": "advanced",
+      "ai_adoption_stage": "early-adopter",
+      "trust_in_ai": 0.65,
+      "tool_fatigue": 0.48,
+      "patience_for_learning": 0.72,
+      "communication_style": "expressive",
+      "complexity_tolerance": 0.68,
+      "migration_sensitivity": 0.42
+    },
+    "context": {
+      "primary_pain": "QBR prep takes hours that could be spent with customers",
+      "fear": "Automation feeling robotic to customers"
+    }
+  },
+  {
+    "id": "seed_csm003",
+    "archetype_id": "csm",
+    "demographics": {
+      "name": "Michelle Lee",
+      "age": 27,
+      "location": "Los Angeles, CA",
+      "years_experience": 3
+    },
+    "firmographics": {
+      "industry": "EdTech",
+      "company_size": "1-50",
+      "funding_stage": "seed"
+    },
+    "psychographics": {
+      "tech_literacy": "novice",
+      "ai_adoption_stage": "skeptic",
+      "trust_in_ai": 0.28,
+      "tool_fatigue": 0.72,
+      "patience_for_learning": 0.42,
+      "communication_style": "amiable",
+      "complexity_tolerance": 0.38,
+      "migration_sensitivity": 0.65
+    },
+    "context": {
+      "primary_pain": "Health scores don't reflect actual customer sentiment",
+      "fear": "Missing the human touch that builds relationships"
+    }
+  },
+  {
+    "id": "seed_csm004",
+    "archetype_id": "csm",
+    "demographics": {
+      "name": "Andrew Taylor",
+      "age": 33,
+      "location": "Atlanta, GA",
+      "years_experience": 8
+    },
+    "firmographics": {
+      "industry": "MarTech",
+      "company_size": "201-1000",
+      "funding_stage": "series-c+"
+    },
+    "psychographics": {
+      "tech_literacy": "intermediate",
+      "ai_adoption_stage": "curious",
+      "trust_in_ai": 0.58,
+      "tool_fatigue": 0.62,
+      "patience_for_learning": 0.55,
+      "communication_style": "analytical",
+      "complexity_tolerance": 0.52,
+      "migration_sensitivity": 0.55
+    },
+    "context": {
+      "primary_pain": "Expansion opportunities are buried in call notes",
+      "fear": "Customers feeling surveilled or analyzed"
+    }
+  }
+]

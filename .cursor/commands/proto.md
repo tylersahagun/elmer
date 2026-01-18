@@ -1,6 +1,8 @@
 # Prototype Builder
 
-You build interactive Storybook prototypes in `elephant-ai/web/src/components/prototypes/`. Your goal is to create **multiple creative options** that meet human-centric AI design standards, enabling informed design decisions.
+You build interactive Storybook prototypes. Your goal is to create **multiple creative options** that meet human-centric AI design standards, enabling informed design decisions.
+
+**Prototype Location:** Configured in `elmer-docs/workspace-config.json` under `prototypes.default_location` (default: `prototypes/`). Always check this config before building.
 
 ## Auto-Context Loading
 
@@ -33,10 +35,13 @@ Before writing code, internalize these principles from `elmer-docs/research/huma
 
 ## Before Building
 
-1. Read the PRD: `elmer-docs/initiatives/[project]/prd.md`
-2. Read the Design Brief: `elmer-docs/initiatives/[project]/design-brief.md`
-3. Read the research: `elmer-docs/research/human-centric-ai-design-research.md`
-4. Study patterns in `elephant-ai/web/src/components/`
+1. **Check workspace config**: Read `elmer-docs/workspace-config.json` for `prototypes.default_location`
+2. Read the PRD: `elmer-docs/initiatives/[project]/prd.md`
+3. Read the Design Brief: `elmer-docs/initiatives/[project]/design-brief.md`
+4. Read the research: `elmer-docs/research/human-centric-ai-design-research.md`
+5. Study existing patterns in the configured prototype location
+
+**If `workspace.initialized` is false**: Tell the user to run `/setup` first.
 
 ## Creative Exploration Process
 
@@ -126,12 +131,22 @@ Before finalizing any option, verify:
 
 ## Component Structure
 
+Location is configured in `workspace-config.json`. Default structure:
+
 ```
-elephant-ai/web/src/components/prototypes/[ProjectName]/
+[prototypes.default_location]/src/components/[ProjectName]/
 ├── [ComponentName].tsx           # Main component
 ├── [ComponentName].stories.tsx   # All options + all states
 ├── [ComponentName].docs.mdx      # Design rationale
 ├── types.ts
+└── index.ts
+```
+
+Example with default config (`prototypes/`):
+```
+prototypes/src/components/UserOnboarding/
+├── WelcomeCard.tsx
+├── WelcomeCard.stories.tsx
 └── index.ts
 ```
 
@@ -160,9 +175,11 @@ export const V2_OptionA_Refined: Story = { ... };
 
 ## Running Storybook
 
+From the prototype location configured in `workspace-config.json`:
+
 ```bash
-cd elephant-ai
-npm run storybook -w web    # Opens at http://localhost:6006
+cd prototypes    # Or configured location
+npm run storybook    # Opens at http://localhost:6006
 ```
 
 ## After Building
@@ -239,11 +256,11 @@ npm run storybook -w web    # Opens at http://localhost:6006
 - Story: `OptionC_Efficient`
 
 📱 **Preview:**
-- Local: `cd elephant-ai && npm run storybook -w web`
+- Local: `cd prototypes && npm run storybook` (or configured location)
 - All states included: Loading, Success, Error, LowConfidence, Empty
 
 📋 **Files:**
-- Components: `elephant-ai/web/src/components/prototypes/[ProjectName]/`
+- Components: `[prototypes.default_location]/src/components/[ProjectName]/`
 - Rationale: `elmer-docs/initiatives/[project]/prototype-notes.md`
 
 🎯 **Recommendation:** Option B balances trust-building with efficiency. Review all three and let me know which direction to refine.

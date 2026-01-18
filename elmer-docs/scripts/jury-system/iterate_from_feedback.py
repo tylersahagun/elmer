@@ -530,8 +530,10 @@ Based on 18% pass rate among skeptics, implement these patterns:
     # Add Storybook stories to create
     content += """## Storybook Stories to Create
 
+Location: Check `elmer-docs/workspace-config.json` for `prototypes.default_location` (default: `prototypes/`)
+
 ```typescript
-// Stories to implement in elephant-ai/web/src/components/prototypes/
+// Stories to implement in [prototypes.default_location]/src/components/
 
 export default {
   title: 'Prototypes/JuryFeedback',

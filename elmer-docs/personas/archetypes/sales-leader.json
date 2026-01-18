@@ -1,0 +1,43 @@
+{
+  "archetype_id": "sales-leader",
+  "name": "Sales Leader",
+  "description": "Manager or director responsible for team performance and forecasting",
+  "role": {
+    "title": "Sales Manager / Director of Sales / VP Sales",
+    "responsibilities": ["Team coaching", "Pipeline review", "Forecasting", "Hiring", "Strategy"],
+    "decision_authority": "Team tool purchases, budget allocation, process changes"
+  },
+  "pains": [
+    "No visibility into deals without asking reps",
+    "Forecast is unreliable and embarrassing in board meetings",
+    "Reps not following process consistently",
+    "Ramp time for new hires is too long",
+    "Can't scale coaching across the team"
+  ],
+  "success_criteria": [
+    "Hit team quota predictably",
+    "Know deal health without micromanaging",
+    "Ramp new reps faster",
+    "Spend time on strategy, not admin"
+  ],
+  "evaluation_heuristics": [
+    "Will my reps actually adopt this?",
+    "Does this help me coach or just surveil?",
+    "Can I show ROI to leadership?",
+    "Does it integrate with our existing stack?"
+  ],
+  "typical_tools": ["CRM reports", "Forecasting tools", "Call coaching platforms", "BI dashboards"],
+  "fears": [
+    "Team not adopting the tool (shelfware)",
+    "Creating surveillance culture that kills morale",
+    "Investing in something that doesn't show ROI",
+    "Change fatigue overwhelming the team"
+  ],
+  "psychographic_ranges": {
+    "tech_literacy": ["intermediate", "advanced"],
+    "ai_adoption_stage": ["curious", "early-adopter", "power-user"],
+    "tool_fatigue": [0.3, 0.7],
+    "patience_for_learning": [0.4, 0.8],
+    "trust_in_ai": [0.3, 0.8]
+  }
+}

@@ -51,6 +51,7 @@ Use these to:
 | "test with users", "validate design", "run jury", "user feedback" | `/validate [name]` | Run synthetic user jury evaluation |
 | "iterate", "refine prototype", "update based on feedback" | `/iterate [name]` | Refine existing prototype |
 | "design review", "design considerations", "UX check" | `/design [name]` | Review design considerations |
+| "analytics", "metrics", "tracking", "posthog", "events", "funnels", "measurement" | `/measure [name]` | Generate measurement plan |
 | "track hypothesis", "assumption to test", "we believe that" | `/hypothesis [name]` | Manage product hypotheses |
 | "brainstorm", "generate ideas", "explore options" | `/brainstorm-board` | Generate creative ideas |
 | "process signals", "new feedback came in", "ingest this" | `/ingest` | Process new signals/feedback |
@@ -184,6 +185,12 @@ This helps ensure we're building the right thing.
 - Low-risk: Can auto-execute
 - Note: Ensures Docker, PostgreSQL, migrations, and dev server are running
 
+### Measurement/Analytics Intent
+- Contains: "analytics", "metrics", "tracking", "posthog", "events", "funnels", "measurement", "instrument", "how do we measure"
+- Action: Suggest `/measure [initiative-name]`
+- Requires: Initiative name (ask if not provided)
+- Note: Generates measurement plan with PostHog events, funnels, and decision rules
+
 ---
 
 ## Context Loading by Command Type
@@ -195,7 +202,8 @@ This helps ensure we're building the right thing.
 | Prototype | product-vision.md, PRD, design-brief.md, workspace-config.json |
 | Placement | PRD, design-brief.md, product-repos/ structure (if configured) |
 | Context-Proto | PRD, design-brief.md, product-repos/ structure, component-patterns.mdc |
-| Validate | All initiative docs, jury-system.mdc |
+| Measure | product-vision.md, PRD, design-brief.md, research.md |
+| Validate | All initiative docs, jury-system.mdc, measurement-plan.md |
 | Status/Help | Current workspace state |
 | Git workflows | git-workflow.mdc, current branch state |
 | Branch | git-workflow.mdc |

@@ -1,0 +1,118 @@
+[
+  {
+    "id": "seed_op001",
+    "archetype_id": "operations",
+    "demographics": {
+      "name": "Kevin Nakamura",
+      "age": 35,
+      "location": "San Francisco, CA",
+      "years_experience": 10
+    },
+    "firmographics": {
+      "industry": "B2B SaaS",
+      "company_size": "201-1000",
+      "funding_stage": "series-c+"
+    },
+    "psychographics": {
+      "tech_literacy": "expert",
+      "ai_adoption_stage": "early-adopter",
+      "trust_in_ai": 0.62,
+      "tool_fatigue": 0.68,
+      "patience_for_learning": 0.75,
+      "communication_style": "analytical",
+      "complexity_tolerance": 0.85,
+      "migration_sensitivity": 0.55
+    },
+    "context": {
+      "primary_pain": "Data quality suffers because reps don't update CRM",
+      "fear": "Another tool that creates tech debt"
+    }
+  },
+  {
+    "id": "seed_op002",
+    "archetype_id": "operations",
+    "demographics": {
+      "name": "Rachel Martinez",
+      "age": 29,
+      "location": "Austin, TX",
+      "years_experience": 5
+    },
+    "firmographics": {
+      "industry": "HR Tech",
+      "company_size": "51-200",
+      "funding_stage": "series-b"
+    },
+    "psychographics": {
+      "tech_literacy": "advanced",
+      "ai_adoption_stage": "curious",
+      "trust_in_ai": 0.55,
+      "tool_fatigue": 0.58,
+      "patience_for_learning": 0.72,
+      "communication_style": "driver",
+      "complexity_tolerance": 0.68,
+      "migration_sensitivity": 0.48
+    },
+    "context": {
+      "primary_pain": "Building integrations for every new tool is exhausting",
+      "fear": "Integration complexity overwhelming the team"
+    }
+  },
+  {
+    "id": "seed_op003",
+    "archetype_id": "operations",
+    "demographics": {
+      "name": "David O'Brien",
+      "age": 42,
+      "location": "Chicago, IL",
+      "years_experience": 15
+    },
+    "firmographics": {
+      "industry": "Financial Services",
+      "company_size": "1000+",
+      "funding_stage": "public"
+    },
+    "psychographics": {
+      "tech_literacy": "intermediate",
+      "ai_adoption_stage": "skeptic",
+      "trust_in_ai": 0.35,
+      "tool_fatigue": 0.82,
+      "patience_for_learning": 0.52,
+      "communication_style": "analytical",
+      "complexity_tolerance": 0.55,
+      "migration_sensitivity": 0.88
+    },
+    "context": {
+      "primary_pain": "Tech debt from previous tool decisions is massive",
+      "fear": "Vendor lock-in with proprietary data format"
+    }
+  },
+  {
+    "id": "seed_op004",
+    "archetype_id": "operations",
+    "demographics": {
+      "name": "Priya Sharma",
+      "age": 31,
+      "location": "New York, NY",
+      "years_experience": 7
+    },
+    "firmographics": {
+      "industry": "Fintech",
+      "company_size": "201-1000",
+      "funding_stage": "series-c+"
+    },
+    "psychographics": {
+      "tech_literacy": "advanced",
+      "ai_adoption_stage": "early-adopter",
+      "trust_in_ai": 0.68,
+      "tool_fatigue": 0.55,
+      "patience_for_learning": 0.78,
+      "communication_style": "expressive",
+      "complexity_tolerance": 0.75,
+      "migration_sensitivity": 0.42
+    },
+    "context": {
+      "primary_pain": "Forecasting methodology is inconsistent across teams",
+      "fear": "Migration risk to existing workflows"
+    }
+  }
+]

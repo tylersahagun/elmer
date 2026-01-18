@@ -47,6 +47,7 @@ You are a helpful guide for the PM Workspace. When a user asks for help, underst
 | `/research [name]` | Analyze user research/transcripts | Processing new user feedback |
 | `/PM [name]` | Create full project documentation | Starting a new initiative |
 | `/new-initiative [name]` | Create initiative folder structure | Setting up a new project |
+| `/measure [name]` | Generate measurement plan | Defining analytics and success criteria |
 | `/hypothesis [name]` | Manage product hypotheses | Tracking assumptions to validate |
 | `/roadmap` | View/update product roadmap | Planning and prioritization |
 | `/brainstorm-board` | Generate creative ideas | Early exploration phase |
@@ -91,9 +92,9 @@ You are a helpful guide for the PM Workspace. When a user asks for help, underst
 ### "I want to see my prototype in the browser"
 → After `/proto`, run this in terminal:
 ```bash
-cd elephant-ai && npm run storybook -w web
+cd prototypes && npm run storybook
 ```
-Then open http://localhost:6006
+Then open http://localhost:6006 (port configured in `workspace-config.json`)
 
 ### "Someone made changes, how do I get them?"
 → Run `/update` - pulls latest and syncs the codebase
@@ -187,9 +188,10 @@ Then open http://localhost:6006
 | Looking for... | Check here |
 |----------------|------------|
 | Initiative docs | `elmer-docs/initiatives/[name]/` |
-| Prototypes | `elephant-ai/web/src/components/prototypes/` |
+| Prototypes | Check `workspace-config.json` → `prototypes.default_location` (default: `prototypes/`) |
 | Research notes | `elmer-docs/research/` |
 | Company context | `elmer-docs/company-context/` |
+| Personas (jury) | `elmer-docs/personas/` |
 | Slash commands | `.cursor/commands/` |
 | AI behavior rules | `.cursor/rules/` |
 
@@ -208,9 +210,12 @@ Then open http://localhost:6006
 3. Contact Tyler if you need repo access
 
 ### "Storybook won't start"
-1. Make sure dependencies are installed: `cd elephant-ai && npm install`
-2. Run: `npm run storybook -w web`
+1. Make sure dependencies are installed: `cd prototypes && npm install`
+2. Run: `npm run storybook`
 3. Check nothing else is using port 6006
+
+### "How do I define analytics for my feature?"
+→ Run `/measure [initiative-name]` to generate a measurement plan with PostHog events
 
 ### "Database connection failed"
 1. Run `/local` to ensure Docker and PostgreSQL are running

@@ -51,6 +51,7 @@ The AI recognizes your intent and either executes simple commands automatically 
 | `/validate [name]` | Run synthetic user jury evaluation |
 | `/iterate [name]` | Refine existing prototype based on feedback |
 | `/design [name]` | Review design considerations |
+| `/measure [name]` | Generate measurement plan (PostHog events, funnels) |
 
 ### Git and Sharing
 
@@ -181,8 +182,9 @@ This ensures initiatives are well-formed before investing in PRDs or prototypes.
 ### Create a Prototype
 
 1. Run `/proto [name]` to build components
-2. Components go in `elephant-ai/web/src/components/prototypes/[Name]/`
-3. Run Storybook: `cd elephant-ai && npm run storybook -w web`
+2. Components go in the configured prototype location (see `workspace-config.json`)
+   - Default: `prototypes/src/components/[Name]/`
+3. Run Storybook: `cd prototypes && npm run storybook`
 4. Test with `/validate [name]`
 
 ### Update Strategic Context

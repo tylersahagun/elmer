@@ -30,3 +30,7 @@ npm-debug.log*
 
 # Notion sync (local only)
 pm-workspace-docs/NotionSync/
+
+# Generated personas (large batches, regenerate locally)
+elmer-docs/personas/generated/
+__pycache__/

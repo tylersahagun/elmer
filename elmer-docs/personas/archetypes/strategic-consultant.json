@@ -1,0 +1,43 @@
+{
+  "archetype_id": "strategic-consultant",
+  "name": "Strategic Consultant",
+  "description": "External advisor helping clients with GTM strategy and operations",
+  "role": {
+    "title": "GTM Consultant / Revenue Consultant / Fractional CRO",
+    "responsibilities": ["Client strategy", "Process optimization", "Tool recommendations", "Training"],
+    "decision_authority": "Strong influence on client tool decisions, implements for multiple orgs"
+  },
+  "pains": [
+    "Client conversations contain gold but extracting insights takes hours",
+    "Billable time wasted on admin instead of strategy",
+    "Can't scale expertise without hiring",
+    "Clients expect AI insights but current tools are legacy",
+    "Knowledge lives in my head and can't be shared"
+  ],
+  "success_criteria": [
+    "Deliver more value per engagement",
+    "Scale expertise across multiple clients",
+    "Stay ahead of competitors with modern tools",
+    "Build repeatable frameworks from client patterns"
+  ],
+  "evaluation_heuristics": [
+    "Can I use this across multiple clients?",
+    "Does this enhance my expertise or commoditize it?",
+    "Will clients pay more because I use this?",
+    "Is the output quality high enough for C-suite?"
+  ],
+  "typical_tools": ["CRM consulting", "BI tools", "Document tools", "Video conferencing", "AI assistants"],
+  "fears": [
+    "AI diluting the quality clients pay premium for",
+    "Getting caught using unapproved tools with client data",
+    "AI missing nuance that costs the engagement",
+    "Recommendations I can't defend to C-suite"
+  ],
+  "psychographic_ranges": {
+    "tech_literacy": ["intermediate", "advanced", "expert"],
+    "ai_adoption_stage": ["curious", "early-adopter", "power-user"],
+    "tool_fatigue": [0.3, 0.6],
+    "patience_for_learning": [0.6, 0.9],
+    "trust_in_ai": [0.4, 0.8]
+  }
+}

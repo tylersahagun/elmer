@@ -47,11 +47,24 @@ elmer-docs/initiatives/[name]/iterations/iter-[timestamp]/
 
 ## Persona Loading
 
-Before any jury operation, load personas from:
+The jury system uses a shared loader that automatically finds personas:
 
-1. **Archetypes**: `elmer-docs/personas/archetypes/*.json`
-2. **Generated Pool**: `elmer-docs/personas/generated/[latest-batch]/personas.json`
-3. **Cohorts** (for stratified sampling): `elmer-docs/personas/cohorts/*.json`
+```python
+from persona_loader import load_personas_for_jury
+jury = load_personas_for_jury(jury_size=100)
+```
+
+**Priority Order:**
+1. **Generated batch** - Latest `personas/generated/batch-*/all-personas.json`
+2. **Seed personas** - Committed `personas/seeds/*.json` (always available)
+3. **Expansion** - Light variation on seeds if more personas needed
+
+**No pre-generation required** - seeds provide baseline functionality out of the box.
+
+**Persona Sources:**
+- **Archetypes**: `elmer-docs/personas/archetypes/*.json` - Template definitions
+- **Seeds**: `elmer-docs/personas/seeds/*.json` - Small committed set (20 personas)
+- **Generated**: `elmer-docs/personas/generated/batch-*/` - Large batches (gitignored)
 
 ### Stratified Sampling
 
@@ -445,10 +458,13 @@ Merge `prd-amendments.md` into main PRD:
 
 ### Step 5: Build Prototype Addressing Feedback
 
-Use `prototype-spec.md` to create Storybook stories:
+Use `prototype-spec.md` to create Storybook stories.
+
+Prototype location is configured in `elmer-docs/workspace-config.json`:
+- Check `prototypes.default_location` for the base path (default: `prototypes/`)
 
 ```typescript
-// elephant-ai/web/src/components/prototypes/HubSpotConfig/
+// Example: prototypes/src/components/[InitiativeName]/
 UndoRollbackToast.tsx
 UndoRollbackToast.stories.tsx
 IntegrationStatusDashboard.tsx

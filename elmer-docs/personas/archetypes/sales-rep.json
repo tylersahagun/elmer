@@ -1,0 +1,43 @@
+{
+  "archetype_id": "sales-rep",
+  "name": "Sales Representative",
+  "description": "Individual contributor responsible for closing deals and managing pipeline",
+  "role": {
+    "title": "Account Executive / Sales Rep",
+    "responsibilities": ["Pipeline management", "Customer calls", "Demo delivery", "Deal negotiation"],
+    "decision_authority": "Tool adoption for personal workflow, influence on team tools"
+  },
+  "pains": [
+    "Spending too much time on admin instead of selling",
+    "CRM data entry is tedious and often incomplete",
+    "Missing follow-up signals in customer conversations",
+    "Can't remember context from past calls",
+    "Competitors respond faster"
+  ],
+  "success_criteria": [
+    "Close more deals with less effort",
+    "Look prepared and professional on every call",
+    "Hit quota without burning out",
+    "Spend more time with customers, less with tools"
+  ],
+  "evaluation_heuristics": [
+    "Will this make me look good to my manager and customers?",
+    "How much time will this add vs save?",
+    "Can I trust it not to make mistakes that hurt my deals?",
+    "Will this feel like surveillance or support?"
+  ],
+  "typical_tools": ["CRM (Salesforce/HubSpot)", "Email", "Calendar", "LinkedIn", "Call recording"],
+  "fears": [
+    "AI making mistakes that hurt deals",
+    "Being micromanaged through AI surveillance",
+    "Automation that makes me look robotic to customers",
+    "Losing my job to AI"
+  ],
+  "psychographic_ranges": {
+    "tech_literacy": ["novice", "intermediate", "advanced"],
+    "ai_adoption_stage": ["skeptic", "curious", "early-adopter"],
+    "tool_fatigue": [0.4, 0.8],
+    "patience_for_learning": [0.3, 0.7],
+    "trust_in_ai": [0.2, 0.7]
+  }
+}

@@ -1,0 +1,118 @@
+[
+  {
+    "id": "seed_sl001",
+    "archetype_id": "sales-leader",
+    "demographics": {
+      "name": "Michael Johnson",
+      "age": 38,
+      "location": "New York, NY",
+      "years_experience": 12
+    },
+    "firmographics": {
+      "industry": "B2B SaaS",
+      "company_size": "201-1000",
+      "funding_stage": "series-c+"
+    },
+    "psychographics": {
+      "tech_literacy": "advanced",
+      "ai_adoption_stage": "early-adopter",
+      "trust_in_ai": 0.68,
+      "tool_fatigue": 0.52,
+      "patience_for_learning": 0.65,
+      "communication_style": "driver",
+      "complexity_tolerance": 0.72,
+      "migration_sensitivity": 0.45
+    },
+    "context": {
+      "primary_pain": "No visibility into deals without asking reps",
+      "fear": "Team not adopting the tool"
+    }
+  },
+  {
+    "id": "seed_sl002",
+    "archetype_id": "sales-leader",
+    "demographics": {
+      "name": "Lisa Park",
+      "age": 45,
+      "location": "Seattle, WA",
+      "years_experience": 18
+    },
+    "firmographics": {
+      "industry": "Enterprise Software",
+      "company_size": "1000+",
+      "funding_stage": "public"
+    },
+    "psychographics": {
+      "tech_literacy": "intermediate",
+      "ai_adoption_stage": "curious",
+      "trust_in_ai": 0.48,
+      "tool_fatigue": 0.62,
+      "patience_for_learning": 0.55,
+      "communication_style": "analytical",
+      "complexity_tolerance": 0.58,
+      "migration_sensitivity": 0.68
+    },
+    "context": {
+      "primary_pain": "Forecast is unreliable and embarrassing in board meetings",
+      "fear": "Investing in something that becomes shelfware"
+    }
+  },
+  {
+    "id": "seed_sl003",
+    "archetype_id": "sales-leader",
+    "demographics": {
+      "name": "James Wilson",
+      "age": 32,
+      "location": "Denver, CO",
+      "years_experience": 7
+    },
+    "firmographics": {
+      "industry": "Fintech",
+      "company_size": "51-200",
+      "funding_stage": "series-b"
+    },
+    "psychographics": {
+      "tech_literacy": "advanced",
+      "ai_adoption_stage": "power-user",
+      "trust_in_ai": 0.82,
+      "tool_fatigue": 0.35,
+      "patience_for_learning": 0.78,
+      "communication_style": "expressive",
+      "complexity_tolerance": 0.8,
+      "migration_sensitivity": 0.28
+    },
+    "context": {
+      "primary_pain": "Ramp time for new hires is too long",
+      "fear": "AI forecast that leadership doesn't trust"
+    }
+  },
+  {
+    "id": "seed_sl004",
+    "archetype_id": "sales-leader",
+    "demographics": {
+      "name": "Amanda Garcia",
+      "age": 41,
+      "location": "Miami, FL",
+      "years_experience": 14
+    },
+    "firmographics": {
+      "industry": "MarTech",
+      "company_size": "201-1000",
+      "funding_stage": "series-c+"
+    },
+    "psychographics": {
+      "tech_literacy": "intermediate",
+      "ai_adoption_stage": "skeptic",
+      "trust_in_ai": 0.32,
+      "tool_fatigue": 0.72,
+      "patience_for_learning": 0.48,
+      "communication_style": "amiable",
+      "complexity_tolerance": 0.42,
+      "migration_sensitivity": 0.75
+    },
+    "context": {
+      "primary_pain": "Change fatigue killing team morale",
+      "fear": "Creating surveillance culture that kills morale"
+    }
+  }
+]

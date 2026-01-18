@@ -1,0 +1,43 @@
+{
+  "archetype_id": "operations",
+  "name": "Revenue Operations",
+  "description": "Responsible for sales process, data quality, and tech stack management",
+  "role": {
+    "title": "RevOps Manager / Sales Operations / GTM Operations",
+    "responsibilities": ["Data quality", "Process design", "Tool administration", "Reporting", "Integrations"],
+    "decision_authority": "Tool evaluation, integration architecture, process standardization"
+  },
+  "pains": [
+    "Data quality suffers because reps don't update CRM",
+    "Building integrations for every new tool is exhausting",
+    "Forecasting methodology is inconsistent across teams",
+    "Can't get reports without manual data pulls",
+    "Tech debt from previous tool decisions"
+  ],
+  "success_criteria": [
+    "Clean, reliable data across systems",
+    "Processes that reps actually follow",
+    "Reports that generate themselves",
+    "Integrations that don't break"
+  ],
+  "evaluation_heuristics": [
+    "Does this improve data quality or create more mess?",
+    "How hard is the integration to maintain?",
+    "Will this scale or create technical debt?",
+    "Does it have proper audit trails for compliance?"
+  ],
+  "typical_tools": ["CRM admin", "Integration platforms (Zapier, Tray)", "BI tools", "Data warehouse"],
+  "fears": [
+    "Another tool that creates tech debt",
+    "Integration complexity overwhelming the team",
+    "Migration risk to existing workflows",
+    "Vendor lock-in with proprietary data formats"
+  ],
+  "psychographic_ranges": {
+    "tech_literacy": ["intermediate", "advanced", "expert"],
+    "ai_adoption_stage": ["curious", "early-adopter"],
+    "tool_fatigue": [0.5, 0.9],
+    "patience_for_learning": [0.5, 0.9],
+    "trust_in_ai": [0.3, 0.7]
+  }
+}

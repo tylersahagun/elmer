@@ -1,0 +1,250 @@
+{
+  "total": 25,
+  "verdicts": {
+    "approve": 6,
+    "conditional": 2,
+    "reject": 17
+  },
+  "approval_rate": 24.0,
+  "conditional_rate": 8.0,
+  "rejection_rate": 68.0,
+  "by_archetype": {
+    "sales-rep": {
+      "approve": 0,
+      "conditional": 0,
+      "reject": 4
+    },
+    "strategic-consultant": {
+      "approve": 1,
+      "conditional": 1,
+      "reject": 4
+    },
+    "operations": {
+      "approve": 2,
+      "conditional": 0,
+      "reject": 3
+    },
+    "sales-leader": {
+      "approve": 2,
+      "conditional": 0,
+      "reject": 4
+    },
+    "csm": {
+      "approve": 1,
+      "conditional": 1,
+      "reject": 2
+    }
+  },
+  "by_adoption": {
+    "early-adopter": {
+      "approve": 3,
+      "conditional": 1,
+      "reject": 3
+    },
+    "skeptic": {
+      "approve": 0,
+      "conditional": 0,
+      "reject": 6
+    },
+    "curious": {
+      "approve": 1,
+      "conditional": 1,
+      "reject": 7
+    },
+    "power-user": {
+      "approve": 2,
+      "conditional": 0,
+      "reject": 1
+    }
+  },
+  "top_concerns": [
+    {
+      "theme": "Will this integrate with my existing workflow?",
+      "count": 6
+    },
+    {
+      "theme": "How long does it take to set up?",
+      "count": 5
+    },
+    {
+      "theme": "Need better visibility into what it's doing",
+      "count": 4
+    },
+    {
+      "theme": "Would love more advanced customization",
+      "count": 4
+    },
+    {
+      "theme": "The preview/testing feature is critical",
+      "count": 4
+    },
+    {
+      "theme": "How do I know the AI won't make mistakes?",
+      "count": 3
+    },
+    {
+      "theme": "What's the learning curve?",
+      "count": 3
+    },
+    {
+      "theme": "My current process works fine",
+      "count": 3
+    },
+    {
+      "theme": "What happens when it goes wrong?",
+      "count": 2
+    },
+    {
+      "theme": "Advanced features seem limited",
+      "count": 2
+    }
+  ],
+  "top_suggestions": [
+    {
+      "theme": "White-label options",
+      "count": 5
+    },
+    {
+      "theme": "ROI/time-savings metrics",
+      "count": 4
+    },
+    {
+      "theme": "Team-wide configuration templates",
+      "count": 4
+    },
+    {
+      "theme": "Clear activity log I can review",
+      "count": 3
+    },
+    {
+      "theme": "Multi-client management",
+      "count": 3
+    },
+    {
+      "theme": "API for custom integrations",
+      "count": 3
+    },
+    {
+      "theme": "Audit logs for compliance",
+      "count": 3
+    },
+    {
+      "theme": "Rollout visibility across reps",
+      "count": 3
+    },
+    {
+      "theme": "Customer timeline view",
+      "count": 3
+    },
+    {
+      "theme": "One-click to pause/resume",
+      "count": 2
+    }
+  ],
+  "friction_points": [
+    {
+      "theme": "Unclear feedback on sync status",
+      "count": 10
+    },
+    {
+      "theme": "Rollback if something breaks",
+      "count": 9
+    },
+    {
+      "theme": "Integration with existing tools",
+      "count": 8
+    },
+    {
+      "theme": "Configuration complexity",
+      "count": 7
+    },
+    {
+      "theme": "Compliance/security concerns",
+      "count": 5
+    },
+    {
+      "theme": "Training team on changes",
+      "count": 4
+    },
+    {
+      "theme": "Understanding what gets synced",
+      "count": 4
+    },
+    {
+      "theme": "Testing before go-live",
+      "count": 3
+    }
+  ],
+  "sample_feedback": [
+    {
+      "persona_id": "seed_sr001",
+      "archetype": "sales-rep",
+      "ai_adoption": "early-adopter",
+      "verdict": "reject",
+      "feedback": "This is exactly what I've been looking for. The transparency features are key - I want to see what it's doing."
+    },
+    {
+      "persona_id": "seed_sr002",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "I'm not opposed to AI, I'm opposed to hype. Show me the ROI, show me it works, then we can talk."
+    },
+    {
+      "persona_id": "seed_sr003",
+      "archetype": "sales-rep",
+      "ai_adoption": "curious",
+      "verdict": "reject",
+      "feedback": "Interesting approach to the configuration problem. I'd want to pilot this with a small group first."
+    },
+    {
+      "persona_id": "seed_sr004",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "Look, I've been burned by these AI tools before. I need to see exactly what it's doing before I trust it with my pipeline."
+    },
+    {
+      "persona_id": "seed_sc001",
+      "archetype": "strategic-consultant",
+      "ai_adoption": "early-adopter",
+      "verdict": "conditional",
+      "feedback": "Love the direction. Just need better preview/testing capabilities before pushing to the whole team."
+    },
+    {
+      "persona_id": "seed_sc002",
+      "archetype": "strategic-consultant",
+      "ai_adoption": "power-user",
+      "verdict": "approve",
+      "feedback": "Good start, but I need more control. Let me customize the exact behavior, build my own templates."
+    },
+    {
+      "persona_id": "seed_sc003",
+      "archetype": "strategic-consultant",
+      "ai_adoption": "curious",
+      "verdict": "reject",
+      "feedback": "This sounds promising, but I need to understand the setup process better. How long until I see value?"
+    },
+    {
+      "persona_id": "seed_sc004",
+      "archetype": "strategic-consultant",
+      "ai_adoption": "early-adopter",
+      "verdict": "reject",
+      "feedback": "Love the direction. Just need better preview/testing capabilities before pushing to the whole team."
+    },
+    {
+      "persona_id": "seed_op001",
+      "archetype": "operations",
+      "ai_adoption": "early-adopter",
+      "verdict": "approve",
+      "feedback": "Love the direction. Just need better preview/testing capabilities before pushing to the whole team."
+    },
+    {
+      "persona_id": "seed_op002",
+      "archetype": "operations",
+      "ai_adoption": "curious",
+      "verdict": "reject",
+      "feedback": "Interesting approach to the configuration problem. I'd want to pilot this with a small group first."
+    }
+  ]
+}

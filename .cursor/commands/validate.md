@@ -32,8 +32,9 @@ Based on current phase, check if ready to advance:
 #### Define → Build
 - [ ] `prd.md` exists and approved
 - [ ] `design-brief.md` exists
+- [ ] `measurement-plan.md` exists with event taxonomy
 - [ ] Outcome chain defined
-- [ ] Success metrics specified
+- [ ] Success metrics specified with formulas (not vague)
 
 #### Build → Validate
 - [ ] `prototype-notes.md` exists
@@ -46,6 +47,8 @@ Based on current phase, check if ready to advance:
 - [ ] Stakeholder approval
 - [ ] No P0 blockers
 - [ ] GTM brief complete
+- [ ] Instrumentation confirmed (events implemented in code)
+- [ ] At least one dashboard created/verified in PostHog
 
 ### 3. Run Jury Evaluation (if applicable)
 
