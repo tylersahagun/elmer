@@ -633,8 +633,8 @@ export function KanbanBoard() {
                 <motion.div
                   key={column.id}
                   variants={staggerItem}
-                  // Removed 'layout' prop - it causes expensive recalcs on scroll
-                  className="group flex-shrink-0"
+                  // Removed 'layout' prop - it causes expensive recalculates on scroll
+                  className="group shrink-0"
                 >
                   <KanbanColumn column={column} />
                 </motion.div>
@@ -650,7 +650,7 @@ export function KanbanBoard() {
             >
               <div
                 ref={scrollIndicatorRef}
-                className="absolute top-0 left-0 h-full w-[20%] bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 rounded-full will-change-transform cursor-grab active:cursor-grabbing"
+                className="absolute top-0 left-0 h-full w-[20%] bg-linear-to-r from-emerald-400 via-teal-400 to-emerald-400 rounded-full will-change-transform cursor-grab active:cursor-grabbing"
                 style={{
                   transform: 'translateX(0%)',
                 }}
