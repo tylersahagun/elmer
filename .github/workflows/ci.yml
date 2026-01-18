@@ -59,14 +59,10 @@ jobs:
   # Build Verification
   # ============================================
   
-  build:
-    name: Build
+  build-orchestrator:
+    name: Build (orchestrator)
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
-    
-    strategy:
-      matrix:
-        project: [orchestrator, prototypes]
     
     steps:
       - name: Checkout code
@@ -77,28 +73,56 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+          cache-dependency-path: orchestrator/package-lock.json
 
       - name: Install dependencies
-        working-directory: ${{ matrix.project }}
+        working-directory: orchestrator
         run: npm ci
 
       - name: Build
-        working-directory: ${{ matrix.project }}
+        working-directory: orchestrator
         run: npm run build
         env:
-          # Skip telemetry and type checking during build (already done)
           NEXT_TELEMETRY_DISABLED: 1
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.project }}-build
-          path: |
-            ${{ matrix.project }}/.next
-            ${{ matrix.project }}/dist
+          name: orchestrator-build
+          path: orchestrator/.next
           retention-days: 1
           if-no-files-found: ignore
+
+  build-prototypes:
+    name: Build (prototypes)
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: prototypes/package-lock.json
+
+      - name: Install dependencies
+        working-directory: prototypes
+        run: npm ci
+
+      - name: Build Storybook
+        working-directory: prototypes
+        run: npm run build-storybook
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prototypes-storybook
+          path: prototypes/storybook-static
+          retention-days: 1
 
   # ============================================
   # Security Scanning
@@ -134,7 +158,7 @@ jobs:
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, build, security]
+    needs: [lint-and-typecheck, build-orchestrator, build-prototypes, security]
     if: always() && github.event_name == 'pull_request'
     
     steps:
@@ -143,7 +167,9 @@ jobs:
         with:
           script: |
             const lintResult = '${{ needs.lint-and-typecheck.result }}';
-            const buildResult = '${{ needs.build.result }}';
+            const buildOrchestratorResult = '${{ needs.build-orchestrator.result }}';
+            const buildPrototypesResult = '${{ needs.build-prototypes.result }}';
+            const buildResult = (buildOrchestratorResult === 'success' && buildPrototypesResult === 'success') ? 'success' : 'failure';
             const securityResult = '${{ needs.security.result }}';
             
             const getEmoji = (result) => {
