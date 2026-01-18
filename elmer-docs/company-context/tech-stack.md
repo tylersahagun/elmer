@@ -1,80 +1,120 @@
 # Tech Stack
 
-> **⚠️ TEMPLATE** - Update this to reflect your product's tech stack.
->
-> This helps the AI understand your codebase conventions for prototyping and placement decisions.
+> elmer's technical architecture for the PM orchestrator and prototype system.
 
 ---
 
-## Frontend
+## Orchestrator App
 
 ### Framework
-- **Primary:** [React / Vue / Angular / etc.]
-- **Version:** [Version number]
-- **Rendering:** [CSR / SSR / SSG]
+- **Primary:** Next.js 15 (App Router)
+- **Version:** 15.x (latest)
+- **Rendering:** SSR + Server Components
 
 ### Language
-- **Primary:** [TypeScript / JavaScript]
-- **Strict Mode:** [Yes / No]
+- **Primary:** TypeScript
+- **Strict Mode:** Yes
 
 ### Styling
-- **Approach:** [Tailwind CSS / CSS Modules / Styled Components / etc.]
-- **Design System:** [shadcn/ui / Material UI / Custom / etc.]
+- **Approach:** Tailwind CSS
+- **Design System:** shadcn/ui + custom glassmorphic components
+- **Theme:** Aurora palette (teal → purple → pink → gold → blue)
+- **Effects:** Glass-morphism, backdrop-blur, animated gradients
 
 ### State Management
-- **Client State:** [React Query / Zustand / Redux / etc.]
-- **Server State:** [Apollo / React Query / SWR / etc.]
-
-### Build & Bundling
-- **Bundler:** [Vite / Webpack / etc.]
-- **Package Manager:** [npm / pnpm / yarn]
-
----
-
-## Backend (if applicable)
-
-### Runtime
-- **Primary:** [Node.js / Python / Go / etc.]
-- **Framework:** [Express / FastAPI / etc.]
+- **Client State:** React hooks + Zustand (where needed)
+- **Server State:** React Server Components + Server Actions
 
 ### Database
-- **Primary:** [PostgreSQL / MongoDB / etc.]
-- **ORM:** [Prisma / Drizzle / etc.]
+- **Primary:** PostgreSQL (Neon serverless)
+- **ORM:** Drizzle ORM
+- **Migrations:** Drizzle Kit
 
-### API
-- **Style:** [REST / GraphQL / tRPC]
-- **Documentation:** [OpenAPI / GraphQL Schema]
+### Build & Bundling
+- **Bundler:** Next.js built-in (Turbopack in dev)
+- **Package Manager:** npm
 
 ---
 
-## Infrastructure (if applicable)
+## Prototype System
+
+### Framework
+- **Primary:** React 18
+- **Rendering:** CSR (Vite dev server)
+
+### Component Documentation
+- **Primary:** Storybook 8
+- **Hosting:** Chromatic (visual review + hosting)
+- **URL:** https://main--696c2c54e35ea5bca2a772d8.chromatic.com
+
+### Styling
+- **Approach:** Tailwind CSS
+- **Design System:** shadcn/ui components
+- **Utilities:** `cn()` from `@/lib/utils`
+
+### Build
+- **Bundler:** Vite
+- **Package Manager:** npm
+
+---
+
+## AI & Agents
+
+### Agent Orchestration
+- **Runtime:** Cursor IDE (MCP servers + slash commands)
+- **Agent Framework:** Cursor Rules (`.mdc` files)
+- **CLI Integration:** Cursor CLI for background job execution
+
+### LLM Integration
+- **Primary:** Claude (Anthropic) via Cursor
+- **Fallback:** OpenAI GPT-4 (when needed)
+
+### MCP Servers
+- Linear (issue management)
+- Notion (knowledge base sync)
+- PostHog (metrics, planned)
+- Figma (design context)
+- GitHub (repo management)
+
+---
+
+## Infrastructure
 
 ### Hosting
-- **Frontend:** [Vercel / Netlify / etc.]
-- **Backend:** [AWS / GCP / etc.]
-- **Database:** [Managed / Self-hosted]
+- **Orchestrator:** Vercel (planned) or local development
+- **Prototypes:** Chromatic (Storybook hosting)
+- **Database:** Neon (serverless Postgres)
 
 ### CI/CD
-- **Platform:** [GitHub Actions / GitLab CI / etc.]
-- **Deploy Strategy:** [Preview deploys / Staging / etc.]
+- **Platform:** GitHub Actions
+- **Workflows:**
+  - Type checking (`tsc --noEmit`)
+  - Linting (ESLint)
+  - Storybook build validation
+  - Chromatic visual regression
+  - Security scanning
+
+### Environment
+- **Local Dev:** Docker Compose (Postgres container)
+- **Deploy Strategy:** Preview deploys on PRs, auto-deploy main
 
 ---
 
 ## Development Tools
 
 ### Code Quality
-- **Linter:** [ESLint / Biome / etc.]
-- **Formatter:** [Prettier / Biome / etc.]
-- **Type Checking:** [TypeScript / Flow / none]
+- **Linter:** ESLint
+- **Formatter:** Prettier (via ESLint)
+- **Type Checking:** TypeScript strict mode
 
 ### Testing
-- **Unit:** [Jest / Vitest / etc.]
-- **E2E:** [Playwright / Cypress / etc.]
-- **Visual:** [Chromatic / Percy / etc.]
+- **Visual:** Chromatic (Storybook visual regression)
+- **Unit:** Vitest (planned)
+- **E2E:** Playwright (planned)
 
 ### Documentation
-- **Components:** [Storybook]
-- **API:** [Swagger / GraphQL Playground]
+- **Components:** Storybook with autodocs
+- **API:** Server Actions (typed via TypeScript)
 
 ---
 
@@ -85,16 +125,17 @@ When building prototypes, follow these conventions:
 ### Component Structure
 ```
 [ComponentName]/
-├── [ComponentName].tsx
-├── [ComponentName].stories.tsx
-├── types.ts
-└── index.ts
+├── [ComponentName].tsx           # Component implementation
+├── [ComponentName].stories.tsx   # REQUIRED - Storybook stories
+├── types.ts                      # Optional - shared types
+└── index.ts                      # Barrel export
 ```
 
 ### Imports
 ```typescript
-// UI Components
+// UI Components (shadcn/ui)
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 // Types
 import type { ComponentProps } from './types';
@@ -105,8 +146,20 @@ import { cn } from '@/lib/utils';
 
 ### Naming
 - **Components:** PascalCase (`UserProfile.tsx`)
-- **Files:** kebab-case or PascalCase (match repo convention)
+- **Stories:** PascalCase matching component (`UserProfile.stories.tsx`)
 - **Props:** camelCase (`isLoading`, `onSubmit`)
+- **Files:** PascalCase for components, kebab-case for utilities
+
+### Story Titles
+```typescript
+// Prototypes go under Prototypes/ prefix
+title: 'Prototypes/[InitiativeName]/[ComponentName]'
+
+// Shared components go under category
+title: 'Atoms/Button'
+title: 'Molecules/Card'
+title: 'Organisms/Dialog'
+```
 
 ---
 
@@ -114,37 +167,54 @@ import { cn } from '@/lib/utils';
 
 | Category | Package | Version | Purpose |
 |----------|---------|---------|---------|
-| UI | [package] | [version] | [purpose] |
-| Forms | [package] | [version] | [purpose] |
-| Data | [package] | [version] | [purpose] |
-| Utils | [package] | [version] | [purpose] |
+| Framework | next | 15.x | App framework |
+| UI | @radix-ui/* | latest | Accessible primitives |
+| Styling | tailwindcss | 3.4.x | Utility CSS |
+| Database | drizzle-orm | latest | Type-safe ORM |
+| Database | @neondatabase/serverless | latest | Serverless Postgres |
+| Forms | react-hook-form | 7.x | Form handling |
+| Validation | zod | 3.x | Schema validation |
+| Animation | framer-motion | 11.x | Motion library |
+| Icons | lucide-react | latest | Icon system |
+| Docs | storybook | 8.x | Component documentation |
 
 ---
 
 ## Repository Structure
 
 ```
-[repo-name]/
-├── src/
-│   ├── components/       # UI Components
-│   │   ├── ui/          # Primitives
-│   │   └── [domain]/    # Feature components
-│   ├── hooks/           # Custom hooks
-│   ├── lib/             # Utilities
-│   ├── pages/           # Page components (if applicable)
-│   └── types/           # TypeScript types
-├── public/              # Static assets
-└── package.json
+elmer/
+├── orchestrator/                 # Main Next.js app
+│   ├── src/
+│   │   ├── app/                 # App Router pages
+│   │   ├── components/          # UI components
+│   │   │   ├── ui/             # shadcn/ui primitives
+│   │   │   └── [domain]/       # Feature components
+│   │   ├── hooks/              # Custom hooks
+│   │   └── lib/                # Utilities, DB, etc.
+│   ├── drizzle/                # Database migrations
+│   └── public/                 # Static assets
+├── prototypes/                  # Storybook prototype system
+│   ├── src/
+│   │   ├── components/         # Prototype components
+│   │   └── lib/               # Shared utilities
+│   └── .storybook/            # Storybook config
+├── elmer-docs/                 # PM documentation
+│   ├── company-context/        # Strategic foundation
+│   ├── initiatives/            # Project-specific work
+│   └── signals/               # Ingested feedback
+└── .cursor/
+    ├── commands/              # Slash commands
+    └── rules/                 # AI behavior rules
 ```
 
 ---
 
 ## Notes for Prototyping
 
-<!--
-Add any specific conventions or gotchas for your codebase
--->
-
-- [Convention 1]
-- [Convention 2]
-- [Gotcha to avoid]
+- **Every component needs a story** — No exceptions. Use `/component` command to scaffold both.
+- **Use shadcn/ui primitives** — Don't reinvent buttons, inputs, cards, etc.
+- **Aurora palette** — Use CSS variables from Tailwind config for consistent colors.
+- **Glassmorphic effects** — `backdrop-blur-md`, `bg-white/10`, subtle borders.
+- **Animations** — Use Framer Motion for complex animations, CSS for simple ones.
+- **Accessibility** — Radix primitives handle this; don't override keyboard/screen reader behavior.

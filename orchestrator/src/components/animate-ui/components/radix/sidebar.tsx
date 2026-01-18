@@ -164,6 +164,10 @@ const Sidebar = React.forwardRef<
       collapsible = "offcanvas",
       className,
       children,
+      // Exclude animation handlers that conflict with Framer Motion
+      onAnimationStart: _onAnimationStart,
+      onAnimationEnd: _onAnimationEnd,
+      onAnimationIteration: _onAnimationIteration,
       ...props
     },
     ref

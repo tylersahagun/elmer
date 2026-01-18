@@ -1,46 +1,91 @@
 {
   "$schema": "./workspace-config.schema.json",
   "workspace": {
-    "name": "PM Workspace",
-    "description": "AI-powered product management workspace",
-    "initialized": false,
-    "created_at": null,
+    "name": "elmer",
+    "description": "AI-powered PM orchestrator that compresses discovery from weeks to days",
+    "initialized": true,
+    "created_at": "2026-01-18T00:00:00Z",
     "version": "1.0.0"
   },
   "product": {
-    "name": "",
-    "one_liner": "",
-    "description": "",
-    "stage": "",
-    "target_market": "",
-    "anti_vision": []
+    "name": "elmer",
+    "one_liner": "AI-powered PM orchestrator that compresses discovery from weeks to days so teams build the right thing the first time",
+    "description": "A visual Kanban interface where moving a card triggers AI agents to execute PM work—from PRD generation to prototype creation to ticket handoff. Compress 6-week discovery cycles into 1 week.",
+    "stage": "alpha",
+    "target_market": "Solo PMs and small PM teams at startups who need to validate faster and reduce engineering rework",
+    "anti_vision": [
+      "Better notes tool - we're not competing with Notion for documentation",
+      "Static documentation system - docs without working prototypes are incomplete",
+      "Replacement for human judgment - AI accelerates, humans decide",
+      "Rigid waterfall enforcer - we embrace iteration, not linear flow",
+      "Enterprise complexity theater - minimal friction, maximum velocity",
+      "Feature factory accelerator - we compress discovery to validate, not to ship more junk"
+    ]
   },
   "personas": {
-    "primary": [],
-    "secondary": []
+    "primary": [
+      "Solo PM at startup (Maya) - validates faster, reduces rework"
+    ],
+    "secondary": [
+      "Engineering Lead (Raj) - wants clear specs from validated prototypes",
+      "Founder/CEO (Alex) - wants pipeline visibility and metric ties"
+    ]
   },
   "outcomes": {
-    "north_star": "",
-    "key_metrics": []
+    "north_star": "Time from idea to validated prototype (target: < 1 week)",
+    "key_metrics": [
+      "Discovery cycle time (idea → validated prototype)",
+      "Engineering rework rate (tickets reopened or features rebuilt)",
+      "Prototype-to-production fidelity",
+      "User validation throughput (prototypes validated per week)"
+    ]
   },
   "repos": [],
   "prototypes": {
     "default_location": "prototypes/",
     "storybook_port": 6006,
+    "chromatic_url": "https://main--696c2c54e35ea5bca2a772d8.chromatic.com",
     "tech_stack": {
       "framework": "react",
       "styling": "tailwindcss",
-      "language": "typescript"
+      "language": "typescript",
+      "ui_library": "shadcn-ui"
     }
   },
   "integrations": {
+    "github": {
+      "enabled": true
+    },
     "linear": {
-      "enabled": false,
+      "enabled": true,
       "team_id": ""
     },
     "notion": {
       "enabled": false,
       "workspace_id": ""
+    },
+    "chromatic": {
+      "enabled": true,
+      "project_id": "696c2c54e35ea5bca2a772d8"
+    },
+    "posthog": {
+      "enabled": false,
+      "project_id": ""
+    }
+  },
+  "design": {
+    "theme": "aurora",
+    "palette": {
+      "teal": "#4fd1c5",
+      "purple": "#9f7aea",
+      "pink": "#ed64a6",
+      "gold": "#ecc94b",
+      "blue": "#63b3ed"
+    },
+    "style": "glassmorphic",
+    "fonts": {
+      "display": "Chillax",
+      "body": "Synonym"
     }
   }
 }

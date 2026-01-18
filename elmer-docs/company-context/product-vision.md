@@ -1,94 +1,82 @@
 # Product Vision
 
-> **⚠️ TEMPLATE** - Run `/setup` to generate your product context, or edit this file directly.
+> **elmer** — AI-powered PM orchestrator that compresses discovery from weeks to days.
 
 ---
 
 ## Core Identity
 
-<!--
-Define what your product IS in 1-2 sentences.
-Example: "ProductName is a platform that helps [persona] achieve [outcome] by [mechanism]."
--->
-
-[Your product name] is [description of what it does and who it's for].
+**elmer** is an AI-powered product management orchestrator that automates the entire product development lifecycle—from initial conversation to deployed feature with metrics. It's the "Run Stage" agentic PM co-pilot: a visual Kanban interface where moving a card triggers AI agents to execute work, iterate based on feedback, and hand off validated prototypes to engineering.
 
 ### The Outcome Chain
 
-<!--
-Trace the value chain from feature → user action → business outcome.
-This is how you validate that features matter.
--->
-
 ```
-[Primary user action in your product]
-  → so that [immediate benefit to user]
-    → so that [behavior/habit change]
-      → so that [business outcome improves]
+PM has conversation / uploads transcript
+  → so that AI generates PRD, design brief, engineering spec, GTM brief
+    → so that AI creates functional prototype in Storybook
+      → so that stakeholders validate on working software (not static mockups)
+        → so that AI generates bite-sized Linear/Jira tickets
+          → so that engineering builds what's already been validated
+            → so that features ship faster with less rework
+              → so that time-to-value decreases and engineering waste drops to near zero
 ```
 
 ---
 
 ## Mission
 
-<!--
-One sentence capturing WHY you exist.
-Example: "Help revenue teams never miss what matters in customer conversations."
--->
-
-[Your mission statement]
+**Help product teams move from idea to validated prototype in days, not weeks—compressing discovery so engineering builds the right thing the first time.**
 
 ---
 
 ## Core Value Props
 
-<!--
-3-5 bullet points of the main value you deliver.
-These should answer "Why would someone use this?"
--->
-
-1. **[Value 1]** - [Brief description]
-2. **[Value 2]** - [Brief description]
-3. **[Value 3]** - [Brief description]
+1. **Discovery Compression** — Collapse 6 weeks of discovery into 1 week through AI-generated PRDs and instant prototypes
+2. **Prototype-Driven Validation** — Stakeholders interact with working software, not static mockups, discovering issues when iteration is cheap
+3. **Automated Handoff** — Validated prototypes generate detailed Linear/Jira tickets; engineers build from working references
+4. **Iterative Feedback Loops** — Visual indicators show where iteration happens; AI or human juries refine until validated
+5. **Metrics-Driven Lifecycle** — PostHog integration tracks released features from Alpha → Beta → GA, surfacing when intervention is needed
 
 ---
 
 ## Strategic Pillars
 
-<!--
-What are the 2-4 major themes guiding your product strategy?
-Example: Customer Trust, Data Quality, User Efficiency
--->
-
-1. **[Pillar 1]** - [What this means]
-2. **[Pillar 2]** - [What this means]
-3. **[Pillar 3]** - [What this means]
+1. **Compress Discovery** — Every feature should reduce time from idea to validated prototype
+2. **Eliminate Engineering Waste** — Never let engineers build something that hasn't been validated with working software
+3. **Human-in-the-Loop Control** — Automation is configurable; users choose how hands-on or hands-off they want to be at each stage
+4. **Context Isolation** — Support multiple products/repos with isolated company context, personas, and design systems
 
 ---
 
 ## Product Principles
 
-### 1. [Principle Name]
+### 1. Outcomes Over Outputs
 
-<!-- Example: "Outcomes > Outputs" -->
+We don't measure success by features shipped. We measure by discovery compression (how fast did we validate?) and engineering waste reduction (how much rework did we avoid?).
 
-[Description of the principle and what it means in practice]
+### 2. Working Software Over Documentation
 
-### 2. [Principle Name]
+PRDs are fuel for AI prototype generation, not artifacts for humans to read. The prototype IS the truth. Documentation updates automatically as prototypes evolve.
 
-[Description]
+### 3. Iteration is the Feature
 
-### 3. [Principle Name]
+The product is designed around iterative loops, not linear waterfall. Visual arrows on the Kanban board show where feedback cycles happen. Moving backward is expected, not a failure.
 
-[Description]
+### 4. Beautiful Minimalism
+
+The UI should feel like an Apple product demo—clean, vibrant, minimal information that is deeply meaningful. Glass-morphic depth, aurora gradients, animated wave backgrounds. Never cluttered.
+
+### 5. Configurable Automation
+
+Users choose their automation level per stage. Some want AI to run 5 iterations before human review. Others want approval at every step. Both are valid.
 
 ---
 
 ## Target Market
 
-- **Primary:** [Your primary market segment]
-- **Secondary:** [Your secondary market segment]
-- **Focus:** [What unifies your target customers]
+- **Primary:** Solo PMs and small PM teams at startups/scale-ups who need to move fast and validate before building
+- **Secondary:** Engineering leads who want clear specs from already-validated prototypes
+- **Focus:** Teams drowning in discovery cycles, wasting engineering effort on rework, or stuck in "build trap" (shipping features without validating outcomes)
 
 ---
 
@@ -96,47 +84,46 @@ Example: Customer Trust, Data Quality, User Efficiency
 
 ### North Star
 
-<!-- The single most important metric for your product -->
-
-[Your north star metric]
+**Time from idea to validated prototype** (target: < 1 week)
 
 ### Key Metrics
 
-<!-- 3-5 additional metrics that matter -->
-
-- [Metric 1]
-- [Metric 2]
-- [Metric 3]
+- Discovery cycle time (idea → validated prototype)
+- Engineering rework rate (tickets reopened or features rebuilt)
+- Prototype-to-production fidelity (how much does shipped feature match validated prototype?)
+- User validation throughput (prototypes validated per week)
 
 ---
 
 ## What We're NOT Building (Anti-Vision)
 
-<!--
-IMPORTANT: This helps the AI push back on misaligned requests.
-Be specific about what you WON'T build, even if competitors do.
--->
-
-- [Anti-vision item 1] - We're not building this because [reason]
-- [Anti-vision item 2] - This doesn't align with [principle]
-- [Anti-vision item 3] - [Explanation]
+- **"Better notes" tool** — We're not competing with Notion for documentation. PRDs exist to feed AI prototyping, not for humans to read.
+- **Static documentation system** — Documents without working prototypes are incomplete. If you can't click it, it's not validated.
+- **Replacement for human judgment** — AI accelerates and automates, but humans decide what to build and approve key transitions.
+- **Rigid waterfall enforcer** — We embrace iteration. Features should be able to move backward through stages, not just forward.
+- **Enterprise complexity theater** — We're not building 50 approval gates and compliance workflows. Minimal friction, maximum velocity.
+- **Feature factory accelerator** — We compress discovery to validate ideas faster, not to ship more junk features. Quality over quantity.
 
 ---
 
 ## The One-Liner
 
-<!-- A single sentence that captures the essence of your product -->
+**elmer compresses product discovery from weeks to days so teams build the right thing the first time.**
 
-**[Product Name] [does what] for [whom] so they can [outcome].**
+---
+
+## Design Vision
+
+- **Glassmorphic UI** — Depth through transparency, blur, and layering; "liquid glass" feel
+- **Aurora Palette** — Teal → Purple → Pink → Gold → Blue gradients flowing through the interface
+- **Animated Backgrounds** — Soft fiber optic / northern lights animation, not static
+- **Weighted Depth** — Components feel like stacked glass blocks on a table, not flat cards
+- **Minimal Information Density** — Show only what matters for the current context; drill down for more
 
 ---
 
 ## Open Questions
 
-<!--
-What strategic questions still need answers from leadership?
--->
-
-1. [Question 1]
-2. [Question 2]
-3. [Question 3]
+1. What's the right default automation level? (Fully automated until prototype vs. human approval at each stage)
+2. How do we handle multi-product workspaces where context bleeds between projects?
+3. What's the MVP for PostHog/metrics integration—is it P0 or a later enhancement?

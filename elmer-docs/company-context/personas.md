@@ -1,8 +1,6 @@
 # User Personas
 
-> **⚠️ TEMPLATE** - Run `/setup` to generate your personas, or edit this file directly.
->
-> These personas help guide product decisions, prototype design, and user validation.
+> These personas guide product decisions, prototype design, and user validation for elmer.
 
 ---
 
@@ -18,102 +16,143 @@ When working on initiatives:
 
 ## Primary Personas
 
-### [Persona 1 Name]
+### The Solo PM (Maya)
 
-**Role:** [Job title / Role description]
+**Role:** Product Manager at a startup (50-200 employees), often the only PM or on a team of 2-3
 
 #### Context
-- **Organization:** [Type of org they work in]
-- **Team Size:** [How big their team is]
-- **Tools Used:** [Other tools they use daily]
-- **Reporting To:** [Who they report to]
+- **Organization:** Series A-C startup, moving fast but burning engineering cycles on rework
+- **Team Size:** Works with 2-3 engineering squads, no dedicated designer or limited design support
+- **Tools Used:** Linear, Figma (basic), Notion, Slack, GitHub
+- **Reporting To:** Head of Product or directly to CEO/Founder
 
 #### Goals
 What they're trying to achieve:
-- [Goal 1]
-- [Goal 2]
-- [Goal 3]
+- Validate product ideas before engineering starts building
+- Reduce the "we built the wrong thing" rework cycles
+- Get stakeholder alignment on working software, not static mockups
+- Ship features that actually move metrics
 
 #### Pain Points
 What frustrates them today:
-- [Pain 1]
-- [Pain 2]
-- [Pain 3]
+- 6-week discovery cycles before engineering can start
+- PRDs nobody reads; engineers start building and ask "what did you mean?"
+- Back-and-forth with designers on mockups that don't work when built
+- No time to build prototypes; depends on engineering for "proof of concepts"
+- Metrics show features aren't being used after all that effort
 
 #### Fears
 What they worry about with new tools:
-- [Fear 1 - e.g., "Looking incompetent in front of team"]
-- [Fear 2 - e.g., "Being replaced by automation"]
-- [Fear 3 - e.g., "Data privacy concerns"]
+- "Another tool that adds process instead of removing it"
+- "AI will generate garbage and I'll spend more time editing than writing"
+- "My stakeholders won't trust AI-generated artifacts"
+- "This will make me look lazy or replaceable"
 
 #### Success Definition
-They know the product is working when:
-- [Success indicator 1]
-- [Success indicator 2]
+They know elmer is working when:
+- They can show stakeholders a working prototype within 48 hours of an idea
+- Engineering starts building from validated prototypes, not ambiguous PRDs
+- Rework cycles drop significantly
+- They're spending time on strategy, not document formatting
 
 #### Representative Quote
-> "[A quote that captures their mindset]"
+> "I spend half my week writing PRDs that nobody reads, then the other half answering questions because the PRD didn't actually clarify anything. I just want engineers to see what I mean."
 
 ---
 
-### [Persona 2 Name]
+### The Engineering Lead (Raj)
 
-**Role:** [Job title / Role description]
+**Role:** Engineering Manager or Tech Lead, owns a squad of 4-8 engineers
 
 #### Context
-- **Organization:** [Type of org]
-- **Team Size:** [Team size]
-- **Tools Used:** [Other tools]
-- **Reporting To:** [Manager]
+- **Organization:** Same startup as Maya, or mid-sized company (200-500)
+- **Team Size:** Leads 4-8 engineers across 1-2 squads
+- **Tools Used:** GitHub, Linear/Jira, VSCode, Slack
+- **Reporting To:** VP Engineering or CTO
 
 #### Goals
-- [Goal 1]
-- [Goal 2]
+- Get clear specs so the team doesn't waste cycles on rework
+- Understand what "done" looks like before starting
+- Have a working reference (not just words) to build against
+- Ship quality code, not throwaway prototypes that get rebuilt
 
 #### Pain Points
-- [Pain 1]
-- [Pain 2]
+- PRDs are vague; half the sprint is clarifying requirements
+- Mockups look nice but don't account for edge cases or data
+- "We built exactly what the PRD said" but PM says it's wrong
+- Prototype code is trash; have to rewrite everything anyway
+- No visibility into what PM is planning next
 
 #### Fears
-- [Fear 1]
-- [Fear 2]
+- "AI-generated tickets will be even vaguer than human PRDs"
+- "Prototypes will set unrealistic expectations with stakeholders"
+- "My team will be blamed when the 'validated' prototype doesn't match production"
+- "Another tool that creates busywork for engineers"
 
 #### Success Definition
-- [Success indicator 1]
-- [Success indicator 2]
+They know elmer is working when:
+- Tickets come with working prototypes they can reference
+- Edge cases are already discovered in prototype phase
+- Less time spent in clarification meetings
+- Features ship closer to the validated prototype
 
 #### Representative Quote
-> "[Quote]"
+> "Show me a working prototype and I can build it. Show me a 20-page PRD and we'll spend two sprints figuring out what it actually means."
 
 ---
 
 ## Secondary Personas
 
-### [Persona 3 Name]
+### The Founder/CEO (Alex)
 
-**Role:** [Job title]
+**Role:** Founder or CEO at an early-stage startup (Seed to Series B)
 
-Brief description: [1-2 sentences about this persona]
+Brief description: Wears multiple hats, often acting as de facto Head of Product. Needs visibility into what's being built and why, without getting lost in details.
 
 **Key Needs:**
-- [Need 1]
-- [Need 2]
+- See the product pipeline at a glance (what's in discovery, prototype, build, released)
+- Understand if released features are hitting metrics
+- Know when human intervention is needed vs. when AI is handling it
+- Share prototype links with investors or advisors
 
 **Key Fears:**
-- [Fear 1]
+- "I'll lose touch with what the team is actually building"
+- "AI will make decisions that don't align with our vision"
+
+---
+
+### The Design-Savvy PM (Jordan)
+
+**Role:** PM with strong design background, wants more control over prototypes
+
+Brief description: Comfortable in Figma, wants AI to handle the tedious parts but retain creative control over the final prototype.
+
+**Key Needs:**
+- AI generates design variants; Jordan picks and refines
+- Export prototype to Figma for detailed polish
+- Maintain design system consistency across prototypes
+
+**Key Fears:**
+- "AI prototypes will look generic and not match our brand"
+- "I'll lose creative control if AI handles design"
 
 ---
 
 ## Anti-Personas
 
-<!--
-Who are you explicitly NOT building for?
-This helps focus decisions.
--->
+### The Enterprise Process Owner (Patricia)
 
-### [Anti-Persona Name]
+**Why not:** Patricia works at a Fortune 500 with rigid stage-gate processes, extensive compliance requirements, and 6-month planning cycles. She needs approval workflows, audit trails, and integration with legacy systems.
 
-**Why not:** [Explanation of why this persona isn't your target]
+elmer is not built for this. We embrace iteration and minimal friction. Enterprise complexity theater is anti-vision.
+
+---
+
+### The "No AI" Skeptic (Tom)
+
+**Why not:** Tom fundamentally distrusts AI-generated content and believes everything should be hand-crafted by humans. He'll reject AI outputs on principle, regardless of quality.
+
+elmer requires buy-in that AI can accelerate discovery. Users who won't trust AI-generated PRDs or prototypes won't see value.
 
 ---
 
@@ -121,9 +160,10 @@ This helps focus decisions.
 
 | Persona | Primary Need | Biggest Fear | Trust Level | Frequency |
 |---------|-------------|--------------|-------------|-----------|
-| [Persona 1] | [Need] | [Fear] | [Low/Med/High] | [Daily/Weekly/Monthly] |
-| [Persona 2] | [Need] | [Fear] | [Low/Med/High] | [Daily/Weekly/Monthly] |
-| [Persona 3] | [Need] | [Fear] | [Low/Med/High] | [Daily/Weekly/Monthly] |
+| Maya (Solo PM) | Validate faster, reduce rework | "More process, not less" | Medium | Daily |
+| Raj (Eng Lead) | Clear specs, working references | "Vague tickets, blame game" | Low | Weekly |
+| Alex (Founder) | Pipeline visibility, metric ties | "Losing touch with product" | High | Weekly |
+| Jordan (Design PM) | Creative control + AI speed | "Generic, off-brand prototypes" | Medium | Daily |
 
 ---
 
@@ -133,4 +173,6 @@ Track how your understanding of personas changes:
 
 | Date | Persona | Learning | Source |
 |------|---------|----------|--------|
-| [Date] | [Name] | [What you learned] | [Interview/Data/Feedback] |
+| 2026-01-18 | Maya | Solo PMs at startups are primary; they have the most pain | Voice memo analysis |
+| 2026-01-18 | Raj | Eng leads want working references, not better docs | Voice memo analysis |
+| 2026-01-18 | Patricia | Enterprise is explicitly anti-persona; avoid complexity theater | Voice memo analysis |
