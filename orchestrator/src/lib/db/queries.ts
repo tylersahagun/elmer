@@ -1053,6 +1053,7 @@ export async function createJobNotification(
     iterate_prototype: "Prototype Iteration",
     generate_tickets: "Ticket Generation",
     validate_tickets: "Ticket Validation",
+    score_stage_alignment: "Alignment Scoring",
     deploy_chromatic: "Chromatic Deployment",
     create_feature_branch: "Branch Creation",
   };

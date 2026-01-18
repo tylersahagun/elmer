@@ -35,14 +35,15 @@ async function persistStageChange(
   newStage: ProjectStage,
   column: KanbanColumnType | undefined,
   workspaceId: string | undefined,
-  inputData?: { transcript?: string }
+  inputData?: { transcript?: string },
+  triggeredBy: "user" | "automation" = "user"
 ): Promise<boolean> {
   try {
     // 1. Persist stage change to database
     const stageRes = await fetch(`/api/projects/${projectId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stage: newStage, triggeredBy: "user" }),
+      body: JSON.stringify({ stage: newStage, triggeredBy }),
     });
 
     if (!stageRes.ok) {
@@ -178,6 +179,65 @@ export function KanbanBoard() {
     targetColumn: KanbanColumnType | undefined;
   } | null>(null);
 
+  const runAutomationPipeline = useCallback(
+    async ({
+      projectId,
+      startStage,
+      inputData,
+    }: {
+      projectId: string;
+      startStage: ProjectStage;
+      inputData?: { transcript?: string };
+    }) => {
+      const automationMode = workspace?.settings?.automationMode || "manual";
+      if (automationMode === "manual") return;
+
+      const orderedColumns = columns.filter((c) => c.enabled).sort((a, b) => a.order - b.order);
+      const startIndex = orderedColumns.findIndex((column) => column.id === startStage);
+      if (startIndex === -1) return;
+
+      const stopStage = workspace?.settings?.automationStopStage;
+
+      for (let i = startIndex + 1; i < orderedColumns.length; i++) {
+        const column = orderedColumns[i];
+        const nextStage = column.id as ProjectStage;
+
+        if (STAGES_REQUIRING_INPUT.includes(nextStage) && !inputData?.transcript) {
+          break;
+        }
+
+        await persistStageChange(
+          projectId,
+          nextStage,
+          column,
+          workspace?.id,
+          inputData,
+          "automation"
+        );
+        moveProject(projectId, nextStage);
+
+        if (column.autoTriggerJobs && column.autoTriggerJobs.length > 0) {
+          updateProject(projectId, {
+            activeJobType: column.autoTriggerJobs[0],
+            activeJobProgress: 0,
+            activeJobStatus: "pending",
+            isLocked: true,
+          });
+          triggerProcessing();
+        }
+
+        if (automationMode === "auto_to_stage" && stopStage && nextStage === stopStage) {
+          break;
+        }
+
+        if (column.humanInLoop) {
+          break;
+        }
+      }
+    },
+    [columns, moveProject, updateProject, triggerProcessing, workspace]
+  );
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -304,11 +364,26 @@ export function KanbanBoard() {
             triggerProcessing();
           }, 500);
         }
+
+        runAutomationPipeline({
+          projectId: activeId,
+          startStage: overColumnId as ProjectStage,
+        });
       });
     }
     
     originalStageRef.current = null;
-  }, [findColumnId, projects, columns, workspace, moveProject, updateProject, setDraggedProject, triggerProcessing]);
+  }, [
+    findColumnId,
+    projects,
+    columns,
+    workspace,
+    moveProject,
+    updateProject,
+    setDraggedProject,
+    triggerProcessing,
+    runAutomationPipeline,
+  ]);
 
   // Handle transcript dialog confirm
   const handleTranscriptConfirm = useCallback(async (transcript: string) => {
@@ -339,10 +414,16 @@ export function KanbanBoard() {
         triggerProcessing();
       }, 500);
     }
+
+    await runAutomationPipeline({
+      projectId,
+      startStage: targetStage,
+      inputData: { transcript },
+    });
     
     setTranscriptDialogOpen(false);
     setPendingMove(null);
-  }, [pendingMove, workspace, updateProject, triggerProcessing]);
+  }, [pendingMove, workspace, updateProject, triggerProcessing, runAutomationPipeline]);
 
   // Handle transcript dialog skip (move without input)
   const handleTranscriptSkip = useCallback(async () => {
@@ -372,10 +453,15 @@ export function KanbanBoard() {
         triggerProcessing();
       }, 500);
     }
+
+    await runAutomationPipeline({
+      projectId,
+      startStage: targetStage,
+    });
     
     setTranscriptDialogOpen(false);
     setPendingMove(null);
-  }, [pendingMove, workspace, updateProject, triggerProcessing]);
+  }, [pendingMove, workspace, updateProject, triggerProcessing, runAutomationPipeline]);
 
   // Handle transcript dialog cancel (revert move)
   const handleTranscriptCancel = useCallback(() => {
@@ -406,7 +492,13 @@ export function KanbanBoard() {
       onDragEnd={handleDragEnd}
     >
       <div className="relative">
-        <div className="flex justify-end px-6 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 pt-4">
+          <div className="text-xs text-muted-foreground">
+            Automation: {workspace?.settings?.automationMode || "manual"}
+            {workspace?.settings?.automationMode === "auto_to_stage" &&
+              workspace?.settings?.automationStopStage &&
+              ` → ${workspace.settings.automationStopStage}`}
+          </div>
           <IterationLoopControls mode={loopViewMode} onChange={setLoopViewMode} />
         </div>
         <div ref={boardRef} className="relative">

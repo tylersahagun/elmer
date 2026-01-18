@@ -601,7 +601,7 @@ export function ProjectDetailModal() {
                             </div>
                             <div className="h-2 rounded-full bg-emerald-200/60 dark:bg-emerald-800/40 overflow-hidden">
                               <div
-                                className="h-full bg-gradient-to-r from-emerald-400 via-purple-400 to-pink-400"
+                                className="h-full bg-linear-to-r from-emerald-400 via-purple-400 to-pink-400"
                                 style={{
                                   width: `${Math.round(
                                     project.metadata.stageConfidence[project.stage].score * 100

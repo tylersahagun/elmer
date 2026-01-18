@@ -109,6 +109,11 @@ export function WorkspaceSettingsModal() {
   const [aiValidationMode, setAiValidationMode] = useState<"none" | "light" | "schema">("schema");
   const [aiFallbackAfterMinutes, setAiFallbackAfterMinutes] = useState("30");
   const [knowledgebaseMapping, setKnowledgebaseMapping] = useState<Record<string, string>>({});
+  const [automationMode, setAutomationMode] = useState<"manual" | "auto_to_stage" | "auto_all">(
+    "manual"
+  );
+  const [automationStopStage, setAutomationStopStage] = useState("");
+  const [automationNotifyStage, setAutomationNotifyStage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [columnEdits, setColumnEdits] = useState<Record<string, Record<string, unknown>>>({});
   const [newColumnStage, setNewColumnStage] = useState("");
@@ -143,6 +148,9 @@ export function WorkspaceSettingsModal() {
           : "30"
       );
       setKnowledgebaseMapping(workspace.settings?.knowledgebaseMapping || {});
+      setAutomationMode(workspace.settings?.automationMode || "manual");
+      setAutomationStopStage(workspace.settings?.automationStopStage || "");
+      setAutomationNotifyStage(workspace.settings?.automationNotifyStage || "");
     }
   }, [workspace]);
 
@@ -396,6 +404,9 @@ export function WorkspaceSettingsModal() {
               ? Number(aiFallbackAfterMinutes)
               : undefined,
             knowledgebaseMapping: sanitizedMapping,
+            automationMode,
+            automationStopStage: automationStopStage || undefined,
+            automationNotifyStage: automationNotifyStage || undefined,
           },
         }),
       });
@@ -637,6 +648,65 @@ export function WorkspaceSettingsModal() {
                                 value={aiFallbackAfterMinutes}
                                 onChange={(e) => setAiFallbackAfterMinutes(e.target.value)}
                               />
+                            </div>
+                          </div>
+                          <div className="grid gap-4">
+                            <h4 className="text-sm font-medium">Automation Depth</h4>
+                            <div className="grid gap-2">
+                              <Label htmlFor="automationMode">Automation Mode</Label>
+                              <select
+                                id="automationMode"
+                                value={automationMode}
+                                onChange={(e) =>
+                                  setAutomationMode(
+                                    e.target.value as "manual" | "auto_to_stage" | "auto_all"
+                                  )
+                                }
+                                className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                              >
+                                <option value="manual">Manual</option>
+                                <option value="auto_to_stage">Auto until stage</option>
+                                <option value="auto_all">Auto all stages</option>
+                              </select>
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="automationStopStage">Stop Stage</Label>
+                              <select
+                                id="automationStopStage"
+                                value={automationStopStage}
+                                onChange={(e) => setAutomationStopStage(e.target.value)}
+                                className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                                disabled={automationMode !== "auto_to_stage"}
+                              >
+                                <option value="">Select stage</option>
+                                {columns
+                                  .filter((column) => column.enabled)
+                                  .sort((a, b) => a.order - b.order)
+                                  .map((column) => (
+                                    <option key={column.id} value={column.id}>
+                                      {column.displayName}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="automationNotifyStage">Notify At Stage</Label>
+                              <select
+                                id="automationNotifyStage"
+                                value={automationNotifyStage}
+                                onChange={(e) => setAutomationNotifyStage(e.target.value)}
+                                className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs"
+                              >
+                                <option value="">Always notify</option>
+                                {columns
+                                  .filter((column) => column.enabled)
+                                  .sort((a, b) => a.order - b.order)
+                                  .map((column) => (
+                                    <option key={column.id} value={column.id}>
+                                      {column.displayName}
+                                    </option>
+                                  ))}
+                              </select>
                             </div>
                           </div>
                           <div className="grid gap-3">

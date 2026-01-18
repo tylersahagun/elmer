@@ -56,7 +56,7 @@ export const RotatedPlanes_A: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Original V5: ±10 degree rotation */}
@@ -78,7 +78,7 @@ export const RotatedPlanes_B: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Wider spread: ±15 degrees */}
@@ -105,7 +105,7 @@ export const WideSpread_1: React.FC<{ size?: number; palette?: PaletteKey }> = (
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(-15, 32, 32)">
@@ -127,7 +127,7 @@ export const WideSpread_2: React.FC<{ size?: number; palette?: PaletteKey }> = (
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(-20, 32, 32)">
@@ -149,7 +149,7 @@ export const WideSpread_3: React.FC<{ size?: number; palette?: PaletteKey }> = (
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(-18, 32, 32)">
@@ -174,7 +174,7 @@ export const WideSpread_4: React.FC<{ size?: number; palette?: PaletteKey }> = (
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(-15, 32, 32)">
@@ -196,7 +196,7 @@ export const WideSpread_5: React.FC<{ size?: number; palette?: PaletteKey }> = (
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(-10, 32, 32)">
@@ -218,7 +218,7 @@ export const WideSpread_6: React.FC<{ size?: number; palette?: PaletteKey }> = (
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(-15, 32, 32)">
@@ -240,7 +240,7 @@ export const WideSpread_7: React.FC<{ size?: number; palette?: PaletteKey }> = (
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(-20, 32, 32)">
@@ -268,7 +268,7 @@ export const WideSpread_8: React.FC<{ size?: number; palette?: PaletteKey }> = (
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g transform="rotate(-15, 32, 32)">
@@ -289,7 +289,7 @@ export const RotatedPlanes_C: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* 4 layers, tighter rotation increments */}
@@ -314,7 +314,7 @@ export const RotatedPlanes_D: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Rounded corners more prominent, asymmetric rotation */}
@@ -336,7 +336,7 @@ export const RotatedPlanes_E: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Scale variation with rotation */}
@@ -362,7 +362,7 @@ export const IsometricPlanes_A: React.FC<{ size?: number; palette?: PaletteKey }
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Original V3 isometric */}
@@ -378,7 +378,7 @@ export const IsometricPlanes_B: React.FC<{ size?: number; palette?: PaletteKey }
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Tighter vertical spacing */}
@@ -394,7 +394,7 @@ export const IsometricPlanes_C: React.FC<{ size?: number; palette?: PaletteKey }
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* 4 layers, more dramatic depth */}
@@ -411,7 +411,7 @@ export const IsometricPlanes_D: React.FC<{ size?: number; palette?: PaletteKey }
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Steeper angle, more vertical look */}
@@ -427,7 +427,7 @@ export const IsometricPlanes_E: React.FC<{ size?: number; palette?: PaletteKey }
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Wider, flatter perspective */}
@@ -448,7 +448,7 @@ export const IterativeSpiral: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -480,7 +480,7 @@ export const IterativeCycles: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="32" cy="32" r="24" fill="none" stroke={colors[2]} strokeWidth="3" opacity="0.3" />
@@ -496,7 +496,7 @@ export const IterativeLoop: React.FC<{ size?: number; palette?: PaletteKey }> = 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -527,7 +527,7 @@ export const IterativeChevrons: React.FC<{ size?: number; palette?: PaletteKey }
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M16 38 L32 26 L48 38" stroke={colors[2]} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.35" />
@@ -542,7 +542,7 @@ export const IterativeNodes: React.FC<{ size?: number; palette?: PaletteKey }> =
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Triangular arrangement of growing nodes */}
@@ -564,7 +564,7 @@ export const IterativeSteps: React.FC<{ size?: number; palette?: PaletteKey }> =
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="8" y="40" width="12" height="16" rx="3" fill={colors[2]} opacity="0.5" />
@@ -580,7 +580,7 @@ export const IterativeTransform: React.FC<{ size?: number; palette?: PaletteKey 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Circle evolving to square */}
@@ -597,7 +597,7 @@ export const IterativeOverlap: React.FC<{ size?: number; palette?: PaletteKey }>
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="24" cy="28" r="14" fill={colors[2]} opacity="0.4" />
@@ -613,7 +613,7 @@ export const IterativeRipple: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'midnightAurora'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="32" cy="32" r="26" fill="none" stroke={colors[2]} strokeWidth="2" opacity="0.25" />
@@ -629,7 +629,7 @@ export const IterativeGrowth: React.FC<{ size?: number; palette?: PaletteKey }> 
   size = 64,
   palette = 'forestMist'
 }) => {
-  const colors = refinedPalettes[palette].colors;
+  const colors = refinedPalettes[palette]?.colors ?? refinedPalettes.midnightAurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Growing leaves/petals */}
@@ -688,12 +688,12 @@ export const ElmerLogoRefinements: React.FC = () => {
             {Object.entries(refinedPalettes).map(([key, palette]) => (
               <div key={key} className="p-4 rounded-xl bg-white/10 backdrop-blur-sm">
                 <div className="flex gap-1 mb-2">
-                  {palette.colors.map((color, i) => (
+                  {palette?.colors?.map((color, i) => (
                     <div key={i} className="w-8 h-8 rounded-md" style={{ backgroundColor: color }} />
                   ))}
                 </div>
-                <p className="font-medium text-white text-sm">{palette.name}</p>
-                <p className="text-xs text-gray-400">{palette.description}</p>
+                <p className="font-medium text-white text-sm">{palette?.name}</p>
+                <p className="text-xs text-gray-400">{palette?.description}</p>
               </div>
             ))}
           </div>

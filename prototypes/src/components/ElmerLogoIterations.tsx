@@ -56,7 +56,7 @@ export const LayeredE_V1: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Original: Diagonal offset, back to front */}
@@ -71,7 +71,7 @@ export const LayeredE_V2: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Vertical stack: straight down offset */}
@@ -86,7 +86,7 @@ export const LayeredE_V3: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Horizontal fan: spreading right */}
@@ -101,7 +101,7 @@ export const LayeredE_V4: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* 4 layers with tighter spacing, more dramatic depth */}
@@ -117,7 +117,7 @@ export const LayeredE_V5: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Concentric/centered with scale difference */}
@@ -136,7 +136,7 @@ export const StackedPlanes_V1: React.FC<{ size?: number; palette?: PaletteKey }>
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Original style with more defined glass edges */}
@@ -153,7 +153,7 @@ export const StackedPlanes_V2: React.FC<{ size?: number; palette?: PaletteKey }>
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Rounded pills stacked */}
@@ -169,7 +169,7 @@ export const StackedPlanes_V3: React.FC<{ size?: number; palette?: PaletteKey }>
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Isometric/3D perspective cards */}
@@ -185,7 +185,7 @@ export const StackedPlanes_V4: React.FC<{ size?: number; palette?: PaletteKey }>
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Circles/discs stacked */}
@@ -201,7 +201,7 @@ export const StackedPlanes_V5: React.FC<{ size?: number; palette?: PaletteKey }>
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Square cards with rotation, fanning out */}
@@ -223,7 +223,7 @@ export const StackedPlanes_V6: React.FC<{ size?: number; palette?: PaletteKey }>
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Vertical bars side by side with depth */}
@@ -239,7 +239,7 @@ export const StackedPlanes_V7: React.FC<{ size?: number; palette?: PaletteKey }>
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Cascading cards, top-right to bottom-left */}
@@ -259,7 +259,7 @@ export const Wave_V1: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -285,7 +285,7 @@ export const Wave_V2: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -311,7 +311,7 @@ export const Wave_V3: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -333,7 +333,7 @@ export const Wave_V4: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -358,7 +358,7 @@ export const Wave_V5: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -384,7 +384,7 @@ export const Wave_V6: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -410,7 +410,7 @@ export const Wave_V7: React.FC<{ size?: number; palette?: PaletteKey }> = ({
   size = 64,
   palette = 'aurora'
 }) => {
-  const colors = palettes[palette].colors;
+  const colors = palettes[palette]?.colors ?? palettes.aurora.colors;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       {/* Dot-accented wave with dots at peaks */}
@@ -433,11 +433,11 @@ export const Wave_V7: React.FC<{ size?: number; palette?: PaletteKey }> = ({
 // ============================================
 
 export const ColorPaletteDisplay: React.FC<{ paletteKey: PaletteKey }> = ({ paletteKey }) => {
-  const palette = palettes[paletteKey];
+  const palette = palettes[paletteKey] ?? palettes.aurora;
   return (
     <div className="space-y-2">
       <div className="flex gap-1">
-        {palette.colors.map((color, i) => (
+        {palette.colors?.map((color, i) => (
           <div
             key={i}
             className="w-10 h-10 rounded-lg first:rounded-l-xl last:rounded-r-xl"

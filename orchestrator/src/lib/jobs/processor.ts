@@ -91,6 +91,11 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
   const workspace = await getWorkspace(job.workspaceId);
   const aiExecutionMode = workspace?.settings?.aiExecutionMode || "hybrid";
   const aiFallbackAfterMinutes = workspace?.settings?.aiFallbackAfterMinutes ?? 30;
+  const notifyStage = workspace?.settings?.automationNotifyStage;
+  const stageOrder = workspace?.columnConfigs?.reduce((acc, column) => {
+    acc[column.stage] = column.order;
+    return acc;
+  }, {} as Record<string, number>);
 
   if (aiExecutionMode === "cursor") {
     return {
@@ -139,11 +144,13 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
 
   // Get project name for notification context
   let projectName: string | undefined;
+  let projectStage: string | undefined;
   if (job.projectId) {
     const project = await db.query.projects.findFirst({
       where: eq(projects.id, job.projectId),
     });
     projectName = project?.name;
+    projectStage = project?.stage;
   }
 
   try {
@@ -165,17 +172,23 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
         progress: 1,
       });
 
-      // Create completion notification
-      await createJobNotification(
-        {
-          id: jobId,
-          workspaceId: job.workspaceId,
-          projectId: job.projectId,
-          type: job.type,
-          status: "completed",
-        },
-        projectName
-      );
+      const shouldNotify =
+        !notifyStage ||
+        !projectStage ||
+        !stageOrder ||
+        stageOrder[projectStage] >= stageOrder[notifyStage];
+      if (shouldNotify) {
+        await createJobNotification(
+          {
+            id: jobId,
+            workspaceId: job.workspaceId,
+            projectId: job.projectId,
+            type: job.type,
+            status: "completed",
+          },
+          projectName
+        );
+      }
 
       console.log(`✅ Job ${jobId} completed successfully`);
 

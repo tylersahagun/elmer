@@ -31,6 +31,9 @@ export interface WorkspaceSettings {
   aiValidationMode?: "none" | "light" | "schema";
   aiFallbackAfterMinutes?: number;
   knowledgebaseMapping?: Record<string, string>;
+  automationMode?: "manual" | "auto_to_stage" | "auto_all";
+  automationStopStage?: string;
+  automationNotifyStage?: string;
 }
 
 // ============================================
