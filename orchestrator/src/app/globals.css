@@ -151,7 +151,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    /* Background is provided by GridBackground component */
     font-family: var(--font-synonym), system-ui, sans-serif;
   }
   
@@ -268,11 +269,13 @@
 
 /* ===== SCROLLBAR STYLES ===== */
 
-/* Hide scrollbar for kanban board */
+/* Hide scrollbar for kanban board - use higher specificity to override .overflow-x-auto */
+.kanban-scroll-container.overflow-x-auto::-webkit-scrollbar,
 .kanban-scroll-container::-webkit-scrollbar {
   display: none;
 }
 
+.kanban-scroll-container.overflow-x-auto,
 .kanban-scroll-container {
   -ms-overflow-style: none;
   scrollbar-width: none;

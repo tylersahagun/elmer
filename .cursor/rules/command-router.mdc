@@ -35,7 +35,7 @@ Use these to:
 | "help", "what commands", "how do I", "I'm stuck", "guide me" | `/help` | Show command guidance |
 | "what's the status", "where are we", "active work", "current state" | `/status` | Show workspace overview |
 | "roadmap", "what's planned", "priorities", "what's next" | `/roadmap` | View/update product roadmap |
-| "local", "start local", "docker", "database", "dev environment" | `/local` | Start local dev environment (Docker + PostgreSQL) |
+| "local", "start local", "docker", "database", "dev environment", "tunnel" | `/local` | Start local dev environment (Docker + PostgreSQL + Tunnel) |
 
 ### Confirm-First Commands (Complex, generative, or multi-step workflows)
 
@@ -179,11 +179,12 @@ This helps ensure we're building the right thing.
 - Note: All UI components MUST have corresponding story files
 
 ### Local Dev Intent
-- Contains: "local", "docker", "postgres", "database", "dev environment", "start local", "run locally"
+- Contains: "local", "docker", "postgres", "database", "dev environment", "start local", "run locally", "tunnel", "elmer.studio"
 - Action: Execute `/local`
-- Variants: `/local status` (check services), `/local reset` (wipe database)
+- Variants: `/local status` (check services), `/local reset` (wipe database), `/local tunnel` (start only tunnel)
 - Low-risk: Can auto-execute
-- Note: Ensures Docker, PostgreSQL, migrations, and dev server are running
+- Note: Ensures Docker, PostgreSQL, migrations, dev server, and Cloudflare Tunnel are running
+- Public URL: https://elmer.studio (only available when local services are running)
 
 ### Measurement/Analytics Intent
 - Contains: "analytics", "metrics", "tracking", "posthog", "events", "funnels", "measurement", "instrument", "how do we measure"
@@ -209,7 +210,7 @@ This helps ensure we're building the right thing.
 | Branch | git-workflow.mdc |
 | Component | storybook-standards.mdc, existing component structure |
 | Storybook | Component files in prototypes/src/components |
-| Local | docker-compose.yml, .env.local, orchestrator/ directory |
+| Local | docker-compose.yml, .env.local, orchestrator/ directory, ~/.cloudflared/config.yml |
 
 ---
 

@@ -196,7 +196,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
             </TabsList>
 
             <TabsContent value="documents" className="mt-6">
-              <div className="flex gap-4">
+              <div className="flex gap-4 min-h-[calc(100vh-320px)]">
                 <DocumentSidebar
                   documents={(project.documents || []).map((doc: { id: string; title: string; type: string; content: string; version: number; createdAt: string; updatedAt: string; metadata?: { generatedBy?: "user" | "ai"; model?: string; reviewStatus?: "draft" | "reviewed" | "approved" } }) => ({
                     ...doc,
@@ -206,8 +206,9 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                   selectedId={selectedDocId || project.documents?.[0]?.id}
                   onSelect={(doc) => setSelectedDocId(doc.id)}
                   onUpload={() => setIsUploadDialogOpen(true)}
+                  className="h-full"
                 />
-                <Window title="document-viewer" className="flex-1 min-h-[600px]" contentClassName="p-0">
+                <Window title="document-viewer" className="flex-1 h-full" contentClassName="p-0">
                   {selectedDoc ? (
                     <DocumentViewer
                       document={{
@@ -252,7 +253,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
 
             <TabsContent value="files" className="mt-6">
               {project.metadata?.gitBranch ? (
-                <Window title={`git checkout ${project.metadata.gitBranch}`} contentClassName="p-0">
+                <div className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] overflow-hidden min-h-[calc(100vh-320px)]">
                   <ProjectFilesView
                     projectId={projectId}
                     branchName={project.metadata.gitBranch}
@@ -263,9 +264,9 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                     onFileCreate={async (path, content) => {
                       console.log("Create file:", path, content);
                     }}
-                    className="min-h-[600px]"
+                    className="h-full"
                   />
-                </Window>
+                </div>
               ) : (
                 <Window title="git status">
                   <div className="py-8 text-center">

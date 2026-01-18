@@ -237,7 +237,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             <CommandChip 
               variant="outline" 
               onClick={openNewProjectModal}
-              icon={<Plus className="w-3.5 h-3.5" />}
             >
               <CommandText command="new" args="--project" />
             </CommandChip>
@@ -246,7 +245,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               <CommandChip 
                 variant="outline" 
                 active={isKnowledgebaseActive}
-                icon={<BookOpen className="w-3.5 h-3.5" />}
               >
                 <CommandText command="cd" args="/files" />
               </CommandChip>
@@ -256,7 +254,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               <CommandChip 
                 variant="outline" 
                 active={isPersonasActive}
-                icon={<Users className="w-3.5 h-3.5" />}
               >
                 <CommandText command="ls" args="personas/" />
               </CommandChip>
