@@ -36,9 +36,10 @@ import {
   Plus,
   Copy,
 } from "lucide-react";
-import { WaveV4D } from "@/components/brand/ElmerLogo";
+// WaveV4D removed from modal header - using stage-colored icon instead
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { AddDocumentDialog } from "./AddDocumentDialog";
 
 // Stage color mapping
@@ -443,7 +444,7 @@ export function ProjectDetailModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="glass-panel border-white/20 w-[95vw] max-w-3xl p-0! gap-0! max-h-[90vh] sm:max-h-[85vh] overflow-hidden">
+      <DialogContent className="glass-panel border-white/20 w-[95vw] max-w-3xl p-0! gap-0! h-[90vh] sm:h-[85vh] overflow-hidden">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -451,7 +452,7 @@ export function ProjectDetailModal() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="flex flex-col max-h-[85vh]"
+              className="flex flex-col h-[90vh] sm:h-[85vh]"
             >
               {/* Header */}
               <DialogHeader className="shrink-0 p-4 sm:p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
@@ -469,7 +470,9 @@ export function ProjectDetailModal() {
                   <>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <WaveV4D size={40} palette="forest" />
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", stageColor.bg)}>
+                          <Layers className={cn("w-5 h-5", stageColor.text)} />
+                        </div>
                         <div>
                           <DialogTitle className="text-xl">{project.name}</DialogTitle>
                           <div className="flex items-center gap-2 mt-1">
@@ -481,6 +484,16 @@ export function ProjectDetailModal() {
                       </div>
                       
                       <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+                        {/* Open Project Page button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/projects/${project.id}`, '_blank')}
+                          className="gap-1 sm:gap-1.5 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+                        >
+                          <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          <span className="hidden sm:inline">Open Page</span>
+                        </Button>
                         {project.status === "active" ? (
                           <Button
                             variant="outline"
@@ -596,16 +609,10 @@ export function ProjectDetailModal() {
                                 Re-score
                               </Button>
                             </div>
-                            <div className="h-2 rounded-full bg-emerald-200/60 dark:bg-emerald-800/40 overflow-hidden">
-                              <div
-                                className="h-full bg-linear-to-r from-emerald-400 via-purple-400 to-pink-400"
-                                style={{
-                                  width: `${Math.round(
-                                    project.metadata.stageConfidence[project.stage].score * 100
-                                  )}%`,
-                                }}
-                              />
-                            </div>
+                            <Progress 
+                              value={Math.round(project.metadata.stageConfidence[project.stage].score * 100)}
+                              className="h-2 bg-emerald-200/60 dark:bg-emerald-800/40 [&>div]:bg-linear-to-r [&>div]:from-emerald-400 [&>div]:via-purple-400 [&>div]:to-pink-400"
+                            />
                             {project.metadata.stageConfidence[project.stage].summary && (
                               <p className="text-xs text-emerald-700/70 dark:text-emerald-300/70 mt-2">
                                 {project.metadata.stageConfidence[project.stage].summary}

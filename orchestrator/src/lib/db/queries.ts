@@ -23,6 +23,7 @@ import {
   type NotificationType,
   type NotificationPriority,
   type NotificationStatus,
+  type WorkspaceSettings,
   type NotificationMetadata,
   type KnowledgebaseType,
 } from "./schema";
@@ -110,15 +111,7 @@ export async function updateWorkspace(
     description?: string;
     githubRepo?: string;
     contextPath?: string;
-    settings?: {
-      prototypesPath?: string;
-      storybookPort?: number;
-      contextPaths?: string[];
-      baseBranch?: string;
-      autoCreateFeatureBranch?: boolean;
-      autoCommitJobs?: boolean;
-      cursorDeepLinkTemplate?: string;
-    };
+    settings?: WorkspaceSettings;
   }
 ) {
   const now = new Date();
@@ -473,6 +466,34 @@ export async function updateJobRunStatus(
     .where(eq(jobRuns.id, jobRunId));
 
   return db.query.jobRuns.findFirst({ where: eq(jobRuns.id, jobRunId) });
+}
+
+export async function cancelProjectJobs(projectId: string) {
+  const now = new Date();
+  
+  // Find all pending or running jobs for this project
+  const activeJobs = await db.query.jobs.findMany({
+    where: and(
+      eq(jobs.projectId, projectId),
+      or(
+        eq(jobs.status, "pending"),
+        eq(jobs.status, "running")
+      )
+    ),
+  });
+  
+  // Cancel each active job
+  for (const job of activeJobs) {
+    await db.update(jobs)
+      .set({
+        status: "cancelled",
+        completedAt: now,
+        error: "Cancelled by user",
+      })
+      .where(eq(jobs.id, job.id));
+  }
+  
+  return activeJobs.length;
 }
 
 // ============================================

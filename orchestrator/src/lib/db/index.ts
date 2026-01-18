@@ -11,22 +11,25 @@ if (!DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
+// Non-null assertion since we've already checked above
+const DB_URL: string = DATABASE_URL;
+
 // Detect if we're using Neon (serverless) or standard PostgreSQL
 // Neon URLs contain "neon.tech" or start with specific patterns
-const isNeonDatabase = DATABASE_URL.includes("neon.tech") || DATABASE_URL.includes("neon.database");
+const isNeonDatabase = DB_URL.includes("neon.tech") || DB_URL.includes("neon.database");
 
 // Create the appropriate Drizzle instance based on the database URL
 function createDb() {
   if (isNeonDatabase) {
     // Use Neon serverless HTTP driver (optimized for edge/serverless)
     console.log("Using Neon serverless database driver");
-    const sql = neon(DATABASE_URL);
+    const sql = neon(DB_URL);
     return drizzleNeon(sql, { schema });
   } else {
     // Use standard pg driver (for local development or self-hosted PostgreSQL)
     console.log("Using standard PostgreSQL driver");
     const pool = new pg.Pool({
-      connectionString: DATABASE_URL,
+      connectionString: DB_URL,
     });
     return drizzlePg(pool, { schema });
   }

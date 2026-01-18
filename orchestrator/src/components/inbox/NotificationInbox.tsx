@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { NotificationType, NotificationPriority, NotificationStatus } from "@/lib/db/schema";
+import { AnimatedNotificationList, type NotificationItem as AnimatedNotificationItem } from "./AnimatedNotificationList";
 
 // Types
 interface NotificationProject {
@@ -252,7 +253,7 @@ export function NotificationInbox({
         <Button
           variant="ghost"
           size="icon"
-          className="relative"
+          className="relative text-white/80 hover:text-white hover:bg-white/10"
         >
           <Bell className={cn(
             "w-4 h-4 transition-colors",
@@ -387,17 +388,32 @@ export function NotificationInbox({
               <p className="text-xs">You&apos;re all caught up!</p>
             </div>
           ) : (
-            <div className="py-1">
-              {visibleNotifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onClick={handleClick}
-                  onAction={handleAction}
-                  onDismiss={(id) => dismissMutation.mutate(id)}
-                  formatRelativeTime={formatRelativeTime}
-                />
-              ))}
+            <div className="p-2">
+              <AnimatedNotificationList
+                notifications={visibleNotifications.map((n): AnimatedNotificationItem => ({
+                  id: n.id,
+                  title: n.title,
+                  message: n.message,
+                  time: formatRelativeTime(n.createdAt),
+                  type: n.type,
+                  priority: n.priority,
+                  isUnread: n.status === "unread",
+                  projectName: n.project?.name,
+                  actionLabel: n.actionLabel,
+                  actionType: n.actionType,
+                }))}
+                onNotificationClick={(id) => {
+                  const notification = visibleNotifications.find(n => n.id === id);
+                  if (notification) handleClick(notification);
+                }}
+                onNotificationAction={(id) => {
+                  const notification = visibleNotifications.find(n => n.id === id);
+                  if (notification) handleAction(notification);
+                }}
+                onNotificationDismiss={(id) => dismissMutation.mutate(id)}
+                onViewAll={() => setIsOpen(false)}
+                className="bg-transparent p-0 shadow-none border-0"
+              />
             </div>
           )}
         </ScrollArea>

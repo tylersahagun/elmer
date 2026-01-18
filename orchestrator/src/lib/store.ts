@@ -78,6 +78,18 @@ export interface WorkspaceState {
     automationMode?: "manual" | "auto_to_stage" | "auto_all";
     automationStopStage?: string;
     automationNotifyStage?: string;
+    // UI Personalization
+    background?: {
+      type: "stars" | "bubble" | "gradient" | "gravity-stars" | "hole" | "aurora" | "none";
+      primaryColor?: string;
+      secondaryColor?: string;
+      speed?: number;
+      interactive?: boolean;
+    };
+    columnGradients?: boolean;
+    compactMode?: boolean;
+    // Display Mode: "immersive" for glassmorphism/animations, "focus" for solid/clean UI
+    displayMode?: "immersive" | "focus";
   };
 }
 
@@ -222,3 +234,12 @@ export const selectActiveProject = (state: KanbanState) =>
 
 export const selectEnabledColumns = (state: KanbanState) =>
   state.columns.filter((c) => c.enabled).sort((a, b) => a.order - b.order);
+
+// Stable selector for project IDs only (for drag operations) - avoids re-renders on project updates
+export const selectProjectStageMap = (state: KanbanState): Record<string, ProjectStageType> => {
+  const map: Record<string, ProjectStageType> = {};
+  for (const p of state.projects) {
+    map[p.id] = p.stage;
+  }
+  return map;
+};

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useId } from "react";
+import { motion } from "framer-motion";
 
 // Color palettes from the brand iterations
 export const palettes = {
@@ -23,15 +24,50 @@ export const palettes = {
 
 export type PaletteKey = keyof typeof palettes;
 
+// Wave animation keyframes for ribbon paths
+const waveAnimation = {
+  back: {
+    y: [0, -2, 0, 2, 0],
+    transition: {
+      duration: 3,
+      ease: "easeInOut" as const,
+      repeat: Infinity,
+      delay: 0.4,
+    },
+  },
+  middle: {
+    y: [0, 2, 0, -2, 0],
+    transition: {
+      duration: 2.5,
+      ease: "easeInOut" as const,
+      repeat: Infinity,
+      delay: 0.2,
+    },
+  },
+  front: {
+    y: [0, -3, 0, 3, 0],
+    transition: {
+      duration: 2,
+      ease: "easeInOut" as const,
+      repeat: Infinity,
+      delay: 0,
+    },
+  },
+};
+
 // Wave V4-D: Layered ribbon with transparency - The selected logo mark
-export const WaveV4D: React.FC<{ size?: number; palette?: PaletteKey; className?: string }> = ({
+export const WaveV4D: React.FC<{ 
+  size?: number; 
+  palette?: PaletteKey; 
+  className?: string;
+  animate?: boolean;
+}> = ({
   size = 32,
   palette = "forest",
   className,
+  animate = true,
 }) => {
   const colors = palettes[palette]?.colors || palettes.forest.colors;
-  const reactId = useId();
-  const filterId = `wave-soft-${reactId}`;
 
   return (
     <svg
@@ -41,33 +77,29 @@ export const WaveV4D: React.FC<{ size?: number; palette?: PaletteKey; className?
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      style={{ overflow: "visible" }}
     >
-      <defs>
-        {/* Soft blur filter for smoother edges */}
-        <filter id={filterId} x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" />
-        </filter>
-      </defs>
-      <g filter={`url(#${filterId})`}>
-        {/* Back ribbon */}
-        <path
-          d="M0 40 Q16 24, 32 36 Q48 48, 64 32 L64 40 Q48 56, 32 44 Q16 32, 0 48 Z"
-          fill={colors[2]}
-          opacity="0.3"
-        />
-        {/* Middle ribbon */}
-        <path
-          d="M0 36 Q16 20, 32 32 Q48 44, 64 28 L64 36 Q48 52, 32 40 Q16 28, 0 44 Z"
-          fill={colors[1]}
-          opacity="0.5"
-        />
-        {/* Front ribbon */}
-        <path
-          d="M0 32 Q16 16, 32 28 Q48 40, 64 24 L64 32 Q48 48, 32 36 Q16 24, 0 40 Z"
-          fill={colors[0]}
-          opacity="0.8"
-        />
-      </g>
+      {/* Back ribbon - with wave animation */}
+      <motion.path
+        d="M0 40 Q16 24, 32 36 Q48 48, 64 32 L64 40 Q48 56, 32 44 Q16 32, 0 48 Z"
+        fill={colors[2]}
+        opacity="0.4"
+        animate={animate ? waveAnimation.back : undefined}
+      />
+      {/* Middle ribbon - with wave animation */}
+      <motion.path
+        d="M0 36 Q16 20, 32 32 Q48 44, 64 28 L64 36 Q48 52, 32 40 Q16 28, 0 44 Z"
+        fill={colors[1]}
+        opacity="0.6"
+        animate={animate ? waveAnimation.middle : undefined}
+      />
+      {/* Front ribbon - with wave animation */}
+      <motion.path
+        d="M0 32 Q16 16, 32 28 Q48 40, 64 24 L64 32 Q48 48, 32 36 Q16 24, 0 40 Z"
+        fill={colors[0]}
+        opacity="0.9"
+        animate={animate ? waveAnimation.front : undefined}
+      />
     </svg>
   );
 };

@@ -6,9 +6,10 @@ import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/glass";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+// ScrollArea replaced with native overflow for smoother scrolling
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { springPresets } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 import {
@@ -22,13 +23,19 @@ import {
   Eye,
   Save,
   X,
-  Copy,
-  Check,
   Clock,
   Sparkles,
   RefreshCw,
   Upload,
 } from "lucide-react";
+import { CopyButton } from "@/components/ui/copy-button";
+import {
+  Files,
+  FolderItem,
+  FolderTrigger,
+  FolderContent,
+  FileItem,
+} from "@/components/animate-ui/components/radix/files";
 import type { DocumentType } from "@/lib/db/schema";
 
 // Document type metadata
@@ -146,11 +153,9 @@ export function DocumentViewer({
     setIsEditing(false);
   }, [document.content]);
 
-  const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(document.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [document.content]);
+  const handleCopyChange = useCallback((newCopied: boolean) => {
+    setCopied(newCopied);
+  }, []);
 
   const handlePublish = useCallback(async () => {
     if (!onPublish) return;
@@ -220,18 +225,13 @@ export function DocumentViewer({
           )}
 
           {/* Actions */}
-          <Button
+          <CopyButton
+            content={document.content}
+            copied={copied}
+            onCopiedChange={handleCopyChange}
             variant="ghost"
-            size="icon"
-            onClick={handleCopy}
-            className="h-8 w-8"
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-green-400" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
-          </Button>
+            size="sm"
+          />
 
           {onRegenerate && (
             <Button
@@ -307,22 +307,29 @@ export function DocumentViewer({
         </div>
       )}
 
-      {/* Content */}
-      <ScrollArea className="flex-1">
-        <AnimatePresence mode="wait">
+      {/* Content - optimized scrolling with will-change and transform */}
+      <div 
+        className="flex-1 overflow-y-auto overscroll-contain"
+        style={{ 
+          willChange: 'scroll-position',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <AnimatePresence mode="wait" initial={false}>
           {isEditing ? (
             <motion.div
               key="editor"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="p-4"
+              transition={{ duration: 0.1 }}
+              className="p-6"
             >
-              <Textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[500px] font-mono text-sm bg-black/20 border-white/10"
-                placeholder="Enter markdown content..."
+              <RichTextEditor
+                content={editContent}
+                onChange={setEditContent}
+                placeholder="Start writing..."
+                editable={true}
               />
             </motion.div>
           ) : (
@@ -331,6 +338,7 @@ export function DocumentViewer({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
               className="p-6"
             >
               <article className="prose prose-invert prose-sm max-w-none">
@@ -428,7 +436,7 @@ export function DocumentViewer({
             </motion.div>
           )}
         </AnimatePresence>
-      </ScrollArea>
+      </div>
 
       {/* Footer */}
       <div className="p-3 border-t border-white/10 flex items-center justify-between text-xs text-muted-foreground">
@@ -494,8 +502,23 @@ export function DocumentList({
     "jury_report",
   ];
 
+  // Get types that have documents
+  const typesWithDocs = typeOrder.filter(type => grouped[type]?.length > 0);
+
+  if (documents.length === 0) {
+    return (
+      <GlassCard className="p-8 text-center">
+        <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+        <p className="text-muted-foreground">No documents yet</p>
+        <p className="text-xs text-muted-foreground/70 mt-1">
+          Move the project to PRD stage to generate documents
+        </p>
+      </GlassCard>
+    );
+  }
+
   return (
-    <div className={cn("space-y-4", className)}>
+    <Files className={cn("bg-transparent", className)} defaultOpen={typesWithDocs}>
       {typeOrder.map((type) => {
         const docs = grouped[type];
         if (!docs || docs.length === 0) return null;
@@ -504,62 +527,40 @@ export function DocumentList({
         const Icon = typeInfo.icon;
 
         return (
-          <div key={type}>
-            <div className="flex items-center gap-2 mb-2 px-2">
-              <Icon className={cn("w-4 h-4", typeInfo.color)} />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                {typeInfo.label}
-              </span>
-            </div>
-            <div className="space-y-1">
+          <FolderItem key={type} value={type}>
+            <FolderTrigger className={cn("font-medium", typeInfo.color)}>
+              {typeInfo.label}
+            </FolderTrigger>
+            <FolderContent>
               {docs.map((doc) => (
-                <motion.button
+                <div
                   key={doc.id}
                   onClick={() => onSelect(doc)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   className={cn(
-                    "w-full text-left p-3 rounded-lg transition-all",
-                    "hover:bg-white/10",
-                    selectedId === doc.id
-                      ? "bg-white/15 ring-1 ring-white/20"
-                      : "bg-white/5"
+                    "cursor-pointer rounded-md transition-all",
+                    selectedId === doc.id && "ring-1 ring-purple-500/50 bg-purple-500/10"
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm truncate">
-                      {doc.title}
-                    </span>
-                    <Badge variant="outline" className="text-[10px] ml-2">
-                      v{doc.version}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>
-                      {new Date(doc.updatedAt).toLocaleDateString()}
-                    </span>
-                    {doc.metadata?.generatedBy === "ai" && (
-                      <Sparkles className="w-3 h-3 text-purple-400" />
-                    )}
-                  </div>
-                </motion.button>
+                  <FileItem icon={Icon}>
+                    <div className="flex items-center justify-between w-full gap-2">
+                      <span className="truncate">{doc.title}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {doc.metadata?.generatedBy === "ai" && (
+                          <Sparkles className="w-3 h-3 text-purple-400" />
+                        )}
+                        <Badge variant="outline" className="text-[10px] px-1">
+                          v{doc.version}
+                        </Badge>
+                      </div>
+                    </div>
+                  </FileItem>
+                </div>
               ))}
-            </div>
-          </div>
+            </FolderContent>
+          </FolderItem>
         );
       })}
-
-      {documents.length === 0 && (
-        <GlassCard className="p-8 text-center">
-          <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-          <p className="text-muted-foreground">No documents yet</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">
-            Move the project to PRD stage to generate documents
-          </p>
-        </GlassCard>
-      )}
-    </div>
+    </Files>
   );
 }
 

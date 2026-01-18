@@ -1,6 +1,8 @@
 export { KanbanBoard } from "./KanbanBoard";
 export { KanbanColumn } from "./KanbanColumn";
 export { ProjectCard, ProjectCardOverlay } from "./ProjectCard";
+export { ProjectFlipCard } from "./ProjectFlipCard";
+export { PinnedProjectsSection } from "./PinnedProjectsSection";
 export { ProjectDetailModal } from "./ProjectDetailModal";
 export { ArchivedProjectsModal } from "./ArchivedProjectsModal";
 export { JobStatusIndicator, JobStatusBadge } from "./JobStatusIndicator";

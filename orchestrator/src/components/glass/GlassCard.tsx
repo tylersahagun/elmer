@@ -3,6 +3,7 @@
 import { motion, type HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { forwardRef } from "react";
+import { useDisplaySettings } from "@/components/display";
 
 type BlurLevel = "sm" | "md" | "lg" | "xl";
 
@@ -33,19 +34,20 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
     },
     ref
   ) {
+    const { isFocusMode } = useDisplaySettings();
+    
     return (
       <motion.div
         ref={ref}
-        initial={{ opacity: 0, y: 8, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -8, scale: 0.98 }}
-        transition={{
-          type: "spring",
-          stiffness: 400,
-          damping: 30,
-        }}
+        initial={isFocusMode ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
+        animate={isFocusMode ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+        exit={isFocusMode ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.98 }}
+        transition={isFocusMode 
+          ? { duration: 0.1 } 
+          : { type: "spring" as const, stiffness: 400, damping: 30 }
+        }
         whileHover={
-          interactive
+          interactive && !isFocusMode
             ? {
                 scale: 1.01,
                 y: -2,
@@ -53,11 +55,12 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
               }
             : undefined
         }
-        whileTap={interactive ? { scale: 0.99 } : undefined}
+        whileTap={interactive && !isFocusMode ? { scale: 0.99 } : undefined}
         className={cn(
+          "glass-card",
           "rounded-2xl border border-white/20 dark:border-white/10",
           "bg-white/12 dark:bg-black/25",
-          blurMap[blur],
+          !isFocusMode && blurMap[blur],
           "shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]",
           "transition-colors duration-200",
           !noPadding && "p-4",
@@ -78,19 +81,21 @@ interface GlassPanelProps {
 }
 
 export function GlassPanel({ children, className }: GlassPanelProps) {
+  const { isFocusMode } = useDisplaySettings();
+  
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{
-        type: "spring",
-        stiffness: 300,
-        damping: 30,
-      }}
+      initial={isFocusMode ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+      animate={isFocusMode ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+      transition={isFocusMode 
+        ? { duration: 0.1 } 
+        : { type: "spring" as const, stiffness: 300, damping: 30 }
+      }
       className={cn(
+        "glass-panel",
         "rounded-3xl border border-white/20 dark:border-white/10",
         "bg-white/12 dark:bg-black/25",
-        "backdrop-blur-xl",
+        !isFocusMode && "backdrop-blur-xl",
         "shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)]",
         "p-6",
         className
@@ -108,17 +113,20 @@ interface GlassOverlayProps {
 }
 
 export function GlassOverlay({ children, className, onClick }: GlassOverlayProps) {
+  const { isFocusMode } = useDisplaySettings();
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: isFocusMode ? 0.1 : 0.2 }}
       onClick={onClick}
       className={cn(
         "fixed inset-0 z-50",
-        "bg-black/20 dark:bg-black/40",
-        "backdrop-blur-sm",
+        isFocusMode 
+          ? "bg-black/40 dark:bg-black/60" 
+          : "bg-black/20 dark:bg-black/40 backdrop-blur-sm",
         className
       )}
     >

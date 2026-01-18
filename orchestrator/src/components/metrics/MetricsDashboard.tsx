@@ -6,7 +6,9 @@ import { GlassCard, GlassPanel } from "@/components/glass";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { springPresets, staggerContainer, staggerItem } from "@/lib/animations";
+import { staggerContainer, staggerItem } from "@/lib/animations";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   TrendingDown,
@@ -188,14 +190,15 @@ function MetricRow({
           )}
         </div>
       </div>
-      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={springPresets.gentle}
-          className={`h-full rounded-full ${passing ? "bg-green-500" : "bg-amber-500"}`}
-        />
-      </div>
+      <Progress 
+        value={progress}
+        className={cn(
+          "h-1.5 bg-white/10",
+          passing 
+            ? "[&>div]:bg-green-500" 
+            : "[&>div]:bg-amber-500"
+        )}
+      />
     </div>
   );
 }

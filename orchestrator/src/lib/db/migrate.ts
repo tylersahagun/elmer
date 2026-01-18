@@ -11,8 +11,11 @@ if (!DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
+// Non-null assertion since we've already checked above
+const DB_URL: string = DATABASE_URL;
+
 // Detect if we're using Neon (serverless) or standard PostgreSQL
-const isNeonDatabase = DATABASE_URL.includes("neon.tech") || DATABASE_URL.includes("neon.database");
+const isNeonDatabase = DB_URL.includes("neon.tech") || DB_URL.includes("neon.database");
 
 async function runMigrations() {
   console.log("Running migrations...");
@@ -20,13 +23,13 @@ async function runMigrations() {
 
   if (isNeonDatabase) {
     // Use Neon serverless driver
-    const sql = neon(DATABASE_URL);
+    const sql = neon(DB_URL);
     const db = drizzleNeon(sql);
     await migrateNeon(db, { migrationsFolder: "./drizzle" });
   } else {
     // Use standard pg driver
     const pool = new pg.Pool({
-      connectionString: DATABASE_URL,
+      connectionString: DB_URL,
     });
     const db = drizzlePg(pool);
     await migratePg(db, { migrationsFolder: "./drizzle" });

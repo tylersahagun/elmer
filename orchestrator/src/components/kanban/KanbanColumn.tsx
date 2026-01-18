@@ -1,42 +1,50 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { motion } from "framer-motion";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { columnVariants, springPresets } from "@/lib/animations";
-import type { KanbanColumn as KanbanColumnType, ProjectCard as ProjectCardType } from "@/lib/store";
+import { useKanbanStore, type KanbanColumn as KanbanColumnType } from "@/lib/store";
 import { ProjectCard } from "./ProjectCard";
+import { ProjectFlipCard } from "./ProjectFlipCard";
 
 interface KanbanColumnProps {
   column: KanbanColumnType;
-  projects: ProjectCardType[];
 }
 
-// Glowing orb colors for stage indicators with vertical gradient fade
-const columnGlowMap: Record<string, { bg: string; glow: string; accent: string; gradient: string }> = {
-  slate: { bg: "bg-slate-400/80", glow: "shadow-[0_0_12px_rgba(148,163,184,0.6)]", accent: "from-slate-400/20", gradient: "from-slate-400/15 via-slate-400/5 to-transparent" },
-  teal: { bg: "bg-teal-400/80", glow: "shadow-[0_0_12px_rgba(45,212,191,0.6)]", accent: "from-teal-400/20", gradient: "from-teal-400/15 via-teal-400/5 to-transparent" },
-  purple: { bg: "bg-purple-400/80", glow: "shadow-[0_0_12px_rgba(192,132,252,0.6)]", accent: "from-purple-400/20", gradient: "from-purple-400/15 via-purple-400/5 to-transparent" },
-  blue: { bg: "bg-blue-400/80", glow: "shadow-[0_0_12px_rgba(96,165,250,0.6)]", accent: "from-blue-400/20", gradient: "from-blue-400/15 via-blue-400/5 to-transparent" },
-  pink: { bg: "bg-pink-400/80", glow: "shadow-[0_0_12px_rgba(244,114,182,0.6)]", accent: "from-pink-400/20", gradient: "from-pink-400/15 via-pink-400/5 to-transparent" },
-  amber: { bg: "bg-amber-400/80", glow: "shadow-[0_0_12px_rgba(251,191,36,0.6)]", accent: "from-amber-400/20", gradient: "from-amber-400/15 via-amber-400/5 to-transparent" },
-  orange: { bg: "bg-orange-400/80", glow: "shadow-[0_0_12px_rgba(251,146,60,0.6)]", accent: "from-orange-400/20", gradient: "from-orange-400/15 via-orange-400/5 to-transparent" },
-  green: { bg: "bg-green-400/80", glow: "shadow-[0_0_12px_rgba(74,222,128,0.6)]", accent: "from-green-400/20", gradient: "from-green-400/15 via-green-400/5 to-transparent" },
-  cyan: { bg: "bg-cyan-400/80", glow: "shadow-[0_0_12px_rgba(34,211,238,0.6)]", accent: "from-cyan-400/20", gradient: "from-cyan-400/15 via-cyan-400/5 to-transparent" },
-  indigo: { bg: "bg-indigo-400/80", glow: "shadow-[0_0_12px_rgba(129,140,248,0.6)]", accent: "from-indigo-400/20", gradient: "from-indigo-400/15 via-indigo-400/5 to-transparent" },
-  emerald: { bg: "bg-emerald-400/80", glow: "shadow-[0_0_12px_rgba(52,211,153,0.6)]", accent: "from-emerald-400/20", gradient: "from-emerald-400/15 via-emerald-400/5 to-transparent" },
+// Glowing orb colors for stage indicators - no gradients, just the orb
+const columnGlowMap: Record<string, { bg: string; glow: string }> = {
+  slate: { bg: "bg-slate-400/80", glow: "shadow-[0_0_12px_rgba(148,163,184,0.6)]" },
+  teal: { bg: "bg-teal-400/80", glow: "shadow-[0_0_12px_rgba(45,212,191,0.6)]" },
+  purple: { bg: "bg-purple-400/80", glow: "shadow-[0_0_12px_rgba(192,132,252,0.6)]" },
+  blue: { bg: "bg-blue-400/80", glow: "shadow-[0_0_12px_rgba(96,165,250,0.6)]" },
+  pink: { bg: "bg-pink-400/80", glow: "shadow-[0_0_12px_rgba(244,114,182,0.6)]" },
+  amber: { bg: "bg-amber-400/80", glow: "shadow-[0_0_12px_rgba(251,191,36,0.6)]" },
+  orange: { bg: "bg-orange-400/80", glow: "shadow-[0_0_12px_rgba(251,146,60,0.6)]" },
+  green: { bg: "bg-green-400/80", glow: "shadow-[0_0_12px_rgba(74,222,128,0.6)]" },
+  cyan: { bg: "bg-cyan-400/80", glow: "shadow-[0_0_12px_rgba(34,211,238,0.6)]" },
+  indigo: { bg: "bg-indigo-400/80", glow: "shadow-[0_0_12px_rgba(129,140,248,0.6)]" },
+  emerald: { bg: "bg-emerald-400/80", glow: "shadow-[0_0_12px_rgba(52,211,153,0.6)]" },
 };
 
-export function KanbanColumn({ column, projects }: KanbanColumnProps) {
+// Memoized column component - only re-renders when its own projects change
+export const KanbanColumn = memo(function KanbanColumn({ column }: KanbanColumnProps) {
+  // Subscribe ONLY to projects in this column using shallow comparison
+  const projects = useKanbanStore(
+    useShallow((state) => state.projects.filter((p) => p.stage === column.id))
+  );
+  
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
 
-  const projectIds = projects.map((p) => p.id);
+  const projectIds = useMemo(() => projects.map((p) => p.id), [projects]);
   const colorConfig = columnGlowMap[column.color] || columnGlowMap.slate;
 
   return (
@@ -48,7 +56,7 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
       data-kanban-column={column.id}
       className="flex-shrink-0 w-[280px] sm:w-72 min-w-[260px]"
     >
-      {/* Liquid Glass Lane Container */}
+      {/* Liquid Glass Lane Container - Pure glassmorphism, optimized for scroll */}
       <motion.div
         animate={{
           scale: isOver ? 1.02 : 1,
@@ -58,40 +66,22 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
         className={cn(
           // Pill shape with full rounding
           "rounded-[28px] overflow-hidden relative",
-          // Deep glass effect - the "groove" in the table
-          "bg-slate-500/[0.04] dark:bg-black/[0.15]",
-          "backdrop-blur-xl",
-          // Inset shadow creates the "depression" effect - more pronounced
-          "shadow-[inset_0_2px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.6),inset_0_-1px_0_rgba(0,0,0,0.04)]",
-          "dark:shadow-[inset_0_2px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.3)]",
-          // Subtle border - light mode gets more definition
-          "border border-slate-200/60 dark:border-white/[0.06]",
-          // Transition for hover states
-          "transition-all duration-300",
-          // Hover/drop state enhancements
+          // Glass effect with GPU acceleration hint
+          "bg-slate-900/40 dark:bg-slate-950/50",
+          "backdrop-blur-sm", // Reduced from md to sm for better performance
+          // Promote to own layer for scroll performance
+          "will-change-transform transform-gpu",
+          // Subtle border for glass edge definition
+          "border border-white/[0.08]",
+          // Transition for hover states only (not during scroll)
+          "transition-[border-color,box-shadow] duration-300",
+          // Hover/drop state - slight highlight
           isOver && [
-            "bg-slate-500/[0.08] dark:bg-black/[0.2]",
-            "border-slate-300/80 dark:border-white/[0.1]",
-            "shadow-[inset_0_2px_30px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.8),0_0_30px_rgba(148,163,184,0.15)]",
-            "dark:shadow-[inset_0_2px_30px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.12),0_0_40px_rgba(255,255,255,0.05)]",
+            "border-white/[0.15]",
+            "shadow-[0_0_30px_rgba(255,255,255,0.05)]",
           ]
         )}
       >
-        {/* Vertical gradient fade from top to bottom */}
-        <div 
-          className={cn(
-            "absolute inset-0 bg-gradient-to-b pointer-events-none rounded-[28px]",
-            colorConfig.gradient
-          )}
-        />
-        
-        {/* Gradient accent line at top based on column color */}
-        <div 
-          className={cn(
-            "h-1 w-full bg-gradient-to-r to-transparent opacity-60 relative z-10",
-            colorConfig.accent
-          )}
-        />
         
         {/* Column Header - Inside the glass */}
         <div className="flex items-center justify-between px-4 py-3 relative z-10">
@@ -102,11 +92,11 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
               colorConfig.bg,
               colorConfig.glow
             )} />
-            <span className="font-medium text-sm text-foreground/90">{column.displayName}</span>
+            <span className="font-medium text-sm text-white">{column.displayName}</span>
             <span className={cn(
               "text-xs px-2 py-0.5 rounded-full",
-              "bg-white/10 dark:bg-white/5",
-              "text-muted-foreground/80",
+              "bg-white/15",
+              "text-white/80",
               "font-medium tabular-nums"
             )}>
               {projects.length}
@@ -117,13 +107,24 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
         {/* Column Body - Drop zone */}
         <div
           ref={setNodeRef}
-          className="px-3 pb-4 min-h-[200px] sm:min-h-[calc(100vh-300px)] relative z-10"
+          className="px-3 pb-4 min-h-[calc(100vh-220px)] relative z-10"
         >
           <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
+            <div className="space-y-2">
+              {projects.map((project) => {
+                const isLocked = project.isLocked || 
+                  project.activeJobStatus === "running" || 
+                  project.activeJobStatus === "pending";
+                return (
+                  <ProjectFlipCard 
+                    key={project.id} 
+                    project={project}
+                    disabled={isLocked}
+                  >
+                    <ProjectCard project={project} />
+                  </ProjectFlipCard>
+                );
+              })}
             </div>
           </SortableContext>
 
@@ -154,11 +155,11 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
                 transition={springPresets.quick}
                 className="text-center"
               >
-                <p className="text-xs text-muted-foreground/60 font-medium">
+                <p className="text-xs text-white/70 font-medium">
                   Drop projects here
                 </p>
                 {column.autoTriggerJobs && column.autoTriggerJobs.length > 0 && (
-                  <p className="text-[10px] mt-1.5 text-muted-foreground/40 font-mono">
+                  <p className="text-[10px] mt-1.5 text-white/50 font-mono">
                     Auto-runs: {column.autoTriggerJobs.join(", ")}
                   </p>
                 )}
@@ -170,4 +171,4 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
       </motion.div>
     </motion.div>
   );
-}
+});

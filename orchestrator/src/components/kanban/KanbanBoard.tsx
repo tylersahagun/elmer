@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { motion, AnimatePresence } from "framer-motion";
+import { useShallow } from "zustand/react/shallow";
 import { useKanbanStore, type ProjectCard as ProjectCardType, type KanbanColumn as KanbanColumnType } from "@/lib/store";
 import type { ProjectStage } from "@/lib/db/schema";
 import { KanbanColumn } from "./KanbanColumn";
@@ -22,6 +23,7 @@ import { ProjectCardOverlay } from "./ProjectCard";
 import { TranscriptInputDialog } from "./TranscriptInputDialog";
 import { IterationLoopOverlay } from "./IterationLoopOverlay";
 import { IterationLoopLanes } from "./IterationLoopLanes";
+import { PinnedProjectsSection } from "./PinnedProjectsSection";
 import type { LoopViewMode } from "./IterationLoopControls";
 import { staggerContainer, staggerItem } from "@/lib/animations";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
@@ -113,13 +115,28 @@ async function persistStageChange(
 }
 
 export function KanbanBoard() {
-  // Get raw data from store
+  // Get columns and workspace from store
   const allColumns = useKanbanStore((s) => s.columns);
-  const projects = useKanbanStore((s) => s.projects);
   const workspace = useKanbanStore((s) => s.workspace);
   const moveProject = useKanbanStore((s) => s.moveProject);
   const updateProject = useKanbanStore((s) => s.updateProject);
   const setDraggedProject = useKanbanStore((s) => s.setDraggedProject);
+  
+  // For drag operations only - subscribe to project stage mapping (lightweight)
+  // This only changes when projects move between columns, not on every project update
+  const projectStageMap = useKanbanStore(
+    useShallow((s) => {
+      const map: Record<string, string> = {};
+      for (const p of s.projects) {
+        map[p.id] = p.stage;
+      }
+      return map;
+    })
+  );
+  
+  // For drag overlay - get all projects and memoize the lookup function
+  const projects = useKanbanStore((s) => s.projects);
+  const getProjectById = useCallback((id: string) => projects.find(p => p.id === id), [projects]);
   
   // Memoize filtered/sorted columns to avoid infinite loops
   const columns = useMemo(
@@ -166,38 +183,84 @@ export function KanbanBoard() {
 
   const [activeProject, setActiveProject] = useState<ProjectCardType | null>(null);
   const [loopViewMode] = useState<LoopViewMode>("off");
-  const [scrollProgress, setScrollProgress] = useState(0);
   // Track the original stage when drag started (for cancellation)
   const originalStageRef = useRef<string | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const auroraRef = useRef<HTMLDivElement | null>(null);
+  const scrollIndicatorRef = useRef<HTMLDivElement | null>(null);
+  const scrollTrackRef = useRef<HTMLDivElement | null>(null);
+  const isDraggingScrollRef = useRef(false);
   
-  // Parallax effect on horizontal scroll + scroll progress tracking
-  useEffect(() => {
+  // Scroll progress tracking - uses direct DOM manipulation, no React re-renders
+  // useLayoutEffect ensures refs are populated before we attach listeners
+  useLayoutEffect(() => {
     const scrollContainer = scrollContainerRef.current;
-    const auroraEl = auroraRef.current;
+    const indicator = scrollIndicatorRef.current;
+    const track = scrollTrackRef.current;
+    if (!scrollContainer || !indicator || !track) return;
     
-    if (!scrollContainer) return;
-    
-    const handleScroll = () => {
+    const updateIndicator = () => {
       const scrollLeft = scrollContainer.scrollLeft;
       const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-      
-      // Calculate scroll progress (0-1)
       const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
-      setScrollProgress(progress);
       
-      // Move background at 0.3x speed for subtle parallax effect
-      if (auroraEl) {
-        const parallaxOffset = -scrollLeft * 0.3;
-        auroraEl.style.setProperty('--parallax-offset', `${parallaxOffset}px`);
+      // Update indicator directly via DOM - no React state, no re-renders
+      // translateX by (progress * 80%) because thumb is 20% width, so max travel is 80%
+      indicator.style.transform = `translateX(${progress * 400}%)`;
+    };
+    
+    const scrollToPosition = (clientX: number) => {
+      const trackRect = track.getBoundingClientRect();
+      const thumbWidth = track.clientWidth * 0.2; // 20% width
+      const effectiveTrackWidth = trackRect.width - thumbWidth;
+      
+      // Calculate position relative to track, centering on click
+      const relativeX = clientX - trackRect.left - (thumbWidth / 2);
+      const progress = Math.max(0, Math.min(1, relativeX / effectiveTrackWidth));
+      
+      const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+      scrollContainer.scrollLeft = progress * maxScroll;
+    };
+    
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      isDraggingScrollRef.current = true;
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+      scrollToPosition(e.clientX);
+    };
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingScrollRef.current) return;
+      scrollToPosition(e.clientX);
+    };
+    
+    const handleMouseUp = () => {
+      if (isDraggingScrollRef.current) {
+        isDraggingScrollRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
       }
     };
     
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, []);
+    // Initial position update
+    updateIndicator();
+    
+    // Scroll listener on container
+    scrollContainer.addEventListener('scroll', updateIndicator, { passive: true });
+    
+    // Drag listeners on track
+    track.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      scrollContainer.removeEventListener('scroll', updateIndicator);
+      track.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [columns.length]); // Re-attach when columns change (affects scrollWidth)
   
   // State for transcript input dialog
   const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
@@ -284,23 +347,24 @@ export function KanbanBoard() {
     const column = columns.find((c) => c.id === id);
     if (column) return column.id;
     
-    // Check if it's a project ID - find which column it's in
-    const project = projects.find((p) => p.id === id);
-    if (project) return project.stage;
+    // Check if it's a project ID - find which column it's in using the stage map
+    const stage = projectStageMap[id];
+    if (stage) return stage;
     
     return null;
-  }, [columns, projects]);
+  }, [columns, projectStageMap]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
-    const project = projects.find((p) => p.id === active.id);
+    const projectId = active.id as string;
+    const project = getProjectById(projectId);
     if (project) {
       setActiveProject(project);
       setDraggedProject(project.id);
       // Remember original stage for potential cancellation
       originalStageRef.current = project.stage;
     }
-  }, [projects, setDraggedProject]);
+  }, [getProjectById, setDraggedProject]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event;
@@ -313,15 +377,15 @@ export function KanbanBoard() {
     const overColumnId = findColumnId(overId);
     if (!overColumnId) return;
 
-    // Get the active project's current stage
-    const activeProject = projects.find((p) => p.id === activeId);
-    if (!activeProject) return;
+    // Get the active project's current stage from the map (avoids full project lookup)
+    const activeProjectStage = projectStageMap[activeId];
+    if (!activeProjectStage) return;
 
     // Only move if we're over a different column than the project is currently in
-    if (activeProject.stage !== overColumnId) {
+    if (activeProjectStage !== overColumnId) {
       moveProject(activeId, overColumnId as ProjectStage);
     }
-  }, [findColumnId, projects, moveProject]);
+  }, [findColumnId, projectStageMap, moveProject]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
@@ -344,9 +408,9 @@ export function KanbanBoard() {
     const overColumnId = findColumnId(overId);
 
     if (overColumnId && originalStageRef.current !== overColumnId) {
-      // Ensure final state is correct in local store
-      const project = projects.find((p) => p.id === activeId);
-      if (project && project.stage !== overColumnId) {
+      // Get the current project stage from the map
+      const currentStage = projectStageMap[activeId];
+      if (currentStage && currentStage !== overColumnId) {
         moveProject(activeId, overColumnId as ProjectStage);
       }
       
@@ -354,17 +418,20 @@ export function KanbanBoard() {
       const targetColumn = columns.find((c) => c.id === overColumnId);
       
       // Check if this stage requires input (e.g., Discovery needs transcript)
-      if (STAGES_REQUIRING_INPUT.includes(overColumnId as ProjectStage) && project) {
-        // Show dialog to collect input before persisting
-        setPendingMove({
-          projectId: activeId,
-          project,
-          targetStage: overColumnId as ProjectStage,
-          targetColumn,
-        });
-        setTranscriptDialogOpen(true);
-        originalStageRef.current = null;
-        return;
+      if (STAGES_REQUIRING_INPUT.includes(overColumnId as ProjectStage)) {
+        const project = getProjectById(activeId);
+        if (project) {
+          // Show dialog to collect input before persisting
+          setPendingMove({
+            projectId: activeId,
+            project,
+            targetStage: overColumnId as ProjectStage,
+            targetColumn,
+          });
+          setTranscriptDialogOpen(true);
+          originalStageRef.current = null;
+          return;
+        }
       }
       
       // Persist to database and trigger auto-jobs (no input needed)
@@ -404,7 +471,8 @@ export function KanbanBoard() {
     originalStageRef.current = null;
   }, [
     findColumnId,
-    projects,
+    getProjectById,
+    projectStageMap,
     columns,
     workspace,
     moveProject,
@@ -506,11 +574,29 @@ export function KanbanBoard() {
     originalStageRef.current = null;
   }, [pendingMove, moveProject]);
 
-  // Group projects by stage
-  const projectsByStage = columns.reduce((acc, column) => {
-    acc[column.id] = projects.filter((p) => p.stage === column.id);
-    return acc;
-  }, {} as Record<ProjectStage, ProjectCardType[]>);
+  // Handle pin toggle (local state only for now)
+  const [pinnedProjectIds, setPinnedProjectIds] = useState<Set<string>>(new Set());
+  
+  const handleTogglePin = useCallback((projectId: string, isPinned: boolean) => {
+    setPinnedProjectIds(prev => {
+      const next = new Set(prev);
+      if (isPinned) {
+        next.add(projectId);
+      } else {
+        next.delete(projectId);
+      }
+      return next;
+    });
+  }, []);
+  
+  // Get pinned projects - only subscribe when we have pinned items
+  const pinnedProjects = useKanbanStore(
+    useShallow((s) => 
+      pinnedProjectIds.size > 0 
+        ? s.projects.filter(p => pinnedProjectIds.has(p.id))
+        : []
+    )
+  );
 
   return (
     <DndContext
@@ -521,10 +607,16 @@ export function KanbanBoard() {
       onDragEnd={handleDragEnd}
     >
       <div className="relative">
-        {/* Parallax Aurora Background */}
-        <div ref={auroraRef} className="kanban-aurora-bg" />
         
         <div ref={boardRef} className="relative">
+          {/* Pinned Projects Section */}
+          <div className="px-4 sm:px-6 pt-4">
+            <PinnedProjectsSection
+              projects={pinnedProjects}
+              onTogglePin={handleTogglePin}
+            />
+          </div>
+          
           {loopViewMode === "lanes" && <IterationLoopLanes columns={columns} className="px-4 sm:px-6" />}
           {loopViewMode === "overlay" && (
             <IterationLoopOverlay containerRef={boardRef} columns={columns} />
@@ -534,35 +626,34 @@ export function KanbanBoard() {
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            className="flex gap-3 sm:gap-4 p-4 sm:p-6 overflow-x-auto min-h-[60vh] sm:min-h-[calc(100vh-200px)] relative z-10 kanban-scroll-container"
+            className="flex gap-3 sm:gap-4 p-4 sm:p-6 overflow-x-auto min-h-[calc(100vh-120px)] relative z-10 kanban-scroll-container will-change-scroll"
           >
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="sync">
               {columns.map((column) => (
                 <motion.div
                   key={column.id}
                   variants={staggerItem}
-                  layout
-                  className="group"
+                  // Removed 'layout' prop - it causes expensive recalcs on scroll
+                  className="group flex-shrink-0"
                 >
-                  <KanbanColumn
-                    column={column}
-                    projects={projectsByStage[column.id] || []}
-                  />
+                  <KanbanColumn column={column} />
                 </motion.div>
               ))}
             </AnimatePresence>
           </motion.div>
           
-          {/* Wave Scroll Indicator */}
-          <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none z-20">
-            <div className="relative w-48 h-1.5 bg-slate-200/30 dark:bg-slate-700/30 rounded-full overflow-hidden">
-              <motion.div
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 rounded-full wave-scroll-indicator"
+          {/* Interactive Scroll Indicator - draggable and synced with scroll */}
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center z-20">
+            <div 
+              ref={scrollTrackRef}
+              className="relative w-48 h-2 bg-slate-200/30 dark:bg-slate-700/30 rounded-full overflow-hidden cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors"
+            >
+              <div
+                ref={scrollIndicatorRef}
+                className="absolute top-0 left-0 h-full w-[20%] bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 rounded-full will-change-transform cursor-grab active:cursor-grabbing"
                 style={{
-                  width: '20%',
-                  left: `${scrollProgress * 80}%`,
+                  transform: 'translateX(0%)',
                 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
             </div>
           </div>

@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { springPresets } from "@/lib/animations";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
+import { cn } from "@/lib/utils";
 import { GlassPanel } from "@/components/glass";
+import { BackgroundWrapper, type BackgroundType } from "@/components/animate-ui/backgrounds";
+import { useDisplaySettings } from "@/components/display";
 import { 
   Plus, 
   Settings, 
@@ -28,6 +31,8 @@ import {
   Loader2,
   AlertCircle,
   Menu,
+  BookOpen,
+  Users,
 } from "lucide-react";
 import { WaveV4D, ElmerWordmark } from "@/components/brand/ElmerLogo";
 
@@ -40,11 +45,18 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const setWorkspace = useKanbanStore((s) => s.setWorkspace);
   const setColumns = useKanbanStore((s) => s.setColumns);
   const setProjects = useKanbanStore((s) => s.setProjects);
+  const storeWorkspace = useKanbanStore((s) => s.workspace);
   const openNewProjectModal = useUIStore((s) => s.openNewProjectModal);
   const openSettingsModal = useUIStore((s) => s.openSettingsModal);
   const openArchivedProjectsModal = useUIStore((s) => s.openArchivedProjectsModal);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  
+  // Get background settings from workspace - defaults to aurora
+  const backgroundSettings = storeWorkspace?.settings?.background || { type: "aurora" as BackgroundType };
+  
+  // Get display mode for focus-aware styling
+  const { isFocusMode } = useDisplaySettings();
 
   // Get real-time job status for the inbox
   const { summary: jobSummary } = useRealtimeJobs({
@@ -188,13 +200,25 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   }
 
   return (
-    <div className="min-h-screen">
+    <BackgroundWrapper
+      type={backgroundSettings.type as BackgroundType}
+      primaryColor={backgroundSettings.primaryColor}
+      secondaryColor={backgroundSettings.secondaryColor}
+      speed={backgroundSettings.speed}
+      interactive={backgroundSettings.interactive}
+      className="min-h-screen"
+    >
       {/* Header */}
       <motion.header
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: isFocusMode ? 0 : -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={springPresets.gentle}
-        className="sticky top-0 z-40 backdrop-blur-xl bg-white/5 border-b border-white/10"
+        transition={isFocusMode ? { duration: 0.1 } : springPresets.gentle}
+        className={cn(
+          "sticky top-0 z-50 border-b",
+          isFocusMode 
+            ? "bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 shadow-sm" 
+            : "backdrop-blur-2xl bg-black/40 dark:bg-black/50 border-white/10 shadow-xl shadow-black/20"
+        )}
       >
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -217,7 +241,12 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               variant="outline"
               size="sm"
               onClick={openNewProjectModal}
-              className="gap-2 glass-card border-white/20"
+              className={cn(
+                "gap-2",
+                isFocusMode
+                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white hover:bg-slate-800 dark:hover:bg-slate-100"
+                  : "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
+              )}
             >
               <Plus className="w-4 h-4" />
               New Project
@@ -226,9 +255,48 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               variant="ghost"
               size="sm"
               onClick={openArchivedProjectsModal}
+              className={cn(
+                isFocusMode
+                  ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
             >
               Archived
             </Button>
+            
+            {/* Knowledge Base & Personas Links */}
+            <div className={cn("h-4 w-px mx-1", isFocusMode ? "bg-slate-200 dark:bg-zinc-700" : "bg-white/20")} />
+            <Link href="/knowledgebase">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "gap-1.5",
+                  isFocusMode
+                    ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
+                )}
+              >
+                <BookOpen className="w-4 h-4" />
+                <span className="hidden lg:inline">Files</span>
+              </Button>
+            </Link>
+            <Link href="/personas">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "gap-1.5",
+                  isFocusMode
+                    ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
+                )}
+              >
+                <Users className="w-4 h-4" />
+                <span className="hidden lg:inline">Personas</span>
+              </Button>
+            </Link>
+            <div className={cn("h-4 w-px mx-1", isFocusMode ? "bg-slate-200 dark:bg-zinc-700" : "bg-white/20")} />
             
             {/* Notification Inbox */}
             <NotificationInbox
@@ -241,7 +309,12 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               variant="ghost"
               size="icon"
               onClick={toggleSidebar}
-              className={sidebarOpen ? "text-purple-400" : ""}
+              className={cn(
+                isFocusMode
+                  ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+                  : "text-white/80 hover:text-white hover:bg-white/10",
+                sidebarOpen && (isFocusMode ? "text-emerald-600 dark:text-emerald-400" : "text-purple-400")
+              )}
             >
               <MessageSquare className="w-4 h-4" />
             </Button>
@@ -249,6 +322,11 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               variant="ghost" 
               size="icon"
               onClick={openSettingsModal}
+              className={cn(
+                isFocusMode
+                  ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              )}
             >
               <Settings className="w-4 h-4" />
             </Button>
@@ -261,7 +339,12 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               variant="outline"
               size="icon"
               onClick={openNewProjectModal}
-              className="glass-card border-white/20 h-9 w-9"
+              className={cn(
+                "h-9 w-9",
+                isFocusMode
+                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white hover:bg-slate-800 dark:hover:bg-slate-100"
+                  : "bg-white/10 border-white/20 text-white hover:bg-white/20"
+              )}
             >
               <Plus className="w-4 h-4" />
             </Button>
@@ -276,11 +359,28 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             {/* Mobile menu dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className={cn(
+                    "h-9 w-9",
+                    isFocusMode
+                      ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
+                      : "text-white/80 hover:text-white hover:bg-white/10"
+                  )}
+                >
                   <Menu className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass-card w-48">
+              <DropdownMenuContent 
+                align="end" 
+                className={cn(
+                  "w-48",
+                  isFocusMode
+                    ? "bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700"
+                    : "bg-black/80 backdrop-blur-xl border-white/10"
+                )}
+              >
                 <DropdownMenuItem onClick={openNewProjectModal} className="gap-2">
                   <Plus className="w-4 h-4" />
                   New Project
@@ -288,6 +388,18 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
                 <DropdownMenuItem onClick={openArchivedProjectsModal} className="gap-2">
                   Archived Projects
                 </DropdownMenuItem>
+                <Link href="/knowledgebase" className="w-full">
+                  <DropdownMenuItem className="gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    Knowledge Base
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/personas" className="w-full">
+                  <DropdownMenuItem className="gap-2">
+                    <Users className="w-4 h-4" />
+                    Personas
+                  </DropdownMenuItem>
+                </Link>
                 <DropdownMenuItem onClick={toggleSidebar} className="gap-2">
                   <MessageSquare className="w-4 h-4" />
                   AI Assistant
@@ -331,6 +443,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       <ProjectDetailModal />
       <WorkspaceSettingsModal />
       {workspace?.id && <ArchivedProjectsModal workspaceId={workspace.id} />}
-    </div>
+    </BackgroundWrapper>
   );
 }

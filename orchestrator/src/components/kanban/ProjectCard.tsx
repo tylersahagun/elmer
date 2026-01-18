@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
@@ -21,12 +22,11 @@ import {
   Play,
   Archive,
   Lock,
+  Unlock,
   AlertCircle,
   CheckCircle,
-  Zap,
-  User,
-  Flag,
 } from "lucide-react";
+import { UnlockProjectDialog } from "./UnlockProjectDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 interface ProjectCardProps {
   project: ProjectCardType;
@@ -69,12 +70,11 @@ function formatRelativeTime(date: Date): string {
 }
 
 export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
+  const [showUnlockDialog, setShowUnlockDialog] = React.useState(false);
   const setActiveProject = useKanbanStore((s) => s.setActiveProject);
   const updateProject = useKanbanStore((s) => s.updateProject);
   const openProjectDetailModal = useUIStore((s) => s.openProjectDetailModal);
   const workspace = useKanbanStore((s) => s.workspace);
-  const columns = useKanbanStore((s) => s.columns);
-  const stageConfidence = project.metadata?.stageConfidence?.[project.stage];
 
   // Check if project is locked (has active/pending jobs)
   const isLocked = project.isLocked || 
@@ -129,26 +129,6 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
     branch: project.metadata?.gitBranch,
   });
 
-  const currentColumn = columns.find((column) => column.id === project.stage);
-  const automationMode = workspace?.settings?.automationMode || "manual";
-  const isHumanCheckpoint = Boolean(currentColumn?.humanInLoop);
-  const isStopStage =
-    automationMode === "auto_to_stage" && workspace?.settings?.automationStopStage === project.stage;
-
-  const automationIndicators = (() => {
-    if (automationMode === "manual") {
-      return [{ label: "Manual rail", icon: Pause, className: "text-slate-500" }];
-    }
-    const indicators = [];
-    indicators.push({ label: "Auto rail", icon: Zap, className: "text-emerald-500" });
-    if (isHumanCheckpoint) {
-      indicators.push({ label: "Human checkpoint", icon: User, className: "text-amber-500" });
-    }
-    if (isStopStage) {
-      indicators.push({ label: "Stop stage", icon: Flag, className: "text-rose-500" });
-    }
-    return indicators;
-  })();
 
   const handleOpenCursor = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -185,7 +165,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
       className={cn(
         "group relative",
         isLocked ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
-        "rounded-xl border",
+        "rounded-lg border",
         // Border color based on state
         hasFailed 
           ? "border-red-400/50 dark:border-red-500/30" 
@@ -194,7 +174,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
             : "border-slate-200 dark:border-slate-700",
         "bg-white dark:bg-slate-800",
         "shadow-sm hover:shadow-md",
-        "p-3",
+        "p-2",
         "text-slate-900 dark:text-slate-100",
         "transition-all duration-200",
         !isLocked && "hover:bg-slate-50 dark:hover:bg-slate-700/50",
@@ -209,36 +189,30 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         hasFailed && "ring-2 ring-red-400/30 dark:ring-red-500/20",
       )}
     >
-      {/* Locked overlay indicator */}
+      {/* Locked overlay indicator - subtle background only, icon moved to footer */}
       {isLocked && (
-        <div className="absolute inset-0 rounded-xl bg-purple-500/5 pointer-events-none">
-          <div className="absolute top-2 right-2">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Lock className="w-4 h-4 text-purple-400" />
-            </motion.div>
-          </div>
-        </div>
+        <div className="absolute inset-0 rounded-xl bg-purple-500/5 pointer-events-none" />
       )}
       
       {/* Failed state overlay */}
       {hasFailed && (
         <div className="absolute inset-0 rounded-xl bg-red-500/5 pointer-events-none" />
       )}
-      {/* Header */}
-      <div className="flex items-start justify-between mb-2">
-        <span className={cn(
-          "text-xs font-medium px-2 py-0.5 rounded",
-          stageColors[project.stage]
-        )}>
-          {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
-        </span>
+      {/* Header - compact with inline title */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className={cn(
+            "text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
+            stageColors[project.stage]
+          )}>
+            {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
+          </span>
+          <h4 className="font-medium text-sm truncate">{project.name}</h4>
+        </div>
         
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+            <Clock className="w-2.5 h-2.5" />
             {formatRelativeTime(project.updatedAt)}
           </span>
           
@@ -247,9 +221,9 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <MoreHorizontal className="w-3.5 h-3.5" />
+                <MoreHorizontal className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="glass-card">
@@ -280,6 +254,18 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
                 Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              {isLocked && (
+                <DropdownMenuItem 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowUnlockDialog(true);
+                  }} 
+                  className="gap-2 text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400"
+                >
+                  <Unlock className="w-3.5 h-3.5" />
+                  Unlock Project
+                </DropdownMenuItem>
+              )}
               {project.status === "active" ? (
                 <DropdownMenuItem onClick={(e) => handleStatusChange(e, "paused")} className="gap-2">
                   <Pause className="w-3.5 h-3.5" />
@@ -303,50 +289,8 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground mb-2">
-        {automationIndicators.map((indicator) => {
-          const Icon = indicator.icon;
-          return (
-            <span
-              key={indicator.label}
-              className="inline-flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 bg-white/40 dark:bg-slate-900/30"
-            >
-              <Icon className={cn("w-3 h-3", indicator.className)} />
-              <span>{indicator.label}</span>
-            </span>
-          );
-        })}
-      </div>
-
-      {/* Title */}
-      <h4 className="font-medium text-sm mb-1 line-clamp-1">{project.name}</h4>
-      
-      {/* Description */}
-      {project.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-          {project.description}
-        </p>
-      )}
-
-      {stageConfidence?.score !== undefined && (
-        <div className="mt-2">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-            <span>Alignment</span>
-            <span>{Math.round(stageConfidence.score * 100)}%</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-slate-200/60 dark:bg-slate-700/60 overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-purple-400 to-pink-400"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.round(stageConfidence.score * 100)}%` }}
-              transition={springPresets.gentle}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
+      {/* Footer - compact */}
+      <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/10">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {project.documentCount !== undefined && project.documentCount > 0 && (
             <span className="flex items-center gap-1">
@@ -362,30 +306,39 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
           )}
         </div>
 
-        {/* Job Status Indicator */}
-        {project.activeJobType && (
-          <JobStatusIndicator 
-            status={project.activeJobStatus}
-            jobType={project.activeJobType}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {/* Job Status Indicator */}
+          {project.activeJobType && (
+            <JobStatusIndicator 
+              status={project.activeJobStatus}
+              jobType={project.activeJobType}
+            />
+          )}
+          
+          {/* Lock icon - bottom right */}
+          {isLocked && (
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="flex items-center justify-center"
+            >
+              <Lock className="w-4 h-4 text-purple-400" />
+            </motion.div>
+          )}
+        </div>
       </div>
 
       {/* Progress Bar */}
       {project.activeJobProgress !== undefined && project.activeJobProgress > 0 && (
-        <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
-          <motion.div 
-            className={cn(
-              "h-full rounded-full",
-              hasFailed 
-                ? "bg-gradient-to-r from-red-500 to-orange-500" 
-                : "bg-gradient-to-r from-purple-500 to-pink-500"
-            )}
-            initial={{ width: 0 }}
-            animate={{ width: `${project.activeJobProgress * 100}%` }}
-            transition={springPresets.gentle}
-          />
-        </div>
+        <Progress 
+          value={project.activeJobProgress * 100}
+          className={cn(
+            "mt-2 h-1",
+            hasFailed 
+              ? "[&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" 
+              : "[&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-pink-500"
+          )}
+        />
       )}
       
       {/* Error message tooltip */}
@@ -396,6 +349,14 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
           </p>
         </div>
       )}
+
+      {/* Unlock Project Dialog */}
+      <UnlockProjectDialog
+        projectId={project.id}
+        projectName={project.name}
+        open={showUnlockDialog}
+        onOpenChange={setShowUnlockDialog}
+      />
     </div>
   );
 }
@@ -495,22 +456,22 @@ function JobStatusIndicator({
 export function ProjectCardOverlay({ project }: { project: ProjectCardType }) {
   return (
     <div className={cn(
-      "rounded-xl border border-white/30 dark:border-white/20",
+      "rounded-lg border border-white/30 dark:border-white/20",
       "bg-white/80 dark:bg-slate-800/90",
       "backdrop-blur-xl",
       "shadow-[0_20px_60px_rgba(0,0,0,0.2)]",
-      "p-3",
+      "p-2",
       "rotate-2 scale-105",
     )}>
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-center gap-2">
         <span className={cn(
-          "text-xs font-medium px-2 py-0.5 rounded",
+          "text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
           stageColors[project.stage]
         )}>
           {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
         </span>
+        <h4 className="font-medium text-sm truncate">{project.name}</h4>
       </div>
-      <h4 className="font-medium text-sm">{project.name}</h4>
     </div>
   );
 }

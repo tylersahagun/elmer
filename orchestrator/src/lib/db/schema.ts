@@ -16,6 +16,16 @@ export const workspaces = pgTable("workspaces", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
+export interface BackgroundSettings {
+  type: "stars" | "bubble" | "gradient" | "gravity-stars" | "hole" | "aurora" | "none";
+  primaryColor?: string;
+  secondaryColor?: string;
+  speed?: number;
+  interactive?: boolean;
+}
+
+export type DisplayMode = "immersive" | "focus";
+
 export interface WorkspaceSettings {
   prototypesPath?: string;
   storybookPort?: number;
@@ -34,6 +44,12 @@ export interface WorkspaceSettings {
   automationMode?: "manual" | "auto_to_stage" | "auto_all";
   automationStopStage?: string;
   automationNotifyStage?: string;
+  // UI Personalization
+  background?: BackgroundSettings;
+  columnGradients?: boolean;
+  compactMode?: boolean;
+  // Display Mode: "immersive" for glassmorphism/animations, "focus" for solid/clean UI
+  displayMode?: DisplayMode;
 }
 
 // ============================================
