@@ -1,19 +1,19 @@
-import { sqliteTable, text, integer, real, blob } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, real, timestamp, boolean, jsonb, bytea } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // ============================================
 // WORKSPACES
 // ============================================
 
-export const workspaces = sqliteTable("workspaces", {
+export const workspaces = pgTable("workspaces", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
   githubRepo: text("github_repo"),
   contextPath: text("context_path").default("elmer-docs/"),
-  settings: text("settings", { mode: "json" }).$type<WorkspaceSettings>(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  settings: jsonb("settings").$type<WorkspaceSettings>(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
 });
 
 export interface WorkspaceSettings {
@@ -55,7 +55,7 @@ export type ProjectStage =
 
 export type ProjectStatus = "active" | "paused" | "completed" | "archived";
 
-export const projects = sqliteTable("projects", {
+export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -63,9 +63,9 @@ export const projects = sqliteTable("projects", {
   stage: text("stage").$type<ProjectStage>().notNull().default("inbox"),
   status: text("status").$type<ProjectStatus>().notNull().default("active"),
   priority: integer("priority").default(0),
-  metadata: text("metadata", { mode: "json" }).$type<ProjectMetadata>(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  metadata: jsonb("metadata").$type<ProjectMetadata>(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
 });
 
 export interface ProjectMetadata {
@@ -91,12 +91,12 @@ export interface ProjectMetadata {
 // PROJECT STAGES (History)
 // ============================================
 
-export const projectStages = sqliteTable("project_stages", {
+export const projectStages = pgTable("project_stages", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   stage: text("stage").$type<ProjectStage>().notNull(),
-  enteredAt: integer("entered_at", { mode: "timestamp" }).notNull(),
-  exitedAt: integer("exited_at", { mode: "timestamp" }),
+  enteredAt: timestamp("entered_at").notNull(),
+  exitedAt: timestamp("exited_at"),
   triggeredBy: text("triggered_by"), // "user" | "automation" | job_id
   notes: text("notes"),
 });
@@ -114,7 +114,7 @@ export type DocumentType =
   | "prototype_notes"
   | "jury_report";
 
-export const documents = sqliteTable("documents", {
+export const documents = pgTable("documents", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   type: text("type").$type<DocumentType>().notNull(),
@@ -122,9 +122,9 @@ export const documents = sqliteTable("documents", {
   content: text("content").notNull(), // Markdown content
   version: integer("version").notNull().default(1),
   filePath: text("file_path"), // Path in elmer-docs/
-  metadata: text("metadata", { mode: "json" }).$type<DocumentMetadata>(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  metadata: jsonb("metadata").$type<DocumentMetadata>(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
 });
 
 export interface DocumentMetadata {
@@ -140,7 +140,7 @@ export interface DocumentMetadata {
 
 export type PrototypeType = "standalone" | "context";
 
-export const prototypes = sqliteTable("prototypes", {
+export const prototypes = pgTable("prototypes", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   type: text("type").$type<PrototypeType>().notNull(),
@@ -150,9 +150,9 @@ export const prototypes = sqliteTable("prototypes", {
   chromaticBuildId: text("chromatic_build_id"),
   version: integer("version").notNull().default(1),
   status: text("status").$type<"building" | "ready" | "failed">().default("building"),
-  metadata: text("metadata", { mode: "json" }).$type<PrototypeMetadata>(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  metadata: jsonb("metadata").$type<PrototypeMetadata>(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
 });
 
 export interface PrototypeMetadata {
@@ -185,7 +185,7 @@ export type JobType =
 
 export type JobStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
 
-export const jobs = sqliteTable("jobs", {
+export const jobs = pgTable("jobs", {
   id: text("id").primaryKey(),
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
@@ -194,22 +194,22 @@ export const jobs = sqliteTable("jobs", {
   attempts: integer("attempts").notNull().default(0),
   maxAttempts: integer("max_attempts").notNull().default(3),
   priority: integer("priority").default(0),
-  input: text("input", { mode: "json" }).$type<Record<string, unknown>>(),
-  output: text("output", { mode: "json" }).$type<Record<string, unknown>>(),
+  input: jsonb("input").$type<Record<string, unknown>>(),
+  output: jsonb("output").$type<Record<string, unknown>>(),
   error: text("error"),
   progress: real("progress").default(0), // 0-1
-  startedAt: integer("started_at", { mode: "timestamp" }),
-  completedAt: integer("completed_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull(),
 });
 
-export const jobRuns = sqliteTable("job_runs", {
+export const jobRuns = pgTable("job_runs", {
   id: text("id").primaryKey(),
   jobId: text("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
   status: text("status").$type<JobStatus>().notNull(),
   attempt: integer("attempt").notNull(),
-  startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
-  completedAt: integer("completed_at", { mode: "timestamp" }),
+  startedAt: timestamp("started_at").notNull(),
+  completedAt: timestamp("completed_at"),
   error: text("error"),
 });
 
@@ -231,7 +231,7 @@ export type NotificationType =
 export type NotificationPriority = "low" | "medium" | "high" | "urgent";
 export type NotificationStatus = "unread" | "read" | "actioned" | "dismissed";
 
-export const notifications = sqliteTable("notifications", {
+export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
@@ -248,15 +248,15 @@ export const notifications = sqliteTable("notifications", {
   actionType: text("action_type"), // "navigate" | "approve" | "retry" | "provide_input" | "dismiss"
   actionLabel: text("action_label"), // Button text
   actionUrl: text("action_url"), // Where to navigate or what to do
-  actionData: text("action_data", { mode: "json" }).$type<Record<string, unknown>>(), // Additional action context
+  actionData: jsonb("action_data").$type<Record<string, unknown>>(), // Additional action context
   
   // Metadata
-  metadata: text("metadata", { mode: "json" }).$type<NotificationMetadata>(),
+  metadata: jsonb("metadata").$type<NotificationMetadata>(),
   
-  readAt: integer("read_at", { mode: "timestamp" }),
-  actionedAt: integer("actioned_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }), // Auto-dismiss after this time
+  readAt: timestamp("read_at"),
+  actionedAt: timestamp("actioned_at"),
+  createdAt: timestamp("created_at").notNull(),
+  expiresAt: timestamp("expires_at"), // Auto-dismiss after this time
 });
 
 export interface NotificationMetadata {
@@ -276,7 +276,7 @@ export interface NotificationMetadata {
 
 export type MemoryType = "decision" | "feedback" | "context" | "artifact" | "conversation";
 
-export const memoryEntries = sqliteTable("memory_entries", {
+export const memoryEntries = pgTable("memory_entries", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
@@ -291,7 +291,7 @@ export const memoryEntries = sqliteTable("memory_entries", {
 // LINEAR INTEGRATION
 // ============================================
 
-export const linearMappings = sqliteTable("linear_mappings", {
+export const linearMappings = pgTable("linear_mappings", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   linearProjectId: text("linear_project_id").notNull(),
@@ -300,7 +300,7 @@ export const linearMappings = sqliteTable("linear_mappings", {
   metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(),
 });
 
-export const tickets = sqliteTable("tickets", {
+export const tickets = pgTable("tickets", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   linearId: text("linear_id"),
@@ -320,7 +320,7 @@ export const tickets = sqliteTable("tickets", {
 // JURY EVALUATIONS
 // ============================================
 
-export const juryEvaluations = sqliteTable("jury_evaluations", {
+export const juryEvaluations = pgTable("jury_evaluations", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   phase: text("phase").$type<"research" | "prd" | "prototype">().notNull(),
@@ -340,7 +340,7 @@ export const juryEvaluations = sqliteTable("jury_evaluations", {
 // COLUMN CONFIGURATIONS (Kanban)
 // ============================================
 
-export const columnConfigs = sqliteTable("column_configs", {
+export const columnConfigs = pgTable("column_configs", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   stage: text("stage").$type<ProjectStage>().notNull(),
@@ -367,7 +367,7 @@ export type KnowledgebaseType =
   | "roadmap"
   | "rules";
 
-export const knowledgebaseEntries = sqliteTable("knowledgebase_entries", {
+export const knowledgebaseEntries = pgTable("knowledgebase_entries", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   type: text("type").$type<KnowledgebaseType>().notNull(),
@@ -382,7 +382,7 @@ export const knowledgebaseEntries = sqliteTable("knowledgebase_entries", {
 // KNOWLEDGE SOURCES (Integrations)
 // ============================================
 
-export const knowledgeSources = sqliteTable("knowledge_sources", {
+export const knowledgeSources = pgTable("knowledge_sources", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // "notion" | "confluence" | "drive"
@@ -395,7 +395,7 @@ export const knowledgeSources = sqliteTable("knowledge_sources", {
 // PROTOTYPE VERSIONS
 // ============================================
 
-export const prototypeVersions = sqliteTable("prototype_versions", {
+export const prototypeVersions = pgTable("prototype_versions", {
   id: text("id").primaryKey(),
   prototypeId: text("prototype_id").notNull().references(() => prototypes.id, { onDelete: "cascade" }),
   storybookPath: text("storybook_path"),
