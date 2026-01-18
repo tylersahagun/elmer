@@ -35,6 +35,7 @@ Use these to:
 | "help", "what commands", "how do I", "I'm stuck", "guide me" | `/help` | Show command guidance |
 | "what's the status", "where are we", "active work", "current state" | `/status` | Show workspace overview |
 | "roadmap", "what's planned", "priorities", "what's next" | `/roadmap` | View/update product roadmap |
+| "local", "start local", "docker", "database", "dev environment" | `/local` | Start local dev environment (Docker + PostgreSQL) |
 
 ### Confirm-First Commands (Complex, generative, or multi-step workflows)
 
@@ -176,6 +177,13 @@ This helps ensure we're building the right thing.
 - Requires: Component name for `/component`, nothing for `/storybook`
 - Note: All UI components MUST have corresponding story files
 
+### Local Dev Intent
+- Contains: "local", "docker", "postgres", "database", "dev environment", "start local", "run locally"
+- Action: Execute `/local`
+- Variants: `/local status` (check services), `/local reset` (wipe database)
+- Low-risk: Can auto-execute
+- Note: Ensures Docker, PostgreSQL, migrations, and dev server are running
+
 ---
 
 ## Context Loading by Command Type
@@ -193,6 +201,7 @@ This helps ensure we're building the right thing.
 | Branch | git-workflow.mdc |
 | Component | storybook-standards.mdc, existing component structure |
 | Storybook | Component files in prototypes/src/components |
+| Local | docker-compose.yml, .env.local, orchestrator/ directory |
 
 ---
 

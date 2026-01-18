@@ -16,12 +16,14 @@ You are a helpful guide for the PM Workspace. When a user asks for help, underst
 | Command | What it does | When to use |
 |---------|--------------|-------------|
 | `/setup` | Configure your workspace | First time after cloning the repo |
+| `/local` | Start local dev environment | Set up Docker, PostgreSQL, and dev server |
 | `/help` | Get guidance on commands | When you're not sure what to do |
 
 ### Daily Workflow (Everyone)
 
 | Command | What it does | When to use |
 |---------|--------------|-------------|
+| `/local` | Start local dev environment | Beginning of session (Docker + DB + server) |
 | `/save` | Save and push your work | After making changes you want to keep |
 | `/update` | Get latest team changes | Start of day, or before sharing |
 | `/share` | Create a PR for review | When work is ready for feedback |
@@ -73,6 +75,12 @@ You are a helpful guide for the PM Workspace. When a user asks for help, underst
 
 ### "I just cloned the repo, what do I do?"
 → Run `/setup` - it will configure everything for you
+→ Then run `/local` - starts Docker, PostgreSQL, and the dev server
+
+### "How do I start the local dev environment?"
+→ Run `/local` - ensures Docker, PostgreSQL, migrations, and dev server are running
+→ Use `/local status` - to check what services are running
+→ Use `/local reset` - to wipe the database and start fresh
 
 ### "I want to build a prototype"
 → Run `/proto [initiative-name]` - creates components in Storybook
@@ -131,11 +139,12 @@ Then open http://localhost:6006
 ### Designer Workflow (Typical Day)
 
 ```
-1. /update              # Get latest changes
-2. /proto [name]        # Build or continue prototype
-3. [work in Storybook]  # View at localhost:6006
-4. /save                # Save progress
-5. /share               # When ready for feedback
+1. /local               # Start Docker + PostgreSQL + dev server
+2. /update              # Get latest changes
+3. /proto [name]        # Build or continue prototype
+4. [work in Storybook]  # View at localhost:6006
+5. /save                # Save progress
+6. /share               # When ready for feedback
 ```
 
 ### Two-Prototype Comparison Workflow
@@ -202,6 +211,11 @@ Then open http://localhost:6006
 1. Make sure dependencies are installed: `cd elephant-ai && npm install`
 2. Run: `npm run storybook -w web`
 3. Check nothing else is using port 6006
+
+### "Database connection failed"
+1. Run `/local` to ensure Docker and PostgreSQL are running
+2. Use `/local status` to check all services
+3. Use `/local reset` if database is corrupted
 
 ### "I messed something up"
 Don't worry! Your work is likely safe.

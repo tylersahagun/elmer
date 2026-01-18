@@ -48,6 +48,7 @@ When users describe what they want without using slash commands, recognize inten
 | "Show in context/in-app preview" | Integration prototype | `/context-proto [name]` |
 | "Save my work/push changes" | Git workflow | `/save` |
 | "Get latest/sync" | Git workflow | `/update` |
+| "Start local/docker/database" | Local dev environment | `/local` |
 | "Help/what commands" | Guidance | `/help` |
 
 See `command-router.mdc` for full pattern matching and auto-execute vs. confirm logic.
@@ -121,6 +122,11 @@ When I mention initiatives, check:
 - `/synthesize` - Find patterns across signals
 - `/sync` - Process inbox files
 - `/sync-linear` - Pull issues from Linear
+
+### Development Environment
+- `/local` - Start local dev environment (Docker + PostgreSQL + migrations + dev server)
+- `/local status` - Check status of local services
+- `/local reset` - Reset database to clean state
 
 ### Maintenance
 - `/maintain` - Audit and clean workspace
