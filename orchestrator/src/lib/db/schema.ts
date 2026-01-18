@@ -72,6 +72,16 @@ export interface ProjectMetadata {
   tags?: string[];
   gitBranch?: string;
   baseBranch?: string;
+  stageConfidence?: Record<
+    string,
+    {
+      score: number;
+      summary?: string;
+      strengths?: string[];
+      gaps?: string[];
+      updatedAt: string;
+    }
+  >;
 }
 
 // ============================================
@@ -166,6 +176,7 @@ export type JobType =
   | "iterate_prototype"
   | "generate_tickets"
   | "validate_tickets"
+  | "score_stage_alignment"
   | "deploy_chromatic"
   | "create_feature_branch";
 

@@ -59,6 +59,7 @@ const formatJobType = (type: string): string => {
     run_jury_evaluation: "Run Jury Evaluation",
     generate_tickets: "Generate Tickets",
     validate_tickets: "Validate Tickets",
+    score_stage_alignment: "Score Alignment",
     deploy_chromatic: "Deploy Chromatic",
     iterate_prototype: "Iterate Prototype",
     create_feature_branch: "Create Feature Branch",

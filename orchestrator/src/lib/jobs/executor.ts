@@ -258,6 +258,18 @@ const validateValidateTickets: JobExecutor = async (ctx) => {
   };
 };
 
+const validateScoreStageAlignment: JobExecutor = async (ctx) => {
+  const project = await getProject(ctx.projectId);
+  if (!project) return { success: false, error: "Project not found" };
+  return {
+    success: true,
+    output: {
+      status: "pending",
+      message: "Job ready for processing by AI",
+    },
+  };
+};
+
 const validateDeployChromatic: JobExecutor = async () => {
   // Chromatic deployment doesn't require AI, just CLI
   return { 
@@ -300,6 +312,7 @@ const validators: Record<JobType, JobExecutor> = {
   iterate_prototype: validateIteratePrototype,
   generate_tickets: validateGenerateTickets,
   validate_tickets: validateValidateTickets,
+  score_stage_alignment: validateScoreStageAlignment,
   deploy_chromatic: validateDeployChromatic,
   create_feature_branch: validateCreateFeatureBranch,
 };
@@ -500,6 +513,26 @@ function validateTicketValidationJson(data: Record<string, unknown>) {
   }
   if (data.suggestions && !Array.isArray(data.suggestions)) {
     errors.push("suggestions must be an array");
+  }
+  return errors;
+}
+
+function validateStageScoreJson(data: Record<string, unknown>) {
+  const errors: string[] = [];
+  if (typeof data.score !== "number" || data.score < 0 || data.score > 1) {
+    errors.push("score must be a number between 0 and 1");
+  }
+  if (typeof data.summary !== "string" || data.summary.trim().length === 0) {
+    errors.push("summary must be a non-empty string");
+  }
+  if (data.strengths && !Array.isArray(data.strengths)) {
+    errors.push("strengths must be an array");
+  }
+  if (data.gaps && !Array.isArray(data.gaps)) {
+    errors.push("gaps must be an array");
+  }
+  if (data.recommendations && !Array.isArray(data.recommendations)) {
+    errors.push("recommendations must be an array");
   }
   return errors;
 }
@@ -877,6 +910,68 @@ export async function executeJob(
           metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
         });
         return { success: true, output: { summary: "Tickets validated" } };
+      }
+
+      case "score_stage_alignment": {
+        const stage = (input.stage as string) || project.stage;
+        const docTypeMap: Record<string, Parameters<typeof getDocumentByType>[1]> = {
+          discovery: "research",
+          prd: "prd",
+          design: "design_brief",
+          prototype: "prototype_notes",
+          validate: "jury_report",
+          tickets: "engineering_spec",
+        };
+        const docType = docTypeMap[stage] || "prd";
+        const document = await getDocumentByType(projectId, docType);
+        if (!document) {
+          return { success: false, error: `No document found for ${stage}` };
+        }
+        const workspaceContext = await getWorkspaceContext(project.workspaceId);
+        const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({
+          tool: "score-stage-alignment",
+          input: {
+            stage,
+            document: document.content,
+            companyContext: workspaceContext,
+            guardrails: workspaceContext,
+          },
+          validationMode,
+          validate: (value) => {
+            const parsedValue = safeJsonParse<Record<string, unknown>>(value);
+            if (!parsedValue) {
+              return { ok: false, error: "Invalid JSON" };
+            }
+            const errors = validateStageScoreJson(parsedValue);
+            return errors.length
+              ? { ok: false, error: errors.join("; ") }
+              : { ok: true, parsed: parsedValue };
+          },
+        });
+        if (parsed) {
+          const nextMetadata = {
+            ...(project.metadata || {}),
+            stageConfidence: {
+              ...(project.metadata?.stageConfidence || {}),
+              [stage]: {
+                score: Number(parsed.score || 0),
+                summary: String(parsed.summary || ""),
+                strengths: (parsed.strengths as string[]) || [],
+                gaps: (parsed.gaps as string[]) || [],
+                updatedAt: new Date().toISOString(),
+              },
+            },
+          };
+          await updateProjectMetadata(projectId, nextMetadata);
+        }
+        await createDocument({
+          projectId,
+          type: "jury_report",
+          title: `Alignment Score - ${stage.toUpperCase()}`,
+          content: parsed ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`` : raw,
+          metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
+        });
+        return { success: true, output: { summary: "Alignment score generated" } };
       }
 
       case "build_prototype": {

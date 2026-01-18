@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       "iterate_prototype",
       "generate_tickets",
       "validate_tickets",
+      "score_stage_alignment",
       "deploy_chromatic",
     ];
 

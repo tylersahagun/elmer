@@ -42,6 +42,7 @@ jobs:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           workingDir: prototypes
           exitZeroOnChanges: true
+          exitOnceUploaded: true
           autoAcceptChanges: main
 
       - name: Output URLs

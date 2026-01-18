@@ -174,6 +174,19 @@ Return validation as JSON:
 }`,
     format: "json",
   },
+  "score-stage-alignment": {
+    system: `You are a senior product reviewer scoring alignment to vision and guardrails.
+
+Evaluate the document and context. Return JSON:
+{
+  "score": 0.0-1.0,
+  "summary": "1-2 sentence assessment",
+  "strengths": ["..."],
+  "gaps": ["..."],
+  "recommendations": ["..."]
+}`,
+    format: "json",
+  },
 };
 
 export async function POST(request: NextRequest) {
@@ -285,6 +298,24 @@ ${input.prototypeDescription ? `## Prototype Description\n${input.prototypeDescr
 
 ## Tickets
 ${JSON.stringify(input.tickets, null, 2)}
+
+Return ONLY valid JSON.`;
+        break;
+
+      case "score-stage-alignment":
+        userPrompt = `Score alignment for this stage:
+
+## Stage
+${input.stage}
+
+## Document
+${input.document}
+
+## Company Context
+${input.companyContext || ""}
+
+## Guardrails
+${input.guardrails || ""}
 
 Return ONLY valid JSON.`;
         break;

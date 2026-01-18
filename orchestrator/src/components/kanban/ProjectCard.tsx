@@ -69,6 +69,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
   const updateProject = useKanbanStore((s) => s.updateProject);
   const openProjectDetailModal = useUIStore((s) => s.openProjectDetailModal);
   const workspace = useKanbanStore((s) => s.workspace);
+  const stageConfidence = project.metadata?.stageConfidence?.[project.stage];
 
   // Check if project is locked (has active/pending jobs)
   const isLocked = project.isLocked || 
@@ -284,6 +285,23 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         </p>
       )}
 
+      {stageConfidence?.score !== undefined && (
+        <div className="mt-2">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+            <span>Alignment</span>
+            <span>{Math.round(stageConfidence.score * 100)}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-slate-200/60 dark:bg-slate-700/60 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-purple-400 to-pink-400"
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.round(stageConfidence.score * 100)}%` }}
+              transition={springPresets.gentle}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -350,6 +368,7 @@ function formatJobType(type: string): string {
     build_prototype: "Prototype",
     run_jury_evaluation: "Jury Eval",
     generate_tickets: "Tickets",
+    score_stage_alignment: "Alignment",
     create_feature_branch: "Branch",
   };
   return typeMap[type] || type;

@@ -20,6 +20,16 @@ export interface ProjectCard {
   metadata?: {
     gitBranch?: string;
     baseBranch?: string;
+    stageConfidence?: Record<
+      string,
+      {
+        score: number;
+        summary?: string;
+        strengths?: string[];
+        gaps?: string[];
+        updatedAt: string;
+      }
+    >;
   };
   // Job state
   activeJobType?: string;

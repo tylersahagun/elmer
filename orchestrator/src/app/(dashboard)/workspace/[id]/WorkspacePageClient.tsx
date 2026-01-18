@@ -95,7 +95,13 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
           humanInLoop?: boolean;
           requiredDocuments?: string[];
           requiredApprovals?: number;
-          rules?: { contextPaths?: string[]; contextNotes?: string };
+          rules?: {
+            contextPaths?: string[];
+            contextNotes?: string;
+            loopGroupId?: string;
+            loopTargets?: string[];
+            dependencyNotes?: string;
+          };
         }) => ({
           id: c.stage,
           configId: c.id,
@@ -109,6 +115,9 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
           requiredApprovals: c.requiredApprovals,
           contextPaths: c.rules?.contextPaths,
           contextNotes: c.rules?.contextNotes,
+          loopGroupId: c.rules?.loopGroupId,
+          loopTargets: c.rules?.loopTargets,
+          dependencyNotes: c.rules?.dependencyNotes,
         }));
         setColumns(columns);
       }

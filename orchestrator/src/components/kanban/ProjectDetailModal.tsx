@@ -103,6 +103,16 @@ interface ProjectDetails {
   metadata?: {
     gitBranch?: string;
     baseBranch?: string;
+    stageConfidence?: Record<
+      string,
+      {
+        score: number;
+        summary?: string;
+        strengths?: string[];
+        gaps?: string[];
+        updatedAt: string;
+      }
+    >;
   };
   workspace?: {
     id: string;
@@ -320,6 +330,27 @@ export function ProjectDetailModal() {
       body: JSON.stringify({ workspaceId }),
     });
   }, [selectedDocument, activeProjectId, project]);
+
+  const handleScoreAlignment = useCallback(async () => {
+    if (!activeProjectId || !project) return;
+    const workspaceId = project.workspaceId || project.workspace?.id;
+    if (!workspaceId) return;
+    await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workspaceId,
+        projectId: activeProjectId,
+        type: "score_stage_alignment",
+        input: { stage: project.stage },
+      }),
+    });
+    await fetch("/api/jobs/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId }),
+    });
+  }, [activeProjectId, project]);
 
   const handleStatusChange = async (newStatus: "active" | "paused" | "archived") => {
     if (!activeProjectId) return;
@@ -550,6 +581,51 @@ export function ProjectDetailModal() {
                     <div className="p-6 pt-4">
                       {/* Overview Tab */}
                       <TabsContent value="overview" className="mt-0 space-y-4">
+                        {project.metadata?.stageConfidence?.[project.stage] ? (
+                          <div className="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-500/20">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="text-xs text-emerald-700/70 dark:text-emerald-300/70">
+                                  Alignment Score
+                                </p>
+                                <p className="text-sm font-medium text-emerald-800/90 dark:text-emerald-200/90">
+                                  {Math.round(
+                                    project.metadata.stageConfidence[project.stage].score * 100
+                                  )}
+                                  %
+                                </p>
+                              </div>
+                              <Button size="sm" variant="outline" onClick={handleScoreAlignment}>
+                                Re-score
+                              </Button>
+                            </div>
+                            <div className="h-2 rounded-full bg-emerald-200/60 dark:bg-emerald-800/40 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-emerald-400 via-purple-400 to-pink-400"
+                                style={{
+                                  width: `${Math.round(
+                                    project.metadata.stageConfidence[project.stage].score * 100
+                                  )}%`,
+                                }}
+                              />
+                            </div>
+                            {project.metadata.stageConfidence[project.stage].summary && (
+                              <p className="text-xs text-emerald-700/70 dark:text-emerald-300/70 mt-2">
+                                {project.metadata.stageConfidence[project.stage].summary}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-700/40 flex items-center justify-between">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Alignment Score</p>
+                              <p className="text-sm">No score yet for this stage</p>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={handleScoreAlignment}>
+                              Score Now
+                            </Button>
+                          </div>
+                        )}
                         {/* Summary Section */}
                         {project.documents.length > 0 && (
                           <div className="p-4 rounded-xl bg-linear-to-br from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200/50 dark:border-purple-500/20">

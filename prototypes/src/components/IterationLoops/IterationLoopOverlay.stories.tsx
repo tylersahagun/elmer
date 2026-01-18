@@ -35,3 +35,15 @@ export const Variant_Glow: Story = {
 export const Variant_Layered: Story = {
   args: { columns, edges, variant: "layered" },
 };
+
+export const Variant_DoubleLoop: Story = {
+  args: {
+    columns,
+    edges: [
+      { from: 1, to: 0 },
+      { from: 3, to: 1 },
+      { from: 4, to: 2 },
+    ],
+    variant: "original",
+  },
+};
