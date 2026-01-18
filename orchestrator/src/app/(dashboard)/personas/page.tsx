@@ -266,14 +266,14 @@ export default function PersonasPage() {
       secondaryColor={backgroundSettings.secondaryColor}
       speed={backgroundSettings.speed}
       interactive={backgroundSettings.interactive}
-      className="min-h-screen flex flex-col"
+      className="h-screen flex flex-col overflow-hidden"
     >
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springPresets.gentle}
-        className="sticky top-0 z-50 backdrop-blur-2xl bg-black/40 dark:bg-black/50 border-b border-white/10 shadow-xl shadow-black/20"
+        className="flex-shrink-0 z-50 backdrop-blur-2xl bg-slate-900/90 border-b border-slate-700/50 shadow-xl shadow-black/20"
       >
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -281,7 +281,7 @@ export default function PersonasPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white/70 hover:text-white hover:bg-white/10"
+                className="text-slate-300 hover:text-white hover:bg-slate-700/50"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -304,7 +304,7 @@ export default function PersonasPage() {
             <select
               value={workspaceId}
               onChange={(e) => setWorkspaceId(e.target.value)}
-              className="h-9 rounded-lg border border-white/20 bg-white/10 px-3 text-sm text-white shadow-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+              className="h-9 rounded-lg border border-slate-600 bg-slate-800/80 px-3 text-sm text-slate-100 shadow-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50"
             >
               {(workspaces || []).map((workspace: { id: string; name: string }) => (
                 <option key={workspace.id} value={workspace.id} className="bg-slate-900">
@@ -317,7 +317,7 @@ export default function PersonasPage() {
       </motion.header>
 
       {/* Main Content - Fill remaining height below header */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 min-h-0 overflow-hidden">
         <KnowledgeBaseFilesView
           workspaceId={workspaceId}
           files={personaFiles || []}
