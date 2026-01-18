@@ -451,7 +451,7 @@ export function ProjectDetailModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="glass-panel border-white/20 max-w-3xl p-0! gap-0! max-h-[85vh] overflow-hidden">
+      <DialogContent className="glass-panel border-white/20 w-[95vw] max-w-3xl p-0! gap-0! max-h-[90vh] sm:max-h-[85vh] overflow-hidden">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -462,7 +462,7 @@ export function ProjectDetailModal() {
               className="flex flex-col max-h-[85vh]"
             >
               {/* Header */}
-              <DialogHeader className="shrink-0 p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
+              <DialogHeader className="shrink-0 p-4 sm:p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
                 {isLoading ? (
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
@@ -556,52 +556,56 @@ export function ProjectDetailModal() {
               {/* Content with Tabs */}
               {project && (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                  <div className="shrink-0 px-6 pt-4">
-                    <TabsList className="bg-slate-100/50 dark:bg-slate-800/50">
-                      <TabsTrigger value="overview" className="gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Overview
+                  <div className="shrink-0 px-4 sm:px-6 pt-4 overflow-x-auto">
+                    <TabsList className="bg-slate-100/50 dark:bg-slate-800/50 w-max sm:w-auto">
+                      <TabsTrigger value="overview" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                        <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <span className="hidden sm:inline">Overview</span>
+                        <span className="sm:hidden">Info</span>
                       </TabsTrigger>
-                      <TabsTrigger value="documents" className="gap-1.5">
-                        <FileText className="w-3.5 h-3.5" />
-                        Documents
+                      <TabsTrigger value="documents" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                        <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <span className="hidden sm:inline">Documents</span>
+                        <span className="sm:hidden">Docs</span>
                         {project.documents.length > 0 && (
-                          <span className="ml-1 text-xs bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1.5 rounded-full">
+                          <span className="ml-1 text-[10px] sm:text-xs bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1 sm:px-1.5 rounded-full">
                             {project.documents.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="prototypes" className="gap-1.5">
-                        <Layers className="w-3.5 h-3.5" />
-                        Prototypes
+                      <TabsTrigger value="prototypes" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                        <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <span className="hidden sm:inline">Prototypes</span>
+                        <span className="sm:hidden">Proto</span>
                         {project.prototypes.length > 0 && (
-                          <span className="ml-1 text-xs bg-pink-500/20 text-pink-600 dark:text-pink-400 px-1.5 rounded-full">
+                          <span className="ml-1 text-[10px] sm:text-xs bg-pink-500/20 text-pink-600 dark:text-pink-400 px-1 sm:px-1.5 rounded-full">
                             {project.prototypes.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="history" className="gap-1.5">
-                        <Clock className="w-3.5 h-3.5" />
+                      <TabsTrigger value="history" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                        <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         History
                       </TabsTrigger>
-                      <TabsTrigger value="tickets" className="gap-1.5">
-                        <FileText className="w-3.5 h-3.5" />
+                      <TabsTrigger value="tickets" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                        <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         Tickets
                         {project.tickets.length > 0 && (
-                          <span className="ml-1 text-xs bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 rounded-full">
+                          <span className="ml-1 text-[10px] sm:text-xs bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1 sm:px-1.5 rounded-full">
                             {project.tickets.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="validation" className="gap-1.5">
-                        <Users className="w-3.5 h-3.5" />
-                        Validation
+                      <TabsTrigger value="validation" className="gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                        <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <span className="hidden sm:inline">Validation</span>
+                        <span className="sm:hidden">Valid</span>
                       </TabsTrigger>
                     </TabsList>
                   </div>
 
                   <div className="flex-1 overflow-y-auto min-h-0">
-                    <div className="p-6 pt-4">
+                    <div className="p-4 sm:p-6 pt-4">
                       {/* Overview Tab */}
                       <TabsContent value="overview" className="mt-0 space-y-4">
                         {project.metadata?.stageConfidence?.[project.stage] ? (
@@ -671,7 +675,7 @@ export function ProjectDetailModal() {
                         )}
 
                         {/* Time & Status Info */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                           <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
                             <p className="text-xs text-muted-foreground mb-1">Created</p>
                             <p className="text-sm font-medium">{formatDate(project.createdAt)}</p>
@@ -735,7 +739,7 @@ export function ProjectDetailModal() {
                         </div>
 
                         {/* Quick Stats */}
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3">
                           <button 
                             onClick={() => setActiveTab("documents")}
                             className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-center hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
@@ -860,7 +864,7 @@ export function ProjectDetailModal() {
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: -20 }}
-                              className="h-[500px]"
+                              className="h-[60vh] sm:h-[500px]"
                             >
                               {/* Back button */}
                               <div className="mb-4">

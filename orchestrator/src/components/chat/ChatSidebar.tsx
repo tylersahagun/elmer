@@ -137,13 +137,23 @@ export function ChatSidebar() {
   if (!sidebarOpen) return null;
 
   return (
-    <motion.aside
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 380, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
-      transition={springPresets.snappy}
-      className="border-l border-white/10 bg-white/5 backdrop-blur-xl flex flex-col h-[calc(100vh-80px)]"
-    >
+    <>
+      {/* Mobile overlay backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={toggleSidebar}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+      />
+      
+      <motion.aside
+        initial={{ x: "100%", opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: "100%", opacity: 0 }}
+        transition={springPresets.snappy}
+        className="fixed right-0 top-0 h-full w-full sm:w-[380px] lg:relative lg:w-[380px] border-l border-white/10 bg-white/95 dark:bg-slate-900/95 lg:bg-white/5 backdrop-blur-xl flex flex-col z-50 lg:z-auto lg:h-[calc(100vh-80px)]"
+      >
       {/* Header */}
       <div className="p-4 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -295,6 +305,7 @@ export function ChatSidebar() {
         </div>
       </div>
     </motion.aside>
+    </>
   );
 }
 

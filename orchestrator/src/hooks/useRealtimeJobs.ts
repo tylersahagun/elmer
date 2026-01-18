@@ -251,17 +251,13 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
     };
   }, [workspaceId, enabled, processMessage]);
 
-  useEffect(() => {
-    connectRef.current = connect;
-  }, [connect]);
-
   // Reconnect function
   const reconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
-    connect();
-  }, [connect]);
+    connectRef.current();
+  }, []);
 
   // Trigger job processing
   const triggerProcessing = useCallback(async () => {
@@ -278,10 +274,17 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
     }
   }, [workspaceId]);
 
-  // Connect on mount and when options change
+  // Keep connect ref updated
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
+  // Connect on mount and when workspace/enabled changes
+  // NOTE: We intentionally exclude `connect` from deps to prevent infinite reconnection loops.
+  // The connect function is stored in connectRef and called from there.
   useEffect(() => {
     if (enabled && workspaceId) {
-      connect();
+      connectRef.current();
     }
 
     return () => {
@@ -293,7 +296,8 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [enabled, workspaceId, connect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, workspaceId]);
 
   return {
     jobs,

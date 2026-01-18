@@ -46,7 +46,7 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
       animate="animate"
       exit="exit"
       data-kanban-column={column.id}
-      className="flex-shrink-0 w-72"
+      className="flex-shrink-0 w-[280px] sm:w-72 min-w-[260px]"
     >
       {/* Liquid Glass Lane Container */}
       <motion.div
@@ -109,7 +109,7 @@ export function KanbanColumn({ column, projects }: KanbanColumnProps) {
         {/* Column Body - Drop zone */}
         <div
           ref={setNodeRef}
-          className="px-3 pb-4 min-h-[calc(100vh-300px)]"
+          className="px-3 pb-4 min-h-[200px] sm:min-h-[calc(100vh-300px)]"
         >
           <SortableContext items={projectIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-3">

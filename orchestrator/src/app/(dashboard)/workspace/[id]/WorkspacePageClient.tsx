@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,12 @@ import { ProjectDetailModal } from "@/components/kanban/ProjectDetailModal";
 import { ChatSidebar } from "@/components/chat";
 import { NotificationInbox } from "@/components/inbox";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { springPresets } from "@/lib/animations";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
 import { GlassPanel } from "@/components/glass";
@@ -20,6 +26,7 @@ import {
   MessageSquare, 
   Loader2,
   AlertCircle,
+  Menu,
 } from "lucide-react";
 import { WaveV4D, ElmerWordmark } from "@/components/brand/ElmerLogo";
 
@@ -188,20 +195,21 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
         transition={springPresets.gentle}
         className="sticky top-0 z-40 backdrop-blur-xl bg-white/5 border-b border-white/10"
       >
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={springPresets.bouncy}
               className="flex items-center gap-1"
             >
-              <WaveV4D size={44} palette="forest" />
-              <ElmerWordmark width={100} height={32} palette="forest" />
+              <WaveV4D size={36} palette="forest" className="sm:w-11 sm:h-11" />
+              <ElmerWordmark width={80} height={26} palette="forest" className="hidden sm:block sm:w-[100px] sm:h-8" />
             </motion.div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -241,6 +249,52 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             >
               <Settings className="w-4 h-4" />
             </Button>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden items-center gap-1">
+            {/* Quick add button always visible */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={openNewProjectModal}
+              className="glass-card border-white/20 h-9 w-9"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+            
+            {/* Notification Inbox */}
+            <NotificationInbox
+              workspaceId={workspaceId}
+              jobSummary={jobSummary}
+              onNavigate={handleNotificationNavigate}
+            />
+            
+            {/* Mobile menu dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass-card w-48">
+                <DropdownMenuItem onClick={openNewProjectModal} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  New Project
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={openArchivedProjectsModal} className="gap-2">
+                  Archived Projects
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleSidebar} className="gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  AI Assistant
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={openSettingsModal} className="gap-2">
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </motion.header>

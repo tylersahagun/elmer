@@ -496,7 +496,7 @@ export function KanbanBoard() {
       onDragEnd={handleDragEnd}
     >
       <div className="relative">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 pt-4">
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <div>
               Automation: {automationMode}
@@ -507,7 +507,7 @@ export function KanbanBoard() {
           <IterationLoopControls mode={loopViewMode} onChange={setLoopViewMode} />
         </div>
         <div ref={boardRef} className="relative">
-          {loopViewMode === "lanes" && <IterationLoopLanes columns={columns} className="px-6" />}
+          {loopViewMode === "lanes" && <IterationLoopLanes columns={columns} className="px-4 sm:px-6" />}
           {loopViewMode === "overlay" && (
             <IterationLoopOverlay containerRef={boardRef} columns={columns} />
           )}
@@ -515,7 +515,7 @@ export function KanbanBoard() {
             variants={staggerContainer}
             initial="initial"
             animate="animate"
-            className="flex gap-4 p-6 overflow-x-auto min-h-[calc(100vh-200px)]"
+            className="flex gap-3 sm:gap-4 p-4 sm:p-6 overflow-x-auto min-h-[60vh] sm:min-h-[calc(100vh-200px)]"
           >
             <AnimatePresence mode="popLayout">
               {columns.map((column) => (

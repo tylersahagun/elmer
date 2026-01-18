@@ -320,3 +320,81 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   cursor: grabbing;
 }
+
+/* ===== MOBILE RESPONSIVENESS ===== */
+
+/* Better touch targets */
+@media (max-width: 640px) {
+  button, 
+  [role="button"],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve tap feedback */
+  button:active,
+  [role="button"]:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Smooth scrolling for horizontal scroll containers */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+/* Hide scrollbar on mobile but keep functionality */
+@media (max-width: 640px) {
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .overflow-x-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Safe area padding for notched devices */
+@supports (padding: max(0px)) {
+  .safe-area-inset {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent zoom on input focus on iOS */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Mobile-friendly text selection */
+@media (max-width: 640px) {
+  .glass-card,
+  .glass-panel {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  .glass-card p,
+  .glass-card span,
+  .glass-panel p,
+  .glass-panel span {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}

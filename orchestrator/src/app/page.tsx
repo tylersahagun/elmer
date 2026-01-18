@@ -75,7 +75,7 @@ function HomeContent() {
   };
 
   return (
-    <main className="min-h-screen p-8">
+    <main className="min-h-screen p-4 sm:p-6 md:p-8">
       <motion.div
         variants={staggerContainer}
         initial="initial"
@@ -83,21 +83,21 @@ function HomeContent() {
         className="max-w-7xl mx-auto space-y-8"
       >
         {/* Header */}
-        <motion.header variants={staggerItem} className="text-center py-12">
+        <motion.header variants={staggerItem} className="text-center py-8 sm:py-12">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={springPresets.bouncy}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-6"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-4 sm:mb-6"
           >
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm font-medium">AI-Powered PM Workflows</span>
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+            <span className="text-xs sm:text-sm font-medium">AI-Powered PM Workflows</span>
           </motion.div>
           
-          <h1 className="text-5xl font-bold tracking-tight mb-4 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 dark:from-white dark:via-purple-200 dark:to-white bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-3 sm:mb-4 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 dark:from-white dark:via-purple-200 dark:to-white bg-clip-text text-transparent">
             PM Orchestrator
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
             From idea to shipped feature. Automate research, documentation, prototyping, and validation with AI agents.
           </p>
         </motion.header>
