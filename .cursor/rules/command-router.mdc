@@ -58,6 +58,8 @@ Use these to:
 | "audit workspace", "check health", "maintenance" | `/maintain` | Audit and clean workspace |
 | "change rules", "modify commands", "workspace settings" | `/admin` | Modify workspace rules/commands |
 | "document code", "write AGENTS.md", "AI documentation" | `/agents` | Generate AGENTS.md documentation |
+| "new component", "create component", "add button", "add input" | `/component [name]` | Create UI component with story |
+| "check storybook", "validate stories", "storybook coverage" | `/storybook` | Validate Storybook coverage |
 
 ---
 
@@ -160,6 +162,12 @@ This helps ensure we're building the right thing.
 - Action: Execute appropriate info command
 - Low-risk: Can auto-execute
 
+### Component/Storybook Intent
+- Contains: "new component", "create component", "add button", "UI element", "storybook", "validate stories"
+- Action: Suggest `/component [name]` or `/storybook`
+- Requires: Component name for `/component`, nothing for `/storybook`
+- Note: All UI components MUST have corresponding story files
+
 ---
 
 ## Context Loading by Command Type
@@ -174,6 +182,8 @@ This helps ensure we're building the right thing.
 | Validate | All initiative docs, jury-system.mdc |
 | Status/Help | Current workspace state |
 | Git workflows | None (procedural) |
+| Component | storybook-standards.mdc, existing component structure |
+| Storybook | Component files in prototypes/src/components |
 
 ---
 

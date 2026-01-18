@@ -10,7 +10,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "chromatic",
-    "storybook:validate": "node scripts/validate-stories.js",
+    "storybook:validate": "node scripts/validate-stories.cjs",
     "storybook:check": "npm run storybook:validate && npm run build-storybook"
   },
   "dependencies": {
