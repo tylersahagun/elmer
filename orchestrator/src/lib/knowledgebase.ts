@@ -45,7 +45,9 @@ export function resolveKnowledgePath(
       ? path.join(repoRoot, target)
       : path.join(contextAbsolute, target);
 
-  return resolveWithinRepo(path.relative(repoRoot, resolved));
+  // Validate path is within repo, but return absolute path for readKnowledgeFile
+  resolveWithinRepo(path.relative(repoRoot, resolved));
+  return resolved;
 }
 
 export async function readKnowledgeFile(filePath: string) {

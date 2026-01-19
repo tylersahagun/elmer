@@ -13,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { useUIStore, useKanbanStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { DocumentViewer } from "@/components/documents";
@@ -361,11 +362,12 @@ export function ProjectDetailModal() {
         <div className="flex flex-col h-[85vh]">
               {/* Header - macOS window style */}
               <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
-                <div className="flex items-center gap-1.5 mr-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
-                </div>
+                <TrafficLights 
+                  className="mr-3" 
+                  size={10} 
+                  interactive 
+                  onClose={closeModal}
+                />
                 {isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -394,46 +396,46 @@ export function ProjectDetailModal() {
 
               {/* Content with Tabs */}
               {project && (
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                  <div className="flex-shrink-0 px-6 pt-4">
-                    <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-6">
-                      <TabsTrigger value="overview" className="gap-1.5 text-xs">
-                        <Info className="w-3.5 h-3.5" />
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-shrink-0 px-4 pt-4 overflow-x-auto">
+                    <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl inline-flex gap-0.5 p-1 w-max">
+                      <TabsTrigger value="overview" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
                         Overview
                       </TabsTrigger>
-                      <TabsTrigger value="documents" className="gap-1.5 text-xs">
-                        <FileText className="w-3.5 h-3.5" />
-                        Documents
+                      <TabsTrigger value="documents" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <FileText className="w-3.5 h-3.5 shrink-0" />
+                        Docs
                         {project.documents.length > 0 && (
-                          <span className="ml-1 text-[10px] bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1.5 rounded-full">
+                          <span className="shrink-0 text-[10px] bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1.5 rounded-full">
                             {project.documents.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="prototypes" className="gap-1.5 text-xs">
-                        <Layers className="w-3.5 h-3.5" />
-                        Prototypes
+                      <TabsTrigger value="prototypes" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <Layers className="w-3.5 h-3.5 shrink-0" />
+                        Protos
                         {project.prototypes.length > 0 && (
-                          <span className="ml-1 text-[10px] bg-pink-500/20 text-pink-600 dark:text-pink-400 px-1.5 rounded-full">
+                          <span className="shrink-0 text-[10px] bg-pink-500/20 text-pink-600 dark:text-pink-400 px-1.5 rounded-full">
                             {project.prototypes.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="tickets" className="gap-1.5 text-xs">
-                        <FileText className="w-3.5 h-3.5" />
+                      <TabsTrigger value="tickets" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <FileText className="w-3.5 h-3.5 shrink-0" />
                         Tickets
                         {project.tickets.length > 0 && (
-                          <span className="ml-1 text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 rounded-full">
+                          <span className="shrink-0 text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 rounded-full">
                             {project.tickets.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="validation" className="gap-1.5 text-xs">
-                        <Users className="w-3.5 h-3.5" />
-                        Validation
+                      <TabsTrigger value="validation" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <Users className="w-3.5 h-3.5 shrink-0" />
+                        Validate
                       </TabsTrigger>
-                      <TabsTrigger value="history" className="gap-1.5 text-xs">
-                        <Clock className="w-3.5 h-3.5" />
+                      <TabsTrigger value="history" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
                         History
                       </TabsTrigger>
                     </TabsList>

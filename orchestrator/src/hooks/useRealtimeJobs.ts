@@ -104,6 +104,12 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
   
   // Track which jobs have already had their callbacks triggered to prevent repeated calls
   const notifiedJobsRef = useRef<Set<string>>(new Set());
+  
+  // Track pending auto-clear timeouts per project to cancel them if a new job starts
+  const pendingClearTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  
+  // Track which completed jobs have already been shown (to prevent "Done" flickering on re-polls)
+  const shownCompletedJobsRef = useRef<Set<string>>(new Set());
 
   // Process incoming message
   const processMessage = useCallback((message: SSEMessage) => {
@@ -139,12 +145,26 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
         break;
 
       case "poll":
+        // Build a set of project IDs that have active jobs (pending/running)
+        // to avoid overwriting with stale completed job data
+        const projectsWithActiveJobs = new Set<string>();
+        
         if (message.activeJobs) {
           setActiveJobs(message.activeJobs);
           
           // Update project cards with job progress and lock state
           message.activeJobs.forEach((job) => {
             if (job.projectId) {
+              projectsWithActiveJobs.add(job.projectId);
+              
+              // Cancel any pending auto-clear timeout for this project
+              // since a new job is now active
+              const pendingTimeout = pendingClearTimeoutsRef.current.get(job.projectId);
+              if (pendingTimeout) {
+                clearTimeout(pendingTimeout);
+                pendingClearTimeoutsRef.current.delete(job.projectId);
+              }
+              
               updateProject(job.projectId, {
                 activeJobType: job.type,
                 activeJobProgress: job.progress || 0,
@@ -165,6 +185,7 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
           message.recentCompleted.forEach((job) => {
             const jobKey = `${job.id}-${job.status}`;
             const alreadyNotified = notifiedJobsRef.current.has(jobKey);
+            const alreadyShown = shownCompletedJobsRef.current.has(job.id);
             
             if (!alreadyNotified) {
               notifiedJobsRef.current.add(jobKey);
@@ -177,8 +198,11 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
               }
             }
             
-            // Update project card with final job status
-            if (job.projectId) {
+            // ONLY update project card if:
+            // 1. There's no newer active job for this project
+            // 2. We haven't already shown this completed job (prevents flickering)
+            if (job.projectId && !projectsWithActiveJobs.has(job.projectId) && !alreadyShown) {
+              // Show completion status briefly then clear
               updateProject(job.projectId, {
                 activeJobType: job.type,
                 activeJobProgress: job.status === "completed" ? 1 : job.progress || 0,
@@ -186,6 +210,47 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
                 lastJobError: job.status === "failed" ? job.error || "Job failed" : undefined,
                 isLocked: false, // Unlock when job completes
               });
+              
+              // Mark this job as shown so we don't re-show it on future polls
+              shownCompletedJobsRef.current.add(job.id);
+              
+              // Auto-clear the completed indicator after 3 seconds
+              // so it doesn't linger and confuse users
+              if (job.status === "completed") {
+                const projectId = job.projectId;
+                
+                // Cancel any existing clear timeout for this project
+                const existingTimeout = pendingClearTimeoutsRef.current.get(projectId);
+                if (existingTimeout) {
+                  clearTimeout(existingTimeout);
+                }
+                
+                // Set new timeout and track it - also refresh project data to get updated document count
+                const timeoutId = setTimeout(async () => {
+                  pendingClearTimeoutsRef.current.delete(projectId);
+                  updateProject(projectId, {
+                    activeJobType: undefined,
+                    activeJobProgress: undefined,
+                    activeJobStatus: undefined,
+                  });
+                  
+                  // Refresh project data to get updated document/prototype counts
+                  try {
+                    const res = await fetch(`/api/projects/${projectId}`);
+                    if (res.ok) {
+                      const projectData = await res.json();
+                      updateProject(projectId, {
+                        documentCount: projectData.documents?.length || 0,
+                        prototypeCount: projectData.prototypes?.length || 0,
+                      });
+                    }
+                  } catch (err) {
+                    console.error("Failed to refresh project data:", err);
+                  }
+                }, 3000);
+                
+                pendingClearTimeoutsRef.current.set(projectId, timeoutId);
+              }
             }
           });
         }
@@ -266,6 +331,13 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
     
     // Reset notified jobs on reconnect to allow fresh notifications
     notifiedJobsRef.current.clear();
+    
+    // Reset shown completed jobs on reconnect (so new completions can show "Done")
+    shownCompletedJobsRef.current.clear();
+    
+    // Clear pending auto-clear timeouts on reconnect
+    pendingClearTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+    pendingClearTimeoutsRef.current.clear();
 
     console.log("🔄 Connecting to SSE stream...");
     const eventSource = new EventSource(`/api/jobs/stream?workspaceId=${workspaceId}`);
@@ -307,6 +379,10 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+    // Clear all pending auto-clear timeouts
+    pendingClearTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+    pendingClearTimeoutsRef.current.clear();
+    
     if (eventSourceRef.current) {
       console.log("🔌 SSE disconnected (tab hidden)");
       eventSourceRef.current.close();

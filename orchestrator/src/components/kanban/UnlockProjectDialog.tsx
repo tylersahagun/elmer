@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { useKanbanStore } from "@/lib/store";
 
 interface UnlockProjectDialogProps {
@@ -83,16 +84,12 @@ export function UnlockProjectDialog({
       >
         {/* Header - macOS window style */}
         <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
-          <div className="flex items-center gap-1.5 mr-3">
-            <button
-              onClick={handleClose}
-              disabled={isUnlocking}
-              className="w-2.5 h-2.5 rounded-full bg-[#FF5F57] hover:bg-[#FF5F57]/80 transition-colors disabled:opacity-50"
-              aria-label="Close"
-            />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
-          </div>
+          <TrafficLights 
+            className="mr-3" 
+            size={10} 
+            interactive 
+            onClose={isUnlocking ? undefined : handleClose}
+          />
           <div className="flex items-center gap-2">
             <Unlock className="w-4 h-4 text-amber-500" />
             <DialogTitle className="text-sm font-mono text-muted-foreground">

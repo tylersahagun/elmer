@@ -84,6 +84,78 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * PATCH /api/jobs - Retry all failed jobs for a workspace/project
+ * 
+ * Body:
+ *   - workspaceId: required
+ *   - projectId: optional, filter by project
+ *   - action: "retry_failed" | "reset_pending"
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { workspaceId, projectId, action } = body;
+
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: "workspaceId is required" },
+        { status: 400 }
+      );
+    }
+
+    if (action !== "retry_failed" && action !== "reset_pending") {
+      return NextResponse.json(
+        { error: "action must be 'retry_failed' or 'reset_pending'" },
+        { status: 400 }
+      );
+    }
+
+    // Build the where conditions
+    const whereConditions = [eq(jobs.workspaceId, workspaceId)];
+    
+    if (action === "retry_failed") {
+      whereConditions.push(eq(jobs.status, "failed"));
+    } else {
+      // reset_pending - also reset jobs that are stuck in running
+      whereConditions.push(
+        or(eq(jobs.status, "failed"), eq(jobs.status, "running")) as ReturnType<typeof eq>
+      );
+    }
+
+    if (projectId) {
+      whereConditions.push(eq(jobs.projectId, projectId));
+    }
+
+    // Reset jobs to pending
+    const result = await db.update(jobs)
+      .set({
+        status: "pending",
+        error: null,
+        progress: 0,
+        attempts: 0,
+        startedAt: null,
+        completedAt: null,
+      })
+      .where(and(...whereConditions))
+      .returning();
+
+    console.log(`🔄 Reset ${result.length} jobs to pending for workspace ${workspaceId}`);
+
+    return NextResponse.json({
+      success: true,
+      reset: result.length,
+      jobs: result.map(j => ({ id: j.id, type: j.type })),
+    });
+  } catch (error) {
+    console.error("Failed to retry jobs:", error);
+    return NextResponse.json(
+      { error: "Failed to retry jobs" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * DELETE /api/jobs - Clear failed/cancelled jobs for a workspace
  * 
  * Query params:

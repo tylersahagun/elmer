@@ -72,12 +72,14 @@ export async function createWorkspace(data: {
   });
 
   // Create default column configs
+  // Default column configs for PM workflow
+  // PRD stage generates all 4 documents: PRD, Design Brief, Engineering Spec, GTM Brief
   const defaultStages: { stage: ProjectStageType; name: string; color: string; autoJobs?: JobType[]; requiredDocuments?: DocumentType[] }[] = [
     { stage: "inbox", name: "Inbox", color: "slate" },
     { stage: "discovery", name: "Discovery", color: "teal", autoJobs: ["analyze_transcript"] },
-    { stage: "prd", name: "PRD", color: "purple", autoJobs: ["generate_prd", "generate_design_brief"], requiredDocuments: ["research"] },
-    { stage: "design", name: "Design", color: "blue", autoJobs: ["generate_engineering_spec"], requiredDocuments: ["prd"] },
-    { stage: "prototype", name: "Prototype", color: "pink", autoJobs: ["build_prototype"], requiredDocuments: ["prd"] },
+    { stage: "prd", name: "PRD", color: "purple", autoJobs: ["generate_prd", "generate_design_brief", "generate_engineering_spec", "generate_gtm_brief"], requiredDocuments: ["research"] },
+    { stage: "design", name: "Design", color: "blue", requiredDocuments: ["prd", "design_brief", "engineering_spec"] },
+    { stage: "prototype", name: "Prototype", color: "pink", autoJobs: ["build_prototype", "deploy_chromatic"], requiredDocuments: ["prd"] },
     { stage: "validate", name: "Validate", color: "amber", autoJobs: ["run_jury_evaluation"], requiredDocuments: ["prototype_notes"] },
     { stage: "tickets", name: "Tickets", color: "orange", autoJobs: ["generate_tickets", "validate_tickets"], requiredDocuments: ["engineering_spec"] },
     { stage: "build", name: "Build", color: "green" },

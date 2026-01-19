@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { useUIStore, useKanbanStore, type KanbanColumn } from "@/lib/store";
 import type { ProjectStage } from "@/lib/db/schema";
 import { popInVariants } from "@/lib/animations";
@@ -31,7 +32,6 @@ import {
   Plus,
   Trash2,
   Users,
-  Bot,
   Sparkles,
   Bell,
 } from "lucide-react";
@@ -85,11 +85,6 @@ export function WorkspaceSettingsModal() {
   const [autoCreateFeatureBranch, setAutoCreateFeatureBranch] = useState(true);
   const [autoCommitJobs, setAutoCommitJobs] = useState(false);
   const [cursorDeepLinkTemplate, setCursorDeepLinkTemplate] = useState("");
-  const [aiExecutionMode, setAiExecutionMode] = useState<"cursor" | "server" | "hybrid">(
-    "hybrid"
-  );
-  const [aiValidationMode, setAiValidationMode] = useState<"none" | "light" | "schema">("schema");
-  const [aiFallbackAfterMinutes, setAiFallbackAfterMinutes] = useState("30");
   const [knowledgebaseMapping, setKnowledgebaseMapping] = useState<Record<string, string>>({});
   const [automationMode, setAutomationMode] = useState<"manual" | "auto_to_stage" | "auto_all">(
     "manual"
@@ -136,13 +131,6 @@ export function WorkspaceSettingsModal() {
       setAutoCreateFeatureBranch(workspace.settings?.autoCreateFeatureBranch ?? true);
       setAutoCommitJobs(workspace.settings?.autoCommitJobs ?? false);
       setCursorDeepLinkTemplate(workspace.settings?.cursorDeepLinkTemplate || "");
-      setAiExecutionMode(workspace.settings?.aiExecutionMode || "hybrid");
-      setAiValidationMode(workspace.settings?.aiValidationMode || "schema");
-      setAiFallbackAfterMinutes(
-        workspace.settings?.aiFallbackAfterMinutes
-          ? String(workspace.settings.aiFallbackAfterMinutes)
-          : "30"
-      );
       setKnowledgebaseMapping(workspace.settings?.knowledgebaseMapping || {});
       setAutomationMode(workspace.settings?.automationMode || "manual");
       setAutomationStopStage(workspace.settings?.automationStopStage || "");
@@ -406,11 +394,9 @@ export function WorkspaceSettingsModal() {
             autoCreateFeatureBranch,
             autoCommitJobs,
             cursorDeepLinkTemplate: cursorDeepLinkTemplate.trim() || undefined,
-            aiExecutionMode,
-            aiValidationMode,
-            aiFallbackAfterMinutes: aiFallbackAfterMinutes
-              ? Number(aiFallbackAfterMinutes)
-              : undefined,
+            // Always use server mode for automatic job execution
+            aiExecutionMode: "server",
+            aiValidationMode: "schema",
             knowledgebaseMapping: sanitizedMapping,
             automationMode,
             automationStopStage: automationStopStage || undefined,
@@ -456,11 +442,12 @@ export function WorkspaceSettingsModal() {
             >
               {/* Header - macOS window style */}
               <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
-                <div className="flex items-center gap-1.5 mr-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
-                </div>
+                <TrafficLights 
+                  className="mr-3" 
+                  size={10} 
+                  interactive 
+                  onClose={closeModal}
+                />
                 <div className="flex items-center gap-2">
                   <Settings className="w-4 h-4 text-muted-foreground" />
                   <DialogTitle className="text-sm font-mono text-muted-foreground">
@@ -666,55 +653,6 @@ export function WorkspaceSettingsModal() {
                     {/* Pipeline Tab - Automation and AI settings */}
                     <TabsContent value="pipeline" className="mt-0 space-y-6">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Bot className="w-4 h-4 text-purple-500" />
-                            <h4 className="text-sm font-medium">AI Job Execution</h4>
-                          </div>
-                          <div className="grid gap-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="aiExecutionMode">Execution Mode</Label>
-                              <select
-                                id="aiExecutionMode"
-                                value={aiExecutionMode}
-                                onChange={(e) =>
-                                  setAiExecutionMode(e.target.value as "cursor" | "server" | "hybrid")
-                                }
-                                className="h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                              >
-                                <option value="cursor">Cursor runner</option>
-                                <option value="server">Server runner</option>
-                                <option value="hybrid">Hybrid (Cursor + fallback)</option>
-                              </select>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="aiValidationMode">Validation Mode</Label>
-                              <select
-                                id="aiValidationMode"
-                                value={aiValidationMode}
-                                onChange={(e) =>
-                                  setAiValidationMode(e.target.value as "none" | "light" | "schema")
-                                }
-                                className="h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                              >
-                                <option value="schema">Schema (strict)</option>
-                                <option value="light">Light</option>
-                                <option value="none">None</option>
-                              </select>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="aiFallbackAfterMinutes">Fallback After (minutes)</Label>
-                              <Input
-                                id="aiFallbackAfterMinutes"
-                                type="number"
-                                min="1"
-                                value={aiFallbackAfterMinutes}
-                                onChange={(e) => setAiFallbackAfterMinutes(e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
                         <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                           <div className="flex items-center gap-2 mb-3">
                             <Workflow className="w-4 h-4 text-emerald-500" />

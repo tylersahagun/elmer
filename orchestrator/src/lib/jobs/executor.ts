@@ -40,6 +40,8 @@ interface ExecutionResult {
   success: boolean;
   output?: Record<string, unknown>;
   error?: string;
+  /** If true, this failure shouldn't count against max attempts (e.g., waiting for dependency) */
+  shouldRetryWithoutPenalty?: boolean;
 }
 
 type JobExecutor = (ctx: JobContext, updateProgress: (progress: number) => Promise<void>) => Promise<ExecutionResult>;
@@ -80,7 +82,11 @@ const validateGenerateDesignBrief: JobExecutor = async (ctx) => {
   // Design brief requires PRD
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { success: false, error: "PRD not found - generate PRD first" };
+    return { 
+      success: false, 
+      error: "PRD not found - waiting for PRD generation to complete",
+      shouldRetryWithoutPenalty: true, // Don't count this as a real failure
+    };
   }
 
   return { 
@@ -99,7 +105,11 @@ const validateGenerateEngineeringSpec: JobExecutor = async (ctx) => {
 
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { success: false, error: "PRD not found - generate PRD first" };
+    return { 
+      success: false, 
+      error: "PRD not found - waiting for PRD generation to complete",
+      shouldRetryWithoutPenalty: true,
+    };
   }
 
   return { 
@@ -118,7 +128,11 @@ const validateGenerateGTMBrief: JobExecutor = async (ctx) => {
 
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { success: false, error: "PRD not found - generate PRD first" };
+    return { 
+      success: false, 
+      error: "PRD not found - waiting for PRD generation to complete",
+      shouldRetryWithoutPenalty: true,
+    };
   }
 
   return { 
@@ -160,13 +174,25 @@ const validateRunJuryEvaluation: JobExecutor = async (ctx) => {
   // Check content exists for the phase
   if (phase === "research") {
     const doc = await getDocumentByType(ctx.projectId, "research");
-    if (!doc) return { success: false, error: "No research document found" };
+    if (!doc) return { 
+      success: false, 
+      error: "No research document found - waiting for research to complete",
+      shouldRetryWithoutPenalty: true,
+    };
   } else if (phase === "prd") {
     const doc = await getDocumentByType(ctx.projectId, "prd");
-    if (!doc) return { success: false, error: "No PRD found" };
+    if (!doc) return { 
+      success: false, 
+      error: "No PRD found - waiting for PRD generation to complete",
+      shouldRetryWithoutPenalty: true,
+    };
   } else {
     const doc = await getDocumentByType(ctx.projectId, "prototype_notes");
-    if (!doc) return { success: false, error: "No prototype notes found" };
+    if (!doc) return { 
+      success: false, 
+      error: "No prototype notes found - waiting for prototype to be built",
+      shouldRetryWithoutPenalty: true,
+    };
   }
 
   return { 
@@ -185,7 +211,11 @@ const validateBuildPrototype: JobExecutor = async (ctx) => {
 
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { success: false, error: "PRD not found - generate PRD first" };
+    return { 
+      success: false, 
+      error: "PRD not found - waiting for PRD generation to complete",
+      shouldRetryWithoutPenalty: true,
+    };
   }
 
   return { 
@@ -221,7 +251,11 @@ const validateGenerateTickets: JobExecutor = async (ctx) => {
 
   const engSpec = await getDocumentByType(ctx.projectId, "engineering_spec");
   if (!engSpec) {
-    return { success: false, error: "Engineering spec not found - generate it first" };
+    return { 
+      success: false, 
+      error: "Engineering spec not found - waiting for engineering spec generation",
+      shouldRetryWithoutPenalty: true,
+    };
   }
 
   return { 
@@ -238,14 +272,24 @@ const validateValidateTickets: JobExecutor = async (ctx) => {
   const project = await getProject(ctx.projectId);
   if (!project) return { success: false, error: "Project not found" };
 
-  const tickets = ctx.input.tickets as Array<Record<string, unknown>>;
-  if (!tickets || tickets.length === 0) {
-    return { success: false, error: "No tickets to validate" };
+  // Check for tickets in database (created by generate_tickets job)
+  const { getTickets } = await import("@/lib/db/queries");
+  const existingTickets = await getTickets(ctx.projectId);
+  if (!existingTickets || existingTickets.length === 0) {
+    return { 
+      success: false, 
+      error: "No tickets to validate - waiting for tickets to be generated",
+      shouldRetryWithoutPenalty: true,
+    };
   }
 
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { success: false, error: "PRD not found" };
+    return { 
+      success: false, 
+      error: "PRD not found - waiting for PRD generation to complete",
+      shouldRetryWithoutPenalty: true,
+    };
   }
 
   return { 
@@ -253,7 +297,7 @@ const validateValidateTickets: JobExecutor = async (ctx) => {
     output: { 
       status: "pending",
       message: "Job ready for processing by Cursor AI",
-      ticketCount: tickets.length,
+      ticketCount: existingTickets.length,
     } 
   };
 };
@@ -270,8 +314,20 @@ const validateScoreStageAlignment: JobExecutor = async (ctx) => {
   };
 };
 
-const validateDeployChromatic: JobExecutor = async () => {
-  // Chromatic deployment doesn't require AI, just CLI
+const validateDeployChromatic: JobExecutor = async (ctx) => {
+  const project = await getProject(ctx.projectId);
+  if (!project) return { success: false, error: "Project not found" };
+
+  // Chromatic deployment requires prototype to be built first
+  const prototypeNotes = await getDocumentByType(ctx.projectId, "prototype_notes");
+  if (!prototypeNotes) {
+    return { 
+      success: false, 
+      error: "Prototype not built yet - waiting for build_prototype to complete",
+      shouldRetryWithoutPenalty: true,
+    };
+  }
+
   return { 
     success: true, 
     output: { 

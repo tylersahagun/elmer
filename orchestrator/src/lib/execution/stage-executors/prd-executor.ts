@@ -20,19 +20,74 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDefaultProvider, type StreamCallback } from "../providers";
 import type { StageContext, StageExecutionResult } from "./index";
+import { getWorkspaceContext } from "@/lib/context/resolve";
 
-const PRD_SYSTEM_PROMPT = `You are a senior product manager. Your task is to create a comprehensive PRD (Product Requirements Document) based on research insights.
+const PRD_SYSTEM_PROMPT = `You are a senior product manager creating a PRD (Product Requirements Document) for a specific company/product.
 
-The PRD must include these sections:
-1. **Problem Statement** - What problem are we solving? Include user quotes.
-2. **Target Personas** - Who is this for?
-3. **Success Metrics** - How do we measure success? Include specific, measurable KPIs.
-4. **User Journey** - Current state → Desired state
-5. **MVP Scope** - What's in v1?
-6. **Out of Scope** - What are we NOT doing?
-7. **Open Questions** - What still needs to be answered?
+## Critical Instructions
 
-Format as clean markdown with clear headings.
+1. **USE THE COMPANY CONTEXT PROVIDED** - The PRD must be specific to the company's product, personas, and strategic direction. Never generate a generic PRD.
+2. **FOLLOW THE OUTCOME CHAIN** - Every feature must connect: [Feature] enables [action] → so that [benefit] → so that [behavior change] → so that [business outcome]
+3. **INCLUDE ANTI-VISION CHECK** - Reference what the company is NOT building and why.
+
+## Required PRD Structure
+
+# [Project Name] PRD
+
+## Overview
+- **Owner:** [Identify from context or mark TBD]
+- **Status:** Draft
+- **Strategic Pillar:** [From company context]
+
+## Outcome Chain
+[Feature] enables [action]
+  → so that [benefit]
+    → so that [behavior change]
+      → so that [business outcome]
+
+## Problem Statement
+What problem? Who has it? Why now? What evidence?
+Include user quotes from research when available.
+
+## Goals & Non-Goals
+
+### Goals (Measurable)
+- Goal with success metric and target
+
+### Non-Goals
+- Explicit exclusion with reasoning
+
+## User Personas
+### Primary: [Name from company context]
+- **Job-to-be-done:** 
+- **Current pain:** 
+- **Success looks like:** 
+
+## User Stories
+- As a [persona], I want [action] so that [benefit]
+
+## Requirements
+
+### Must Have (MVP)
+- Requirement with acceptance criteria
+
+### Should Have
+### Could Have
+
+## User Flows
+### Flow: [Name]
+**Trigger:** 
+**Steps:** 1 → 2 → 3
+**Outcome:** 
+
+## Success Metrics
+- **North star:** 
+- **Leading indicators:** 
+
+## Open Questions
+1. [Questions that need answers]
+
+Format as clean markdown. Be specific to the company context provided.
 `;
 
 const DESIGN_BRIEF_SYSTEM_PROMPT = `You are a design lead. Create a design brief based on the PRD that covers:
@@ -82,6 +137,14 @@ export async function executePRD(
   const { run, project, documents: existingDocs } = context;
   
   callbacks.onLog("info", "Starting PRD generation", "prd");
+  callbacks.onProgress(0.05, "Loading company context...");
+
+  // Load company context (product vision, personas, guardrails)
+  const companyContext = await getWorkspaceContext(run.workspaceId);
+  if (!companyContext) {
+    callbacks.onLog("warn", "No company context found - PRD may be generic", "prd");
+  }
+
   callbacks.onProgress(0.1, "Loading research context...");
 
   // Get research document
@@ -173,7 +236,9 @@ export async function executePRD(
   const basePrompt = `Project: ${project.name}
 ${project.description ? `Description: ${project.description}` : ""}
 
-Research:
+${companyContext ? `## Company Context\n${companyContext}\n` : ""}
+
+## Research
 ${researchDoc.content}`;
 
   // 1. Generate PRD

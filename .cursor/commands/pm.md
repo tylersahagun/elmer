@@ -138,11 +138,11 @@ When a PRD is created or updated for an initiative:
 3. **Regenerate roadmap**:
    - Run `/roadmap refresh` or `python scripts/generate-roadmap.py`
 
-4. **Create/Update Notion** (per elmer.mdc):
-   - Create Project page in Notion
-   - Create Design Brief in Notion
-   - Create Engineering Spec in Notion
-   - Create GTM Plan in Notion
+4. **Create/Update** (per elmer.mdc):
+   - Create Project page
+   - Create Design Brief
+   - Create Engineering Spec
+   - Create GTM Plan
 
 5. **Suggest next steps**:
    - "Run `/proto [name]` to create prototype"

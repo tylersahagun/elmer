@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { useUIStore, useKanbanStore, type ProjectCard } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { 
@@ -209,11 +210,12 @@ export function NewProjectDialog() {
         <div className="flex flex-col h-full">
           {/* Header - macOS window style */}
           <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
-            <div className="flex items-center gap-1.5 mr-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
-            </div>
+            <TrafficLights 
+              className="mr-3" 
+              size={10} 
+              interactive 
+              onClose={closeModal}
+            />
             <div className="flex items-center gap-2">
               <FolderPlus className="w-4 h-4 text-muted-foreground" />
               <DialogTitle className="text-sm font-mono text-muted-foreground">
