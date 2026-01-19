@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -148,8 +148,8 @@ interface ProjectDetails {
 
 export function ProjectDetailModal() {
   const isOpen = useUIStore((s) => s.projectDetailModalOpen);
-  const activeProjectId = useUIStore((s) => s.activeProjectId);
   const closeModal = useUIStore((s) => s.closeProjectDetailModal);
+  const activeProjectId = useKanbanStore((s) => s.activeProjectId);
   const updateProject = useKanbanStore((s) => s.updateProject);
   
   const [activeTab, setActiveTab] = useState("overview");
@@ -499,7 +499,7 @@ export function ProjectDetailModal() {
                               {project.metadata?.stageConfidence?.[project.stage] ? (
                                 <div>
                                   <div className="flex items-center justify-between mb-2">
-                                    <p className="text-2xl font-bold">
+                                    <p className="text-2xl font-heading">
                                       {Math.round(project.metadata.stageConfidence[project.stage].score * 100)}%
                                     </p>
                                     <Button size="sm" variant="outline" onClick={handleScoreAlignment}>
@@ -604,7 +604,7 @@ export function ProjectDetailModal() {
                                   onClick={() => setActiveTab("documents")}
                                   className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-center hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors cursor-pointer"
                                 >
-                                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                                  <p className="text-2xl font-heading text-purple-600 dark:text-purple-400">
                                     {project.documents.length}
                                   </p>
                                   <p className="text-xs text-purple-600/70 dark:text-purple-400/70">Documents</p>
@@ -613,7 +613,7 @@ export function ProjectDetailModal() {
                                   onClick={() => setActiveTab("prototypes")}
                                   className="p-3 rounded-lg bg-pink-50 dark:bg-pink-900/20 text-center hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors cursor-pointer"
                                 >
-                                  <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+                                  <p className="text-2xl font-heading text-pink-600 dark:text-pink-400">
                                     {project.prototypes.length}
                                   </p>
                                   <p className="text-xs text-pink-600/70 dark:text-pink-400/70">Prototypes</p>
@@ -622,7 +622,7 @@ export function ProjectDetailModal() {
                                   onClick={() => setActiveTab("history")}
                                   className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-center hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors cursor-pointer"
                                 >
-                                  <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
+                                  <p className="text-2xl font-heading text-teal-600 dark:text-teal-400">
                                     {project.stages.length}
                                   </p>
                                   <p className="text-xs text-teal-600/70 dark:text-teal-400/70">Stage Changes</p>

@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { FileText, Sparkles, X, AlertCircle } from "lucide-react";
+import { FileText, Sparkles, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TranscriptInputDialogProps {
@@ -82,24 +82,41 @@ export function TranscriptInputDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] glass-card border-white/20 !p-0 !gap-0 flex flex-col">
-        {/* Fixed Header */}
-        <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
-              <FileText className="w-5 h-5 text-purple-400" />
-            </div>
-            {info.title}
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Moving <span className="font-medium text-foreground">{projectName}</span> to{" "}
-            <span className="font-medium text-purple-400 capitalize">{targetStage}</span>
+      <DialogContent 
+        showCloseButton={false}
+        className="sm:max-w-[600px] max-h-[85vh] glass-card border-white/20 !p-0 !gap-0 flex flex-col"
+      >
+        {/* Header - macOS window style */}
+        <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
+          <div className="flex items-center gap-1.5 mr-3">
+            <button
+              onClick={handleClose}
+              className="w-2.5 h-2.5 rounded-full bg-[#FF5F57] hover:bg-[#FF5F57]/80 transition-colors"
+              aria-label="Close"
+            />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
+          </div>
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-purple-400" />
+            <DialogTitle className="text-sm font-mono text-muted-foreground">
+              {info.title}
+            </DialogTitle>
+          </div>
+          <DialogDescription className="sr-only">
+            Moving {projectName} to {targetStage}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Scrollable Content */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
           <div className="space-y-4">
+            {/* Stage info */}
+            <div className="text-sm text-muted-foreground">
+              Moving <span className="font-medium text-foreground">{projectName}</span> to{" "}
+              <span className="font-medium text-purple-400 capitalize">{targetStage}</span>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="transcript" className="text-sm font-medium">
                 {info.description}
@@ -147,16 +164,8 @@ export function TranscriptInputDialog({
           </div>
         </div>
 
-        {/* Fixed Footer */}
+        {/* Footer */}
         <DialogFooter className="flex-shrink-0 p-6 pt-4 border-t border-slate-200/50 dark:border-slate-700/50 gap-2 sm:gap-2">
-          <Button
-            variant="ghost"
-            onClick={handleClose}
-            className="gap-2"
-          >
-            <X className="w-4 h-4" />
-            Cancel
-          </Button>
           <Button
             variant="outline"
             onClick={handleSkip}

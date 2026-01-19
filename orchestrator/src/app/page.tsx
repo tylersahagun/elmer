@@ -183,11 +183,11 @@ function HomeContent() {
           rightMeta={
             <Button
               size="sm"
-              className="h-7 gap-1.5"
+              className="h-8 sm:h-7 w-8 sm:w-auto px-0 sm:px-3 gap-1.5"
               onClick={() => setShowNewWorkspace(true)}
             >
-              <Plus className="w-3.5 h-3.5" />
-              New
+              <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline">New</span>
             </Button>
           }
           className="animate-fade-up stagger-2"
@@ -250,7 +250,7 @@ function HomeContent() {
         <footer className="text-center py-8">
           <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground font-mono">
             <span className="text-emerald-500">$</span>
-            <span>Built with Next.js + Claude AI</span>
+            <span>Built with Next.js</span>
           </div>
         </footer>
       </main>

@@ -60,7 +60,7 @@ export function UnlockProjectDialog({
       } else {
         setResult({ success: false, message: data.error || "Failed to unlock project" });
       }
-    } catch (error) {
+    } catch {
       setResult({ success: false, message: "Network error. Please try again." });
     } finally {
       setIsUnlocking(false);
@@ -76,26 +76,36 @@ export function UnlockProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent from="bottom" className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <motion.div
-              initial={{ rotate: -10 }}
-              animate={{ rotate: 0 }}
-              className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20"
-            >
-              <Unlock className="w-5 h-5 text-amber-500" />
-            </motion.div>
-            <div>
-              <DialogTitle className="text-base">Unlock Project?</DialogTitle>
-              <DialogDescription className="text-sm mt-0.5">
-                This will cancel any pending agent jobs
-              </DialogDescription>
-            </div>
+      <DialogContent 
+        showCloseButton={false}
+        from="bottom" 
+        className="sm:max-w-md !p-0 !gap-0"
+      >
+        {/* Header - macOS window style */}
+        <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
+          <div className="flex items-center gap-1.5 mr-3">
+            <button
+              onClick={handleClose}
+              disabled={isUnlocking}
+              className="w-2.5 h-2.5 rounded-full bg-[#FF5F57] hover:bg-[#FF5F57]/80 transition-colors disabled:opacity-50"
+              aria-label="Close"
+            />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
           </div>
+          <div className="flex items-center gap-2">
+            <Unlock className="w-4 h-4 text-amber-500" />
+            <DialogTitle className="text-sm font-mono text-muted-foreground">
+              Unlock Project
+            </DialogTitle>
+          </div>
+          <DialogDescription className="sr-only">
+            Unlock {projectName} and cancel pending jobs
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        {/* Content */}
+        <div className="p-4">
           <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50">
             <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">
               {projectName}
@@ -132,7 +142,8 @@ export function UnlockProjectDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-2">
+        {/* Footer */}
+        <DialogFooter className="p-4 pt-0 gap-2 sm:gap-2">
           <Button
             variant="outline"
             onClick={handleClose}
