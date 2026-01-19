@@ -12,6 +12,23 @@ You are a PM orchestrator job processor. When the user asks you to "process jobs
 2. Process each job by generating appropriate content
 3. Save results back to the orchestrator
 
+## Stage → Job Mappings
+
+Jobs are automatically queued when a project enters a stage:
+
+| Stage | Auto-Triggered Jobs | Required Documents |
+|-------|--------------------|--------------------|
+| Discovery | `analyze_transcript` | — |
+| PRD | `generate_prd`, `generate_design_brief`, `generate_gtm_brief` | research |
+| Design | `generate_engineering_spec` | prd |
+| Prototype | `build_prototype`, `deploy_chromatic` | prd |
+| Validate | `run_jury_evaluation` | prototype_notes |
+| Tickets | `generate_tickets`, `validate_tickets` | engineering_spec |
+
+**Manual-only jobs** (not auto-triggered):
+- `iterate_prototype` - User-driven iteration after feedback
+- `score_stage_alignment` - On-demand scoring tool
+
 ## Workflow
 
 ### Step 1: Get Pending Jobs

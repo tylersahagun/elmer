@@ -59,6 +59,11 @@ export interface WorkspaceSettings {
   compactMode?: boolean;
   // Display Mode: "immersive" for glassmorphism/animations, "focus" for solid/clean UI
   displayMode?: DisplayMode;
+  // GSD-inspired settings
+  atomicCommitsEnabled?: boolean; // Enable per-task commits (default: false)
+  verificationStrictness?: "strict" | "lenient" | "disabled"; // How to handle verification failures
+  stateTrackingEnabled?: boolean; // Auto-generate state.md documents
+  aiVerificationModel?: string; // Model for AI-based verification checks
 }
 
 // ============================================
@@ -137,7 +142,8 @@ export type DocumentType =
   | "engineering_spec"
   | "gtm_brief"
   | "prototype_notes"
-  | "jury_report";
+  | "jury_report"
+  | "state";
 
 export const documents = pgTable("documents", {
   id: text("id").primaryKey(),
@@ -176,8 +182,9 @@ export const prototypes = pgTable("prototypes", {
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   type: text("type").$type<PrototypeType>().notNull(),
   name: text("name").notNull(),
-  storybookPath: text("storybook_path"), // e.g., "src/components/CRMConfig/"
-  chromaticUrl: text("chromatic_url"),
+  storybookPath: text("storybook_path"), // e.g., "prototypes-testproject--default"
+  chromaticUrl: text("chromatic_url"), // Dashboard URL: https://www.chromatic.com/build?...
+  chromaticStorybookUrl: text("chromatic_storybook_url"), // Embeddable URL: https://branch--appId.chromatic.com
   chromaticBuildId: text("chromatic_build_id"),
   version: integer("version").notNull().default(1),
   status: text("status").$type<"building" | "ready" | "failed">().default("building"),
@@ -466,6 +473,23 @@ export interface StageRunMetadata {
   gateResults?: Record<string, { passed: boolean; message?: string }>;
   tokensUsed?: { input: number; output: number };
   durationMs?: number;
+  // GSD-inspired task tracking
+  taskResults?: TaskVerificationResult[];
+  currentTaskIndex?: number;
+  stateSnapshot?: string; // Markdown summary of current state
+}
+
+// Task verification result for GSD-style per-task tracking
+export interface TaskVerificationResult {
+  taskName: string;
+  passed: boolean;
+  criteriaResults: Array<{
+    criterion: string;
+    passed: boolean;
+    evidence?: string;
+  }>;
+  verifiedAt: string;
+  commitHash?: string; // Git commit hash if atomic commit was made
 }
 
 // ============================================
@@ -575,6 +599,12 @@ export interface RecipeStep {
   timeout?: number; // ms
   retryCount?: number;
   continueOnError?: boolean;
+  // GSD-inspired fields for task verification
+  name?: string; // Human-readable task name
+  targetFiles?: string[]; // Files this task will create/modify
+  verificationCriteria?: string[]; // What must be true after completion (e.g., "file:prd exists", "sections:Problem,Goals", "ai:includes metrics")
+  acceptanceCriteria?: string[]; // User-visible outcomes for documentation
+  atomicCommit?: boolean; // Whether to commit after this step (default: true when enabled)
 }
 
 export interface GateDefinition {

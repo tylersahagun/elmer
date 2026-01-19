@@ -87,6 +87,12 @@ const DOCUMENT_TYPES: Record<DocumentType, {
     color: "text-amber-400",
     description: "Evaluation results",
   },
+  state: {
+    label: "Project State",
+    icon: FileText,
+    color: "text-slate-400",
+    description: "Current project state and progress",
+  },
 };
 
 interface Document {

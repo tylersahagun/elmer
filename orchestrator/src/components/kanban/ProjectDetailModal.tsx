@@ -13,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { useUIStore, useKanbanStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { DocumentViewer } from "@/components/documents";
@@ -111,6 +112,7 @@ interface ProjectDetails {
     version: number;
     storybookPath?: string;
     chromaticUrl?: string;
+    chromaticStorybookUrl?: string;
   }>;
   tickets: Array<{
     id: string;
@@ -361,11 +363,12 @@ export function ProjectDetailModal() {
         <div className="flex flex-col h-[85vh]">
               {/* Header - macOS window style */}
               <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
-                <div className="flex items-center gap-1.5 mr-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
-                </div>
+                <TrafficLights 
+                  className="mr-3" 
+                  size={10} 
+                  interactive 
+                  onClose={closeModal}
+                />
                 {isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -394,46 +397,46 @@ export function ProjectDetailModal() {
 
               {/* Content with Tabs */}
               {project && (
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                  <div className="flex-shrink-0 px-6 pt-4">
-                    <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-6">
-                      <TabsTrigger value="overview" className="gap-1.5 text-xs">
-                        <Info className="w-3.5 h-3.5" />
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-shrink-0 px-4 pt-4 overflow-x-auto">
+                    <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl inline-flex gap-0.5 p-1 w-max">
+                      <TabsTrigger value="overview" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
                         Overview
                       </TabsTrigger>
-                      <TabsTrigger value="documents" className="gap-1.5 text-xs">
-                        <FileText className="w-3.5 h-3.5" />
-                        Documents
+                      <TabsTrigger value="documents" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <FileText className="w-3.5 h-3.5 shrink-0" />
+                        Docs
                         {project.documents.length > 0 && (
-                          <span className="ml-1 text-[10px] bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1.5 rounded-full">
+                          <span className="shrink-0 text-[10px] bg-purple-500/20 text-purple-600 dark:text-purple-400 px-1.5 rounded-full">
                             {project.documents.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="prototypes" className="gap-1.5 text-xs">
-                        <Layers className="w-3.5 h-3.5" />
-                        Prototypes
+                      <TabsTrigger value="prototypes" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <Layers className="w-3.5 h-3.5 shrink-0" />
+                        Protos
                         {project.prototypes.length > 0 && (
-                          <span className="ml-1 text-[10px] bg-pink-500/20 text-pink-600 dark:text-pink-400 px-1.5 rounded-full">
+                          <span className="shrink-0 text-[10px] bg-pink-500/20 text-pink-600 dark:text-pink-400 px-1.5 rounded-full">
                             {project.prototypes.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="tickets" className="gap-1.5 text-xs">
-                        <FileText className="w-3.5 h-3.5" />
+                      <TabsTrigger value="tickets" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <FileText className="w-3.5 h-3.5 shrink-0" />
                         Tickets
                         {project.tickets.length > 0 && (
-                          <span className="ml-1 text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 rounded-full">
+                          <span className="shrink-0 text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 rounded-full">
                             {project.tickets.length}
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="validation" className="gap-1.5 text-xs">
-                        <Users className="w-3.5 h-3.5" />
-                        Validation
+                      <TabsTrigger value="validation" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <Users className="w-3.5 h-3.5 shrink-0" />
+                        Validate
                       </TabsTrigger>
-                      <TabsTrigger value="history" className="gap-1.5 text-xs">
-                        <Clock className="w-3.5 h-3.5" />
+                      <TabsTrigger value="history" className="flex-none gap-1.5 text-xs whitespace-nowrap px-3">
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
                         History
                       </TabsTrigger>
                     </TabsList>
@@ -876,74 +879,107 @@ export function ProjectDetailModal() {
                             <p className="text-xs mt-1">Prototypes will appear when built in the Prototype stage</p>
                           </div>
                         ) : (
-                          project.prototypes.map((proto) => (
-                            <motion.div
-                              key={proto.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]"
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
-                                    <Layers className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                          project.prototypes.map((proto) => {
+                            // Build embed URL if chromaticStorybookUrl and storybookPath are available
+                            const embedUrl = proto.chromaticStorybookUrl && proto.storybookPath
+                              ? `${proto.chromaticStorybookUrl}/iframe.html?id=${proto.storybookPath}&viewMode=story&shortcuts=false&singleStory=true`
+                              : null;
+
+                            return (
+                              <motion.div
+                                key={proto.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                                      <Layers className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-sm">{proto.name}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {proto.type} · v{proto.version}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <p className="font-medium text-sm">{proto.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {proto.type} · v{proto.version}
-                                    </p>
-                                  </div>
+                                  <Badge 
+                                    className={cn(
+                                      "text-xs",
+                                      proto.status === "ready" 
+                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                        : proto.status === "building"
+                                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                    )}
+                                  >
+                                    {proto.status}
+                                  </Badge>
                                 </div>
-                                <Badge 
-                                  className={cn(
-                                    "text-xs",
-                                    proto.status === "ready" 
-                                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                      : proto.status === "building"
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                  )}
-                                >
-                                  {proto.status}
-                                </Badge>
-                              </div>
-                              
-                              {(proto.storybookPath || proto.chromaticUrl) && (
-                                <div className="mt-3 flex items-center gap-2">
-                                  {proto.storybookPath && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1.5 text-xs"
-                                      asChild
-                                    >
-                                      <a
-                                        href={`http://localhost:${project.workspace?.settings?.storybookPort || 6006}/?path=/story/${proto.storybookPath}`}
-                                        target="_blank"
+
+                                {/* Embedded Storybook Preview */}
+                                {embedUrl && (
+                                  <div className="mt-4 rounded-lg overflow-hidden border border-border dark:border-[rgba(255,255,255,0.08)] bg-white dark:bg-black">
+                                    <iframe
+                                      src={embedUrl}
+                                      title={`${proto.name} Preview`}
+                                      className="w-full h-[300px] border-0"
+                                      loading="lazy"
+                                      sandbox="allow-scripts allow-same-origin"
+                                    />
+                                  </div>
+                                )}
+                                
+                                {(proto.storybookPath || proto.chromaticUrl) && (
+                                  <div className="mt-3 flex items-center gap-2">
+                                    {proto.storybookPath && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1.5 text-xs"
+                                        asChild
                                       >
-                                        <ExternalLink className="w-3 h-3" />
-                                        Storybook
-                                      </a>
-                                    </Button>
-                                  )}
-                                  {proto.chromaticUrl && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="gap-1.5 text-xs"
-                                      asChild
-                                    >
-                                      <a href={proto.chromaticUrl} target="_blank">
-                                        <ExternalLink className="w-3 h-3" />
-                                        Chromatic
-                                      </a>
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
-                            </motion.div>
-                          ))
+                                        <a
+                                          href={`http://localhost:${project.workspace?.settings?.storybookPort || 6006}/?path=/story/${proto.storybookPath}`}
+                                          target="_blank"
+                                        >
+                                          <ExternalLink className="w-3 h-3" />
+                                          Storybook
+                                        </a>
+                                      </Button>
+                                    )}
+                                    {proto.chromaticUrl && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1.5 text-xs"
+                                        asChild
+                                      >
+                                        <a href={proto.chromaticUrl} target="_blank">
+                                          <ExternalLink className="w-3 h-3" />
+                                          Chromatic
+                                        </a>
+                                      </Button>
+                                    )}
+                                    {embedUrl && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1.5 text-xs"
+                                        asChild
+                                      >
+                                        <a href={embedUrl} target="_blank">
+                                          <ExternalLink className="w-3 h-3" />
+                                          Full Screen
+                                        </a>
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                              </motion.div>
+                            );
+                          })
                         )}
                       </TabsContent>
 

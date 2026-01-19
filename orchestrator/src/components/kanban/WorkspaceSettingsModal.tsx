@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { useUIStore, useKanbanStore, type KanbanColumn } from "@/lib/store";
 import type { ProjectStage } from "@/lib/db/schema";
 import { popInVariants } from "@/lib/animations";
@@ -31,9 +32,12 @@ import {
   Plus,
   Trash2,
   Users,
-  Bot,
   Sparkles,
   Bell,
+  RefreshCw,
+  FolderOpen,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 // Stage color mapping
@@ -67,6 +71,7 @@ const documentTypeLabels: Record<DocumentType, string> = {
   gtm_brief: "GTM Brief",
   prototype_notes: "Prototype Notes",
   jury_report: "Jury Report",
+  state: "State",
 };
 
 export function WorkspaceSettingsModal() {
@@ -85,11 +90,6 @@ export function WorkspaceSettingsModal() {
   const [autoCreateFeatureBranch, setAutoCreateFeatureBranch] = useState(true);
   const [autoCommitJobs, setAutoCommitJobs] = useState(false);
   const [cursorDeepLinkTemplate, setCursorDeepLinkTemplate] = useState("");
-  const [aiExecutionMode, setAiExecutionMode] = useState<"cursor" | "server" | "hybrid">(
-    "hybrid"
-  );
-  const [aiValidationMode, setAiValidationMode] = useState<"none" | "light" | "schema">("schema");
-  const [aiFallbackAfterMinutes, setAiFallbackAfterMinutes] = useState("30");
   const [knowledgebaseMapping, setKnowledgebaseMapping] = useState<Record<string, string>>({});
   const [automationMode, setAutomationMode] = useState<"manual" | "auto_to_stage" | "auto_all">(
     "manual"
@@ -104,8 +104,27 @@ export function WorkspaceSettingsModal() {
   const [notifyOnJobComplete, setNotifyOnJobComplete] = useState(true);
   const [notifyOnJobFailed, setNotifyOnJobFailed] = useState(true);
   const [notifyOnApprovalRequired, setNotifyOnApprovalRequired] = useState(true);
+  // GSD-inspired Task Execution Settings
+  const [atomicCommitsEnabled, setAtomicCommitsEnabled] = useState(false);
+  const [verificationStrictness, setVerificationStrictness] = useState<"strict" | "lenient" | "disabled">("lenient");
+  const [stateTrackingEnabled, setStateTrackingEnabled] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [columnEdits, setColumnEdits] = useState<Record<string, Record<string, unknown>>>({});
+  // Resolved paths (calculated from workspace config)
+  const [resolvedPaths, setResolvedPaths] = useState<{
+    contextPath: string | null;
+    prototypesPath: string | null;
+    repoPath: string | null;
+  } | null>(null);
+  // Knowledge base sync state
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    success: boolean;
+    message: string;
+    synced?: number;
+    skipped?: number;
+  } | null>(null);
   const [newColumnStage, setNewColumnStage] = useState("");
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnColor, setNewColumnColor] = useState("slate");
@@ -136,13 +155,6 @@ export function WorkspaceSettingsModal() {
       setAutoCreateFeatureBranch(workspace.settings?.autoCreateFeatureBranch ?? true);
       setAutoCommitJobs(workspace.settings?.autoCommitJobs ?? false);
       setCursorDeepLinkTemplate(workspace.settings?.cursorDeepLinkTemplate || "");
-      setAiExecutionMode(workspace.settings?.aiExecutionMode || "hybrid");
-      setAiValidationMode(workspace.settings?.aiValidationMode || "schema");
-      setAiFallbackAfterMinutes(
-        workspace.settings?.aiFallbackAfterMinutes
-          ? String(workspace.settings.aiFallbackAfterMinutes)
-          : "30"
-      );
       setKnowledgebaseMapping(workspace.settings?.knowledgebaseMapping || {});
       setAutomationMode(workspace.settings?.automationMode || "manual");
       setAutomationStopStage(workspace.settings?.automationStopStage || "");
@@ -159,8 +171,59 @@ export function WorkspaceSettingsModal() {
       setNotifyOnJobComplete(workspace.settings?.notifyOnJobComplete ?? true);
       setNotifyOnJobFailed(workspace.settings?.notifyOnJobFailed ?? true);
       setNotifyOnApprovalRequired(workspace.settings?.notifyOnApprovalRequired ?? true);
+      // GSD settings
+      setAtomicCommitsEnabled(workspace.settings?.atomicCommitsEnabled ?? false);
+      setVerificationStrictness(workspace.settings?.verificationStrictness ?? "lenient");
+      setStateTrackingEnabled(workspace.settings?.stateTrackingEnabled ?? false);
     }
   }, [workspace]);
+
+  // Load resolved paths when workspace changes
+  useEffect(() => {
+    if (workspace?.id) {
+      fetch(`/api/workspaces/${workspace.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.resolvedPaths) {
+            setResolvedPaths(data.resolvedPaths);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [workspace?.id]);
+
+  // Sync knowledge base function
+  const handleSyncKnowledgeBase = async () => {
+    if (!workspace?.id) return;
+    setIsSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch(`/api/workspaces/${workspace.id}/syncKnowledge`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncResult({
+          success: true,
+          message: data.message || "Knowledge base synced successfully",
+          synced: data.synced,
+          skipped: data.skipped,
+        });
+      } else {
+        setSyncResult({
+          success: false,
+          message: data.error || "Failed to sync knowledge base",
+        });
+      }
+    } catch (error) {
+      setSyncResult({
+        success: false,
+        message: error instanceof Error ? error.message : "Sync failed",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const sortedDocumentTypes = useMemo(
     () => (Object.keys(documentTypeLabels) as DocumentType[]).sort(),
@@ -387,6 +450,7 @@ export function WorkspaceSettingsModal() {
   const handleSave = async () => {
     if (!workspace?.id) return;
     setIsSaving(true);
+    setSaveError(null);
     try {
       const normalizedContextPaths = normalizePaths(contextPaths);
       const sanitizedMapping = Object.fromEntries(
@@ -406,11 +470,9 @@ export function WorkspaceSettingsModal() {
             autoCreateFeatureBranch,
             autoCommitJobs,
             cursorDeepLinkTemplate: cursorDeepLinkTemplate.trim() || undefined,
-            aiExecutionMode,
-            aiValidationMode,
-            aiFallbackAfterMinutes: aiFallbackAfterMinutes
-              ? Number(aiFallbackAfterMinutes)
-              : undefined,
+            // Always use server mode for automatic job execution
+            aiExecutionMode: "server",
+            aiValidationMode: "schema",
             knowledgebaseMapping: sanitizedMapping,
             automationMode,
             automationStopStage: automationStopStage || undefined,
@@ -425,10 +487,17 @@ export function WorkspaceSettingsModal() {
             notifyOnJobComplete,
             notifyOnJobFailed,
             notifyOnApprovalRequired,
+            // GSD-inspired settings
+            atomicCommitsEnabled,
+            verificationStrictness,
+            stateTrackingEnabled,
           },
         }),
       });
-      if (!res.ok) throw new Error("Failed to update workspace");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update workspace (${res.status})`);
+      }
       const updated = await res.json();
       updateWorkspace({
         githubRepo: updated.githubRepo,
@@ -436,7 +505,9 @@ export function WorkspaceSettingsModal() {
         settings: updated.settings || {},
       });
     } catch (error) {
-      console.error("Failed to save workspace settings:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to save workspace settings";
+      console.error("Failed to save workspace settings:", errorMessage);
+      setSaveError(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -456,11 +527,12 @@ export function WorkspaceSettingsModal() {
             >
               {/* Header - macOS window style */}
               <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
-                <div className="flex items-center gap-1.5 mr-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
-                </div>
+                <TrafficLights 
+                  className="mr-3" 
+                  size={10} 
+                  interactive 
+                  onClose={closeModal}
+                />
                 <div className="flex items-center gap-2">
                   <Settings className="w-4 h-4 text-muted-foreground" />
                   <DialogTitle className="text-sm font-mono text-muted-foreground">
@@ -515,6 +587,14 @@ export function WorkspaceSettingsModal() {
                                 value={githubRepo}
                                 onChange={(e) => setGithubRepo(e.target.value)}
                               />
+                              {resolvedPaths?.repoPath && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <FolderOpen className="w-3 h-3" />
+                                  <span className="font-mono truncate" title={resolvedPaths.repoPath}>
+                                    {resolvedPaths.repoPath}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="grid gap-2">
                               <Label htmlFor="baseBranch">Base Branch</Label>
@@ -551,6 +631,14 @@ export function WorkspaceSettingsModal() {
                                 value={prototypesPath}
                                 onChange={(e) => setPrototypesPath(e.target.value)}
                               />
+                              {resolvedPaths?.prototypesPath && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <FolderOpen className="w-3 h-3" />
+                                  <span className="font-mono truncate" title={resolvedPaths.prototypesPath}>
+                                    {resolvedPaths.prototypesPath}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="grid gap-2">
                               <Label htmlFor="storybookPort">Storybook Port</Label>
@@ -567,10 +655,56 @@ export function WorkspaceSettingsModal() {
                         </div>
 
                         <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)] lg:col-span-2">
-                          <h4 className="text-sm font-medium mb-3">Context Paths</h4>
-                          <p className="text-xs text-muted-foreground mb-3">
-                            The first path is used as the default knowledge base root.
-                          </p>
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h4 className="text-sm font-medium">Context Paths</h4>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                The first path is used as the default knowledge base root.
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={handleSyncKnowledgeBase}
+                              disabled={isSyncing}
+                            >
+                              <RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} />
+                              {isSyncing ? "Syncing..." : "Sync Knowledge Base"}
+                            </Button>
+                          </div>
+                          {syncResult && (
+                            <div
+                              className={cn(
+                                "flex items-center gap-2 p-2 rounded-lg mb-3 text-xs",
+                                syncResult.success
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-red-500/10 text-red-600 dark:text-red-400"
+                              )}
+                            >
+                              {syncResult.success ? (
+                                <CheckCircle2 className="w-4 h-4" />
+                              ) : (
+                                <XCircle className="w-4 h-4" />
+                              )}
+                              <span>{syncResult.message}</span>
+                              {syncResult.synced !== undefined && (
+                                <span className="text-muted-foreground">
+                                  ({syncResult.synced} synced, {syncResult.skipped} skipped)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {resolvedPaths?.contextPath && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+                              <FolderOpen className="w-3 h-3" />
+                              <span>Primary context path: </span>
+                              <span className="font-mono truncate" title={resolvedPaths.contextPath}>
+                                {resolvedPaths.contextPath}
+                              </span>
+                            </div>
+                          )}
                           <div className="space-y-2">
                             {contextPaths.map((path, idx) => (
                               <div key={`context-path-${idx}`} className="flex items-center gap-2">
@@ -651,7 +785,10 @@ export function WorkspaceSettingsModal() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex justify-end">
+                      <div className="flex items-center justify-end gap-3">
+                        {saveError && (
+                          <p className="text-sm text-destructive">{saveError}</p>
+                        )}
                         <Button
                           onClick={handleSave}
                           disabled={isSaving}
@@ -666,55 +803,6 @@ export function WorkspaceSettingsModal() {
                     {/* Pipeline Tab - Automation and AI settings */}
                     <TabsContent value="pipeline" className="mt-0 space-y-6">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Bot className="w-4 h-4 text-purple-500" />
-                            <h4 className="text-sm font-medium">AI Job Execution</h4>
-                          </div>
-                          <div className="grid gap-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="aiExecutionMode">Execution Mode</Label>
-                              <select
-                                id="aiExecutionMode"
-                                value={aiExecutionMode}
-                                onChange={(e) =>
-                                  setAiExecutionMode(e.target.value as "cursor" | "server" | "hybrid")
-                                }
-                                className="h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                              >
-                                <option value="cursor">Cursor runner</option>
-                                <option value="server">Server runner</option>
-                                <option value="hybrid">Hybrid (Cursor + fallback)</option>
-                              </select>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="aiValidationMode">Validation Mode</Label>
-                              <select
-                                id="aiValidationMode"
-                                value={aiValidationMode}
-                                onChange={(e) =>
-                                  setAiValidationMode(e.target.value as "none" | "light" | "schema")
-                                }
-                                className="h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                              >
-                                <option value="schema">Schema (strict)</option>
-                                <option value="light">Light</option>
-                                <option value="none">None</option>
-                              </select>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="aiFallbackAfterMinutes">Fallback After (minutes)</Label>
-                              <Input
-                                id="aiFallbackAfterMinutes"
-                                type="number"
-                                min="1"
-                                value={aiFallbackAfterMinutes}
-                                onChange={(e) => setAiFallbackAfterMinutes(e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
                         <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                           <div className="flex items-center gap-2 mb-3">
                             <Workflow className="w-4 h-4 text-emerald-500" />
@@ -917,7 +1005,62 @@ export function WorkspaceSettingsModal() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex justify-end">
+                      
+                      {/* GSD-Inspired Task Execution Settings */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Workflow className="h-4 w-4 text-purple-500" />
+                          <h4 className="text-sm font-medium">Task Execution</h4>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                            <div>
+                              <Label className="text-sm">Atomic Commits</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Create a git commit after each task completes
+                              </p>
+                            </div>
+                            <Switch
+                              checked={atomicCommitsEnabled}
+                              onCheckedChange={setAtomicCommitsEnabled}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                            <div>
+                              <Label className="text-sm">State Tracking</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Auto-generate state.md documents for progress
+                              </p>
+                            </div>
+                            <Switch
+                              checked={stateTrackingEnabled}
+                              onCheckedChange={setStateTrackingEnabled}
+                            />
+                          </div>
+                          <div className="rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
+                            <div className="mb-2">
+                              <Label className="text-sm">Verification Strictness</Label>
+                              <p className="text-xs text-muted-foreground">
+                                How to handle task verification failures
+                              </p>
+                            </div>
+                            <select
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              value={verificationStrictness}
+                              onChange={(e) => setVerificationStrictness(e.target.value as "strict" | "lenient" | "disabled")}
+                            >
+                              <option value="strict">Strict - Stop on any failure</option>
+                              <option value="lenient">Lenient - Log warnings, continue</option>
+                              <option value="disabled">Disabled - Skip verification</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-end gap-3">
+                        {saveError && (
+                          <p className="text-sm text-destructive">{saveError}</p>
+                        )}
                         <Button
                           onClick={handleSave}
                           disabled={isSaving}
@@ -1278,11 +1421,11 @@ export function WorkspaceSettingsModal() {
                       
                       <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
                         <p className="text-xs text-muted-foreground mb-1">Workspace ID</p>
-                        <p className="text-sm font-mono text-xs">{workspace?.id || "N/A"}</p>
+                        <p className="text-xs font-mono">{workspace?.id || "N/A"}</p>
                       </div>
                       
                       <div className="p-4 rounded-2xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
-                        <p className="text-xs text-muted-foreground font-mono mb-1">// About Elmer</p>
+                        <p className="text-xs text-muted-foreground font-mono mb-1">{"// About Elmer"}</p>
                         <p className="text-sm text-muted-foreground">
                           Elmer is an AI-powered PM orchestrator that helps you move projects from idea to launch.
                           Drag projects through stages to trigger automated AI jobs that generate PRDs, design briefs, and more.

@@ -391,64 +391,141 @@ function JobStatusIndicator({
   // Pending state - waiting for Cursor AI to process
   if (status === "pending") {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20">
+      <motion.div 
+        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
         <motion.div
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
         >
           <Clock className="w-3 h-3 text-amber-400" />
         </motion.div>
         <span className="text-xs text-amber-400 font-medium">
-          Waiting for Agent
+          Queued
         </span>
-      </div>
+        <motion.div 
+          className="flex gap-0.5"
+          initial={{ opacity: 0.5 }}
+        >
+          {[0, 1, 2].map((i) => (
+            <motion.span
+              key={i}
+              className="w-1 h-1 rounded-full bg-amber-400"
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+            />
+          ))}
+        </motion.div>
+      </motion.div>
     );
   }
 
   // Running state - Cursor AI is processing
   if (status === "running") {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-purple-500/10 border border-purple-500/20">
-        <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
-        <span className="text-xs text-purple-400 font-medium">
-          {jobName}...
+      <motion.div 
+        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-purple-500/15 border border-purple-500/30"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ 
+          opacity: 1, 
+          scale: 1,
+          boxShadow: [
+            "0 0 0 0 rgba(168, 85, 247, 0)",
+            "0 0 0 4px rgba(168, 85, 247, 0.1)",
+            "0 0 0 0 rgba(168, 85, 247, 0)"
+          ]
+        }}
+        transition={{ 
+          boxShadow: { duration: 2, repeat: Infinity },
+          opacity: { duration: 0.2 },
+          scale: { duration: 0.2 }
+        }}
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
+          <Loader2 className="w-3.5 h-3.5 text-purple-400" />
+        </motion.div>
+        <span className="text-xs text-purple-300 font-medium">
+          {jobName}
         </span>
-      </div>
+        <motion.div 
+          className="flex gap-0.5"
+        >
+          {[0, 1, 2].map((i) => (
+            <motion.span
+              key={i}
+              className="w-1 h-1 rounded-full bg-purple-400"
+              animate={{ 
+                opacity: [0.3, 1, 0.3],
+                scale: [0.8, 1.2, 0.8]
+              }}
+              transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+            />
+          ))}
+        </motion.div>
+      </motion.div>
     );
   }
 
   // Failed state
   if (status === "failed") {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 border border-red-500/20">
+      <motion.div 
+        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 border border-red-500/20"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
         <AlertCircle className="w-3 h-3 text-red-400" />
         <span className="text-xs text-red-400 font-medium">
           {jobName} Failed
         </span>
-      </div>
+      </motion.div>
     );
   }
 
   // Completed state (briefly shown)
   if (status === "completed") {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/20">
-        <CheckCircle className="w-3 h-3 text-green-400" />
+      <motion.div 
+        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/20"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 500, damping: 25 }}
+        >
+          <CheckCircle className="w-3 h-3 text-green-400" />
+        </motion.div>
         <span className="text-xs text-green-400 font-medium">
           {jobName} Done
         </span>
-      </div>
+      </motion.div>
     );
   }
 
-  // Default/unknown state
+  // Default/unknown state - treat as processing/initializing
   return (
-    <div className="flex items-center gap-1.5">
-      <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
-      <span className="text-xs text-purple-400">
-        {jobName}
+    <motion.div 
+      className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-500/10 border border-slate-500/20"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+      >
+        <Loader2 className="w-3 h-3 text-slate-400" />
+      </motion.div>
+      <span className="text-xs text-slate-400 font-medium">
+        Initializing...
       </span>
-    </div>
+    </motion.div>
   );
 }
 

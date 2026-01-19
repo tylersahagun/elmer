@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { FileText, Sparkles, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -88,15 +89,12 @@ export function TranscriptInputDialog({
       >
         {/* Header - macOS window style */}
         <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
-          <div className="flex items-center gap-1.5 mr-3">
-            <button
-              onClick={handleClose}
-              className="w-2.5 h-2.5 rounded-full bg-[#FF5F57] hover:bg-[#FF5F57]/80 transition-colors"
-              aria-label="Close"
-            />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
-          </div>
+          <TrafficLights 
+            className="mr-3" 
+            size={10} 
+            interactive 
+            onClose={handleClose}
+          />
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-purple-400" />
             <DialogTitle className="text-sm font-mono text-muted-foreground">

@@ -200,6 +200,32 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
         duration: Date.now() - startTime,
       };
     } else {
+      // Check if this was a "soft" failure (waiting for dependency)
+      const shouldRetryWithoutPenalty = (result as { shouldRetryWithoutPenalty?: boolean }).shouldRetryWithoutPenalty;
+      
+      if (shouldRetryWithoutPenalty) {
+        // Don't count this as a real attempt - just reset to pending
+        await db.update(jobs)
+          .set({
+            status: "pending",
+            error: result.error,
+            progress: 0,
+            attempts: attempt - 1, // Undo the attempt increment
+            startedAt: null,
+          })
+          .where(eq(jobs.id, jobId));
+        
+        console.log(`⏳ Job ${jobId} waiting for dependency: ${result.error}`);
+        
+        return {
+          jobId,
+          type: job.type,
+          status: "pending",
+          error: result.error,
+          duration: Date.now() - startTime,
+        };
+      }
+      
       if (jobRun?.id) {
         await updateJobRunStatus(jobRun.id, "failed", result.error || "Job failed");
       }

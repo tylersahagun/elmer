@@ -60,8 +60,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Only create feature branch if setting is enabled AND workspace has a GitHub repo configured
     const shouldCreateBranch = workspace.settings?.autoCreateFeatureBranch ?? true;
-    if (shouldCreateBranch) {
+    if (shouldCreateBranch && workspace.githubRepo) {
       await createJob({
         workspaceId,
         projectId: project?.id,

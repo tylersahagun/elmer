@@ -67,6 +67,7 @@ export {
 // Stage executors
 export {
   executeStage,
+  executeStageWithTasks,
   executeInbox,
   executeDiscovery,
   executePRD,
