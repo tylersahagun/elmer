@@ -44,6 +44,15 @@ export interface WorkspaceSettings {
   automationMode?: "manual" | "auto_to_stage" | "auto_all";
   automationStopStage?: string;
   automationNotifyStage?: string;
+  // Background Worker Settings
+  workerEnabled?: boolean;
+  workerMaxConcurrency?: number;
+  workerPollIntervalMs?: number;
+  // Browser Notification Settings
+  browserNotificationsEnabled?: boolean;
+  notifyOnJobComplete?: boolean;
+  notifyOnJobFailed?: boolean;
+  notifyOnApprovalRequired?: boolean;
   // UI Personalization
   background?: BackgroundSettings;
   columnGradients?: boolean;
@@ -148,6 +157,12 @@ export interface DocumentMetadata {
   model?: string;
   promptVersion?: string;
   reviewStatus?: "draft" | "reviewed" | "approved";
+  // Extended metadata for different document types
+  actualType?: string; // When document type doesn't match our enum
+  signalCount?: number; // For discovery documents
+  verdict?: string; // For validation/jury documents
+  score?: number; // For scored documents
+  approvalRate?: number; // For jury/validation approval percentage
 }
 
 // ============================================
@@ -421,6 +436,199 @@ export const prototypeVersions = pgTable("prototype_versions", {
 });
 
 // ============================================
+// STAGE RUNS (Execution Tracking)
+// ============================================
+
+export type StageRunStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+export type AutomationLevel = "fully_auto" | "auto_notify" | "human_approval" | "manual";
+export type ExecutionProvider = "anthropic" | "openai" | "cli" | "cursor";
+
+export const stageRuns = pgTable("stage_runs", {
+  id: text("id").primaryKey(),
+  cardId: text("card_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  stage: text("stage").$type<ProjectStage>().notNull(),
+  status: text("status").$type<StageRunStatus>().notNull().default("queued"),
+  automationLevel: text("automation_level").$type<AutomationLevel>().notNull().default("human_approval"),
+  provider: text("provider").$type<ExecutionProvider>(),
+  attempt: integer("attempt").notNull().default(1),
+  idempotencyKey: text("idempotency_key").unique(),
+  errorSummary: text("error_summary"),
+  triggeredBy: text("triggered_by"), // "user" | "automation" | "retry"
+  metadata: jsonb("metadata").$type<StageRunMetadata>(),
+  createdAt: timestamp("created_at").notNull(),
+  startedAt: timestamp("started_at"),
+  finishedAt: timestamp("finished_at"),
+});
+
+export interface StageRunMetadata {
+  skillsExecuted?: string[];
+  gateResults?: Record<string, { passed: boolean; message?: string }>;
+  tokensUsed?: { input: number; output: number };
+  durationMs?: number;
+}
+
+// ============================================
+// RUN LOGS (Step-by-step Execution Logs)
+// ============================================
+
+export type RunLogLevel = "info" | "warn" | "error" | "debug";
+
+export const runLogs = pgTable("run_logs", {
+  id: text("id").primaryKey(),
+  runId: text("run_id").notNull().references(() => stageRuns.id, { onDelete: "cascade" }),
+  timestamp: timestamp("timestamp").notNull(),
+  level: text("level").$type<RunLogLevel>().notNull().default("info"),
+  message: text("message").notNull(),
+  stepKey: text("step_key"), // skill execution step identifier
+  meta: jsonb("meta").$type<Record<string, unknown>>(),
+});
+
+// ============================================
+// ARTIFACTS (Produced Outputs)
+// ============================================
+
+export type ArtifactType = "file" | "url" | "pr" | "ticket" | "metric" | "chromatic";
+
+export const artifacts = pgTable("artifacts", {
+  id: text("id").primaryKey(),
+  runId: text("run_id").references(() => stageRuns.id, { onDelete: "set null" }),
+  cardId: text("card_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  stage: text("stage").$type<ProjectStage>().notNull(),
+  artifactType: text("artifact_type").$type<ArtifactType>().notNull(),
+  label: text("label").notNull(),
+  uri: text("uri"), // file path or URL
+  meta: jsonb("meta").$type<ArtifactMetadata>(),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+export interface ArtifactMetadata {
+  fileSize?: number;
+  mimeType?: string;
+  chromaticBuildId?: string;
+  prNumber?: number;
+  ticketId?: string;
+  version?: number;
+}
+
+// ============================================
+// SKILLS (Global Skills Catalog)
+// ============================================
+
+export type SkillSource = "local" | "skillsmp";
+export type TrustLevel = "vetted" | "community" | "experimental";
+
+export const skills = pgTable("skills", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+  source: text("source").$type<SkillSource>().notNull().default("local"),
+  name: text("name").notNull(),
+  description: text("description"),
+  version: text("version"),
+  entrypoint: text("entrypoint"), // file path for local skills
+  promptTemplate: text("prompt_template"), // system prompt content
+  trustLevel: text("trust_level").$type<TrustLevel>().notNull().default("community"),
+  remoteMetadata: jsonb("remote_metadata").$type<SkillRemoteMetadata>(),
+  inputSchema: jsonb("input_schema").$type<Record<string, unknown>>(),
+  outputSchema: jsonb("output_schema").$type<Record<string, unknown>>(),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  lastSynced: timestamp("last_synced"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export interface SkillRemoteMetadata {
+  skillsmpId?: string;
+  author?: string;
+  url?: string;
+  downloads?: number;
+  rating?: number;
+  pinnedVersion?: string;
+}
+
+// ============================================
+// STAGE RECIPES (Per-Stage Automation Config)
+// ============================================
+
+export const stageRecipes = pgTable("stage_recipes", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  stage: text("stage").$type<ProjectStage>().notNull(),
+  automationLevel: text("automation_level").$type<AutomationLevel>().notNull().default("human_approval"),
+  recipeSteps: jsonb("recipe_steps").$type<RecipeStep[]>().notNull().default([]),
+  gates: jsonb("gates").$type<GateDefinition[]>().default([]),
+  onFailBehavior: text("on_fail_behavior").$type<"stay" | "revert" | "create_questions" | "review_required">().default("stay"),
+  provider: text("provider").$type<ExecutionProvider>().default("anthropic"),
+  enabled: boolean("enabled").default(true),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export interface RecipeStep {
+  skillId: string;
+  order: number;
+  params?: Record<string, unknown>;
+  paramsJson?: Record<string, unknown>; // alternative params format
+  inputsMapping?: Record<string, string>; // where to read from
+  outputsMapping?: Record<string, string>; // where to write to
+  timeout?: number; // ms
+  retryCount?: number;
+  continueOnError?: boolean;
+}
+
+export interface GateDefinition {
+  id: string;
+  name?: string;
+  type: "file_exists" | "sections_exist" | "jury_score" | "custom" | "content_check" | "artifact_exists" | "metric_threshold";
+  config: Record<string, unknown>;
+  required: boolean;
+  message?: string; // failure message
+  failureMessage?: string; // alternative failure message
+}
+
+// ============================================
+// WORKER HEARTBEATS (Worker Health Tracking)
+// ============================================
+
+export type WorkerHealthStatus = "idle" | "processing" | "stale";
+
+export const workerHeartbeats = pgTable("worker_heartbeats", {
+  workerId: text("worker_id").primaryKey(),
+  workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+  lastHeartbeat: timestamp("last_heartbeat").notNull(),
+  status: text("status").$type<WorkerHealthStatus>().notNull().default("idle"),
+  activeRunId: text("active_run_id"),
+  processedCount: integer("processed_count").default(0),
+  failedCount: integer("failed_count").default(0),
+  metadata: jsonb("metadata").$type<WorkerMetadata>(),
+});
+
+export interface WorkerMetadata {
+  hostname?: string;
+  pid?: number;
+  version?: string;
+  startedAt?: string;
+  rateLimitRemaining?: { requests: number; tokens: number };
+}
+
+// ============================================
+// STAGE TRANSITION EVENTS (Audit Trail)
+// ============================================
+
+export const stageTransitionEvents = pgTable("stage_transition_events", {
+  id: text("id").primaryKey(),
+  cardId: text("card_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  fromStage: text("from_stage").$type<ProjectStage>(),
+  toStage: text("to_stage").$type<ProjectStage>().notNull(),
+  actor: text("actor").notNull(), // "user:{id}" | "automation" | "worker:{id}"
+  reason: text("reason"),
+  runId: text("run_id").references(() => stageRuns.id, { onDelete: "set null" }),
+  timestamp: timestamp("timestamp").notNull(),
+});
+
+// ============================================
 // RELATIONS
 // ============================================
 
@@ -559,5 +767,79 @@ export const knowledgeSourcesRelations = relations(knowledgeSources, ({ one }) =
   workspace: one(workspaces, {
     fields: [knowledgeSources.workspaceId],
     references: [workspaces.id],
+  }),
+}));
+
+// New execution system relations
+
+export const stageRunsRelations = relations(stageRuns, ({ one, many }) => ({
+  card: one(projects, {
+    fields: [stageRuns.cardId],
+    references: [projects.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [stageRuns.workspaceId],
+    references: [workspaces.id],
+  }),
+  logs: many(runLogs),
+  artifacts: many(artifacts),
+  transitionEvent: one(stageTransitionEvents),
+}));
+
+export const runLogsRelations = relations(runLogs, ({ one }) => ({
+  run: one(stageRuns, {
+    fields: [runLogs.runId],
+    references: [stageRuns.id],
+  }),
+}));
+
+export const artifactsRelations = relations(artifacts, ({ one }) => ({
+  run: one(stageRuns, {
+    fields: [artifacts.runId],
+    references: [stageRuns.id],
+  }),
+  card: one(projects, {
+    fields: [artifacts.cardId],
+    references: [projects.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [artifacts.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const skillsRelations = relations(skills, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [skills.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const stageRecipesRelations = relations(stageRecipes, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [stageRecipes.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const workerHeartbeatsRelations = relations(workerHeartbeats, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [workerHeartbeats.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+export const stageTransitionEventsRelations = relations(stageTransitionEvents, ({ one }) => ({
+  card: one(projects, {
+    fields: [stageTransitionEvents.cardId],
+    references: [projects.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [stageTransitionEvents.workspaceId],
+    references: [workspaces.id],
+  }),
+  run: one(stageRuns, {
+    fields: [stageTransitionEvents.runId],
+    references: [stageRuns.id],
   }),
 }));

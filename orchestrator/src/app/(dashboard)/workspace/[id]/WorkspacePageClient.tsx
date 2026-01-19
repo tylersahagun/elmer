@@ -2,8 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useKanbanStore, useUIStore, type KanbanColumn, type ProjectCard } from "@/lib/store";
 import { KanbanBoard, WorkspaceSettingsModal, ArchivedProjectsModal } from "@/components/kanban";
@@ -16,14 +15,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { springPresets } from "@/lib/animations";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
 import { cn } from "@/lib/utils";
-import { GlassPanel } from "@/components/glass";
-import { BackgroundWrapper, type BackgroundType } from "@/components/animate-ui/backgrounds";
-import { useDisplaySettings } from "@/components/display";
+import { Window } from "@/components/chrome/Window";
+import { StatusPill } from "@/components/chrome/StatusPill";
+import { useTheme } from "next-themes";
 import { 
   Plus, 
   Settings, 
@@ -31,8 +30,9 @@ import {
   Loader2,
   AlertCircle,
   Menu,
-  BookOpen,
-  Users,
+  Sun,
+  Moon,
+  Archive,
 } from "lucide-react";
 import { WaveV4D, ElmerWordmark } from "@/components/brand/ElmerLogo";
 
@@ -42,6 +42,8 @@ interface WorkspacePageClientProps {
 
 export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
   const setWorkspace = useKanbanStore((s) => s.setWorkspace);
   const setColumns = useKanbanStore((s) => s.setColumns);
   const setProjects = useKanbanStore((s) => s.setProjects);
@@ -51,12 +53,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const openArchivedProjectsModal = useUIStore((s) => s.openArchivedProjectsModal);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
-  
-  // Get background settings from workspace - defaults to aurora
-  const backgroundSettings = storeWorkspace?.settings?.background || { type: "aurora" as BackgroundType };
-  
-  // Get display mode for focus-aware styling
-  const { isFocusMode } = useDisplaySettings();
 
   // Get real-time job status for the inbox
   const { summary: jobSummary } = useRealtimeJobs({
@@ -181,253 +177,151 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
 
   const isLoading = workspaceLoading || projectsLoading;
 
+  // Check active state for nav items
+  const isKnowledgebaseActive = pathname?.includes('/knowledgebase');
+  const isPersonasActive = pathname?.includes('/personas');
+  const isWorkspaceActive = !isKnowledgebaseActive && !isPersonasActive;
+
 
   if (workspaceError) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
-        <GlassPanel className="max-w-md text-center">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Workspace Not Found</h2>
-          <p className="text-muted-foreground mb-4">
-            The workspace you&apos;re looking for doesn&apos;t exist or you don&apos;t have access.
-          </p>
-          <Button onClick={() => window.location.href = "/"}>
-            Go Home
-          </Button>
-        </GlassPanel>
+        <Window title="error" className="max-w-md">
+          <div className="text-center py-4">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Workspace Not Found</h2>
+            <p className="text-muted-foreground mb-4 font-mono text-sm">
+              The workspace you&apos;re looking for doesn&apos;t exist or you don&apos;t have access.
+            </p>
+            <Button onClick={() => window.location.href = "/"}>
+              Go Home
+            </Button>
+          </div>
+        </Window>
       </div>
     );
   }
 
   return (
-    <BackgroundWrapper
-      type={backgroundSettings.type as BackgroundType}
-      primaryColor={backgroundSettings.primaryColor}
-      secondaryColor={backgroundSettings.secondaryColor}
-      speed={backgroundSettings.speed}
-      interactive={backgroundSettings.interactive}
-      className="min-h-screen"
-    >
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: isFocusMode ? 0 : -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={isFocusMode ? { duration: 0.1 } : springPresets.gentle}
+    <div className="min-h-screen">
+      {/* SkillsMP-style Header */}
+      <header
         className={cn(
           "sticky top-0 z-50 border-b",
-          isFocusMode 
-            ? "bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 shadow-sm" 
-            : "backdrop-blur-2xl bg-black/40 dark:bg-black/50 border-white/10 shadow-xl shadow-black/20"
+          "bg-white/95 dark:bg-[#0B0F14]/95",
+          "border-[#B8C0CC] dark:border-white/[0.14]",
+          "backdrop-blur-sm"
         )}
       >
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Link href="/">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={springPresets.bouncy}
-                className="flex items-center gap-0.5 hover:opacity-80 transition-opacity cursor-pointer"
-              >
-                <WaveV4D size={36} palette="forest" className="sm:w-11 sm:h-11" />
-                <ElmerWordmark width={80} height={26} palette="forest" className="hidden sm:block sm:w-[100px] sm:h-8" />
-              </motion.div>
-            </Link>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
+          {/* Left: Logo (back navigation) + Status + Path */}
+          <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              <WaveV4D size={28} palette="forest" />
+              <ElmerWordmark width={64} height={20} palette="forest" className="hidden sm:block" />
+            </button>
+            <div className="h-4 w-px bg-[#B8C0CC] dark:bg-white/[0.14]" />
+            <StatusPill status="ready" />
+            <span className="hidden sm:block font-mono text-sm text-muted-foreground truncate max-w-[200px]">
+              ~/workspace/{storeWorkspace?.name?.toLowerCase().replace(/\s+/g, '-') || 'loading'}
+            </span>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openNewProjectModal}
-              className={cn(
-                "gap-2",
-                isFocusMode
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white hover:bg-slate-800 dark:hover:bg-slate-100"
-                  : "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white"
-              )}
-            >
-              <Plus className="w-4 h-4" />
-              New Project
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={openArchivedProjectsModal}
-              className={cn(
-                isFocusMode
-                  ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
-                  : "text-white/80 hover:text-white hover:bg-white/10"
-              )}
-            >
-              Archived
-            </Button>
-            
-            {/* Knowledge Base & Personas Links */}
-            <div className={cn("h-4 w-px mx-1", isFocusMode ? "bg-slate-200 dark:bg-zinc-700" : "bg-white/20")} />
-            <Link href="/knowledgebase">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "gap-1.5",
-                  isFocusMode
-                    ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
-                    : "text-white/80 hover:text-white hover:bg-white/10"
-                )}
-              >
-                <BookOpen className="w-4 h-4" />
-                <span className="hidden lg:inline">Files</span>
-              </Button>
-            </Link>
-            <Link href="/personas">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "gap-1.5",
-                  isFocusMode
-                    ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
-                    : "text-white/80 hover:text-white hover:bg-white/10"
-                )}
-              >
-                <Users className="w-4 h-4" />
-                <span className="hidden lg:inline">Personas</span>
-              </Button>
-            </Link>
-            <div className={cn("h-4 w-px mx-1", isFocusMode ? "bg-slate-200 dark:bg-zinc-700" : "bg-white/20")} />
-            
-            {/* Notification Inbox */}
+          {/* Right: Notifications + Hamburger Menu */}
+          <div className="flex items-center gap-1.5">
             <NotificationInbox
               workspaceId={workspaceId}
               jobSummary={jobSummary}
               onNavigate={handleNotificationNavigate}
             />
             
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              className={cn(
-                isFocusMode
-                  ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
-                  : "text-white/80 hover:text-white hover:bg-white/10",
-                sidebarOpen && (isFocusMode ? "text-emerald-600 dark:text-emerald-400" : "text-purple-400")
-              )}
-            >
-              <MessageSquare className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={openSettingsModal}
-              className={cn(
-                isFocusMode
-                  ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
-                  : "text-white/80 hover:text-white hover:bg-white/10"
-              )}
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {/* Mobile Navigation */}
-          <div className="flex md:hidden items-center gap-1">
-            {/* Quick add button always visible */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={openNewProjectModal}
-              className={cn(
-                "h-9 w-9",
-                isFocusMode
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white hover:bg-slate-800 dark:hover:bg-slate-100"
-                  : "bg-white/10 border-white/20 text-white hover:bg-white/20"
-              )}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-            
-            {/* Notification Inbox */}
-            <NotificationInbox
-              workspaceId={workspaceId}
-              jobSummary={jobSummary}
-              onNavigate={handleNotificationNavigate}
-            />
-            
-            {/* Mobile menu dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className={cn(
-                    "h-9 w-9",
-                    isFocusMode
-                      ? "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800"
-                      : "text-white/80 hover:text-white hover:bg-white/10"
-                  )}
-                >
-                  <Menu className="w-5 h-5" />
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Menu className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
-                className={cn(
-                  "w-48",
-                  isFocusMode
-                    ? "bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700"
-                    : "bg-black/80 backdrop-blur-xl border-white/10"
-                )}
+                className="w-56 rounded-2xl border-border dark:border-[rgba(255,255,255,0.14)]"
               >
-                <DropdownMenuItem onClick={openNewProjectModal} className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  New Project
+                {/* Primary Actions */}
+                <DropdownMenuItem onClick={openNewProjectModal} className="gap-2 font-mono text-sm">
+                  <Plus className="w-4 h-4 text-emerald-500" />
+                  <span>New Project</span>
                 </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Navigation */}
+                <Link href="/knowledgebase" className="w-full">
+                  <DropdownMenuItem className={cn(
+                    "gap-2 font-mono text-sm",
+                    isKnowledgebaseActive && "bg-accent"
+                  )}>
+                    <span className="text-emerald-500">$</span>
+                    <span>cd</span>
+                    <span className="text-muted-foreground">/files</span>
+                  </DropdownMenuItem>
+                </Link>
+                
+                <Link href="/personas" className="w-full">
+                  <DropdownMenuItem className={cn(
+                    "gap-2 font-mono text-sm",
+                    isPersonasActive && "bg-accent"
+                  )}>
+                    <span className="text-emerald-500">$</span>
+                    <span>ls</span>
+                    <span className="text-muted-foreground">personas/</span>
+                  </DropdownMenuItem>
+                </Link>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Utilities */}
                 <DropdownMenuItem onClick={openArchivedProjectsModal} className="gap-2">
+                  <Archive className="w-4 h-4" />
                   Archived Projects
                 </DropdownMenuItem>
-                <Link href="/knowledgebase" className="w-full">
-                  <DropdownMenuItem className="gap-2">
-                    <BookOpen className="w-4 h-4" />
-                    Knowledge Base
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/personas" className="w-full">
-                  <DropdownMenuItem className="gap-2">
-                    <Users className="w-4 h-4" />
-                    Personas
-                  </DropdownMenuItem>
-                </Link>
+                
                 <DropdownMenuItem onClick={toggleSidebar} className="gap-2">
                   <MessageSquare className="w-4 h-4" />
                   AI Assistant
                 </DropdownMenuItem>
+                
                 <DropdownMenuItem onClick={openSettingsModal} className="gap-2">
                   <Settings className="w-4 h-4" />
                   Settings
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem 
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
+                  className="gap-2"
+                >
+                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
-      </motion.header>
+      </header>
 
       {/* Main Content */}
       <main className="flex">
         {/* Kanban Board */}
         <div className="flex-1 overflow-hidden">
           {isLoading ? (
-            <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-4"
-              >
-                <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-                <p className="text-muted-foreground">Loading workspace...</p>
-              </motion.div>
+            <div className="flex items-center justify-center h-[calc(100vh-57px)]">
+              <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                <p className="text-muted-foreground font-mono text-sm">Loading workspace...</p>
+              </div>
             </div>
           ) : (
             <KanbanBoard />
@@ -443,6 +337,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       <ProjectDetailModal />
       <WorkspaceSettingsModal />
       {workspace?.id && <ArchivedProjectsModal workspaceId={workspace.id} />}
-    </BackgroundWrapper>
+    </div>
   );
 }

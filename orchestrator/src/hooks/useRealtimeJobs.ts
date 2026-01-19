@@ -83,6 +83,7 @@ interface UseRealtimeJobsReturn {
   // Actions
   reconnect: () => void;
   triggerProcessing: () => Promise<void>;
+  clearFailedJobs: () => Promise<number>;
 }
 
 export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJobsReturn {
@@ -100,6 +101,9 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectRef = useRef<() => void>(() => {});
   const updateProject = useKanbanStore((s) => s.updateProject);
+  
+  // Track which jobs have already had their callbacks triggered to prevent repeated calls
+  const notifiedJobsRef = useRef<Set<string>>(new Set());
 
   // Process incoming message
   const processMessage = useCallback((message: SSEMessage) => {
@@ -157,12 +161,20 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
           setRecentlyCompleted(message.recentCompleted);
           
           // Check for newly completed jobs and trigger callbacks
+          // Only trigger callback once per job to prevent repeated notifications
           message.recentCompleted.forEach((job) => {
-            if (job.status === "completed" && onJobComplete) {
-              onJobComplete(job);
-            }
-            if (job.status === "failed" && onJobFailed) {
-              onJobFailed(job);
+            const jobKey = `${job.id}-${job.status}`;
+            const alreadyNotified = notifiedJobsRef.current.has(jobKey);
+            
+            if (!alreadyNotified) {
+              notifiedJobsRef.current.add(jobKey);
+              
+              if (job.status === "completed" && onJobComplete) {
+                onJobComplete(job);
+              }
+              if (job.status === "failed" && onJobFailed) {
+                onJobFailed(job);
+              }
             }
             
             // Update project card with final job status
@@ -226,12 +238,17 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
             });
           }
 
-          // Trigger callbacks
-          if (job.status === "completed" && onJobComplete) {
-            onJobComplete(job);
-          }
-          if (job.status === "failed" && onJobFailed) {
-            onJobFailed(job);
+          // Trigger callbacks (only once per job)
+          const jobKey = `${job.id}-${job.status}`;
+          if (!notifiedJobsRef.current.has(jobKey)) {
+            notifiedJobsRef.current.add(jobKey);
+            
+            if (job.status === "completed" && onJobComplete) {
+              onJobComplete(job);
+            }
+            if (job.status === "failed" && onJobFailed) {
+              onJobFailed(job);
+            }
           }
         }
         break;
@@ -246,6 +263,9 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
+    
+    // Reset notified jobs on reconnect to allow fresh notifications
+    notifiedJobsRef.current.clear();
 
     console.log("🔄 Connecting to SSE stream...");
     const eventSource = new EventSource(`/api/jobs/stream?workspaceId=${workspaceId}`);
@@ -318,6 +338,28 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
     }
   }, [workspaceId]);
 
+  // Clear failed jobs for the workspace
+  const clearFailedJobs = useCallback(async (): Promise<number> => {
+    if (!workspaceId) return 0;
+
+    try {
+      const res = await fetch(`/api/jobs?workspaceId=${workspaceId}&status=all_terminal`, {
+        method: "DELETE",
+      });
+      
+      if (res.ok) {
+        const result = await res.json();
+        // Clear the notified jobs ref to allow fresh notifications
+        notifiedJobsRef.current.clear();
+        console.log(`🗑️ Cleared ${result.cleared} failed/cancelled jobs`);
+        return result.cleared;
+      }
+    } catch (err) {
+      console.error("Failed to clear failed jobs:", err);
+    }
+    return 0;
+  }, [workspaceId]);
+
   // Keep connect ref updated
   useEffect(() => {
     connectRef.current = connect;
@@ -356,6 +398,7 @@ export function useRealtimeJobs(options: UseRealtimeJobsOptions): UseRealtimeJob
     recentlyCompleted,
     reconnect,
     triggerProcessing,
+    clearFailedJobs,
   };
 }
 

@@ -7,7 +7,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { GlassPanel } from "@/components/glass";
+import { ResizeHandle } from "@/components/ui/resize-handle";
+import { useResizablePanel } from "@/hooks/use-resizable-panel";
+import { TrafficLights } from "@/components/chrome/TrafficLights";
 import {
   Files,
   FolderItem,
@@ -23,7 +25,6 @@ import {
   FileCode,
   FileJson,
   Image,
-  FileType,
   Edit3,
   Eye,
   Save,
@@ -102,6 +103,15 @@ export function ProjectFilesView({
   const [isSaving, setIsSaving] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newFileName, setNewFileName] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const { width, isResizing, handleResizeStart } = useResizablePanel({
+    minWidth: 200,
+    maxWidth: 500,
+    defaultWidth: 280,
+    storageKey: `project-files-sidebar-${projectId}`,
+    direction: "right",
+  });
 
   // Get all folder paths for default open state
   const allFolderPaths = useMemo(() => {
@@ -163,7 +173,7 @@ export function ProjectFilesView({
       if (node.type === "directory") {
         return (
           <FolderItem key={node.path} value={node.path}>
-            <FolderTrigger gitStatus={node.gitStatus}>
+            <FolderTrigger gitStatus={node.gitStatus} className="hover:bg-accent rounded-md transition-colors">
               {node.name}
             </FolderTrigger>
             <FolderContent>
@@ -181,12 +191,12 @@ export function ProjectFilesView({
           key={node.path}
           onClick={() => handleFileClick(node)}
           className={cn(
-            "cursor-pointer rounded-md transition-all",
-            isSelected && "ring-1 ring-purple-500/50 bg-purple-500/10"
+            "cursor-pointer rounded-md transition-all hover:bg-accent",
+            isSelected && "bg-accent"
           )}
         >
           <FileItem icon={Icon} gitStatus={node.gitStatus}>
-            <span className="truncate text-white/80">{node.name}</span>
+            <span className="truncate text-foreground">{node.name}</span>
           </FileItem>
         </div>
       );
@@ -194,99 +204,140 @@ export function ProjectFilesView({
   };
 
   return (
-    <div className={cn("grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 h-full", className)}>
+    <div className={cn("flex h-full", className)}>
       {/* File Tree Sidebar */}
-      <GlassPanel className="p-0 overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <FolderGit2 className="w-4 h-4 text-purple-400" />
-            <span className="text-sm font-medium text-white">Files</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {onFileCreate && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsCreating(true)}
-                className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            )}
-            {onRefresh && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onRefresh}
-                disabled={isLoading}
-                className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/10"
-              >
-                <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
-              </Button>
-            )}
-          </div>
-        </div>
+      {isSidebarOpen ? (
+        <motion.div
+          initial={false}
+          animate={{ width, opacity: 1 }}
+          transition={isResizing ? { duration: 0 } : { duration: 0.2, ease: "easeInOut" }}
+          className="flex-shrink-0 border-r border-border dark:border-[rgba(255,255,255,0.14)] relative"
+          style={{ width }}
+        >
+          <div className="flex flex-col bg-card h-full">
+            {/* Header with traffic lights */}
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/30">
+              <div className="flex items-center gap-3">
+                <TrafficLights
+                  size={10}
+                  interactive
+                  onClose={() => {}}
+                  onMinimize={() => setIsSidebarOpen(false)}
+                  onMaximize={() => {}}
+                />
+                <div className="flex items-center gap-2">
+                  <FolderGit2 className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-mono text-sm text-muted-foreground">Files</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-0.5">
+                {onFileCreate && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsCreating(true)}
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                )}
+                {onRefresh && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onRefresh}
+                    disabled={isLoading}
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
+                  >
+                    <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+                  </Button>
+                )}
+              </div>
+            </div>
 
-        {/* Branch Info */}
-        {branchName && (
-          <div className="px-4 py-2 border-b border-white/10 bg-white/5">
-            <div className="flex items-center gap-2 text-xs text-white/60">
-              <GitBranch className="w-3.5 h-3.5" />
-              <span className="truncate">{branchName}</span>
+            {/* Branch Info */}
+            {branchName && (
+              <div className="px-3 py-2 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/20">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span className="truncate">{branchName}</span>
+                </div>
+              </div>
+            )}
+
+            {/* File Tree */}
+            <div className="flex-1 overflow-y-auto px-1 py-2">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : files.length === 0 ? (
+                <div className="p-4 text-center">
+                  <FolderGit2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">No files yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1 font-mono">
+                    // Create a file to get started
+                  </p>
+                </div>
+              ) : (
+                <Files className="bg-transparent" defaultOpen={allFolderPaths}>
+                  {renderFileTree(files)}
+                </Files>
+              )}
             </div>
           </div>
-        )}
 
-        {/* File Tree */}
-        <div className="flex-1 overflow-y-auto p-2">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-white/50" />
-            </div>
-          ) : files.length === 0 ? (
-            <div className="p-4 text-center">
-              <FolderGit2 className="w-10 h-10 mx-auto mb-3 text-white/30" />
-              <p className="text-sm text-white/50">No files yet</p>
-              <p className="text-xs text-white/30 mt-1">
-                Create a file to get started
-              </p>
-            </div>
-          ) : (
-            <Files className="bg-transparent" defaultOpen={allFolderPaths}>
-              {renderFileTree(files)}
-            </Files>
-          )}
+          {/* Resize Handle */}
+          <ResizeHandle
+            onMouseDown={handleResizeStart}
+            isResizing={isResizing}
+            direction="horizontal"
+            className="right-0"
+          />
+        </motion.div>
+      ) : (
+        /* Collapsed Sidebar Toggle - green button only */
+        <div className="flex-shrink-0 h-full flex flex-col items-center py-3 px-2 bg-card rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)]">
+          <TrafficLights
+            size={10}
+            interactive
+            showOnly="maximize"
+            onMaximize={() => setIsSidebarOpen(true)}
+          />
+          <span className="text-xs text-muted-foreground [writing-mode:vertical-lr] rotate-180 font-mono mt-3">
+            Files
+          </span>
+          <div className="flex-1" />
         </div>
-      </GlassPanel>
+      )}
 
       {/* File Viewer/Editor */}
-      <GlassPanel className="p-0 overflow-hidden flex flex-col">
+      <div className="flex-1 flex flex-col bg-card min-w-0">
         {selectedFile ? (
           <>
             {/* File Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/30">
               <div className="flex items-center gap-2 min-w-0">
                 {React.createElement(getFileIcon(selectedFile.name), {
-                  className: "w-4 h-4 text-purple-400 shrink-0",
+                  className: "w-4 h-4 text-muted-foreground shrink-0",
                 })}
-                <span className="text-sm font-medium text-white truncate">
+                <span className="text-sm font-mono text-foreground truncate">
                   {selectedFile.path}
                 </span>
                 {selectedFile.gitStatus && (
                   <Badge
                     variant="outline"
                     className={cn(
-                      "text-[10px] px-1.5",
+                      "text-[10px] px-1.5 font-mono",
                       selectedFile.gitStatus === "untracked" &&
-                        "border-green-500/50 text-green-400",
+                        "border-green-500/50 text-green-600 dark:text-green-400",
                       selectedFile.gitStatus === "modified" &&
-                        "border-amber-500/50 text-amber-400",
+                        "border-amber-500/50 text-amber-600 dark:text-amber-400",
                       selectedFile.gitStatus === "deleted" &&
-                        "border-red-500/50 text-red-400"
+                        "border-red-500/50 text-red-600 dark:text-red-400"
                     )}
                   >
-                    {selectedFile.gitStatus}
+                    {selectedFile.gitStatus === "untracked" ? "U" : selectedFile.gitStatus === "modified" ? "M" : "D"}
                   </Badge>
                 )}
               </div>
@@ -310,6 +361,7 @@ export function ProjectFilesView({
                           variant="ghost"
                           size="sm"
                           onClick={handleCancel}
+                          className="text-muted-foreground hover:text-foreground"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -319,7 +371,7 @@ export function ProjectFilesView({
                         variant="outline"
                         size="sm"
                         onClick={() => setIsEditing(true)}
-                        className="gap-1.5 bg-white/10 border-white/20 text-white hover:bg-white/20"
+                        className="gap-1.5"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                         Edit
@@ -345,7 +397,7 @@ export function ProjectFilesView({
                     <Textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full h-full min-h-[400px] font-mono text-sm bg-black/20 border-white/10 text-white resize-none"
+                      className="w-full h-full min-h-[400px] font-mono text-sm resize-none"
                       placeholder="Enter content..."
                     />
                   </motion.div>
@@ -359,13 +411,13 @@ export function ProjectFilesView({
                     className="p-6"
                   >
                     {selectedFile.name.endsWith(".md") ? (
-                      <article className="prose prose-invert prose-sm max-w-none">
+                      <article className="prose prose-sm dark:prose-invert max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {selectedFile.content || ""}
                         </ReactMarkdown>
                       </article>
                     ) : (
-                      <pre className="text-sm font-mono text-white/80 whitespace-pre-wrap">
+                      <pre className="text-sm font-mono text-foreground whitespace-pre-wrap">
                         {selectedFile.content || ""}
                       </pre>
                     )}
@@ -375,10 +427,10 @@ export function ProjectFilesView({
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-white/10 flex items-center justify-between text-xs text-white/50">
+            <div className="px-4 py-2.5 border-t border-border dark:border-[rgba(255,255,255,0.14)] flex items-center justify-between text-xs text-muted-foreground font-mono bg-muted/30">
               <span className="flex items-center gap-1.5">
                 {isEditing ? (
-                  <span className="text-amber-400">Editing mode</span>
+                  <span className="text-amber-600 dark:text-amber-400">Editing mode</span>
                 ) : (
                   <span className="flex items-center gap-1.5">
                     <Eye className="w-3 h-3" />
@@ -393,12 +445,12 @@ export function ProjectFilesView({
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center p-8">
-              <FileText className="w-12 h-12 mx-auto mb-4 text-white/30" />
-              <p className="text-white/50">Select a file to view</p>
+              <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p className="text-muted-foreground font-mono text-sm">Select a file to view</p>
             </div>
           </div>
         )}
-      </GlassPanel>
+      </div>
 
       {/* Create File Dialog */}
       <AnimatePresence>
@@ -407,7 +459,7 @@ export function ProjectFilesView({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 dark:bg-black/50 backdrop-blur-sm"
             onClick={() => setIsCreating(false)}
           >
             <motion.div
@@ -415,14 +467,14 @@ export function ProjectFilesView({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="glass-panel border-white/20 p-6 w-full max-w-md"
+              className="bg-card border border-border dark:border-[rgba(255,255,255,0.14)] rounded-2xl shadow-lg p-6 w-full max-w-md"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
                 Create New File
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-white/70 mb-2 block">
+                  <label className="text-sm text-muted-foreground mb-2 block">
                     File Name
                   </label>
                   <input
@@ -430,11 +482,11 @@ export function ProjectFilesView({
                     value={newFileName}
                     onChange={(e) => setNewFileName(e.target.value)}
                     placeholder="e.g., notes.md"
-                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     autoFocus
                   />
-                  <p className="text-xs text-white/50 mt-1">
-                    Use .md for markdown files
+                  <p className="text-xs text-muted-foreground mt-1 font-mono">
+                    // Use .md for markdown files
                   </p>
                 </div>
                 <div className="flex justify-end gap-2">

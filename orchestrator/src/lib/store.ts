@@ -78,6 +78,15 @@ export interface WorkspaceState {
     automationMode?: "manual" | "auto_to_stage" | "auto_all";
     automationStopStage?: string;
     automationNotifyStage?: string;
+    // Background Worker Settings
+    workerEnabled?: boolean;
+    workerMaxConcurrency?: number;
+    workerPollIntervalMs?: number;
+    // Browser Notification Settings
+    browserNotificationsEnabled?: boolean;
+    notifyOnJobComplete?: boolean;
+    notifyOnJobFailed?: boolean;
+    notifyOnApprovalRequired?: boolean;
     // UI Personalization
     background?: {
       type: "stars" | "bubble" | "gradient" | "gravity-stars" | "hole" | "aurora" | "none";

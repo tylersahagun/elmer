@@ -52,7 +52,7 @@ function MetricCard({ title, value, change, changeLabel, icon: Icon, color }: Me
           </div>
         )}
       </div>
-      <div className="text-2xl font-bold mb-1">{value}</div>
+      <div className="text-2xl font-heading mb-1">{value}</div>
       <div className="text-xs text-muted-foreground">{title}</div>
       {changeLabel && (
         <div className="text-[10px] text-muted-foreground mt-1">{changeLabel}</div>

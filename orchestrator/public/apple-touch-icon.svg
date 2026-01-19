@@ -1,0 +1,25 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background for touch icon -->
+  <rect width="180" height="180" rx="40" fill="#0B0F14"/>
+  <!-- Centered logo - scaled and positioned -->
+  <g transform="translate(42, 42) scale(1.5)">
+    <!-- Back ribbon -->
+    <path
+      d="M0 40 Q16 24, 32 36 Q48 48, 64 32 L64 40 Q48 56, 32 44 Q16 32, 0 48 Z"
+      fill="#10b981"
+      opacity="0.4"
+    />
+    <!-- Middle ribbon -->
+    <path
+      d="M0 36 Q16 20, 32 32 Q48 44, 64 28 L64 36 Q48 52, 32 40 Q16 28, 0 44 Z"
+      fill="#34d399"
+      opacity="0.6"
+    />
+    <!-- Front ribbon -->
+    <path
+      d="M0 32 Q16 16, 32 28 Q48 40, 64 24 L64 32 Q48 48, 32 36 Q16 24, 0 40 Z"
+      fill="#10b981"
+      opacity="0.9"
+    />
+  </g>
+</svg>

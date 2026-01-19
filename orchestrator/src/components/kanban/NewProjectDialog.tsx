@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -14,10 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUIStore, useKanbanStore, type ProjectCard } from "@/lib/store";
-import { popInVariants } from "@/lib/animations";
+import { cn } from "@/lib/utils";
 import { 
-  Sparkles, 
   FileText, 
   Mic, 
   Video, 
@@ -26,18 +24,12 @@ import {
   Loader2,
   Globe,
   CheckCircle2,
+  Plus,
+  FolderPlus,
 } from "lucide-react";
 import { v4 as uuid } from "uuid";
 
 type InputType = "text" | "audio" | "video" | "link" | "files";
-
-const inputTypes: { type: InputType; icon: React.ElementType; label: string; comingSoon?: boolean }[] = [
-  { type: "text", icon: FileText, label: "Text" },
-  { type: "files", icon: Upload, label: "Files" },
-  { type: "link", icon: Link2, label: "Link" },
-  { type: "audio", icon: Mic, label: "Audio", comingSoon: true },
-  { type: "video", icon: Video, label: "Video", comingSoon: true },
-];
 
 export function NewProjectDialog() {
   const isOpen = useUIStore((s) => s.newProjectModalOpen);
@@ -58,6 +50,16 @@ export function NewProjectDialog() {
     description: string;
     content: string;
   } | null>(null);
+
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setInputType("text");
+    setContextText("");
+    setLinkUrl("");
+    setUploadedFile(null);
+    setScrapedData(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,14 +95,7 @@ export function NewProjectDialog() {
         // Persist initial context as memory + optional research document
         await handleContextSubmit(project.id);
         
-        // Reset form
-        setName("");
-        setDescription("");
-        setInputType("text");
-        setContextText("");
-        setLinkUrl("");
-        setUploadedFile(null);
-        setScrapedData(null);
+        resetForm();
         closeModal();
       }
     } catch (error) {
@@ -118,13 +113,7 @@ export function NewProjectDialog() {
       };
       addProject(newProject);
       await handleContextSubmit(newProject.id);
-      setName("");
-      setDescription("");
-      setInputType("text");
-      setContextText("");
-      setLinkUrl("");
-      setUploadedFile(null);
-      setScrapedData(null);
+      resetForm();
       closeModal();
     } finally {
       setIsSubmitting(false);
@@ -213,126 +202,154 @@ export function NewProjectDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="glass-panel border-white/20 max-w-lg !p-0 !gap-0">
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              variants={popInVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="flex flex-col max-h-[calc(100vh-6rem)]"
-            >
-              {/* Fixed Header */}
-              <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-                <DialogTitle className="flex items-center gap-2 text-xl">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
-                  New Project
-                </DialogTitle>
-                <DialogDescription>
-                  Start a new initiative. Add context via text, audio, video, or transcript.
-                </DialogDescription>
-              </DialogHeader>
+      <DialogContent 
+        showCloseButton={false}
+        className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-[90vw] w-[900px] !p-0 !gap-0 h-[85vh] overflow-hidden"
+      >
+        <div className="flex flex-col h-full">
+          {/* Header - macOS window style */}
+          <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
+            <div className="flex items-center gap-1.5 mr-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <FolderPlus className="w-4 h-4 text-muted-foreground" />
+              <DialogTitle className="text-sm font-mono text-muted-foreground">
+                new-project
+              </DialogTitle>
+            </div>
+            <DialogDescription className="sr-only">
+              Create a new project with initial context
+            </DialogDescription>
+          </DialogHeader>
 
-              {/* Scrollable Content */}
-              <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-6 min-h-0">
-                  {/* Project Name */}
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Project Name</Label>
+          {/* Content */}
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <Tabs 
+              value={inputType} 
+              onValueChange={(v) => setInputType(v as InputType)} 
+              className="flex-1 flex flex-col min-h-0 overflow-hidden"
+            >
+              <div className="shrink-0 px-6 pt-4">
+                <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-5">
+                  <TabsTrigger value="text" className="gap-1.5 text-xs">
+                    <FileText className="w-3.5 h-3.5" />
+                    Text
+                  </TabsTrigger>
+                  <TabsTrigger value="files" className="gap-1.5 text-xs">
+                    <Upload className="w-3.5 h-3.5" />
+                    Files
+                  </TabsTrigger>
+                  <TabsTrigger value="link" className="gap-1.5 text-xs">
+                    <Link2 className="w-3.5 h-3.5" />
+                    Link
+                  </TabsTrigger>
+                  <TabsTrigger value="audio" disabled className="gap-1.5 text-xs opacity-50">
+                    <Mic className="w-3.5 h-3.5" />
+                    Audio
+                  </TabsTrigger>
+                  <TabsTrigger value="video" disabled className="gap-1.5 text-xs opacity-50">
+                    <Video className="w-3.5 h-3.5" />
+                    Video
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
+                {/* Project Details - Always visible */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                    <Label htmlFor="name" className="text-xs text-muted-foreground mb-2 block">
+                      Project Name
+                    </Label>
                     <Input
                       id="name"
                       placeholder="e.g., CRM Agent Configuration"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="glass-card border-white/20"
                       autoFocus
                     />
                   </div>
-
-                  {/* Description */}
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description (optional)</Label>
-                    <Textarea
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                    <Label htmlFor="description" className="text-xs text-muted-foreground mb-2 block">
+                      Description (optional)
+                    </Label>
+                    <Input
                       id="description"
-                      placeholder="Brief description of the project..."
+                      placeholder="Brief description..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="glass-card border-white/20 min-h-[80px] max-h-[120px] overflow-y-auto resize-none"
                     />
                   </div>
+                </div>
 
-                  {/* Input Type Selection */}
-                  <div className="space-y-2">
-                    <Label>Add Initial Context</Label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {inputTypes.map(({ type, icon: Icon, label, comingSoon }) => (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => !comingSoon && setInputType(type)}
-                          disabled={comingSoon}
-                          className={`
-                            flex flex-col items-center gap-1 p-3 rounded-xl
-                            border transition-all duration-200 relative
-                            ${comingSoon 
-                              ? "border-slate-200/50 bg-slate-100/50 text-slate-400 cursor-not-allowed dark:border-slate-700/50 dark:bg-slate-800/30 dark:text-slate-500"
-                              : inputType === type 
-                                ? "border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-400" 
-                                : "border-slate-200 bg-white/50 hover:bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800 dark:text-slate-400"
-                            }
-                          `}
-                        >
-                          <Icon className="w-5 h-5" />
-                          <span className="text-xs font-medium">{label}</span>
-                          {comingSoon && (
-                            <span className="absolute -top-1 -right-1 px-1 py-0.5 text-[8px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 rounded">
-                              Soon
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                {/* Context Input - Tab specific */}
+                <TabsContent value="text" className="mt-0">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                    <Label htmlFor="context" className="text-xs text-muted-foreground mb-2 block">
+                      Initial Context
+                    </Label>
+                    <Textarea
+                      id="context"
+                      placeholder="Paste meeting notes, user feedback, research findings, or initial thoughts..."
+                      value={contextText}
+                      onChange={(e) => setContextText(e.target.value)}
+                      className="min-h-[200px] resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      This will be saved as initial research for your project.
+                    </p>
                   </div>
+                </TabsContent>
 
-                  {/* Context Input Area */}
-                  {inputType === "text" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="context">Initial Context</Label>
-                      <Textarea
-                        id="context"
-                        placeholder="Paste meeting notes, user feedback, or initial thoughts..."
-                        value={contextText}
-                        onChange={(e) => setContextText(e.target.value)}
-                        className="glass-card border-white/20 min-h-[120px] max-h-[200px] overflow-y-auto resize-none"
+                <TabsContent value="files" className="mt-0">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                    <Label className="text-xs text-muted-foreground mb-2 block">
+                      Upload Files
+                    </Label>
+                    <label className={cn(
+                      "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer block transition-all",
+                      "border-border dark:border-[rgba(255,255,255,0.14)]",
+                      "hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50/50 dark:hover:bg-purple-900/10",
+                      uploadedFile && "border-emerald-400 dark:border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10"
+                    )}>
+                      {uploadedFile ? (
+                        <>
+                          <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-emerald-500" />
+                          <p className="text-sm font-medium">{uploadedFile.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {(uploadedFile.size / 1024).toFixed(1)} KB • Click to change
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                          <p className="text-sm font-medium">
+                            Drop a file or click to upload
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            .txt, .md, .json, .pdf supported
+                          </p>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept=".txt,.md,.json,.pdf,text/plain,application/json,application/pdf"
+                        className="hidden"
+                        onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
                       />
-                    </div>
-                  )}
+                    </label>
+                  </div>
+                </TabsContent>
 
-                  {inputType === "files" && (
-                    <div className="space-y-2">
-                      <Label>Upload Files</Label>
-                      <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center hover:border-purple-300 dark:hover:border-purple-500 transition-colors cursor-pointer block">
-                        <Upload className="w-8 h-8 mx-auto mb-2 text-slate-500 dark:text-slate-400" />
-                        <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                          {uploadedFile ? uploadedFile.name : "Drop a file or click to upload"}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          .txt, .md, .json, .pdf supported
-                        </p>
-                        <input
-                          type="file"
-                          accept=".txt,.md,.json,.pdf,text/plain,application/json,application/pdf"
-                          className="hidden"
-                          onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
-                        />
-                      </label>
-                    </div>
-                  )}
-
-                  {inputType === "link" && (
-                    <div className="space-y-3">
-                      <Label htmlFor="link">Web Link</Label>
+                <TabsContent value="link" className="mt-0">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)] space-y-4">
+                    <div>
+                      <Label htmlFor="link" className="text-xs text-muted-foreground mb-2 block">
+                        Web Link
+                      </Label>
                       <div className="flex gap-2">
                         <Input
                           id="link"
@@ -342,7 +359,7 @@ export function NewProjectDialog() {
                             setLinkUrl(e.target.value);
                             setScrapedData(null);
                           }}
-                          className="glass-card border-white/20 flex-1"
+                          className="flex-1"
                         />
                         <Button
                           type="button"
@@ -382,71 +399,76 @@ export function NewProjectDialog() {
                           {isScraping ? "Fetching..." : "Extract"}
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground mt-2">
                         Paste any URL to extract content. Works with articles, docs, and web pages.
                       </p>
-                      
-                      {/* Scraped content preview */}
-                      {scrapedData && (
-                        <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30">
-                          <div className="flex items-start gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200 truncate">
-                                {scrapedData.title}
+                    </div>
+                    
+                    {/* Scraped content preview */}
+                    {scrapedData && (
+                      <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-emerald-800 dark:text-emerald-200">
+                              {scrapedData.title}
+                            </p>
+                            {scrapedData.description && (
+                              <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1 line-clamp-2">
+                                {scrapedData.description}
                               </p>
-                              {scrapedData.description && (
-                                <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-1 line-clamp-2">
-                                  {scrapedData.description}
-                                </p>
-                              )}
-                              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                                {scrapedData.content.length.toLocaleString()} characters extracted
-                              </p>
-                            </div>
+                            )}
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
+                              {scrapedData.content.length.toLocaleString()} characters extracted
+                            </p>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
-
-                  {inputType === "audio" && (
-                    <div className="space-y-2">
-                      <Label>Audio Recording</Label>
-                      <div className="border-2 border-dashed border-slate-200/50 dark:border-slate-700/50 rounded-xl p-8 text-center">
-                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                          <Mic className="w-8 h-8 text-slate-400 dark:text-slate-500" />
-                        </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
-                          Coming Soon
-                        </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">
-                          Record audio directly or upload audio files for transcription.
-                        </p>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </TabsContent>
 
-                  {inputType === "video" && (
-                    <div className="space-y-2">
-                      <Label>Video Upload</Label>
-                      <div className="border-2 border-dashed border-slate-200/50 dark:border-slate-700/50 rounded-xl p-8 text-center">
-                        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                          <Video className="w-8 h-8 text-slate-400 dark:text-slate-500" />
-                        </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">
-                          Coming Soon
-                        </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">
-                          Upload video recordings for automatic transcription and analysis.
-                        </p>
+                <TabsContent value="audio" className="mt-0">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                        <Mic className="w-8 h-8 text-muted-foreground" />
                       </div>
+                      <p className="font-medium text-muted-foreground mb-1">
+                        Coming Soon
+                      </p>
+                      <p className="text-sm text-muted-foreground/70">
+                        Record audio directly or upload audio files for transcription.
+                      </p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                </TabsContent>
 
-                {/* Fixed Footer */}
-                <DialogFooter className="flex-shrink-0 p-6 pt-3 pb-3 border-t border-slate-200/50 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/50">
+                <TabsContent value="video" className="mt-0">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                        <Video className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="font-medium text-muted-foreground mb-1">
+                        Coming Soon
+                      </p>
+                      <p className="text-sm text-muted-foreground/70">
+                        Upload video recordings for automatic transcription and analysis.
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+              </div>
+            </Tabs>
+
+            {/* Footer */}
+            <div className="shrink-0 p-4 sm:p-6 pt-4 border-t border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/30">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground hidden sm:block">
+                  Projects start in Inbox and move through stages as you work.
+                </p>
+                <div className="flex items-center gap-2 ml-auto">
                   <Button 
                     type="button" 
                     variant="ghost" 
@@ -467,16 +489,16 @@ export function NewProjectDialog() {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4" />
+                        <Plus className="w-4 h-4" />
                         Create Project
                       </>
                     )}
                   </Button>
-                </DialogFooter>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

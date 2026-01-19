@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
 import { useKanbanStore, type ProjectCard as ProjectCardType, type KanbanColumn as KanbanColumnType } from "@/lib/store";
 import type { ProjectStage } from "@/lib/db/schema";
-import { KanbanColumn } from "./KanbanColumn";
+import { KanbanColumn, type ColumnViewState } from "./KanbanColumn";
 import { ProjectCardOverlay } from "./ProjectCard";
 import { TranscriptInputDialog } from "./TranscriptInputDialog";
 import { IterationLoopOverlay } from "./IterationLoopOverlay";
@@ -183,6 +183,20 @@ export function KanbanBoard() {
 
   const [activeProject, setActiveProject] = useState<ProjectCardType | null>(null);
   const [loopViewMode] = useState<LoopViewMode>("off");
+  
+  // Column view state management (expanded/minimized/hidden)
+  const [columnViewStates, setColumnViewStates] = useState<Record<string, ColumnViewState>>({});
+  
+  const getColumnViewState = useCallback((columnId: string): ColumnViewState => {
+    return columnViewStates[columnId] || "normal";
+  }, [columnViewStates]);
+  
+  const setColumnViewState = useCallback((columnId: string, state: ColumnViewState) => {
+    setColumnViewStates(prev => ({
+      ...prev,
+      [columnId]: state,
+    }));
+  }, []);
   // Track the original stage when drag started (for cancellation)
   const originalStageRef = useRef<string | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -629,16 +643,31 @@ export function KanbanBoard() {
             className="flex gap-3 sm:gap-4 p-4 sm:p-6 overflow-x-auto min-h-[calc(100vh-120px)] relative z-10 kanban-scroll-container will-change-scroll"
           >
             <AnimatePresence mode="sync">
-              {columns.map((column) => (
-                <motion.div
-                  key={column.id}
-                  variants={staggerItem}
-                  // Removed 'layout' prop - it causes expensive recalculates on scroll
-                  className="group shrink-0"
-                >
-                  <KanbanColumn column={column} />
-                </motion.div>
-              ))}
+              {columns.map((column) => {
+                const viewState = getColumnViewState(column.id);
+                // Skip rendering hidden columns entirely for performance
+                if (viewState === "hidden") {
+                  return null;
+                }
+                return (
+                  <motion.div
+                    key={column.id}
+                    variants={staggerItem}
+                    // Removed 'layout' prop - it causes expensive recalculates on scroll
+                    className="group shrink-0"
+                    layout={viewState !== "normal"} // Only layout animate when changing view states
+                  >
+                    <KanbanColumn
+                      column={column}
+                      viewState={viewState}
+                      onExpand={() => setColumnViewState(column.id, viewState === "expanded" ? "normal" : "expanded")}
+                      onMinimize={() => setColumnViewState(column.id, "minimized")}
+                      onClose={() => setColumnViewState(column.id, "hidden")}
+                      onRestore={() => setColumnViewState(column.id, "normal")}
+                    />
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </motion.div>
           

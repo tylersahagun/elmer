@@ -5,17 +5,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { KnowledgeBaseFilesView, type KnowledgeBaseFile } from "@/components/files";
-import { BackgroundWrapper, type BackgroundType } from "@/components/animate-ui/backgrounds";
-import { WaveV4D, ElmerWordmark } from "@/components/brand/ElmerLogo";
 import { Button } from "@/components/ui/button";
-import { springPresets } from "@/lib/animations";
+import { Window } from "@/components/chrome/Window";
+import { SimpleNavbar } from "@/components/chrome/Navbar";
+// Window is only used for error states now
 import {
   BookOpen,
-  ArrowLeft,
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { GlassPanel } from "@/components/glass";
 
 // Knowledge base file categories
 const KNOWLEDGE_CATEGORIES = [
@@ -46,10 +44,6 @@ export default function KnowledgebasePage() {
       setWorkspaceId(workspaces[0].id);
     }
   }, [workspaces, workspaceId]);
-
-  // Get workspace settings for background
-  const currentWorkspace = workspaces?.find((w: { id: string; settings?: { background?: { type: BackgroundType; primaryColor?: string; secondaryColor?: string; speed?: number; interactive?: boolean } } }) => w.id === workspaceId);
-  const backgroundSettings = currentWorkspace?.settings?.background || { type: "aurora" as BackgroundType };
 
   // Fetch knowledge base files
   const { data: knowledgeFiles, isLoading: filesLoading, refetch: refetchFiles } = useQuery({
@@ -141,8 +135,8 @@ export default function KnowledgebasePage() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-          <p className="text-muted-foreground">Loading knowledge base...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <p className="text-muted-foreground font-mono text-sm">Loading knowledge base...</p>
         </motion.div>
       </div>
     );
@@ -151,79 +145,29 @@ export default function KnowledgebasePage() {
   if (!workspaces || workspaces.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
-        <GlassPanel className="max-w-md text-center">
-          <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Workspaces Found</h2>
-          <p className="text-muted-foreground mb-4">
-            Create a workspace first to access the knowledge base.
-          </p>
-          <Link href="/">
-            <Button>Go Home</Button>
-          </Link>
-        </GlassPanel>
+        <Window title="error" className="max-w-md">
+          <div className="text-center py-8">
+            <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Workspaces Found</h2>
+            <p className="text-muted-foreground mb-4 font-mono text-sm">
+              Create a workspace first to access the knowledge base.
+            </p>
+            <Link href="/">
+              <Button>Go Home</Button>
+            </Link>
+          </div>
+        </Window>
       </div>
     );
   }
 
   return (
-    <BackgroundWrapper
-      type={backgroundSettings.type as BackgroundType}
-      primaryColor={backgroundSettings.primaryColor}
-      secondaryColor={backgroundSettings.secondaryColor}
-      speed={backgroundSettings.speed}
-      interactive={backgroundSettings.interactive}
-      className="h-screen flex flex-col overflow-hidden"
-    >
+    <div className="h-screen flex flex-col overflow-hidden">
       {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={springPresets.gentle}
-        className="flex-shrink-0 z-50 backdrop-blur-2xl bg-slate-900/90 border-b border-slate-700/50 shadow-xl shadow-black/20"
-      >
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Link href={workspaceId ? `/workspace/${workspaceId}` : "/"}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-slate-300 hover:text-white hover:bg-slate-700/50"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <Link href="/">
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={springPresets.bouncy}
-                className="flex items-center gap-0.5 hover:opacity-80 transition-opacity cursor-pointer"
-              >
-                <WaveV4D size={36} palette="forest" className="sm:w-11 sm:h-11" />
-                <ElmerWordmark width={80} height={26} palette="forest" className="hidden sm:block sm:w-[100px] sm:h-8" />
-              </motion.div>
-            </Link>
-          </div>
+      <SimpleNavbar path="~/knowledgebase" />
 
-          {/* Workspace Selector */}
-          <div className="flex items-center gap-3">
-            <select
-              value={workspaceId}
-              onChange={(e) => setWorkspaceId(e.target.value)}
-              className="h-9 rounded-lg border border-slate-600 bg-slate-800/80 px-3 text-sm text-slate-100 shadow-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-            >
-              {(workspaces || []).map((workspace: { id: string; name: string }) => (
-                <option key={workspace.id} value={workspace.id} className="bg-slate-900">
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Main Content - Fill remaining height below header */}
-      <main className="flex-1 min-h-0 overflow-hidden">
+      {/* Main Content - Fill remaining height below header with nice spacing */}
+      <main className="flex-1 min-h-0 overflow-hidden p-4 sm:p-6">
         <KnowledgeBaseFilesView
           key={`kb-${workspaceId}`}
           workspaceId={workspaceId}
@@ -237,6 +181,6 @@ export default function KnowledgebasePage() {
           className="h-full"
         />
       </main>
-    </BackgroundWrapper>
+    </div>
   );
 }

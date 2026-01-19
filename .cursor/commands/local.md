@@ -1,20 +1,22 @@
 # Local Development Environment
 
-Set up and verify the local development environment with Docker PostgreSQL.
+Set up and verify the local development environment with Docker PostgreSQL and Cloudflare Tunnel.
 
 ## Usage
 
-- `/local` - Start local dev environment (Docker + PostgreSQL + migrations + dev server)
+- `/local` - Start local dev environment (Docker + PostgreSQL + migrations + dev server + tunnel)
 - `/local status` - Check status of local services
 - `/local reset` - Reset database to clean state
+- `/local tunnel` - Start only the Cloudflare tunnel (for when services are already running)
 
 ## What This Does
 
-1. ✅ Checks Docker is running
-2. ✅ Starts PostgreSQL container if needed
-3. ✅ Waits for database to be healthy
-4. ✅ Runs any pending migrations
-5. ✅ Starts the dev server (if not already running)
+1. Checks Docker is running
+2. Starts PostgreSQL container if needed
+3. Waits for database to be healthy
+4. Runs any pending migrations
+5. Starts the dev server (if not already running)
+6. Starts Cloudflare Tunnel to expose at https://elmer.studio
 
 ---
 
@@ -129,7 +131,31 @@ else
 fi
 ```
 
-### Step 6: Success Message
+### Step 6: Start Cloudflare Tunnel
+
+```bash
+cd /Users/tylersahagun/Source/elmer/orchestrator
+
+# Check if tunnel is already running
+if pgrep -f "cloudflared tunnel run elmer" > /dev/null; then
+    echo "✅ Cloudflare Tunnel is already running"
+else
+    echo "🌐 Starting Cloudflare Tunnel..."
+    cloudflared tunnel run elmer &
+    
+    # Wait for tunnel to connect
+    sleep 3
+    
+    # Verify tunnel is running
+    if pgrep -f "cloudflared tunnel run elmer" > /dev/null; then
+        echo "✅ Cloudflare Tunnel connected"
+    else
+        echo "⚠️  Tunnel may have failed to start. Check: cloudflared tunnel info elmer"
+    fi
+fi
+```
+
+### Step 7: Success Message
 
 ```
 ╔═══════════════════════════════════════════════════════════════╗
@@ -142,6 +168,11 @@ fi
 ║  ✅ PostgreSQL       localhost:5432                           ║
 ║  ✅ Migrations       Applied                                  ║
 ║  ✅ Dev Server       http://localhost:3000                    ║
+║  ✅ Tunnel           https://elmer.studio                     ║
+║                                                               ║
+║  Public URL:                                                  ║
+║  ─────────────────────────────────────────────────────────── ║
+║  🌐 https://elmer.studio                                      ║
 ║                                                               ║
 ║  Database:                                                    ║
 ║  ─────────────────────────────────────────────────────────── ║
@@ -155,6 +186,9 @@ fi
 ║  docker compose stop       Stop PostgreSQL                    ║
 ║  docker compose down -v    Reset database completely          ║
 ║  npm run db:studio         Open Drizzle Studio                ║
+║  pkill -f cloudflared      Stop Cloudflare Tunnel             ║
+║                                                               ║
+║  Note: Site is only available when this Mac is running!       ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
@@ -203,6 +237,20 @@ else
     echo "❌ Dev Server: Not running"
 fi
 
+# Cloudflare Tunnel
+if pgrep -f "cloudflared tunnel run elmer" > /dev/null; then
+    echo "✅ Cloudflare Tunnel: Running (https://elmer.studio)"
+else
+    echo "❌ Cloudflare Tunnel: Not running"
+fi
+
+# Check public URL
+if curl -s -o /dev/null -w "%{http_code}" https://elmer.studio 2>/dev/null | grep -q "200"; then
+    echo "✅ Public URL: https://elmer.studio is accessible"
+else
+    echo "⚠️  Public URL: https://elmer.studio may not be accessible"
+fi
+
 # Environment file
 if [ -f ".env.local" ]; then
     echo "✅ .env.local: Present"
@@ -215,6 +263,35 @@ if [ -f ".env.local" ]; then
     fi
 else
     echo "❌ .env.local: Missing"
+fi
+```
+
+---
+
+## Tunnel Variant
+
+When running `/local tunnel`:
+
+```bash
+cd /Users/tylersahagun/Source/elmer/orchestrator
+
+# Check if tunnel is already running
+if pgrep -f "cloudflared tunnel run elmer" > /dev/null; then
+    echo "✅ Cloudflare Tunnel is already running"
+    echo "🌐 Site available at: https://elmer.studio"
+else
+    echo "🌐 Starting Cloudflare Tunnel..."
+    cloudflared tunnel run elmer &
+    
+    sleep 3
+    
+    if pgrep -f "cloudflared tunnel run elmer" > /dev/null; then
+        echo "✅ Tunnel connected!"
+        echo "🌐 Site available at: https://elmer.studio"
+    else
+        echo "❌ Tunnel failed to start"
+        echo "Try: cloudflared tunnel info elmer"
+    fi
 fi
 ```
 
@@ -253,6 +330,24 @@ DATABASE_URL="postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator" np
 
 echo ""
 echo "✅ Database reset complete! Fresh start."
+```
+
+---
+
+## Stop All Services
+
+To stop everything:
+
+```bash
+# Stop the tunnel
+pkill -f "cloudflared tunnel run elmer"
+
+# Stop the dev server
+pkill -f "next dev"
+
+# Stop PostgreSQL
+cd /Users/tylersahagun/Source/elmer/orchestrator
+docker compose stop
 ```
 
 ---
@@ -310,6 +405,39 @@ docker exec elmer-postgres createdb -U elmer orchestrator
 DATABASE_URL="postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator" npm run db:migrate
 ```
 
+### Cloudflare Tunnel won't connect
+
+```bash
+# Check tunnel status
+cloudflared tunnel info elmer
+
+# List all tunnels
+cloudflared tunnel list
+
+# Check the config file
+cat ~/.cloudflared/config.yml
+
+# Re-authenticate if needed
+cloudflared tunnel login
+```
+
+### Site not accessible at elmer.studio
+
+```bash
+# Check DNS resolution
+dig elmer.studio
+
+# Verify tunnel is running
+pgrep -f cloudflared
+
+# Check tunnel connections
+cloudflared tunnel info elmer
+
+# Restart tunnel
+pkill -f cloudflared
+cloudflared tunnel run elmer
+```
+
 ---
 
 ## Environment Switching
@@ -336,9 +464,12 @@ The database driver auto-detects based on the URL pattern.
 
 | Command | Description |
 |---------|-------------|
-| `/local` | Full setup: Docker + PostgreSQL + migrations + dev server |
+| `/local` | Full setup: Docker + PostgreSQL + migrations + dev server + tunnel |
 | `/local status` | Check what's running |
 | `/local reset` | Wipe and recreate database |
+| `/local tunnel` | Start only the Cloudflare tunnel |
 | `docker compose stop` | Stop PostgreSQL (keeps data) |
 | `docker compose down -v` | Stop PostgreSQL and delete data |
 | `docker exec elmer-postgres psql -U elmer -d orchestrator` | Connect to database |
+| `pkill -f cloudflared` | Stop the tunnel |
+| `npm run start:local` | Alternative: run everything via script |

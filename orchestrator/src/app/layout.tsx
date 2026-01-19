@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist_Mono } from "next/font/google";
-import { AuroraBackground } from "@/components/aurora";
+import { ThemeProvider } from "@/components/providers";
+import { GridBackground } from "@/components/backgrounds";
 import "./globals.css";
 
 // Chillax Semibold - Display/Heading font
@@ -26,8 +27,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PM Orchestrator",
+  title: "elmer",
   description: "AI-powered product management workflow orchestration",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/apple-touch-icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -40,10 +45,12 @@ export default function RootLayout({
       <body
         className={`${chillax.variable} ${synonym.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
-        <AuroraBackground className="fixed inset-0 -z-10" />
-        <div className="relative z-10 min-h-screen">
-          {children}
-        </div>
+        <ThemeProvider>
+          <GridBackground />
+          <div className="relative z-10 min-h-screen">
+            {children}
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
