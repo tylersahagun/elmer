@@ -157,6 +157,12 @@ export interface DocumentMetadata {
   model?: string;
   promptVersion?: string;
   reviewStatus?: "draft" | "reviewed" | "approved";
+  // Extended metadata for different document types
+  actualType?: string; // When document type doesn't match our enum
+  signalCount?: number; // For discovery documents
+  verdict?: string; // For validation/jury documents
+  score?: number; // For scored documents
+  approvalRate?: number; // For jury/validation approval percentage
 }
 
 // ============================================
@@ -552,7 +558,7 @@ export const stageRecipes = pgTable("stage_recipes", {
   automationLevel: text("automation_level").$type<AutomationLevel>().notNull().default("human_approval"),
   recipeSteps: jsonb("recipe_steps").$type<RecipeStep[]>().notNull().default([]),
   gates: jsonb("gates").$type<GateDefinition[]>().default([]),
-  onFailBehavior: text("on_fail_behavior").$type<"stay" | "revert" | "create_questions">().default("stay"),
+  onFailBehavior: text("on_fail_behavior").$type<"stay" | "revert" | "create_questions" | "review_required">().default("stay"),
   provider: text("provider").$type<ExecutionProvider>().default("anthropic"),
   enabled: boolean("enabled").default(true),
   createdAt: timestamp("created_at").notNull(),
@@ -563,6 +569,7 @@ export interface RecipeStep {
   skillId: string;
   order: number;
   params?: Record<string, unknown>;
+  paramsJson?: Record<string, unknown>; // alternative params format
   inputsMapping?: Record<string, string>; // where to read from
   outputsMapping?: Record<string, string>; // where to write to
   timeout?: number; // ms
@@ -572,10 +579,12 @@ export interface RecipeStep {
 
 export interface GateDefinition {
   id: string;
-  type: "file_exists" | "sections_exist" | "jury_score" | "custom";
+  name?: string;
+  type: "file_exists" | "sections_exist" | "jury_score" | "custom" | "content_check" | "artifact_exists" | "metric_threshold";
   config: Record<string, unknown>;
   required: boolean;
   message?: string; // failure message
+  failureMessage?: string; // alternative failure message
 }
 
 // ============================================

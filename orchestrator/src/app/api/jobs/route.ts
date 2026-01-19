@@ -133,7 +133,7 @@ export async function DELETE(request: NextRequest) {
 
     const result = await db.delete(jobs)
       .where(and(...whereConditions))
-      .returning({ id: jobs.id });
+      .returning();
 
     console.log(`🗑️ Cleared ${result.length} ${status} jobs for workspace ${workspaceId}`);
 

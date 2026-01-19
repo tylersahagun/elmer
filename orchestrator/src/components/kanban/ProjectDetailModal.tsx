@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useUIStore, useKanbanStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { DocumentViewer } from "@/components/documents";
-import type { DocumentType, KnowledgebaseType } from "@/lib/db/schema";
+import type { DocumentType, KnowledgebaseType, ProjectStatus } from "@/lib/db/schema";
 import {
   FileText,
   Layers,
@@ -194,7 +194,7 @@ export function ProjectDetailModal() {
         refetch();
       }
       
-      updateProject(activeProjectId, { status: newStatus });
+      updateProject(activeProjectId, { status: newStatus as ProjectStatus });
     } catch (error) {
       console.error("Failed to update project status:", error);
     }
@@ -766,9 +766,9 @@ export function ProjectDetailModal() {
                                     createdAt: new Date(selectedDocument.createdAt),
                                     updatedAt: new Date(selectedDocument.updatedAt),
                                   }}
-                                  onSave={handleSaveDocument}
-                                  onRegenerate={handleRegenerateDocument}
-                                  onPublish={handlePublishDocument}
+                                  onSave={(content) => handleSaveDocument(selectedDocument.id, content)}
+                                  onRegenerate={() => handleRegenerateDocument(selectedDocument.id)}
+                                  onPublish={() => handlePublishDocument(selectedDocument.id)}
                                   publishLabel={
                                     project?.workspace?.settings?.knowledgebaseMapping?.[selectedDocument.type]
                                       ? `Publish to ${
