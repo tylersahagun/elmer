@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWorkspaces, createWorkspace } from "@/lib/db/queries";
+import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
 
 export async function GET() {
   try {
@@ -32,6 +33,18 @@ export async function POST(request: NextRequest) {
       githubRepo,
       contextPath,
     });
+
+    // Automatically sync knowledge base on workspace creation
+    // This populates the initial knowledgebase entries from the context files
+    if (workspace?.id) {
+      try {
+        const syncResult = await syncKnowledgeBase(workspace.id);
+        console.log(`📚 Knowledge base synced for new workspace: ${syncResult.synced} entries`);
+      } catch (syncError) {
+        // Don't fail workspace creation if sync fails - user can manually sync later
+        console.error("Knowledge base sync failed (non-fatal):", syncError);
+      }
+    }
 
     return NextResponse.json(workspace, { status: 201 });
   } catch (error) {

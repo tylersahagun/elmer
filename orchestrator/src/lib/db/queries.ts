@@ -541,6 +541,7 @@ export async function updatePrototype(
   data: {
     status?: "building" | "ready" | "failed";
     chromaticUrl?: string;
+    chromaticStorybookUrl?: string;
     chromaticBuildId?: string;
     storybookPath?: string;
     metadata?: Record<string, unknown>;

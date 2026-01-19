@@ -22,7 +22,7 @@ import {
   createArtifact,
 } from "./run-manager";
 import { getProvider, getDefaultProvider, createDbCallbacks, type ExecutionResult } from "./providers";
-import { executeStage } from "./stage-executors";
+import { executeStage, executeStageWithTasks } from "./stage-executors";
 import { db } from "@/lib/db";
 import { stageRecipes, projects, documents } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -232,8 +232,8 @@ export class ExecutionWorker {
 
       await addRunLog(runId, "info", `Worker ${this.config.workerId} executing run`, "worker");
       
-      // Execute the stage
-      const result = await executeStage(run, callbacks);
+      // Execute the stage using task-based execution (falls back to standard if no verification criteria)
+      const result = await executeStageWithTasks(run, callbacks);
       
       const durationMs = Date.now() - startTime;
       
@@ -243,6 +243,7 @@ export class ExecutionWorker {
           tokensUsed: result.tokensUsed,
           skillsExecuted: result.skillsExecuted,
           gateResults: result.gateResults,
+          taskResults: result.taskResults,
         });
         await incrementWorkerStats(this.config.workerId, false);
         console.log(`[Worker ${this.config.workerId}] Run ${runId} succeeded in ${durationMs}ms`);
@@ -252,6 +253,7 @@ export class ExecutionWorker {
           tokensUsed: result.tokensUsed,
           skillsExecuted: result.skillsExecuted,
           gateResults: result.gateResults,
+          taskResults: result.taskResults,
         });
         await incrementWorkerStats(this.config.workerId, true);
         console.log(`[Worker ${this.config.workerId}] Run ${runId} failed: ${result.error}`);

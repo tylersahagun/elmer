@@ -1111,7 +1111,8 @@ export const Default: Story = {};
               stories: [storyFile],
               components: [componentFile],
               placementAnalysis: {
-                suggestedLocation: path.join("src", "components", folderName),
+                // Use the configured prototypesPath for suggested location
+                suggestedLocation: path.join(prototypesPath, folderName),
                 existingPatterns: contextComponents,
               },
             },
@@ -1163,15 +1164,26 @@ export const Default: Story = {};
           { cwd: repoRoot }
         );
         const output = `${stdout}\n${stderr}`;
-        const urlMatch = output.match(/https?:\/\/[^\s]+chromatic\.com[^\s]*/i);
-        const chromaticUrl = urlMatch ? urlMatch[0] : undefined;
+        
+        // Extract Chromatic dashboard URL (www.chromatic.com/build?...)
+        const dashboardUrlMatch = output.match(/https:\/\/www\.chromatic\.com\/[^\s]*/i);
+        const chromaticUrl = dashboardUrlMatch ? dashboardUrlMatch[0] : undefined;
+        
+        // Extract Storybook URL for embedding (branch--appId.chromatic.com)
+        // This URL is used with /iframe.html?id=story-id&viewMode=story for embedding
+        const storybookUrlMatch = output.match(/https:\/\/[a-zA-Z0-9-]+--[a-zA-Z0-9]+\.chromatic\.com/i);
+        const chromaticStorybookUrl = storybookUrlMatch ? storybookUrlMatch[0] : undefined;
 
-        if (chromaticUrl) {
+        if (chromaticStorybookUrl || chromaticUrl) {
+          const embedInfo = chromaticStorybookUrl 
+            ? `\n\n**Embed URL**: ${chromaticStorybookUrl}/iframe.html?id=STORY_ID&viewMode=story` 
+            : '';
+          
           await createDocument({
             projectId,
             type: "prototype_notes",
             title: `${project.name} Chromatic Build`,
-            content: `# Chromatic Build\n\n${chromaticUrl}`,
+            content: `# Chromatic Build\n\n${chromaticUrl || chromaticStorybookUrl}${embedInfo}`,
             metadata: { generatedBy: "ai", model: "chromatic" },
           });
 
@@ -1179,18 +1191,20 @@ export const Default: Story = {};
           if (latestPrototype?.id) {
             await updatePrototype(latestPrototype.id, {
               chromaticUrl,
+              chromaticStorybookUrl,
             });
             await createPrototypeVersion({
               prototypeId: latestPrototype.id,
               chromaticUrl,
               metadata: {
                 source: "deploy_chromatic",
+                chromaticStorybookUrl,
               },
             });
           }
         }
 
-        return { success: true, output: { summary: "Chromatic deployed", chromaticUrl } };
+        return { success: true, output: { summary: "Chromatic deployed", chromaticUrl, chromaticStorybookUrl } };
       }
 
       case "create_feature_branch": {

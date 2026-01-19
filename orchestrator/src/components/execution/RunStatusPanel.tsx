@@ -28,8 +28,10 @@ import {
   TicketCheck,
   ChevronDown,
   ChevronUp,
+  GitCommit,
+  CircleDot,
 } from "lucide-react";
-import type { ProjectStage } from "@/lib/db/schema";
+import type { ProjectStage, TaskVerificationResult } from "@/lib/db/schema";
 
 interface RunStatusPanelProps {
   cardId: string;
@@ -37,6 +39,107 @@ interface RunStatusPanelProps {
   stage: ProjectStage;
   className?: string;
   compact?: boolean;
+}
+
+// ============================================
+// TASK PROGRESS SECTION (GSD-inspired)
+// ============================================
+
+interface TaskProgressSectionProps {
+  taskResults: TaskVerificationResult[];
+  currentTaskIndex?: number;
+  isRunning: boolean;
+}
+
+function TaskProgressSection({ taskResults, currentTaskIndex, isRunning }: TaskProgressSectionProps) {
+  const [expanded, setExpanded] = useState(true);
+  
+  const completedCount = taskResults.filter(t => t.passed).length;
+  const totalCount = taskResults.length;
+  
+  return (
+    <div className="border border-white/10 rounded-md overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-2 bg-black/20 hover:bg-black/30 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium">Tasks</span>
+          <span className="text-xs text-gray-500">
+            ({completedCount}/{totalCount} completed)
+          </span>
+        </div>
+        {expanded ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
+      </button>
+      
+      {expanded && (
+        <div className="p-2 space-y-2 bg-black/10">
+          {taskResults.map((task, index) => (
+            <div key={task.taskName} className="flex items-start gap-2">
+              {/* Status icon */}
+              <div className="mt-0.5">
+                {task.passed ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : isRunning && index === currentTaskIndex ? (
+                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                ) : task.criteriaResults.length > 0 ? (
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                ) : (
+                  <CircleDot className="h-4 w-4 text-gray-500" />
+                )}
+              </div>
+              
+              {/* Task details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "text-xs font-medium truncate",
+                    task.passed ? "text-green-400" : "text-gray-300"
+                  )}>
+                    {task.taskName}
+                  </span>
+                  
+                  {/* Commit hash badge */}
+                  {task.commitHash && (
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-purple-500/20 rounded text-[10px] text-purple-300">
+                      <GitCommit className="h-3 w-3" />
+                      {task.commitHash}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Criteria results (collapsed by default, show on hover or if failed) */}
+                {task.criteriaResults.length > 0 && !task.passed && (
+                  <div className="mt-1 space-y-0.5">
+                    {task.criteriaResults.map((result, idx) => (
+                      <div 
+                        key={idx}
+                        className={cn(
+                          "text-[10px] pl-2 border-l",
+                          result.passed 
+                            ? "text-green-400/70 border-green-500/30" 
+                            : "text-red-400/70 border-red-500/30"
+                        )}
+                      >
+                        {result.passed ? "✓" : "✗"} {result.criterion}
+                        {result.evidence && !result.passed && (
+                          <div className="text-gray-500 ml-2">{result.evidence}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function RunStatusPanel({
@@ -239,6 +342,15 @@ export function RunStatusPanel({
           <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
           <span className="text-xs text-red-400">{activeRun.errorSummary}</span>
         </div>
+      )}
+
+      {/* Task Progress Section (GSD-inspired) */}
+      {activeRun?.metadata?.taskResults && activeRun.metadata.taskResults.length > 0 && (
+        <TaskProgressSection 
+          taskResults={activeRun.metadata.taskResults}
+          currentTaskIndex={activeRun.metadata.currentTaskIndex}
+          isRunning={activeRun.status === "running"}
+        />
       )}
 
       {/* Logs Section */}

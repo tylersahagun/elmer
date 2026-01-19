@@ -87,6 +87,11 @@ export interface WorkspaceState {
     notifyOnJobComplete?: boolean;
     notifyOnJobFailed?: boolean;
     notifyOnApprovalRequired?: boolean;
+    // GSD-inspired settings
+    atomicCommitsEnabled?: boolean;
+    verificationStrictness?: "strict" | "lenient" | "disabled";
+    stateTrackingEnabled?: boolean;
+    aiVerificationModel?: string;
     // UI Personalization
     background?: {
       type: "stars" | "bubble" | "gradient" | "gravity-stars" | "hole" | "aurora" | "none";

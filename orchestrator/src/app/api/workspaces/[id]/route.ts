@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWorkspace, updateWorkspace } from "@/lib/db/queries";
+import { getResolvedPaths } from "@/lib/knowledgebase/sync";
 
 export async function GET(
   request: NextRequest,
@@ -16,7 +17,17 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(workspace);
+    // Calculate resolved absolute paths for UI display
+    const resolvedPaths = getResolvedPaths({
+      githubRepo: workspace.githubRepo,
+      contextPath: workspace.contextPath,
+      settings: workspace.settings,
+    });
+
+    return NextResponse.json({
+      ...workspace,
+      resolvedPaths,
+    });
   } catch (error) {
     console.error("Failed to get workspace:", error);
     return NextResponse.json(
@@ -52,9 +63,10 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Failed to update workspace:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Failed to update workspace:", errorMessage, error);
     return NextResponse.json(
-      { error: "Failed to update workspace" },
+      { error: `Failed to update workspace: ${errorMessage}` },
       { status: 500 }
     );
   }

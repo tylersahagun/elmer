@@ -24,6 +24,25 @@ interface Run {
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+  metadata?: {
+    skillsExecuted?: string[];
+    gateResults?: Record<string, { passed: boolean; message?: string }>;
+    tokensUsed?: { input: number; output: number };
+    durationMs?: number;
+    taskResults?: Array<{
+      taskName: string;
+      passed: boolean;
+      criteriaResults: Array<{
+        criterion: string;
+        passed: boolean;
+        evidence?: string;
+      }>;
+      verifiedAt: string;
+      commitHash?: string;
+    }>;
+    currentTaskIndex?: number;
+    stateSnapshot?: string;
+  };
 }
 
 interface RunLog {
