@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, use } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -25,8 +24,15 @@ import {
   Shield,
   Eye,
   UserCircle,
+  UserPlus,
+  Mail,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { InviteModal } from "@/components/invite-modal";
 import type { WorkspaceRole } from "@/lib/db/schema";
 
 interface WorkspaceMember {
@@ -42,6 +48,21 @@ interface WorkspaceMember {
   };
 }
 
+interface Invitation {
+  id: string;
+  email: string;
+  role: WorkspaceRole;
+  expiresAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+  status: "pending" | "expired" | "accepted";
+  inviter: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+}
+
 interface Workspace {
   id: string;
   name: string;
@@ -54,11 +75,11 @@ export default function WorkspaceSettingsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: workspaceId } = use(params);
-  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const [workspaceName, setWorkspaceName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Fetch workspace details
   const { data: workspace, isLoading: isLoadingWorkspace } = useQuery<Workspace>({
@@ -85,6 +106,20 @@ export default function WorkspaceSettingsPage({
     enabled: !!workspaceId,
   });
 
+  // Fetch workspace invitations (admin only)
+  const { data: invitations, isLoading: isLoadingInvitations } = useQuery<Invitation[]>({
+    queryKey: ["workspace-invitations", workspaceId],
+    queryFn: async () => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/invitations`);
+      if (!res.ok) {
+        if (res.status === 403) return [];
+        throw new Error("Failed to fetch invitations");
+      }
+      return res.json();
+    },
+    enabled: !!workspaceId,
+  });
+
   // Update workspace mutation
   const updateWorkspace = useMutation({
     mutationFn: async (data: { name: string }) => {
@@ -103,11 +138,31 @@ export default function WorkspaceSettingsPage({
     },
   });
 
+  // Revoke invitation mutation
+  const revokeInvitation = useMutation({
+    mutationFn: async (invitationId: string) => {
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/invitations?invitationId=${invitationId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error("Failed to revoke invitation");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["workspace-invitations", workspaceId],
+      });
+    },
+  });
+
   // Find current user's role
   const currentUserMembership = members?.find(
     (m) => m.userId === session?.user?.id
   );
   const isAdmin = currentUserMembership?.role === "admin";
+
+  // Filter invitations by status
+  const pendingInvitations = invitations?.filter((i) => i.status === "pending") || [];
 
   const handleSave = () => {
     if (!workspaceName.trim()) return;
@@ -141,6 +196,17 @@ export default function WorkspaceSettingsPage({
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Clock className="w-4 h-4 text-amber-500" />;
+      case "accepted":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "expired":
+        return <XCircle className="w-4 h-4 text-red-500" />;
+    }
+  };
+
   const getInitials = (name: string | null, email: string) => {
     if (name) {
       return name
@@ -164,21 +230,29 @@ export default function WorkspaceSettingsPage({
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/workspace/${workspaceId}`}>
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Settings className="w-6 h-6" />
-            Workspace Settings
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your workspace settings and members
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`/workspace/${workspaceId}`}>
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Settings className="w-6 h-6" />
+              Workspace Settings
+            </h1>
+            <p className="text-muted-foreground">
+              Manage your workspace settings and members
+            </p>
+          </div>
         </div>
+        {isAdmin && (
+          <Button onClick={() => setShowInviteModal(true)} className="gap-2">
+            <UserPlus className="w-4 h-4" />
+            Invite Member
+          </Button>
+        )}
       </div>
 
       {/* Workspace Details Card */}
@@ -315,6 +389,80 @@ export default function WorkspaceSettingsPage({
           )}
         </CardContent>
       </Card>
+
+      {/* Pending Invitations Card (Admin Only) */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Pending Invitations
+            </CardTitle>
+            <CardDescription>
+              Invitations waiting to be accepted
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingInvitations ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : pendingInvitations.length > 0 ? (
+              <div className="space-y-3">
+                {pendingInvitations.map((invitation) => (
+                  <div
+                    key={invitation.id}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <Mail className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{invitation.email}</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          {getStatusIcon(invitation.status)}
+                          Expires{" "}
+                          {new Date(invitation.expiresAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={getRoleBadgeVariant(invitation.role)}
+                        className="gap-1"
+                      >
+                        {getRoleIcon(invitation.role)}
+                        {invitation.role}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => revokeInvitation.mutate(invitation.id)}
+                        disabled={revokeInvitation.isPending}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                No pending invitations
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Invite Modal */}
+      <InviteModal
+        workspaceId={workspaceId}
+        open={showInviteModal}
+        onOpenChange={setShowInviteModal}
+      />
     </div>
   );
 }
