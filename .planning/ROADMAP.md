@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Schema & Auth Foundation** - Database schema extensions and Auth.js configuration ✓
 - [~] **Phase 2: User Registration** - Email/password signup ✓, Google OAuth paused
-- [ ] **Phase 3: Session Management** - Login, logout, password reset, session persistence
+- [~] **Phase 3: Session Management** - Login ✓, logout ✓, password reset paused (needs email service)
 - [ ] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher
 - [ ] **Phase 5: Invitation System** - Email invites with magic links
 - [ ] **Phase 6: Role Enforcement** - Permission checks in API and UI
@@ -77,9 +77,12 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: Login page with email/password and Google OAuth
-- [ ] 03-02: Password reset flow (request form, email, reset form)
-- [ ] 03-03: Logout functionality and session management
+- [x] 03-01: Login page with email/password ✓
+- [ ] 03-02: Password reset flow (PAUSED - requires email service)
+- [x] 03-03: Logout functionality and session management ✓
+
+**Partial Completion:** 2026-01-22 | Plans 03-01, 03-03 complete. Plan 03-02 paused pending email service.
+**Note:** Password reset requires email service (Resend/SendGrid). Login/logout working.
 
 ### Phase 4: Workspace Ownership
 **Goal**: Users own workspaces and can switch between them
@@ -221,7 +224,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Schema & Auth Foundation | 2/2 | ✓ Complete | 2026-01-22 |
 | 2. User Registration | 1/2 | Partial (OAuth paused) | 2026-01-22 |
-| 3. Session Management | 0/3 | Not started | - |
+| 3. Session Management | 2/3 | Partial (reset paused) | 2026-01-22 |
 | 4. Workspace Ownership | 0/3 | Not started | - |
 | 5. Invitation System | 0/4 | Not started | - |
 | 6. Role Enforcement | 0/3 | Not started | - |
