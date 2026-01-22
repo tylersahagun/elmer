@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [~] **Phase 2: User Registration** - Email/password signup ✓, Google OAuth paused
 - [~] **Phase 3: Session Management** - Login ✓, logout ✓, password reset paused (needs email service)
 - [x] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher ✓
-- [ ] **Phase 5: Invitation System** - Email invites with magic links
+- [x] **Phase 5: Invitation System** - Invite links for workspace collaboration ✓
 - [ ] **Phase 6: Role Enforcement** - Permission checks in API and UI
 - [ ] **Phase 7: Activity Logging** - Audit trail for workspace actions
 - [ ] **Phase 8: Data Migration** - Assign existing data to first user
@@ -120,10 +120,12 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: Invitation service and token generation
-- [ ] 05-02: Email sending with Resend and React Email templates
-- [ ] 05-03: Invite modal UI (Share button, email input, role select)
-- [ ] 05-04: Accept invitation page and magic link handling
+- [x] 05-01: Invitation service and API endpoints ✓
+- [x] 05-02: Invitation UI for admins (Share button, invite modal) ✓
+- [x] 05-03: Accept invitation flow ✓
+
+**Completed:** 2026-01-22 | All plans complete.
+**Note:** Email sending not implemented - admins copy/share invite links directly.
 
 ### Phase 6: Role Enforcement
 **Goal**: Permissions are enforced in API routes and reflected in UI
@@ -228,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. User Registration | 1/2 | Partial (OAuth paused) | 2026-01-22 |
 | 3. Session Management | 2/3 | Partial (reset paused) | 2026-01-22 |
 | 4. Workspace Ownership | 3/3 | ✓ Complete | 2026-01-22 |
-| 5. Invitation System | 0/4 | Not started | - |
+| 5. Invitation System | 3/3 | ✓ Complete | 2026-01-22 |
 | 6. Role Enforcement | 0/3 | Not started | - |
 | 7. Activity Logging | 0/3 | Not started | - |
 | 8. Data Migration | 0/2 | Not started | - |
