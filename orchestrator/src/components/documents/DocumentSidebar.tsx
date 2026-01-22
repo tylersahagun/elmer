@@ -120,7 +120,11 @@ export function DocumentSidebar({
   className,
   defaultOpen = true,
 }: DocumentSidebarProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  // Default to collapsed on mobile screens (< 1024px)
+  const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window === "undefined") return defaultOpen;
+    return window.innerWidth >= 1024 ? defaultOpen : false;
+  });
   
   const { width, isResizing, handleResizeStart } = useResizablePanel({
     minWidth: 200,

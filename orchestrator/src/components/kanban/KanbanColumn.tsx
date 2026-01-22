@@ -126,7 +126,7 @@ export const KanbanColumn = memo(function KanbanColumn({
 
   // Normal and expanded states
   const isExpanded = viewState === "expanded";
-  const columnWidth = isExpanded ? "w-[400px] sm:w-[450px]" : "w-[280px] sm:w-72";
+  const columnWidth = isExpanded ? "w-[300px] sm:w-[400px] lg:w-[450px]" : "w-[260px] sm:w-[280px] lg:w-72";
 
   return (
     <motion.div

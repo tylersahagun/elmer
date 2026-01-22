@@ -3,14 +3,18 @@
  * 
  * GET - List all recipes for a workspace
  * POST - Create or initialize recipes
+ * PATCH - Update a recipe
  */
 
 import { NextResponse } from "next/server";
 import {
   getAllStageRecipes,
+  getStageRecipe,
   createStageRecipe,
+  updateStageRecipe,
   initializeDefaultRecipes,
   type CreateRecipeInput,
+  type UpdateRecipeInput,
 } from "@/lib/skills";
 import type { ProjectStage } from "@/lib/db/schema";
 
@@ -97,6 +101,66 @@ export async function POST(request: Request) {
     console.error("[API /stage-recipes] POST error:", error);
     return NextResponse.json(
       { error: "Failed to process recipe action" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { workspaceId, stage, ...updates } = body;
+
+    if (!workspaceId || !stage) {
+      return NextResponse.json(
+        { error: "workspaceId and stage required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate stage exists
+    const existingRecipe = await getStageRecipe(workspaceId, stage as ProjectStage);
+    if (!existingRecipe) {
+      return NextResponse.json(
+        { error: `Recipe for stage '${stage}' not found` },
+        { status: 404 }
+      );
+    }
+
+    const updateInput: UpdateRecipeInput = {};
+    
+    if (updates.automationLevel !== undefined) {
+      updateInput.automationLevel = updates.automationLevel;
+    }
+    if (updates.recipeSteps !== undefined) {
+      updateInput.recipeSteps = updates.recipeSteps;
+    }
+    if (updates.gates !== undefined) {
+      updateInput.gates = updates.gates;
+    }
+    if (updates.onFailBehavior !== undefined) {
+      updateInput.onFailBehavior = updates.onFailBehavior;
+    }
+    if (updates.provider !== undefined) {
+      updateInput.provider = updates.provider;
+    }
+    if (updates.enabled !== undefined) {
+      updateInput.enabled = updates.enabled;
+    }
+
+    await updateStageRecipe(workspaceId, stage as ProjectStage, updateInput);
+    
+    // Return updated recipe
+    const updatedRecipe = await getStageRecipe(workspaceId, stage as ProjectStage);
+    
+    return NextResponse.json({
+      recipe: updatedRecipe,
+      message: `Recipe for '${stage}' updated`,
+    });
+  } catch (error) {
+    console.error("[API /stage-recipes] PATCH error:", error);
+    return NextResponse.json(
+      { error: "Failed to update recipe" },
       { status: 500 }
     );
   }
