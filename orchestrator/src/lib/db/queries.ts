@@ -73,6 +73,44 @@ export async function getWorkspace(id: string) {
   });
 }
 
+/**
+ * Get all members of a workspace with user details
+ */
+export async function getWorkspaceMembers(workspaceId: string) {
+  const members = await db.query.workspaceMembers.findMany({
+    where: eq(workspaceMembers.workspaceId, workspaceId),
+    with: {
+      user: true,
+    },
+    orderBy: [desc(workspaceMembers.role), asc(workspaceMembers.joinedAt)],
+  });
+
+  return members.map((m) => ({
+    id: m.id,
+    userId: m.userId,
+    role: m.role,
+    joinedAt: m.joinedAt,
+    user: {
+      id: m.user.id,
+      name: m.user.name,
+      email: m.user.email,
+      image: m.user.image,
+    },
+  }));
+}
+
+/**
+ * Check if a user is a member of a workspace and get their role
+ */
+export async function getWorkspaceMembership(workspaceId: string, userId: string) {
+  return db.query.workspaceMembers.findFirst({
+    where: and(
+      eq(workspaceMembers.workspaceId, workspaceId),
+      eq(workspaceMembers.userId, userId)
+    ),
+  });
+}
+
 export async function createWorkspace(data: {
   name: string;
   description?: string;
