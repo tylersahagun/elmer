@@ -212,7 +212,7 @@ describe("Migration Script Tests", () => {
         fromStage: "inbox",
         toStage: "discovery",
         actor: "user", // Generic actor that should be updated
-        createdAt: new Date(),
+        timestamp: new Date(),
       });
 
       const result = await backfillActors();

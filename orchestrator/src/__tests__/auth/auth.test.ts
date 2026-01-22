@@ -180,7 +180,8 @@ describe("Authentication System Tests", () => {
         }),
       });
 
-      expect(response.status).toBe(400);
+      // 409 Conflict is the correct status for duplicate resources
+      expect(response.status).toBe(409);
       const data = await response.json();
       expect(data.error).toContain("already exists");
     });
