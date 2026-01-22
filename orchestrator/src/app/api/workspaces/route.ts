@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspaces, createWorkspace } from "@/lib/db/queries";
+import { auth } from "@/auth";
+import { getWorkspacesForUser, createWorkspace } from "@/lib/db/queries";
 import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
 
 export async function GET() {
   try {
-    const workspaces = await getWorkspaces();
+    const session = await auth();
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const workspaces = await getWorkspacesForUser(session.user.id);
     return NextResponse.json(workspaces);
   } catch (error) {
     console.error("Failed to get workspaces:", error);
@@ -17,6 +27,15 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { name, description, githubRepo, contextPath } = body;
 
@@ -32,6 +51,7 @@ export async function POST(request: NextRequest) {
       description,
       githubRepo,
       contextPath,
+      userId: session.user.id, // Creator becomes admin
     });
 
     // Automatically sync knowledge base on workspace creation

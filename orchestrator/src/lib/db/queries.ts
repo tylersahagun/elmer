@@ -15,6 +15,7 @@ import {
   knowledgeSources,
   prototypeVersions,
   notifications,
+  workspaceMembers,
   type ProjectStage as ProjectStageType,
   type JobType,
   type JobStatus,
@@ -26,6 +27,7 @@ import {
   type WorkspaceSettings,
   type NotificationMetadata,
   type KnowledgebaseType,
+  type WorkspaceRole,
 } from "./schema";
 import { eq, and, desc, asc, isNull, ne, or, lt, gte } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
@@ -38,6 +40,25 @@ export async function getWorkspaces() {
   return db.query.workspaces.findMany({
     orderBy: [desc(workspaces.updatedAt)],
   });
+}
+
+/**
+ * Get workspaces for a specific user (only workspaces they are a member of)
+ */
+export async function getWorkspacesForUser(userId: string) {
+  const memberships = await db.query.workspaceMembers.findMany({
+    where: eq(workspaceMembers.userId, userId),
+    with: {
+      workspace: true,
+    },
+    orderBy: [desc(workspaceMembers.joinedAt)],
+  });
+
+  return memberships.map((m) => ({
+    ...m.workspace,
+    role: m.role,
+    joinedAt: m.joinedAt,
+  }));
 }
 
 export async function getWorkspace(id: string) {
@@ -57,6 +78,7 @@ export async function createWorkspace(data: {
   description?: string;
   githubRepo?: string;
   contextPath?: string;
+  userId?: string; // Creator's user ID - if provided, they become admin
 }) {
   const id = uuid();
   const now = new Date();
@@ -70,6 +92,15 @@ export async function createWorkspace(data: {
     createdAt: now,
     updatedAt: now,
   });
+
+  // Add creator as admin member if userId provided
+  if (data.userId) {
+    await db.insert(workspaceMembers).values({
+      workspaceId: id,
+      userId: data.userId,
+      role: "admin",
+    });
+  }
 
   // Create default column configs
   // Default column configs for PM workflow
