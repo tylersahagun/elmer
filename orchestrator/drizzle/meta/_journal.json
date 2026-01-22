@@ -43,6 +43,13 @@
       "when": 1737590400000,
       "tag": "0005_auth_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1769115879218,
+      "tag": "0006_brave_purifiers",
+      "breakpoints": true
     }
   ]
 }
