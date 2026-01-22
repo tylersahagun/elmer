@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 12 of 20 (Signal Management UI)
-Plan: 1 of ? in progress
+Plan: 2 of ? in progress
 Status: In progress
-Last activity: 2026-01-22 — Completed 12-01-PLAN.md (Signal CRUD API)
+Last activity: 2026-01-22 — Completed 12-02-PLAN.md (Signal List UI)
 
-Progress: [██░░░░░░░░] 15%
+Progress: [██░░░░░░░░] 17%
 
 ## Performance Metrics
 
@@ -24,10 +24,10 @@ Progress: [██░░░░░░░░] 15%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 2
+- Total plans completed: 3
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
-- Phase 12: 1/? plans complete
+- Phase 12: 2/? plans complete
 
 ## Accumulated Context
 
@@ -49,6 +49,9 @@ Recent decisions affecting current work:
 - v1.1 (12-01): Default source to "paste" for manual signal entry
 - v1.1 (12-01): Viewer access for GET, member access for POST/PATCH/DELETE signals
 - v1.1 (12-01): ILIKE search on both verbatim and interpretation fields
+- v1.1 (12-02): Debounce search input by 300ms to reduce API calls
+- v1.1 (12-02): Default sort by createdAt descending (newest first)
+- v1.1 (12-02): Reset pagination to page 1 when filters change
 
 ### Pending Todos
 
@@ -63,8 +66,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 12-01-PLAN.md (Signal CRUD API)
+Stopped at: Completed 12-02-PLAN.md (Signal List UI)
 Resume file: None
 Next steps:
-  - Execute 12-02-PLAN.md (Signal List UI) when ready
+  - Execute 12-03-PLAN.md (Signal Entry & Detail Modals) when ready
   - Or continue with remaining Phase 12 plans
