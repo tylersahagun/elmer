@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 11 - Signal Schema & Storage
+**Current focus:** Phase 12 - Signal Management UI
 
 ## Current Position
 
-Phase: 11 of 20 (Signal Schema & Storage)
-Plan: 1 of 1 complete
-Status: Phase 11 complete
-Last activity: 2026-01-22 — Completed 11-01-PLAN.md (Signal Schema Foundation)
+Phase: 12 of 20 (Signal Management UI)
+Plan: 1 of ? in progress
+Status: In progress
+Last activity: 2026-01-22 — Completed 12-01-PLAN.md (Signal CRUD API)
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 15%
 
 ## Performance Metrics
 
@@ -24,9 +24,10 @@ Progress: [█░░░░░░░░░] 10%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 1
+- Total plans completed: 2
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
+- Phase 12: 1/? plans complete
 
 ## Accumulated Context
 
@@ -45,6 +46,9 @@ Recent decisions affecting current work:
 - v1.1 (11-01): JSONB for source metadata and AI classification
 - v1.1 (11-01): personaId as text since personas are ProjectMetadata strings
 - v1.1 (11-01): SET NULL for inboxItemId to preserve signals on inbox item deletion
+- v1.1 (12-01): Default source to "paste" for manual signal entry
+- v1.1 (12-01): Viewer access for GET, member access for POST/PATCH/DELETE signals
+- v1.1 (12-01): ILIKE search on both verbatim and interpretation fields
 
 ### Pending Todos
 
@@ -59,8 +63,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 11-01-PLAN.md (Signal Schema Foundation)
+Stopped at: Completed 12-01-PLAN.md (Signal CRUD API)
 Resume file: None
 Next steps:
-  - `/gsd:plan-phase 12` to create Phase 12 plans (Signal CRUD)
-  - Or continue with Phase 12-20 planning
+  - Execute 12-02-PLAN.md (Signal List UI) when ready
+  - Or continue with remaining Phase 12 plans
