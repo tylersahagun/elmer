@@ -51,10 +51,10 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
   2. Signals are associated with workspaces (workspace-scoped data)
   3. Source attribution captures where signal originated (Slack, email, interview, webhook)
   4. Status tracking shows signal lifecycle (new, reviewed, linked, archived)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 11-01: TBD
+- [ ] 11-01-PLAN.md — Schema definitions, types, relations, and migration
 
 ---
 
@@ -266,7 +266,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Signal Schema & Storage | 0/TBD | Not started | - |
+| 11. Signal Schema & Storage | 0/1 | Planned | - |
 | 12. Signal Management UI | 0/TBD | Not started | - |
 | 12.5. Manual Association | 0/TBD | Not started | - |
 | 13. Webhook Ingestion | 0/TBD | Not started | - |
