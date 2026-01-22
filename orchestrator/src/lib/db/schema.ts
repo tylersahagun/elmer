@@ -1121,3 +1121,63 @@ export const inboxItemsRelations = relations(inboxItems, ({ one }) => ({
     references: [projects.id],
   }),
 }));
+
+// ============================================
+// SIGNALS (User Feedback Evidence)
+// ============================================
+
+// Union types (not PostgreSQL enums - extensible without migrations)
+export type SignalStatus = "new" | "reviewed" | "linked" | "archived";
+export type SignalSource = "webhook" | "upload" | "paste" | "video" | "slack" | "pylon" | "email" | "interview" | "other";
+export type SignalSeverity = "critical" | "high" | "medium" | "low";
+export type SignalFrequency = "common" | "occasional" | "rare";
+
+// Source metadata interface (flexible JSONB)
+export interface SignalSourceMetadata {
+  // Common fields
+  sourceUrl?: string;
+  sourceName?: string;
+  externalId?: string;
+
+  // Webhook-specific
+  webhookId?: string;
+  webhookName?: string;
+
+  // Video-specific
+  videoUrl?: string;
+  videoPlatform?: "youtube" | "loom";
+  videoTimestamp?: string;
+
+  // Slack-specific
+  channelId?: string;
+  channelName?: string;
+  messageTs?: string;
+  threadTs?: string;
+
+  // Pylon-specific
+  ticketId?: string;
+  ticketStatus?: string;
+  customerEmail?: string;
+
+  // Interview-specific
+  interviewDate?: string;
+  interviewee?: string;
+
+  // Raw data preservation
+  rawPayload?: Record<string, unknown>;
+}
+
+// AI classification interface (populated in Phase 15-16)
+export interface SignalClassification {
+  classifiedAt?: string;
+  projectMatches?: Array<{
+    projectId: string;
+    projectName: string;
+    confidence: number;
+    matchReason?: string;
+  }>;
+  isNewInitiative?: boolean;
+  suggestedInitiativeName?: string;
+  clusterId?: string;
+  clusterName?: string;
+}
