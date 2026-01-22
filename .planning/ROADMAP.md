@@ -13,7 +13,7 @@ Transform elmer from a single-user PM orchestrator into a multi-tenant team coll
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Schema & Auth Foundation** - Database schema extensions and Auth.js configuration ✓
-- [ ] **Phase 2: User Registration** - Email/password signup and Google OAuth
+- [~] **Phase 2: User Registration** - Email/password signup ✓, Google OAuth paused
 - [ ] **Phase 3: Session Management** - Login, logout, password reset, session persistence
 - [ ] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher
 - [ ] **Phase 5: Invitation System** - Email invites with magic links
@@ -57,8 +57,11 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Signup page with email/password form and validation
-- [ ] 02-02: Google OAuth provider configuration and callback handling
+- [x] 02-01: Signup page with email/password form and validation ✓
+- [~] 02-02: Google OAuth provider configuration and callback handling (PAUSED)
+
+**Partial Completion:** 2026-01-22 | Plan 02-01 complete, Plan 02-02 paused per user request
+**Note:** Google OAuth can be enabled later by configuring credentials in .env.local
 
 ### Phase 3: Session Management
 **Goal**: Users can log in, stay logged in, and recover forgotten passwords
@@ -216,8 +219,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema & Auth Foundation | 0/2 | Not started | - |
-| 2. User Registration | 0/2 | Not started | - |
+| 1. Schema & Auth Foundation | 2/2 | ✓ Complete | 2026-01-22 |
+| 2. User Registration | 1/2 | Partial (OAuth paused) | 2026-01-22 |
 | 3. Session Management | 0/3 | Not started | - |
 | 4. Workspace Ownership | 0/3 | Not started | - |
 | 5. Invitation System | 0/4 | Not started | - |
@@ -229,4 +232,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-21 after initialization*
+*Last updated: 2026-01-22 after Phase 2 partial completion*
