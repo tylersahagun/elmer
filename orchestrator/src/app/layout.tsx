@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/providers";
+import { ThemeProvider, SessionProvider } from "@/components/providers";
 import { GridBackground } from "@/components/backgrounds";
 import "./globals.css";
 
@@ -45,12 +45,14 @@ export default function RootLayout({
       <body
         className={`${chillax.variable} ${synonym.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
-        <ThemeProvider>
-          <GridBackground />
-          <div className="relative z-10 min-h-screen">
-            {children}
-          </div>
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider>
+            <GridBackground />
+            <div className="relative z-10 min-h-screen">
+              {children}
+            </div>
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   );
