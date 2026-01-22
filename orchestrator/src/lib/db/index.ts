@@ -88,3 +88,13 @@ export type NewKnowledgeSource = typeof schema.knowledgeSources.$inferInsert;
 
 export type PrototypeVersion = typeof schema.prototypeVersions.$inferSelect;
 export type NewPrototypeVersion = typeof schema.prototypeVersions.$inferInsert;
+
+// Signal types (Phase 11+)
+export type Signal = typeof schema.signals.$inferSelect;
+export type NewSignal = typeof schema.signals.$inferInsert;
+
+export type SignalProject = typeof schema.signalProjects.$inferSelect;
+export type NewSignalProject = typeof schema.signalProjects.$inferInsert;
+
+export type SignalPersona = typeof schema.signalPersonas.$inferSelect;
+export type NewSignalPersona = typeof schema.signalPersonas.$inferInsert;
