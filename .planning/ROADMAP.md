@@ -71,9 +71,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Signal CRUD API endpoints with filtering, pagination, and search
-- [ ] 12-02-PLAN.md — Signals table UI with search, filters, pagination, and sorting
-- [ ] 12-03-PLAN.md — Create and Detail modals for signal entry and viewing/editing
+- [x] 12-01-PLAN.md — Signal CRUD API endpoints with filtering, pagination, and search
+- [x] 12-02-PLAN.md — Signals table UI with search, filters, pagination, and sorting
+- [x] 12-03-PLAN.md — Create and Detail modals for signal entry and viewing/editing
 
 ---
 
@@ -269,7 +269,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11. Signal Schema & Storage | 1/1 | Complete | 2026-01-22 |
-| 12. Signal Management UI | 0/3 | Planned | - |
+| 12. Signal Management UI | 3/3 | Complete | 2026-01-22 |
 | 12.5. Manual Association | 0/TBD | Not started | - |
 | 13. Webhook Ingestion | 0/TBD | Not started | - |
 | 14. File & Paste Upload | 0/TBD | Not started | - |

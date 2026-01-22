@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 12 of 20 (Signal Management UI)
-Plan: 3 of ? complete
-Status: In progress
-Last activity: 2026-01-22 — Completed 12-03-PLAN.md (Signal Entry & Detail Modals)
+Plan: 3 of 3 complete
+Status: Phase 12 complete
+Last activity: 2026-01-22 — Completed Phase 12 (Signal Management UI)
 
-Progress: [██░░░░░░░░] 18%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -27,7 +27,7 @@ Progress: [██░░░░░░░░] 18%
 - Total plans completed: 4
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
-- Phase 12: 3/? plans complete
+- Phase 12: 3/3 plans complete
 
 ## Accumulated Context
 
@@ -69,9 +69,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 12-03-PLAN.md (Signal Entry & Detail Modals)
+Stopped at: Completed Phase 12 (Signal Management UI)
 Resume file: None
 Next steps:
-  - Phase 12 core UI complete (list, filters, create modal, detail modal)
-  - Continue with remaining Phase 12 plans if any
-  - Or proceed to Phase 12.5 (Signal Association) when scheduled
+  - `/gsd:discuss-phase 12.5` to plan Manual Association phase
+  - Or `/gsd:plan-phase 12.5` to skip discussion and plan directly

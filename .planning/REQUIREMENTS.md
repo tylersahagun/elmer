@@ -11,10 +11,10 @@ Requirements for signals system release. Each maps to roadmap phases.
 
 - [x] **SGNL-01**: Signal schema with source, verbatim, interpretation, severity, frequency fields
 - [x] **SGNL-02**: Signal storage in database with workspace association
-- [ ] **SGNL-03**: Manual signal entry form (paste/type feedback)
-- [ ] **SGNL-04**: Signal list view with pagination
-- [ ] **SGNL-05**: Search signals by keyword
-- [ ] **SGNL-06**: Filter signals by date, source, status
+- [x] **SGNL-03**: Manual signal entry form (paste/type feedback)
+- [x] **SGNL-04**: Signal list view with pagination
+- [x] **SGNL-05**: Search signals by keyword
+- [x] **SGNL-06**: Filter signals by date, source, status
 - [x] **SGNL-07**: Source attribution field (Slack, email, interview, webhook, etc.)
 - [x] **SGNL-08**: Status tracking (new, reviewed, linked, archived)
 
