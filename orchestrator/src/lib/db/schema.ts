@@ -1181,3 +1181,37 @@ export interface SignalClassification {
   clusterId?: string;
   clusterName?: string;
 }
+
+export const signals = pgTable("signals", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+
+  // Core content
+  verbatim: text("verbatim").notNull(),           // Original user quote/feedback
+  interpretation: text("interpretation"),          // PM's "what this really means"
+
+  // Structured extraction (populated by AI in Phase 15)
+  severity: text("severity").$type<SignalSeverity>(),
+  frequency: text("frequency").$type<SignalFrequency>(),
+  userSegment: text("user_segment"),              // e.g., "enterprise", "SMB", "prosumer"
+
+  // Source attribution (SGNL-07)
+  source: text("source").$type<SignalSource>().notNull(),
+  sourceRef: text("source_ref"),                  // External reference (URL, ticket ID, etc.)
+  sourceMetadata: jsonb("source_metadata").$type<SignalSourceMetadata>(),
+
+  // Status tracking (SGNL-08)
+  status: text("status").$type<SignalStatus>().notNull().default("new"),
+
+  // AI processing fields (populated in Phase 15-16)
+  embedding: text("embedding"),                   // Vector embedding (base64)
+  aiClassification: jsonb("ai_classification").$type<SignalClassification>(),
+
+  // Provenance (for Phase 18)
+  inboxItemId: text("inbox_item_id").references(() => inboxItems.id, { onDelete: "set null" }),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),         // When AI extraction completed
+});
