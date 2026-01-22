@@ -3,9 +3,18 @@ import { getWorkspaceMembership } from "@/lib/db/queries";
 import type { WorkspaceRole } from "@/lib/db/schema";
 
 /**
- * Role hierarchy - higher index = more permissions
+ * Role hierarchy - higher number = more permissions
  */
-const ROLE_HIERARCHY: WorkspaceRole[] = ["viewer", "member", "admin"];
+export const ROLE_HIERARCHY: Record<WorkspaceRole, number> = {
+  viewer: 1,
+  member: 2,
+  admin: 3,
+};
+
+/**
+ * Role hierarchy as array - higher index = more permissions
+ */
+const ROLE_HIERARCHY_ARRAY: WorkspaceRole[] = ["viewer", "member", "admin"];
 
 /**
  * Permission error types
@@ -50,8 +59,8 @@ export function hasPermission(
   userRole: WorkspaceRole,
   requiredRole: WorkspaceRole
 ): boolean {
-  const userLevel = ROLE_HIERARCHY.indexOf(userRole);
-  const requiredLevel = ROLE_HIERARCHY.indexOf(requiredRole);
+  const userLevel = ROLE_HIERARCHY_ARRAY.indexOf(userRole);
+  const requiredLevel = ROLE_HIERARCHY_ARRAY.indexOf(requiredRole);
   return userLevel >= requiredLevel;
 }
 
@@ -59,7 +68,7 @@ export function hasPermission(
  * Get the role level for comparison
  */
 export function getRoleLevel(role: WorkspaceRole): number {
-  return ROLE_HIERARCHY.indexOf(role);
+  return ROLE_HIERARCHY_ARRAY.indexOf(role);
 }
 
 /**
@@ -214,4 +223,27 @@ export function canPerformAction(
 ): boolean {
   const requiredRole = PERMISSION_REQUIREMENTS[action];
   return hasPermission(userRole, requiredRole);
+}
+
+/**
+ * Check workspace access without authentication (for testing)
+ * Returns membership if found, null otherwise
+ */
+export async function checkWorkspaceAccess(
+  workspaceId: string,
+  userId: string
+): Promise<WorkspaceMembership | null> {
+  const membership = await getWorkspaceMembership(workspaceId, userId);
+  
+  if (!membership) {
+    return null;
+  }
+
+  return {
+    id: membership.id,
+    userId,
+    workspaceId: membership.workspaceId,
+    role: membership.role,
+    joinedAt: membership.joinedAt,
+  };
 }
