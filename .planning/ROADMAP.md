@@ -68,10 +68,12 @@ Plans:
   2. User can view paginated list of all signals in workspace
   3. User can search signals by keyword and find matching results
   4. User can filter signals by date range, source type, and status
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 12-01: TBD
+- [ ] 12-01-PLAN.md — Signal CRUD API endpoints with filtering, pagination, and search
+- [ ] 12-02-PLAN.md — Signals table UI with search, filters, pagination, and sorting
+- [ ] 12-03-PLAN.md — Create and Detail modals for signal entry and viewing/editing
 
 ---
 
@@ -267,7 +269,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11. Signal Schema & Storage | 1/1 | Complete | 2026-01-22 |
-| 12. Signal Management UI | 0/TBD | Not started | - |
+| 12. Signal Management UI | 0/3 | Planned | - |
 | 12.5. Manual Association | 0/TBD | Not started | - |
 | 13. Webhook Ingestion | 0/TBD | Not started | - |
 | 14. File & Paste Upload | 0/TBD | Not started | - |
