@@ -1,1 +1,1 @@
-export { ExecutionPanel, ExecutionBadge } from "./ExecutionPanel";
+export { JobLogsDrawer } from "./JobLogsDrawer";

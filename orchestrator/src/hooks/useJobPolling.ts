@@ -11,6 +11,8 @@
  * - Fast polling (5s) when jobs are actively running
  * - Slow polling (60s) when idle
  * - No polling when tab is hidden
+ * 
+ * FIX: Debounces completed job status clearing to prevent flashing
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -50,6 +52,7 @@ function usePageVisibility(): boolean {
 
 const POLL_INTERVAL_ACTIVE = 5000;   // 5s when jobs are running
 const POLL_INTERVAL_IDLE = 60000;    // 60s when no active jobs
+const COMPLETED_STATUS_DISPLAY_MS = 5000; // Show "Done" state for 5 seconds before clearing
 
 interface Job {
   id: string;
@@ -113,6 +116,11 @@ export function useJobPolling(options: UseJobPollingOptions): UseJobPollingRetur
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const processingRef = useRef(false);
   
+  // Track completed jobs with their completion timestamp to debounce clearing
+  const completedJobsTimestampRef = useRef<Map<string, number>>(new Map());
+  // Track which jobs we've already processed status updates for
+  const lastKnownStatusRef = useRef<Map<string, JobStatus>>(new Map());
+  
   // Track if we have active jobs to determine polling speed
   const hasActiveJobs = summary ? (summary.pending > 0 || summary.running > 0) : false;
 
@@ -126,28 +134,79 @@ export function useJobPolling(options: UseJobPollingOptions): UseJobPollingRetur
         const data = await response.json();
         setJobs(data);
         
+        const now = Date.now();
+        
         // Update project cards with active job info
         const runningJobs = data.filter((j: Job) => j.status === "running");
+        const pendingJobs = data.filter((j: Job) => j.status === "pending");
+        
         for (const job of runningJobs) {
           if (job.projectId) {
             updateProject(job.projectId, {
+              activeJobId: job.id,
               activeJobType: job.type,
               activeJobProgress: job.progress || 0,
+              activeJobStatus: "running",
+              isLocked: true,
             });
+            lastKnownStatusRef.current.set(job.id, "running");
+          }
+        }
+        
+        for (const job of pendingJobs) {
+          if (job.projectId) {
+            updateProject(job.projectId, {
+              activeJobId: job.id,
+              activeJobType: job.type,
+              activeJobProgress: 0,
+              activeJobStatus: "pending",
+              isLocked: true,
+            });
+            lastKnownStatusRef.current.set(job.id, "pending");
           }
         }
 
-        // Clear active job info for completed jobs
-        const completedJobs = data.filter((j: Job) => 
+        // Handle completed/failed/cancelled jobs with debounce
+        const finishedJobs = data.filter((j: Job) => 
           j.status === "completed" || j.status === "failed" || j.status === "cancelled"
         );
-        for (const job of completedJobs) {
-          if (job.projectId) {
-            // Only clear if this was the active job
+        
+        for (const job of finishedJobs) {
+          if (!job.projectId) continue;
+          
+          const lastStatus = lastKnownStatusRef.current.get(job.id);
+          const wasActive = lastStatus === "running" || lastStatus === "pending";
+          
+          // If job just finished, record timestamp and show finished state
+          if (wasActive || !completedJobsTimestampRef.current.has(job.id)) {
+            completedJobsTimestampRef.current.set(job.id, now);
+            lastKnownStatusRef.current.set(job.id, job.status);
+            
+            // Show the completed/failed status briefly
             updateProject(job.projectId, {
+              activeJobId: job.id, // Keep job ID so user can click to see logs
+              activeJobType: job.type,
+              activeJobStatus: job.status,
+              activeJobProgress: 1,
+              isLocked: false,
+              lastJobError: job.status === "failed" ? job.error || "Job failed" : undefined,
+            });
+          }
+          
+          // Check if enough time has passed to clear the status
+          const completedAt = completedJobsTimestampRef.current.get(job.id) || 0;
+          if (now - completedAt > COMPLETED_STATUS_DISPLAY_MS) {
+            // Clear the job status after debounce period
+            updateProject(job.projectId, {
+              activeJobId: undefined,
               activeJobType: undefined,
               activeJobProgress: undefined,
+              activeJobStatus: undefined,
+              isLocked: false,
             });
+            // Clean up tracking refs
+            completedJobsTimestampRef.current.delete(job.id);
+            lastKnownStatusRef.current.delete(job.id);
           }
         }
       }

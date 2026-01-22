@@ -5,11 +5,11 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { buildCursorDeepLink } from "@/lib/cursor/links";
 import { springPresets } from "@/lib/animations";
-import type { ProjectCard as ProjectCardType } from "@/lib/store";
-import { useKanbanStore, useUIStore } from "@/lib/store";
+import { useKanbanStore, useUIStore, type ProjectCard as ProjectCardType } from "@/lib/store";
 import { 
   FileText, 
   Layers, 
@@ -71,6 +71,7 @@ function formatRelativeTime(date: Date): string {
 
 export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
   const [showUnlockDialog, setShowUnlockDialog] = React.useState(false);
+  const router = useRouter();
   const setActiveProject = useKanbanStore((s) => s.setActiveProject);
   const updateProject = useKanbanStore((s) => s.updateProject);
   const openProjectDetailModal = useUIStore((s) => s.openProjectDetailModal);
@@ -100,20 +101,29 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
     transition,
   };
 
-  const handleClick = () => {
-    setActiveProject(project.id);
-    openProjectDetailModal();
+  // Navigate to project page by default, Shift+Click for quick modal view
+  const handleClick = (e: React.MouseEvent) => {
+    // Shift+Click opens the modal for quick view
+    if (e.shiftKey) {
+      setActiveProject(project.id);
+      openProjectDetailModal();
+      return;
+    }
+    // Default: Navigate to project page
+    router.push(`/projects/${project.id}`);
   };
 
-  const handleViewDetails = (e: React.MouseEvent) => {
+  // Quick View - opens the modal
+  const handleQuickView = (e: React.MouseEvent) => {
     e.stopPropagation();
     setActiveProject(project.id);
     openProjectDetailModal();
   };
 
+  // Open full project page
   const handleOpenPage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.location.href = `/projects/${project.id}`;
+    router.push(`/projects/${project.id}`);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -227,13 +237,14 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="glass-card">
-              <DropdownMenuItem onClick={handleViewDetails} className="gap-2">
-                <Eye className="w-3.5 h-3.5" />
-                View Details
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenPage} className="gap-2">
                 <FileText className="w-3.5 h-3.5" />
-                Open Project Page
+                Open Project
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleQuickView} className="gap-2">
+                <Eye className="w-3.5 h-3.5" />
+                Quick View
+                <span className="ml-auto text-[10px] text-muted-foreground">⇧+Click</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleOpenCursor}
@@ -307,11 +318,13 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Job Status Indicator */}
-          {project.activeJobType && (
+          {/* Job Status Indicator - Clickable to open logs drawer */}
+          {project.activeJobType && project.activeJobId && (
             <JobStatusIndicator 
               status={project.activeJobStatus}
               jobType={project.activeJobType}
+              jobId={project.activeJobId}
+              projectName={project.name}
             />
           )}
           
@@ -378,23 +391,42 @@ function formatJobType(type: string): string {
   return typeMap[type] || type;
 }
 
-// Job Status Indicator Component
+// Job Status Indicator Component - Clickable to open logs drawer
 function JobStatusIndicator({ 
   status, 
-  jobType 
+  jobType,
+  jobId,
+  projectName,
 }: { 
   status?: string; 
   jobType: string;
+  jobId: string;
+  projectName: string;
 }) {
+  const openJobLogsDrawer = useUIStore((s) => s.openJobLogsDrawer);
   const jobName = formatJobType(jobType);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openJobLogsDrawer(jobId, projectName);
+  };
+
+  const baseClasses = "cursor-pointer hover:scale-105 active:scale-95 transition-transform";
 
   // Pending state - waiting for Cursor AI to process
   if (status === "pending") {
     return (
-      <motion.div 
-        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20"
+      <motion.button 
+        onClick={handleClick}
+        className={cn(
+          "flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20",
+          baseClasses
+        )}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        title="Click to view job logs"
       >
         <motion.div
           animate={{ rotate: [0, 360] }}
@@ -418,15 +450,19 @@ function JobStatusIndicator({
             />
           ))}
         </motion.div>
-      </motion.div>
+      </motion.button>
     );
   }
 
   // Running state - Cursor AI is processing
   if (status === "running") {
     return (
-      <motion.div 
-        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-purple-500/15 border border-purple-500/30"
+      <motion.button 
+        onClick={handleClick}
+        className={cn(
+          "flex items-center gap-1.5 px-2 py-1 rounded-md bg-purple-500/15 border border-purple-500/30",
+          baseClasses
+        )}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ 
           opacity: 1, 
@@ -442,6 +478,9 @@ function JobStatusIndicator({
           opacity: { duration: 0.2 },
           scale: { duration: 0.2 }
         }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        title="Click to view job logs"
       >
         <motion.div
           animate={{ rotate: 360 }}
@@ -467,33 +506,47 @@ function JobStatusIndicator({
             />
           ))}
         </motion.div>
-      </motion.div>
+      </motion.button>
     );
   }
 
   // Failed state
   if (status === "failed") {
     return (
-      <motion.div 
-        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 border border-red-500/20"
+      <motion.button 
+        onClick={handleClick}
+        className={cn(
+          "flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 border border-red-500/20",
+          baseClasses
+        )}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        title="Click to view error details"
       >
         <AlertCircle className="w-3 h-3 text-red-400" />
         <span className="text-xs text-red-400 font-medium">
           {jobName} Failed
         </span>
-      </motion.div>
+      </motion.button>
     );
   }
 
   // Completed state (briefly shown)
   if (status === "completed") {
     return (
-      <motion.div 
-        className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/20"
+      <motion.button 
+        onClick={handleClick}
+        className={cn(
+          "flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/20",
+          baseClasses
+        )}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        title="Click to view job output"
       >
         <motion.div
           initial={{ scale: 0 }}
@@ -505,16 +558,23 @@ function JobStatusIndicator({
         <span className="text-xs text-green-400 font-medium">
           {jobName} Done
         </span>
-      </motion.div>
+      </motion.button>
     );
   }
 
   // Default/unknown state - treat as processing/initializing
   return (
-    <motion.div 
-      className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-500/10 border border-slate-500/20"
+    <motion.button 
+      onClick={handleClick}
+      className={cn(
+        "flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-500/10 border border-slate-500/20",
+        baseClasses
+      )}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      title="Click to view job logs"
     >
       <motion.div
         animate={{ rotate: 360 }}
@@ -525,7 +585,7 @@ function JobStatusIndicator({
       <span className="text-xs text-slate-400 font-medium">
         Initializing...
       </span>
-    </motion.div>
+    </motion.button>
   );
 }
 

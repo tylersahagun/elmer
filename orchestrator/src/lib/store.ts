@@ -32,6 +32,7 @@ export interface ProjectCard {
     >;
   };
   // Job state
+  activeJobId?: string; // Track the actual job ID for logs drawer
   activeJobType?: string;
   activeJobProgress?: number;
   activeJobStatus?: "pending" | "running" | "completed" | "failed" | "cancelled";
@@ -201,6 +202,11 @@ interface UIState {
   settingsModalOpen: boolean;
   archivedProjectsModalOpen: boolean;
   
+  // Job Logs Drawer
+  jobLogsDrawerOpen: boolean;
+  jobLogsDrawerJobId: string | null;
+  jobLogsDrawerProjectName: string | null;
+  
   // Actions
   toggleSidebar: () => void;
   setSidebarTab: (tab: "chat" | "details" | "jobs") => void;
@@ -212,6 +218,8 @@ interface UIState {
   closeSettingsModal: () => void;
   openArchivedProjectsModal: () => void;
   closeArchivedProjectsModal: () => void;
+  openJobLogsDrawer: (jobId: string, projectName?: string) => void;
+  closeJobLogsDrawer: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -222,6 +230,9 @@ export const useUIStore = create<UIState>((set) => ({
   projectDetailModalOpen: false,
   settingsModalOpen: false,
   archivedProjectsModalOpen: false,
+  jobLogsDrawerOpen: false,
+  jobLogsDrawerJobId: null,
+  jobLogsDrawerProjectName: null,
 
   // Actions
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -234,6 +245,16 @@ export const useUIStore = create<UIState>((set) => ({
   closeSettingsModal: () => set({ settingsModalOpen: false }),
   openArchivedProjectsModal: () => set({ archivedProjectsModalOpen: true }),
   closeArchivedProjectsModal: () => set({ archivedProjectsModalOpen: false }),
+  openJobLogsDrawer: (jobId, projectName) => set({ 
+    jobLogsDrawerOpen: true, 
+    jobLogsDrawerJobId: jobId,
+    jobLogsDrawerProjectName: projectName || null,
+  }),
+  closeJobLogsDrawer: () => set({ 
+    jobLogsDrawerOpen: false, 
+    jobLogsDrawerJobId: null,
+    jobLogsDrawerProjectName: null,
+  }),
 }));
 
 // ============================================

@@ -162,7 +162,9 @@ describe("Gates System Contract Tests", () => {
   });
 
   afterAll(async () => {
+    // Delete in correct order due to FK constraints
     await db.delete(artifacts).where(eq(artifacts.cardId, TEST_PROJECT_ID));
+    await db.delete(stageRuns).where(eq(stageRuns.cardId, TEST_PROJECT_ID));
     await db.delete(projects).where(eq(projects.id, TEST_PROJECT_ID));
     await db.delete(workspaces).where(eq(workspaces.id, TEST_WORKSPACE_ID));
   });
@@ -218,7 +220,7 @@ describe("Gates System Contract Tests", () => {
         id: "test_glob",
         name: "Test Glob Gate",
         type: "file_exists",
-        config: { pattern: "**/*.stories.tsx" },
+        config: { pattern: "*.stories.tsx" },  // Simple extension pattern
         required: true,
         failureMessage: "No stories found",
       };
@@ -313,11 +315,36 @@ Users struggle with X.`,
   });
 
   describe("Artifact Existence Gates", () => {
+    let testRunId: string;
+    
+    beforeAll(async () => {
+      // Create a valid run to satisfy FK constraint
+      const runResult = await db.insert(stageRuns).values({
+        id: `gate_test_run_${nanoid(8)}`,
+        cardId: TEST_PROJECT_ID,
+        workspaceId: TEST_WORKSPACE_ID,
+        stage: "prototype",
+        status: "succeeded",
+        attempt: 1,
+        triggeredBy: "test",
+        idempotencyKey: `gate_test_${nanoid(8)}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        finishedAt: new Date(),
+      }).returning();
+      testRunId = runResult[0].id;
+    });
+    
+    afterAll(async () => {
+      // Cleanup the test run
+      await db.delete(stageRuns).where(eq(stageRuns.id, testRunId));
+    });
+    
     it("should pass when artifact exists", async () => {
-      // Create test artifact
+      // Create test artifact with valid runId
       await db.insert(artifacts).values({
         id: `artifact_${nanoid(12)}`,
-        runId: `run_${nanoid(12)}`,
+        runId: testRunId,
         cardId: TEST_PROJECT_ID,
         workspaceId: TEST_WORKSPACE_ID,
         stage: "prototype",

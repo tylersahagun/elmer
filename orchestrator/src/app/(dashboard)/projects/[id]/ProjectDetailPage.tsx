@@ -21,7 +21,13 @@ import {
   Loader2,
   AlertCircle,
   FolderGit2,
+  ExternalLink,
+  Maximize2,
+  Code2,
+  Terminal,
 } from "lucide-react";
+import { CommandExecutionPanel } from "@/components/commands";
+import { PrototypeFeedbackPanel } from "@/components/prototypes";
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -51,6 +57,24 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const handleUploadSuccess = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["project", projectId] });
   }, [queryClient, projectId]);
+
+  // Handle document save
+  const handleDocumentSave = useCallback(async (content: string) => {
+    if (!selectedDoc) return;
+    
+    const res = await fetch(`/api/documents/${selectedDoc.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    
+    if (!res.ok) {
+      throw new Error("Failed to save document");
+    }
+    
+    // Refresh project data to get updated document
+    queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+  }, [selectedDoc, queryClient, projectId]);
 
   // Mock file structure for the Files tab - in production this would come from git
   const projectFiles: FileNode[] = project?.metadata?.gitBranch ? [
@@ -153,38 +177,44 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
           transition={{ delay: 0.2 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className={cn(
-              "inline-flex h-9 w-fit items-center justify-center rounded-2xl p-1",
-              "bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)]"
-            )}>
-              <TabsTrigger value="documents" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline font-mono text-xs">Documents</span>
-              </TabsTrigger>
-              <TabsTrigger value="prototypes" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <Layers className="w-4 h-4" />
-                <span className="hidden sm:inline font-mono text-xs">Prototypes</span>
-              </TabsTrigger>
-              <TabsTrigger value="files" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <FolderGit2 className="w-4 h-4" />
-                <span className="hidden sm:inline font-mono text-xs">Files</span>
-              </TabsTrigger>
-              <TabsTrigger value="metrics" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <BarChart3 className="w-4 h-4" />
-                <span className="hidden sm:inline font-mono text-xs">Metrics</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <Clock className="w-4 h-4" />
-                <span className="hidden sm:inline font-mono text-xs">History</span>
-              </TabsTrigger>
-              <TabsTrigger value="validation" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline font-mono text-xs">Validation</span>
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-4 sm:-mx-8 px-4 sm:px-8 pb-2">
+              <TabsList className={cn(
+                "inline-flex h-9 w-fit items-center justify-start sm:justify-center rounded-2xl p-1",
+                "bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)]"
+              )}>
+                <TabsTrigger value="documents" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap">
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">Documents</span>
+                </TabsTrigger>
+                <TabsTrigger value="prototypes" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap">
+                  <Layers className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">Prototypes</span>
+                </TabsTrigger>
+                <TabsTrigger value="files" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap">
+                  <FolderGit2 className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">Files</span>
+                </TabsTrigger>
+                <TabsTrigger value="metrics" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap">
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">Metrics</span>
+                </TabsTrigger>
+                <TabsTrigger value="history" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap">
+                  <Clock className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">History</span>
+                </TabsTrigger>
+                <TabsTrigger value="validation" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap">
+                  <Users className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">Validation</span>
+                </TabsTrigger>
+                <TabsTrigger value="commands" className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap">
+                  <Terminal className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">Commands</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="documents" className="mt-6">
-              <div className="flex gap-4 min-h-[calc(100vh-320px)]">
+              <div className="flex flex-col lg:flex-row gap-4 min-h-[calc(100vh-320px)]">
                 <DocumentSidebar
                   documents={(project.documents || []).map((doc: { id: string; title: string; type: string; content: string; version: number; createdAt: string; updatedAt: string; metadata?: { generatedBy?: "user" | "ai"; model?: string; reviewStatus?: "draft" | "reviewed" | "approved" } }) => ({
                     ...doc,
@@ -194,9 +224,9 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                   selectedId={selectedDocId || project.documents?.[0]?.id}
                   onSelect={(doc) => setSelectedDocId(doc.id)}
                   onUpload={() => setIsUploadDialogOpen(true)}
-                  className="h-full"
+                  className="h-auto lg:h-full"
                 />
-                <Window title="document-viewer" className="flex-1 h-full" contentClassName="p-0">
+                <Window title="document-viewer" className="flex-1 min-h-[400px] lg:min-h-0 h-full" contentClassName="p-0">
                   {selectedDoc ? (
                     <DocumentViewer
                       document={{
@@ -204,6 +234,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                         createdAt: new Date(selectedDoc.createdAt),
                         updatedAt: new Date(selectedDoc.updatedAt),
                       }}
+                      onSave={handleDocumentSave}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full p-6 text-muted-foreground">
@@ -218,30 +249,17 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="prototypes" className="mt-6">
-              <Window title="ls ./prototypes">
-                <div className="space-y-3">
-                  {project.prototypes?.length > 0 ? (
-                    project.prototypes.map((proto: { id: string; name: string; type: string; status: string }) => (
-                      <div key={proto.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.08)]">
-                        <div>
-                          <p className="text-sm font-medium">{proto.name}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{proto.type}</p>
-                        </div>
-                        <Badge variant="outline" className="font-mono border-border dark:border-[rgba(255,255,255,0.14)]">
-                          {proto.status}
-                        </Badge>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground font-mono">// No prototypes yet.</p>
-                  )}
-                </div>
-              </Window>
+              <PrototypesSection 
+                prototypes={project.prototypes || []} 
+                projectId={projectId}
+                projectName={project.name}
+                workspaceId={project.workspaceId}
+              />
             </TabsContent>
 
             <TabsContent value="files" className="mt-6">
               {project.metadata?.gitBranch ? (
-                <div className="flex gap-4 min-h-[calc(100vh-320px)]">
+                <div className="flex flex-col lg:flex-row gap-4 min-h-[calc(100vh-320px)]">
                   <FilesSidebar
                     projectId={projectId}
                     branchName={project.metadata.gitBranch}
@@ -254,9 +272,9 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                     onRefresh={() => {
                       console.log("Refresh files");
                     }}
-                    className="h-full"
+                    className="h-auto lg:h-full"
                   />
-                  <Window title="file-viewer" className="flex-1 h-full" contentClassName="p-0">
+                  <Window title="file-viewer" className="flex-1 min-h-[400px] lg:min-h-0 h-full" contentClassName="p-0">
                     <FileViewer
                       file={selectedFile}
                       onSave={async (path, content) => {
@@ -319,6 +337,19 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                 </div>
               </Window>
             </TabsContent>
+
+            <TabsContent value="commands" className="mt-6">
+              <Window title="elmer --commands">
+                {project.workspaceId && (
+                  <CommandExecutionPanel
+                    projectId={projectId}
+                    projectName={project.name}
+                    workspaceId={project.workspaceId}
+                    currentStage={project.stage || "inbox"}
+                  />
+                )}
+              </Window>
+            </TabsContent>
           </Tabs>
         </motion.div>
       </main>
@@ -333,6 +364,233 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
           onSuccess={handleUploadSuccess}
         />
       )}
+    </div>
+  );
+}
+
+// ============================================
+// Prototypes Section with Storybook/Chromatic Embed
+// ============================================
+
+interface IterationEntry {
+  version: string;
+  date: string;
+  prototype_type?: string;
+  focus?: string;
+  feedback_source?: string;
+}
+
+interface Prototype {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  chromaticUrl?: string;
+  chromaticStorybookUrl?: string;
+  chromaticBuildId?: string;
+  storybookPath?: string;
+  metadata?: {
+    stories?: string[];
+    components?: string[];
+    iterationHistory?: IterationEntry[];
+  };
+}
+
+interface PrototypesSectionProps {
+  prototypes: Prototype[];
+  projectId: string;
+  projectName: string;
+  workspaceId: string;
+}
+
+function PrototypesSection({ prototypes, projectId, projectName, workspaceId }: PrototypesSectionProps) {
+  const [selectedPrototype, setSelectedPrototype] = useState<Prototype | null>(
+    prototypes.find(p => p.chromaticStorybookUrl) || prototypes[0] || null
+  );
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Check if there's any prototype with a Storybook URL
+  const hasStorybookUrl = prototypes.some(p => p.chromaticStorybookUrl);
+
+  if (prototypes.length === 0) {
+    return (
+      <Window title="ls ./prototypes">
+        <div className="py-12 text-center">
+          <Layers className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+          <h3 className="text-lg font-medium mb-2">No Prototypes Yet</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto font-mono">
+            // Run the prototype command to generate a Storybook component.
+          </p>
+        </div>
+      </Window>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Prototype selector if multiple */}
+      {prototypes.length > 1 && (
+        <Window title="ls ./prototypes">
+          <div className="flex flex-wrap gap-2">
+            {prototypes.map((proto) => (
+              <Button
+                key={proto.id}
+                variant={selectedPrototype?.id === proto.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedPrototype(proto)}
+                className="gap-2 font-mono text-xs"
+              >
+                <Code2 className="w-3 h-3" />
+                {proto.name}
+                {proto.chromaticStorybookUrl && (
+                  <span className="w-2 h-2 rounded-full bg-green-400" title="Has Storybook preview" />
+                )}
+              </Button>
+            ))}
+          </div>
+        </Window>
+      )}
+
+      {/* Selected prototype details */}
+      {selectedPrototype && (
+        <Window 
+          title={`cat ${selectedPrototype.name.toLowerCase().replace(/\s+/g, '-')}/info`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-medium">{selectedPrototype.name}</h3>
+              <p className="text-xs text-muted-foreground font-mono">{selectedPrototype.type}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="font-mono border-border dark:border-[rgba(255,255,255,0.14)]">
+                {selectedPrototype.status}
+              </Badge>
+              {selectedPrototype.chromaticUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="gap-1.5 font-mono text-xs"
+                >
+                  <a href={selectedPrototype.chromaticUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-3 h-3" />
+                    Chromatic
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Storybook iframe embed */}
+          {selectedPrototype.chromaticStorybookUrl ? (
+            <div className="relative">
+              <div className="absolute top-2 right-2 z-10 flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+                  asChild
+                >
+                  <a 
+                    href={selectedPrototype.chromaticStorybookUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    title="Open in new tab"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </Button>
+              </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={cn(
+                  "rounded-xl overflow-hidden border border-border dark:border-[rgba(255,255,255,0.08)]",
+                  isFullscreen && "fixed inset-4 z-50 bg-background"
+                )}
+              >
+                {isFullscreen && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={() => setIsFullscreen(false)}
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                <iframe
+                  src={selectedPrototype.chromaticStorybookUrl}
+                  className={cn(
+                    "w-full bg-white",
+                    isFullscreen ? "h-full" : "h-[400px] sm:h-[500px] lg:h-[600px]"
+                  )}
+                  title={`${selectedPrototype.name} Storybook Preview`}
+                  allow="fullscreen"
+                />
+              </motion.div>
+              {isFullscreen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+                  onClick={() => setIsFullscreen(false)}
+                />
+              )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center">
+              <Code2 className="w-8 h-8 mx-auto mb-3 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground font-mono mb-2">
+                // No Storybook preview available
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Deploy to Chromatic to enable live preview embedding.
+              </p>
+            </div>
+          )}
+        </Window>
+      )}
+
+      {/* Prototype list (for single prototype without Storybook or additional info) */}
+      {!hasStorybookUrl && prototypes.length === 1 && (
+        <Window title="ls ./prototypes">
+          <div className="space-y-3">
+            {prototypes.map((proto) => (
+              <div key={proto.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                <div>
+                  <p className="text-sm font-medium">{proto.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{proto.type}</p>
+                </div>
+                <Badge variant="outline" className="font-mono border-border dark:border-[rgba(255,255,255,0.14)]">
+                  {proto.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Window>
+      )}
+
+      {/* Prototype Feedback & Iteration */}
+      <PrototypeFeedbackPanel
+        projectId={projectId}
+        projectName={projectName}
+        workspaceId={workspaceId}
+        prototypeId={selectedPrototype?.id}
+        prototypeName={selectedPrototype?.name}
+        iterationHistory={selectedPrototype?.metadata?.iterationHistory}
+      />
     </div>
   );
 }

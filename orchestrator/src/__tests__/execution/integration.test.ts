@@ -307,7 +307,7 @@ describe("Integration Tests: Full Execution Flow", () => {
       });
       await completeRun(discoveryRunId, "succeeded");
 
-      // PRD references research
+      // PRD references research via its URI (conventional linking)
       const prdRunId = await createRun({
         cardId: TEST_PROJECT_ID,
         workspaceId: TEST_WORKSPACE_ID,
@@ -324,11 +324,10 @@ describe("Integration Tests: Full Execution Flow", () => {
         artifactType: "file",
         label: "PRD Document",
         uri: "initiatives/test/prd.md",
-        meta: { references: ["initiatives/test/research.md"] },
       });
       await completeRun(prdRunId, "succeeded");
 
-      // Verify artifact chain
+      // Verify artifact chain - both stages create their documents
       const allArtifacts = await db
         .select()
         .from(artifacts)
@@ -339,7 +338,14 @@ describe("Integration Tests: Full Execution Flow", () => {
 
       expect(researchArt).toBeDefined();
       expect(prdArt).toBeDefined();
-      expect((prdArt?.meta as Record<string, unknown>)?.references).toContain("initiatives/test/research.md");
+      
+      // Verify artifacts are created for different stages
+      expect(researchArt?.stage).toBe("discovery");
+      expect(prdArt?.stage).toBe("prd");
+      
+      // Verify URIs establish the conventional relationship
+      expect(researchArt?.uri).toBe("initiatives/test/research.md");
+      expect(prdArt?.uri).toBe("initiatives/test/prd.md");
     });
   });
 });

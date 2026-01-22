@@ -1,5 +1,6 @@
-import { pgTable, text, integer, real, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, timestamp, boolean, jsonb, unique, primaryKey } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 // ============================================
 // WORKSPACES
@@ -65,6 +66,103 @@ export interface WorkspaceSettings {
   stateTrackingEnabled?: boolean; // Auto-generate state.md documents
   aiVerificationModel?: string; // Model for AI-based verification checks
 }
+
+// ============================================
+// USERS (Authentication)
+// ============================================
+
+export const users = pgTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  image: text("image"),
+  passwordHash: text("password_hash"), // null for OAuth-only users
+  emailVerified: timestamp("email_verified"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ============================================
+// AUTH.JS ADAPTER TABLES
+// ============================================
+
+export const sessions = pgTable("sessions", {
+  sessionToken: text("session_token").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires").notNull(),
+});
+
+export const accounts = pgTable("accounts", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  provider: text("provider").notNull(),
+  providerAccountId: text("provider_account_id").notNull(),
+  refresh_token: text("refresh_token"),
+  access_token: text("access_token"),
+  expires_at: integer("expires_at"),
+  token_type: text("token_type"),
+  scope: text("scope"),
+  id_token: text("id_token"),
+  session_state: text("session_state"),
+}, (table) => ({
+  providerUnique: unique().on(table.provider, table.providerAccountId),
+}));
+
+export const verificationTokens = pgTable("verification_tokens", {
+  identifier: text("identifier").notNull(),
+  token: text("token").notNull(),
+  expires: timestamp("expires").notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.identifier, table.token] }),
+}));
+
+// ============================================
+// WORKSPACE MEMBERS (Collaboration)
+// ============================================
+
+export type WorkspaceRole = "admin" | "member" | "viewer";
+
+export const workspaceMembers = pgTable("workspace_members", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").$type<WorkspaceRole>().notNull().default("member"),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueMembership: unique().on(table.workspaceId, table.userId),
+}));
+
+// ============================================
+// INVITATIONS
+// ============================================
+
+export const invitations = pgTable("invitations", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role").$type<WorkspaceRole>().notNull().default("member"),
+  token: text("token").notNull().unique(),
+  invitedBy: text("invited_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ============================================
+// ACTIVITY LOGS (Audit Trail)
+// ============================================
+
+export const activityLogs = pgTable("activity_logs", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(), // e.g., 'project.created', 'member.invited'
+  targetType: text("target_type"), // 'project', 'workspace', 'member'
+  targetId: text("target_id"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 // ============================================
 // PROJECTS
@@ -543,6 +641,12 @@ export interface ArtifactMetadata {
 export type SkillSource = "local" | "skillsmp";
 export type TrustLevel = "vetted" | "community" | "experimental";
 
+export interface SkillMetadata {
+  aiSummary?: string;
+  generatedAt?: string;
+  [key: string]: unknown;
+}
+
 export const skills = pgTable("skills", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
@@ -554,6 +658,7 @@ export const skills = pgTable("skills", {
   promptTemplate: text("prompt_template"), // system prompt content
   trustLevel: text("trust_level").$type<TrustLevel>().notNull().default("community"),
   remoteMetadata: jsonb("remote_metadata").$type<SkillRemoteMetadata>(),
+  metadata: jsonb("metadata").$type<SkillMetadata>(), // General metadata including AI summaries
   inputSchema: jsonb("input_schema").$type<Record<string, unknown>>(),
   outputSchema: jsonb("output_schema").$type<Record<string, unknown>>(),
   tags: jsonb("tags").$type<string[]>().default([]),
@@ -670,6 +775,69 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   knowledgebaseEntries: many(knowledgebaseEntries),
   knowledgeSources: many(knowledgeSources),
   notifications: many(notifications),
+  // Multi-user collaboration
+  members: many(workspaceMembers),
+  invitations: many(invitations),
+  activityLogs: many(activityLogs),
+}));
+
+// ============================================
+// USER & AUTH RELATIONS
+// ============================================
+
+export const usersRelations = relations(users, ({ many }) => ({
+  accounts: many(accounts),
+  sessions: many(sessions),
+  workspaceMembers: many(workspaceMembers),
+  invitationsSent: many(invitations),
+  activityLogs: many(activityLogs),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
+}));
+
+export const workspaceMembersRelations = relations(workspaceMembers, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [workspaceMembers.workspaceId],
+    references: [workspaces.id],
+  }),
+  user: one(users, {
+    fields: [workspaceMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [invitations.workspaceId],
+    references: [workspaces.id],
+  }),
+  inviter: one(users, {
+    fields: [invitations.invitedBy],
+    references: [users.id],
+  }),
+}));
+
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [activityLogs.workspaceId],
+    references: [workspaces.id],
+  }),
+  user: one(users, {
+    fields: [activityLogs.userId],
+    references: [users.id],
+  }),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -871,5 +1039,85 @@ export const stageTransitionEventsRelations = relations(stageTransitionEvents, (
   run: one(stageRuns, {
     fields: [stageTransitionEvents.runId],
     references: [stageRuns.id],
+  }),
+}));
+
+// ============================================
+// INBOX ITEMS - Documents/Transcripts waiting to be processed
+// ============================================
+
+export type InboxItemType = "transcript" | "document" | "signal" | "feedback";
+export type InboxItemSource = "webhook" | "upload" | "email" | "api" | "sync";
+export type InboxItemStatus = "pending" | "processing" | "assigned" | "dismissed";
+
+export interface ExtractedProblem {
+  problem: string;
+  quote?: string;
+  persona?: string;
+  severity?: "high" | "medium" | "low";
+  frequency?: "common" | "occasional" | "rare";
+}
+
+export interface HypothesisMatch {
+  hypothesisId?: string;
+  hypothesisName: string;
+  similarity: number;
+  matchType: "existing" | "candidate";
+}
+
+export interface InboxItemMetadata {
+  // Source-specific metadata
+  sourceUrl?: string;
+  sourceName?: string;
+  // For transcripts
+  participants?: string[];
+  duration?: number; // in seconds
+  // For webhooks
+  webhookId?: string;
+  webhookName?: string;
+  // For documents
+  fileType?: string;
+  fileSize?: number;
+  // Processing results
+  suggestedProjectId?: string;
+  suggestedProjectName?: string;
+  suggestedAction?: string;
+  extractedInsights?: string[];
+  suggestedPersonaId?: string;
+  suggestedPersonaName?: string;
+  // Tags
+  tags?: string[];
+}
+
+export const inboxItems = pgTable("inbox_items", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  type: text("type").$type<InboxItemType>().notNull(),
+  source: text("source").$type<InboxItemSource>().notNull(),
+  sourceRef: text("source_ref"), // External reference ID
+  title: text("title").notNull(),
+  rawContent: text("raw_content").notNull(),
+  processedContent: text("processed_content"), // AI-summarized version
+  status: text("status").$type<InboxItemStatus>().notNull().default("pending"),
+  assignedProjectId: text("assigned_project_id").references(() => projects.id, { onDelete: "set null" }),
+  assignedPersonaId: text("assigned_persona_id"), // Persona archetype ID
+  assignedAction: text("assigned_action"), // What to do with it (e.g., "research", "feedback", "persona")
+  aiSummary: text("ai_summary"), // AI-generated TL;DR
+  extractedProblems: jsonb("extracted_problems").$type<ExtractedProblem[]>(),
+  hypothesisMatches: jsonb("hypothesis_matches").$type<HypothesisMatch[]>(),
+  metadata: jsonb("metadata").$type<InboxItemMetadata>(),
+  createdAt: timestamp("created_at").notNull(),
+  processedAt: timestamp("processed_at"),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const inboxItemsRelations = relations(inboxItems, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [inboxItems.workspaceId],
+    references: [workspaces.id],
+  }),
+  assignedProject: one(projects, {
+    fields: [inboxItems.assignedProjectId],
+    references: [projects.id],
   }),
 }));
