@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { LinkedTag } from "./LinkedTag";
+import { ProjectLinkCombobox } from "./ProjectLinkCombobox";
+import { PersonaLinkCombobox } from "./PersonaLinkCombobox";
 import {
   Loader2,
   ChevronDown,
@@ -53,6 +56,24 @@ interface SignalDetailModalProps {
   onClose: () => void;
   onUpdate: () => void;
   onDelete: () => void;
+}
+
+// Types for linked data
+interface LinkedProject {
+  id: string;
+  name: string;
+  linkedAt: string;
+  linkReason?: string;
+}
+
+interface LinkedPersona {
+  personaId: string;
+  linkedAt: string;
+}
+
+interface PersonaArchetype {
+  archetype_id: string;
+  name: string;
 }
 
 // Status color mapping
@@ -155,6 +176,106 @@ export function SignalDetailModal({
       queryClient.invalidateQueries({ queryKey: ["signals"] });
       onDelete();
       onClose();
+    },
+  });
+
+  // Fetch linked projects and personas
+  const { data: linkedData, refetch: refetchLinks } = useQuery({
+    queryKey: ["signal-links", signal?.id],
+    queryFn: async () => {
+      if (!signal) return { projects: [], personas: [] };
+
+      const [projectsRes, personasRes] = await Promise.all([
+        fetch(`/api/signals/${signal.id}/projects`),
+        fetch(`/api/signals/${signal.id}/personas`),
+      ]);
+
+      const projects = projectsRes.ok ? (await projectsRes.json()).projects as LinkedProject[] : [];
+      const personas = personasRes.ok ? (await personasRes.json()).personas as LinkedPersona[] : [];
+
+      return { projects, personas };
+    },
+    enabled: !!signal && isOpen,
+  });
+
+  // Fetch persona names for display
+  const { data: personasData } = useQuery({
+    queryKey: ["personas"],
+    queryFn: async () => {
+      const res = await fetch("/api/personas");
+      if (!res.ok) return { personas: [] };
+      return res.json() as Promise<{ personas: PersonaArchetype[] }>;
+    },
+  });
+
+  // Map persona IDs to names
+  const personaNameMap = new Map(
+    (personasData?.personas || []).map((p) => [p.archetype_id, p.name])
+  );
+
+  // Link/unlink project mutations
+  const linkProjectMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const res = await fetch(`/api/signals/${signal!.id}/projects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      if (!res.ok) throw new Error("Failed to link project");
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchLinks();
+      queryClient.invalidateQueries({ queryKey: ["signals"] });
+    },
+  });
+
+  const unlinkProjectMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const res = await fetch(`/api/signals/${signal!.id}/projects`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      if (!res.ok) throw new Error("Failed to unlink project");
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchLinks();
+      queryClient.invalidateQueries({ queryKey: ["signals"] });
+    },
+  });
+
+  // Link/unlink persona mutations
+  const linkPersonaMutation = useMutation({
+    mutationFn: async (personaId: string) => {
+      const res = await fetch(`/api/signals/${signal!.id}/personas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personaId }),
+      });
+      if (!res.ok) throw new Error("Failed to link persona");
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchLinks();
+      queryClient.invalidateQueries({ queryKey: ["signals"] });
+    },
+  });
+
+  const unlinkPersonaMutation = useMutation({
+    mutationFn: async (personaId: string) => {
+      const res = await fetch(`/api/signals/${signal!.id}/personas`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personaId }),
+      });
+      if (!res.ok) throw new Error("Failed to unlink persona");
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchLinks();
+      queryClient.invalidateQueries({ queryKey: ["signals"] });
     },
   });
 
@@ -310,6 +431,49 @@ export function SignalDetailModal({
                 </Button>
               </div>
             )}
+
+            {/* Linked Projects */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <Label className="text-xs text-muted-foreground">Linked Projects</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {(linkedData?.projects || []).map((project) => (
+                  <LinkedTag
+                    key={project.id}
+                    label={project.name}
+                    variant="project"
+                    onRemove={() => unlinkProjectMutation.mutate(project.id)}
+                    isLoading={unlinkProjectMutation.isPending}
+                  />
+                ))}
+                <ProjectLinkCombobox
+                  workspaceId={signal.workspaceId}
+                  excludeProjectIds={(linkedData?.projects || []).map((p) => p.id)}
+                  onSelect={(projectId) => linkProjectMutation.mutate(projectId)}
+                  isLoading={linkProjectMutation.isPending}
+                />
+              </div>
+            </div>
+
+            {/* Linked Personas */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <Label className="text-xs text-muted-foreground">Linked Personas</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {(linkedData?.personas || []).map((persona) => (
+                  <LinkedTag
+                    key={persona.personaId}
+                    label={personaNameMap.get(persona.personaId) || persona.personaId}
+                    variant="persona"
+                    onRemove={() => unlinkPersonaMutation.mutate(persona.personaId)}
+                    isLoading={unlinkPersonaMutation.isPending}
+                  />
+                ))}
+                <PersonaLinkCombobox
+                  excludePersonaIds={(linkedData?.personas || []).map((p) => p.personaId)}
+                  onSelect={(personaId) => linkPersonaMutation.mutate(personaId)}
+                  isLoading={linkPersonaMutation.isPending}
+                />
+              </div>
+            </div>
 
             {/* Collapsible technical details */}
             <div className="pt-2 border-t border-border">
