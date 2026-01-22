@@ -19,6 +19,8 @@ import {
   activityLogs,
   users,
   signals,
+  signalProjects,
+  signalPersonas,
   type ProjectStage as ProjectStageType,
   type JobType,
   type JobStatus,
@@ -1451,4 +1453,147 @@ export async function updateSignal(
 export async function deleteSignal(id: string) {
   await db.delete(signals).where(eq(signals.id, id));
   return { id };
+}
+
+// ============================================
+// SIGNAL ASSOCIATION QUERIES
+// ============================================
+
+/**
+ * Get a signal with its linked projects and personas
+ */
+export async function getSignalWithLinks(id: string) {
+  return db.query.signals.findFirst({
+    where: eq(signals.id, id),
+    with: {
+      projects: {
+        with: {
+          project: true,
+        },
+      },
+      personas: true,
+    },
+  });
+}
+
+/**
+ * Link a signal to a project
+ */
+export async function linkSignalToProject(
+  signalId: string,
+  projectId: string,
+  linkedBy: string,
+  linkReason?: string
+) {
+  const id = uuid();
+
+  await db.insert(signalProjects).values({
+    id,
+    signalId,
+    projectId,
+    linkedBy,
+    linkReason,
+  });
+
+  return db.query.signalProjects.findFirst({
+    where: eq(signalProjects.id, id),
+  });
+}
+
+/**
+ * Unlink a signal from a project
+ */
+export async function unlinkSignalFromProject(
+  signalId: string,
+  projectId: string
+) {
+  await db
+    .delete(signalProjects)
+    .where(
+      and(
+        eq(signalProjects.signalId, signalId),
+        eq(signalProjects.projectId, projectId)
+      )
+    );
+
+  return { deleted: true };
+}
+
+/**
+ * Link a signal to a persona
+ */
+export async function linkSignalToPersona(
+  signalId: string,
+  personaId: string,
+  linkedBy: string
+) {
+  const id = uuid();
+
+  await db.insert(signalPersonas).values({
+    id,
+    signalId,
+    personaId,
+    linkedBy,
+  });
+
+  return db.query.signalPersonas.findFirst({
+    where: eq(signalPersonas.id, id),
+  });
+}
+
+/**
+ * Unlink a signal from a persona
+ */
+export async function unlinkSignalFromPersona(
+  signalId: string,
+  personaId: string
+) {
+  await db
+    .delete(signalPersonas)
+    .where(
+      and(
+        eq(signalPersonas.signalId, signalId),
+        eq(signalPersonas.personaId, personaId)
+      )
+    );
+
+  return { deleted: true };
+}
+
+/**
+ * Get all signals linked to a project with pagination
+ */
+export async function getSignalsForProject(
+  projectId: string,
+  options?: { limit?: number; offset?: number }
+) {
+  const { limit = 50, offset = 0 } = options || {};
+
+  const links = await db.query.signalProjects.findMany({
+    where: eq(signalProjects.projectId, projectId),
+    with: {
+      signal: true,
+    },
+    orderBy: [desc(signalProjects.linkedAt)],
+    limit,
+    offset,
+  });
+
+  return links.map((link) => ({
+    ...link.signal,
+    linkedAt: link.linkedAt,
+    linkReason: link.linkReason,
+  }));
+}
+
+/**
+ * Count how many projects a signal is linked to
+ */
+export async function countSignalProjectLinks(signalId: string) {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(signalProjects)
+    .where(eq(signalProjects.signalId, signalId));
+
+  return Number(result[0]?.count ?? 0);
 }
