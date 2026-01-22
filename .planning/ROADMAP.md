@@ -12,7 +12,7 @@ Transform elmer from a single-user PM orchestrator into a multi-tenant team coll
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Schema & Auth Foundation** - Database schema extensions and Auth.js configuration
+- [x] **Phase 1: Schema & Auth Foundation** - Database schema extensions and Auth.js configuration ✓
 - [ ] **Phase 2: User Registration** - Email/password signup and Google OAuth
 - [ ] **Phase 3: Session Management** - Login, logout, password reset, session persistence
 - [ ] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher
@@ -39,8 +39,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Database schema extensions (users, workspaceMembers, invitations, activityLogs)
-- [ ] 01-02: Auth.js configuration with Drizzle adapter
+- [x] 01-01: Database schema extensions (users, workspaceMembers, invitations, activityLogs) ✓
+- [x] 01-02: Auth.js configuration with Drizzle adapter ✓
+
+**Completed:** 2026-01-22 | 2 plans | ~50 minutes
 
 ### Phase 2: User Registration
 **Goal**: Users can create accounts with email/password or Google OAuth

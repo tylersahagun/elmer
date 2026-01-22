@@ -14,7 +14,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **AUTH-03**: User can reset password via email link
 - [ ] **AUTH-04**: User session persists across browser refresh
 - [ ] **AUTH-05**: User can sign out and session is cleared
-- [ ] **AUTH-06**: Passwords are securely hashed with bcryptjs
+- [x] **AUTH-06**: Passwords are securely hashed with bcryptjs ✓
 
 ### User Management
 
@@ -134,7 +134,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-03 | Phase 3 | Pending |
 | AUTH-04 | Phase 3 | Pending |
 | AUTH-05 | Phase 3 | Pending |
-| AUTH-06 | Phase 1 | Pending |
+| AUTH-06 | Phase 1 | Complete |
 | USER-01 | Phase 2 | Pending |
 | USER-02 | Phase 9 | Pending |
 | USER-03 | Phase 9 | Pending |
