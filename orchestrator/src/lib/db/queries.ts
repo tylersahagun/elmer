@@ -16,6 +16,8 @@ import {
   prototypeVersions,
   notifications,
   workspaceMembers,
+  activityLogs,
+  users,
   type ProjectStage as ProjectStageType,
   type JobType,
   type JobStatus,
@@ -1202,4 +1204,58 @@ export async function createJobNotification(
   }
   
   return null;
+}
+
+// ============================================
+// ACTIVITY LOG QUERIES
+// ============================================
+
+export interface ActivityLogWithUser {
+  id: string;
+  workspaceId: string;
+  userId: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  } | null;
+}
+
+export async function getWorkspaceActivityLogs(
+  workspaceId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<ActivityLogWithUser[]> {
+  const { limit = 50, offset = 0 } = options || {};
+  
+  const logs = await db
+    .select({
+      id: activityLogs.id,
+      workspaceId: activityLogs.workspaceId,
+      userId: activityLogs.userId,
+      action: activityLogs.action,
+      targetType: activityLogs.targetType,
+      targetId: activityLogs.targetId,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+      user: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        image: users.image,
+      },
+    })
+    .from(activityLogs)
+    .leftJoin(users, eq(activityLogs.userId, users.id))
+    .where(eq(activityLogs.workspaceId, workspaceId))
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(limit)
+    .offset(offset);
+  
+  return logs;
 }
