@@ -1215,3 +1215,29 @@ export const signals = pgTable("signals", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   processedAt: timestamp("processed_at"),         // When AI extraction completed
 });
+
+// ============================================
+// SIGNAL ASSOCIATIONS (Junction Tables)
+// ============================================
+
+export const signalProjects = pgTable("signal_projects", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  signalId: text("signal_id").notNull().references(() => signals.id, { onDelete: "cascade" }),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  linkedAt: timestamp("linked_at").defaultNow().notNull(),
+  linkedBy: text("linked_by").references(() => users.id, { onDelete: "set null" }),
+  linkReason: text("link_reason"),    // Why this signal relates to this project
+  confidence: real("confidence"),      // AI confidence score (0-1) if auto-linked
+}, (table) => ({
+  uniqueSignalProject: unique().on(table.signalId, table.projectId),
+}));
+
+export const signalPersonas = pgTable("signal_personas", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  signalId: text("signal_id").notNull().references(() => signals.id, { onDelete: "cascade" }),
+  personaId: text("persona_id").notNull(),  // References persona archetype name (not FK)
+  linkedAt: timestamp("linked_at").defaultNow().notNull(),
+  linkedBy: text("linked_by").references(() => users.id, { onDelete: "set null" }),
+}, (table) => ({
+  uniqueSignalPersona: unique().on(table.signalId, table.personaId),
+}));
