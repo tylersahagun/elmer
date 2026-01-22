@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher ✓
 - [x] **Phase 5: Invitation System** - Invite links for workspace collaboration ✓
 - [x] **Phase 6: Role Enforcement** - Permission checks in API and UI ✓
-- [ ] **Phase 7: Activity Logging** - Audit trail for workspace actions
+- [x] **Phase 7: Activity Logging** - Audit trail for workspace actions ✓
 - [ ] **Phase 8: Data Migration** - Assign existing data to first user
 - [ ] **Phase 9: UI Integration** - Landing page, protected routes, auth state in nav
 - [ ] **Phase 10: Testing & Hardening** - Comprehensive auth and permission tests
@@ -163,9 +163,11 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 07-01: Activity service with logging functions
-- [ ] 07-02: Integrate activity logging into existing operations
-- [ ] 07-03: Activity feed UI in workspace settings
+- [x] 07-01: Activity service with logging functions ✓
+- [x] 07-02: Integrate activity logging into existing operations ✓
+- [x] 07-03: Activity feed UI in workspace settings ✓
+
+**Completed:** 2026-01-22 | All plans complete.
 
 ### Phase 8: Data Migration
 **Goal**: Existing workspaces and projects are owned by first user
@@ -234,11 +236,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Workspace Ownership | 3/3 | ✓ Complete | 2026-01-22 |
 | 5. Invitation System | 3/3 | ✓ Complete | 2026-01-22 |
 | 6. Role Enforcement | 3/3 | ✓ Complete | 2026-01-22 |
-| 7. Activity Logging | 0/3 | Not started | - |
+| 7. Activity Logging | 3/3 | ✓ Complete | 2026-01-22 |
 | 8. Data Migration | 0/2 | Not started | - |
 | 9. UI Integration | 0/3 | Not started | - |
 | 10. Testing & Hardening | 0/4 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 after Phase 6 completion*
+*Last updated: 2026-01-22 after Phase 7 completion*
