@@ -20,6 +20,8 @@ interface SignalRowProps {
     source: string;
     severity?: string | null;
     createdAt: string;
+    linkedProjects?: Array<{ id: string; name: string }>;
+    linkedPersonas?: Array<{ personaId: string }>;
   };
   onView: (signal: SignalRowProps["signal"]) => void;
   onDelete: (id: string) => void;
@@ -50,6 +52,52 @@ const SEVERITY_COLORS: Record<string, string> = {
   medium: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
   low: "bg-green-500/20 text-green-300 border-green-500/30",
 };
+
+const PROJECT_BADGE_COLOR = "bg-blue-500/20 text-blue-300 border-blue-500/30";
+const PERSONA_BADGE_COLOR = "bg-violet-500/20 text-violet-300 border-violet-500/30";
+
+interface AssociationBadgeProps<T> {
+  items: T[];
+  variant: "project" | "persona";
+  getLabel: (item: T) => string;
+  getId: (item: T) => string;
+  onNavigate?: (id: string) => void;
+}
+
+function AssociationBadge<T>({
+  items,
+  variant,
+  getLabel,
+  getId,
+  onNavigate,
+}: AssociationBadgeProps<T>) {
+  if (!items || items.length === 0) {
+    return <span className="text-muted-foreground text-xs">-</span>;
+  }
+
+  const first = items[0];
+  const remaining = items.length - 1;
+  const colorClass = variant === "project" ? PROJECT_BADGE_COLOR : PERSONA_BADGE_COLOR;
+
+  return (
+    <div className="flex items-center gap-1">
+      <Badge
+        className={cn("text-[10px] cursor-pointer hover:opacity-80", colorClass)}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onNavigate) {
+            onNavigate(getId(first));
+          }
+        }}
+      >
+        {truncateText(getLabel(first), 15)}
+      </Badge>
+      {remaining > 0 && (
+        <span className="text-[10px] text-muted-foreground">+{remaining}</span>
+      )}
+    </div>
+  );
+}
 
 function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
@@ -86,6 +134,29 @@ export function SignalRow({ signal, onView, onDelete }: SignalRowProps) {
         <Badge className={cn("text-[10px] capitalize", sourceColor)}>
           {signal.source}
         </Badge>
+      </td>
+
+      {/* Projects */}
+      <td className="py-3 px-4">
+        <AssociationBadge
+          items={signal.linkedProjects || []}
+          variant="project"
+          getLabel={(p) => p.name}
+          getId={(p) => p.id}
+          onNavigate={(projectId) => {
+            window.open(`/projects/${projectId}`, "_blank");
+          }}
+        />
+      </td>
+
+      {/* Personas */}
+      <td className="py-3 px-4">
+        <AssociationBadge
+          items={signal.linkedPersonas || []}
+          variant="persona"
+          getLabel={(p) => p.personaId}
+          getId={(p) => p.personaId}
+        />
       </td>
 
       {/* Severity */}
