@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 12 of 20 (Signal Management UI)
-Plan: 2 of ? in progress
+Plan: 3 of ? complete
 Status: In progress
-Last activity: 2026-01-22 — Completed 12-02-PLAN.md (Signal List UI)
+Last activity: 2026-01-22 — Completed 12-03-PLAN.md (Signal Entry & Detail Modals)
 
-Progress: [██░░░░░░░░] 17%
+Progress: [██░░░░░░░░] 18%
 
 ## Performance Metrics
 
@@ -24,10 +24,10 @@ Progress: [██░░░░░░░░] 17%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 3
+- Total plans completed: 4
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
-- Phase 12: 2/? plans complete
+- Phase 12: 3/? plans complete
 
 ## Accumulated Context
 
@@ -52,6 +52,9 @@ Recent decisions affecting current work:
 - v1.1 (12-02): Debounce search input by 300ms to reduce API calls
 - v1.1 (12-02): Default sort by createdAt descending (newest first)
 - v1.1 (12-02): Reset pagination to page 1 when filters change
+- v1.1 (12-03): Limit manual entry sources to paste, interview, email, other
+- v1.1 (12-03): Quick status actions (Mark Reviewed, Archive) without edit mode
+- v1.1 (12-03): Collapsible technical details for metadata/IDs/timestamps
 
 ### Pending Todos
 
@@ -66,8 +69,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 12-02-PLAN.md (Signal List UI)
+Stopped at: Completed 12-03-PLAN.md (Signal Entry & Detail Modals)
 Resume file: None
 Next steps:
-  - Execute 12-03-PLAN.md (Signal Entry & Detail Modals) when ready
-  - Or continue with remaining Phase 12 plans
+  - Phase 12 core UI complete (list, filters, create modal, detail modal)
+  - Continue with remaining Phase 12 plans if any
+  - Or proceed to Phase 12.5 (Signal Association) when scheduled
