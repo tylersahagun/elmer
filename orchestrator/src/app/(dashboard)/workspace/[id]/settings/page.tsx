@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { InviteModal } from "@/components/invite-modal";
+import { ActivityFeed } from "@/components/activity-feed";
 import type { WorkspaceRole } from "@/lib/db/schema";
 
 interface WorkspaceMember {
@@ -456,6 +457,9 @@ export default function WorkspaceSettingsPage({
           </CardContent>
         </Card>
       )}
+
+      {/* Activity Feed */}
+      <ActivityFeed workspaceId={workspaceId} />
 
       {/* Invite Modal */}
       <InviteModal
