@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Invitation System** - Invite links for workspace collaboration ✓
 - [x] **Phase 6: Role Enforcement** - Permission checks in API and UI ✓
 - [x] **Phase 7: Activity Logging** - Audit trail for workspace actions ✓
-- [ ] **Phase 8: Data Migration** - Assign existing data to first user
+- [x] **Phase 8: Data Migration** - Assign existing data to first user ✓
 - [ ] **Phase 9: UI Integration** - Landing page, protected routes, auth state in nav
 - [ ] **Phase 10: Testing & Hardening** - Comprehensive auth and permission tests
 
@@ -183,8 +183,10 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 08-01: Migration script with transaction and idempotency
-- [ ] 08-02: Backfill actor attribution in existing records
+- [x] 08-01: Migration script with transaction and idempotency ✓
+- [x] 08-02: Backfill actor attribution in existing records ✓
+
+**Completed:** 2026-01-22 | All plans complete.
 
 ### Phase 9: UI Integration
 **Goal**: Auth flows integrate seamlessly with existing elmer UI
@@ -237,10 +239,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Invitation System | 3/3 | ✓ Complete | 2026-01-22 |
 | 6. Role Enforcement | 3/3 | ✓ Complete | 2026-01-22 |
 | 7. Activity Logging | 3/3 | ✓ Complete | 2026-01-22 |
-| 8. Data Migration | 0/2 | Not started | - |
+| 8. Data Migration | 2/2 | ✓ Complete | 2026-01-22 |
 | 9. UI Integration | 0/3 | Not started | - |
 | 10. Testing & Hardening | 0/4 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 after Phase 7 completion*
+*Last updated: 2026-01-22 after Phase 8 completion*
