@@ -182,6 +182,15 @@ export async function acceptInvitation(params: {
 }
 
 /**
+ * Get an invitation by its ID
+ */
+export async function getInvitationById(invitationId: string) {
+  return db.query.invitations.findFirst({
+    where: eq(invitations.id, invitationId),
+  });
+}
+
+/**
  * Revoke (delete) an invitation
  */
 export async function revokeInvitation(invitationId: string): Promise<boolean> {

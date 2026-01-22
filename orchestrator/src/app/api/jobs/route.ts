@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createJob, getJobs } from "@/lib/db/queries";
+import { createJob, getJobs, getProject } from "@/lib/db/queries";
 import { db } from "@/lib/db";
 import { jobs } from "@/lib/db/schema";
 import { eq, and, or } from "drizzle-orm";
@@ -8,6 +8,7 @@ import {
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+import { logJobTriggered } from "@/lib/activity";
 import type { JobType, JobStatus } from "@/lib/db/schema";
 
 export async function GET(request: NextRequest) {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Require member access to trigger jobs
-    await requireWorkspaceAccess(workspaceId, "member");
+    const membership = await requireWorkspaceAccess(workspaceId, "member");
 
     // Validate job type
     const validJobTypes: JobType[] = [
@@ -85,6 +86,18 @@ export async function POST(request: NextRequest) {
       type: type as JobType,
       input,
     });
+
+    // Get project name for logging
+    let projectName: string | undefined;
+    if (projectId) {
+      const project = await getProject(projectId);
+      projectName = project?.name;
+    }
+
+    // Log activity
+    if (job) {
+      await logJobTriggered(workspaceId, membership.userId, job.id, type, projectName);
+    }
 
     console.log(`📋 Job created: ${type} for project ${projectId}`);
 

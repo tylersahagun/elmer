@@ -3,12 +3,14 @@ import {
   createInvitation,
   getWorkspaceInvitations,
   revokeInvitation,
+  getInvitationById,
 } from "@/lib/invitations";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+import { logMemberInvited, logInvitationRevoked } from "@/lib/activity";
 import type { WorkspaceRole } from "@/lib/db/schema";
 
 export async function GET(
@@ -81,6 +83,9 @@ export async function POST(
       invitedBy: membership.userId,
     });
 
+    // Log activity
+    await logMemberInvited(workspaceId, membership.userId, email, role || "member");
+
     return NextResponse.json(invitation, { status: 201 });
   } catch (error) {
     if (error instanceof PermissionError) {
@@ -104,7 +109,7 @@ export async function DELETE(
     const { id: workspaceId } = await params;
 
     // Require admin access to revoke invitations
-    await requireWorkspaceAccess(workspaceId, "admin");
+    const membership = await requireWorkspaceAccess(workspaceId, "admin");
 
     const { searchParams } = new URL(request.url);
     const invitationId = searchParams.get("invitationId");
@@ -116,6 +121,9 @@ export async function DELETE(
       );
     }
 
+    // Get invitation details before revoking for logging
+    const invitation = await getInvitationById(invitationId);
+
     const success = await revokeInvitation(invitationId);
 
     if (!success) {
@@ -123,6 +131,11 @@ export async function DELETE(
         { error: "Invitation not found" },
         { status: 404 }
       );
+    }
+
+    // Log activity
+    if (invitation) {
+      await logInvitationRevoked(workspaceId, membership.userId, invitation.email);
     }
 
     return NextResponse.json({ success: true });

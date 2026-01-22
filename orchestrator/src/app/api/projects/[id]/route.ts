@@ -6,6 +6,7 @@ import {
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+import { logProjectStageChanged } from "@/lib/activity";
 import type { ProjectStage, ProjectStatus } from "@/lib/db/schema";
 
 export async function GET(
@@ -56,7 +57,7 @@ export async function PATCH(
     }
 
     // Require member access to update project
-    await requireWorkspaceAccess(project.workspaceId, "member");
+    const membership = await requireWorkspaceAccess(project.workspaceId, "member");
 
     const body = await request.json();
     const { stage, status, triggeredBy } = body;
@@ -70,11 +71,23 @@ export async function PATCH(
           { status: 400 }
         );
       }
+      const previousStage = project.stage;
       const updatedProject = await updateProjectStage(
         id,
         stage as ProjectStage,
         triggeredBy || "user"
       );
+      
+      // Log activity for stage change
+      await logProjectStageChanged(
+        project.workspaceId,
+        membership.userId,
+        id,
+        project.name,
+        previousStage,
+        stage as ProjectStage
+      );
+      
       return NextResponse.json(updatedProject);
     }
 

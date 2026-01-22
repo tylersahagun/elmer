@@ -6,6 +6,7 @@ import {
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+import { logProjectCreated } from "@/lib/activity";
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Require member access to create projects
-    await requireWorkspaceAccess(workspaceId, "member");
+    const membership = await requireWorkspaceAccess(workspaceId, "member");
 
     const workspace = await getWorkspace(workspaceId);
     if (!workspace) {
@@ -74,6 +75,11 @@ export async function POST(request: NextRequest) {
         baseBranch,
       },
     });
+
+    // Log activity
+    if (project) {
+      await logProjectCreated(workspaceId, membership.userId, project.id, name);
+    }
 
     // Only create feature branch if setting is enabled AND workspace has a GitHub repo configured
     const shouldCreateBranch = workspace.settings?.autoCreateFeatureBranch ?? true;

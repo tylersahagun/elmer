@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getInvitationByToken, acceptInvitation } from "@/lib/invitations";
+import { logMemberJoined } from "@/lib/activity";
 
 export async function GET(
   request: NextRequest,
@@ -61,6 +62,9 @@ export async function POST(
 
     const { token } = await params;
 
+    // Get invitation details before accepting for logging
+    const invitation = await getInvitationByToken(token);
+
     const result = await acceptInvitation({
       token,
       userId: session.user.id,
@@ -71,6 +75,11 @@ export async function POST(
         { error: result.error },
         { status: 400 }
       );
+    }
+
+    // Log activity for member joined
+    if (result.workspaceId && invitation) {
+      await logMemberJoined(result.workspaceId, session.user.id, invitation.role);
     }
 
     return NextResponse.json({
