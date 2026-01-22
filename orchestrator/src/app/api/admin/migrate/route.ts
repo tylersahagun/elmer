@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { assignOrphanedWorkspaces } from "@/lib/migrations/assign-workspaces";
+import { backfillActors } from "@/lib/migrations/backfill-actors";
 
 /**
  * POST /api/admin/migrate
  * 
  * Runs data migration to:
  * 1. Assign orphaned workspaces to first user
- * 2. (Future) Backfill actor attribution
+ * 2. Backfill actor attribution in stage transitions
  * 
  * Requires authentication. In production, this should be admin-only.
  */
@@ -25,18 +26,26 @@ export async function POST(request: NextRequest) {
     // Run workspace assignment migration
     const workspaceResult = await assignOrphanedWorkspaces();
 
+    // Run actor backfill migration
+    const backfillResult = await backfillActors();
+
+    const overallSuccess = workspaceResult.success && backfillResult.success;
+
     const result = {
-      success: workspaceResult.success,
+      success: overallSuccess,
       migrations: {
         assignWorkspaces: workspaceResult,
+        backfillActors: backfillResult,
       },
       summary: {
         workspacesAssigned: workspaceResult.assignedCount,
         targetUser: workspaceResult.targetUser?.email || null,
+        stageTransitionsUpdated: backfillResult.stageTransitionsUpdated,
+        activityLogsCreated: backfillResult.activityLogsCreated,
       },
     };
 
-    if (!workspaceResult.success) {
+    if (!overallSuccess) {
       return NextResponse.json(result, { status: 500 });
     }
 
@@ -72,15 +81,17 @@ export async function GET(request: NextRequest) {
           name: "assignOrphanedWorkspaces",
           description: "Assigns workspaces without members to the first user",
           idempotent: true,
+          status: "ready",
         },
         {
           name: "backfillActors",
-          description: "Backfills actor attribution in stage transitions",
+          description: "Backfills actor attribution in stage transitions and creates activity logs for existing projects",
           idempotent: true,
-          status: "coming soon",
+          status: "ready",
         },
       ],
-      usage: "POST /api/admin/migrate to run migrations",
+      usage: "POST /api/admin/migrate to run all migrations",
+      note: "All migrations are idempotent and safe to run multiple times",
     });
   } catch (error) {
     return NextResponse.json(
