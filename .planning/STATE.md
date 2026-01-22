@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 12 - Signal Management UI
+**Current focus:** Phase 12.5 - Manual Association
 
 ## Current Position
 
-Phase: 12 of 20 (Signal Management UI)
-Plan: 3 of 3 complete
-Status: Phase 12 complete
-Last activity: 2026-01-22 — Completed Phase 12 (Signal Management UI)
+Phase: 12.5 of 20 (Manual Association)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-22 — Completed 12.5-01-PLAN.md (Association APIs)
 
-Progress: [██░░░░░░░░] 20%
+Progress: [██░░░░░░░░] 22%
 
 ## Performance Metrics
 
@@ -24,10 +24,11 @@ Progress: [██░░░░░░░░] 20%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 4
+- Total plans completed: 5
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
+- Phase 12.5: 1/3 plans complete
 
 ## Accumulated Context
 
@@ -55,6 +56,10 @@ Recent decisions affecting current work:
 - v1.1 (12-03): Limit manual entry sources to paste, interview, email, other
 - v1.1 (12-03): Quick status actions (Mark Reviewed, Archive) without edit mode
 - v1.1 (12-03): Collapsible technical details for metadata/IDs/timestamps
+- v1.1 (12.5-01): Signal status auto-updates to 'linked' on first project link
+- v1.1 (12.5-01): Signal status reverts to 'reviewed' when last project unlinked
+- v1.1 (12.5-01): Persona linking does not affect signal status
+- v1.1 (12.5-01): Project signals ordered by linkedAt DESC
 
 ### Pending Todos
 
@@ -69,8 +74,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed Phase 12 (Signal Management UI)
+Stopped at: Completed 12.5-01-PLAN.md (Association APIs)
 Resume file: None
 Next steps:
-  - `/gsd:discuss-phase 12.5` to plan Manual Association phase
-  - Or `/gsd:plan-phase 12.5` to skip discussion and plan directly
+  - `/gsd:execute-plan 12.5-02` to implement signal modal association UI
+  - Or `/gsd:plan-phase 12.5` to review remaining plans
