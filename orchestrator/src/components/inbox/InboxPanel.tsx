@@ -175,7 +175,7 @@ export function InboxPanel({ workspaceId, className }: InboxPanelProps) {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: { id: string; status?: string; assignedProjectId?: string; assignedAction?: string }) => {
+    mutationFn: async (data: { id: string; status?: string; assignedProjectId?: string; assignedPersonaId?: string; assignedAction?: string }) => {
       const res = await fetch("/api/inbox", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
