@@ -779,6 +779,8 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   members: many(workspaceMembers),
   invitations: many(invitations),
   activityLogs: many(activityLogs),
+  // Signals (Phase 11+)
+  signals: many(signals),
 }));
 
 // ============================================
@@ -852,6 +854,8 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   juryEvaluations: many(juryEvaluations),
   linearMapping: one(linearMappings),
   notifications: many(notifications),
+  // Signals (Phase 11+)
+  signalProjects: many(signalProjects),
 }));
 
 export const projectStagesRelations = relations(projectStages, ({ one }) => ({
@@ -1240,4 +1244,47 @@ export const signalPersonas = pgTable("signal_personas", {
   linkedBy: text("linked_by").references(() => users.id, { onDelete: "set null" }),
 }, (table) => ({
   uniqueSignalPersona: unique().on(table.signalId, table.personaId),
+}));
+
+// ============================================
+// SIGNAL RELATIONS
+// ============================================
+
+export const signalsRelations = relations(signals, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [signals.workspaceId],
+    references: [workspaces.id],
+  }),
+  inboxItem: one(inboxItems, {
+    fields: [signals.inboxItemId],
+    references: [inboxItems.id],
+  }),
+  projects: many(signalProjects),
+  personas: many(signalPersonas),
+}));
+
+export const signalProjectsRelations = relations(signalProjects, ({ one }) => ({
+  signal: one(signals, {
+    fields: [signalProjects.signalId],
+    references: [signals.id],
+  }),
+  project: one(projects, {
+    fields: [signalProjects.projectId],
+    references: [projects.id],
+  }),
+  linkedByUser: one(users, {
+    fields: [signalProjects.linkedBy],
+    references: [users.id],
+  }),
+}));
+
+export const signalPersonasRelations = relations(signalPersonas, ({ one }) => ({
+  signal: one(signals, {
+    fields: [signalPersonas.signalId],
+    references: [signals.id],
+  }),
+  linkedByUser: one(users, {
+    fields: [signalPersonas.linkedBy],
+    references: [users.id],
+  }),
 }));
