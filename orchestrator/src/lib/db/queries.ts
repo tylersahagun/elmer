@@ -1,10 +1,10 @@
 import { db } from "./index";
-import { 
-  workspaces, 
-  projects, 
-  projectStages, 
-  documents, 
-  prototypes, 
+import {
+  workspaces,
+  projects,
+  projectStages,
+  documents,
+  prototypes,
   jobs,
   jobRuns,
   memoryEntries,
@@ -18,6 +18,7 @@ import {
   workspaceMembers,
   activityLogs,
   users,
+  signals,
   type ProjectStage as ProjectStageType,
   type JobType,
   type JobStatus,
@@ -30,8 +31,13 @@ import {
   type NotificationMetadata,
   type KnowledgebaseType,
   type WorkspaceRole,
+  type SignalStatus,
+  type SignalSource,
+  type SignalSeverity,
+  type SignalFrequency,
+  type SignalSourceMetadata,
 } from "./schema";
-import { eq, and, desc, asc, isNull, ne, or, lt, gte } from "drizzle-orm";
+import { eq, and, desc, asc, isNull, ne, or, lt, gte, lte, ilike, sql } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
 // ============================================
@@ -1258,4 +1264,191 @@ export async function getWorkspaceActivityLogs(
     .offset(offset);
   
   return logs;
+}
+
+// ============================================
+// SIGNAL QUERIES
+// ============================================
+
+export interface GetSignalsOptions {
+  search?: string;
+  status?: SignalStatus;
+  source?: SignalSource;
+  dateFrom?: Date;
+  dateTo?: Date;
+  sortBy?: "createdAt" | "updatedAt" | "status" | "source";
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export async function getSignals(
+  workspaceId: string,
+  options: GetSignalsOptions = {}
+) {
+  const {
+    search,
+    status,
+    source,
+    dateFrom,
+    dateTo,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    page = 1,
+    pageSize = 20,
+  } = options;
+
+  // Build dynamic WHERE conditions
+  const conditions = [eq(signals.workspaceId, workspaceId)];
+
+  if (search) {
+    conditions.push(
+      or(
+        ilike(signals.verbatim, `%${search}%`),
+        ilike(signals.interpretation, `%${search}%`)
+      )!
+    );
+  }
+
+  if (status) {
+    conditions.push(eq(signals.status, status));
+  }
+
+  if (source) {
+    conditions.push(eq(signals.source, source));
+  }
+
+  if (dateFrom) {
+    conditions.push(gte(signals.createdAt, dateFrom));
+  }
+
+  if (dateTo) {
+    conditions.push(lte(signals.createdAt, dateTo));
+  }
+
+  // Build sort
+  const sortColumn = {
+    createdAt: signals.createdAt,
+    updatedAt: signals.updatedAt,
+    status: signals.status,
+    source: signals.source,
+  }[sortBy];
+
+  const orderFn = sortOrder === "asc" ? asc : desc;
+
+  const offset = (page - 1) * pageSize;
+
+  return db.query.signals.findMany({
+    where: and(...conditions),
+    orderBy: [orderFn(sortColumn)],
+    limit: pageSize,
+    offset,
+  });
+}
+
+export async function getSignalsCount(
+  workspaceId: string,
+  options: Omit<GetSignalsOptions, "page" | "pageSize" | "sortBy" | "sortOrder"> = {}
+) {
+  const { search, status, source, dateFrom, dateTo } = options;
+
+  // Build dynamic WHERE conditions
+  const conditions = [eq(signals.workspaceId, workspaceId)];
+
+  if (search) {
+    conditions.push(
+      or(
+        ilike(signals.verbatim, `%${search}%`),
+        ilike(signals.interpretation, `%${search}%`)
+      )!
+    );
+  }
+
+  if (status) {
+    conditions.push(eq(signals.status, status));
+  }
+
+  if (source) {
+    conditions.push(eq(signals.source, source));
+  }
+
+  if (dateFrom) {
+    conditions.push(gte(signals.createdAt, dateFrom));
+  }
+
+  if (dateTo) {
+    conditions.push(lte(signals.createdAt, dateTo));
+  }
+
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(signals)
+    .where(and(...conditions));
+
+  return Number(result[0]?.count ?? 0);
+}
+
+export async function getSignal(id: string) {
+  return db.query.signals.findFirst({
+    where: eq(signals.id, id),
+  });
+}
+
+export async function createSignal(data: {
+  workspaceId: string;
+  verbatim: string;
+  interpretation?: string;
+  source: SignalSource;
+  sourceRef?: string;
+  sourceMetadata?: SignalSourceMetadata;
+  status?: SignalStatus;
+}) {
+  const id = uuid();
+  const now = new Date();
+
+  await db.insert(signals).values({
+    id,
+    workspaceId: data.workspaceId,
+    verbatim: data.verbatim,
+    interpretation: data.interpretation,
+    source: data.source,
+    sourceRef: data.sourceRef,
+    sourceMetadata: data.sourceMetadata,
+    status: data.status || "new",
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return getSignal(id);
+}
+
+export async function updateSignal(
+  id: string,
+  data: Partial<{
+    verbatim: string;
+    interpretation: string;
+    status: SignalStatus;
+    severity: SignalSeverity;
+    frequency: SignalFrequency;
+    userSegment: string;
+    sourceRef: string;
+    sourceMetadata: SignalSourceMetadata;
+  }>
+) {
+  const now = new Date();
+
+  await db
+    .update(signals)
+    .set({
+      ...data,
+      updatedAt: now,
+    })
+    .where(eq(signals.id, id));
+
+  return getSignal(id);
+}
+
+export async function deleteSignal(id: string) {
+  await db.delete(signals).where(eq(signals.id, id));
+  return { id };
 }

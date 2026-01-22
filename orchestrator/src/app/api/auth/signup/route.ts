@@ -60,15 +60,11 @@ export async function POST(request: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
       })
-      .returning({
-        id: users.id,
-        email: users.email,
-        name: users.name,
-      })
+      .returning()
 
     // Return user without passwordHash
     return NextResponse.json(
-      { user: newUser },
+      { user: { id: newUser.id, email: newUser.email, name: newUser.name } },
       { status: 201 }
     )
   } catch (error) {
