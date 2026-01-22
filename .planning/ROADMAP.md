@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Role Enforcement** - Permission checks in API and UI ✓
 - [x] **Phase 7: Activity Logging** - Audit trail for workspace actions ✓
 - [x] **Phase 8: Data Migration** - Assign existing data to first user ✓
-- [ ] **Phase 9: UI Integration** - Landing page, protected routes, auth state in nav
+- [x] **Phase 9: UI Integration** - Landing page, protected routes, auth state in nav ✓
 - [ ] **Phase 10: Testing & Hardening** - Comprehensive auth and permission tests
 
 ## Phase Details
@@ -202,9 +202,12 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 09-01: Landing page with auth CTAs
-- [ ] 09-02: Navigation auth state (avatar, name, logout)
-- [ ] 09-03: Protected route middleware configuration
+- [x] 09-01: Landing page with auth CTAs ✓ (already implemented)
+- [x] 09-02: Navigation auth state (avatar, name, logout) ✓ (already implemented)
+- [x] 09-03: Protected route middleware configuration ✓
+
+**Completed:** 2026-01-22 | All plans complete.
+**Note:** Plans 09-01 and 09-02 were already implemented during earlier phases.
 
 ### Phase 10: Testing & Hardening
 **Goal**: Comprehensive tests verify auth and permissions work correctly
@@ -240,9 +243,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Role Enforcement | 3/3 | ✓ Complete | 2026-01-22 |
 | 7. Activity Logging | 3/3 | ✓ Complete | 2026-01-22 |
 | 8. Data Migration | 2/2 | ✓ Complete | 2026-01-22 |
-| 9. UI Integration | 0/3 | Not started | - |
+| 9. UI Integration | 3/3 | ✓ Complete | 2026-01-22 |
 | 10. Testing & Hardening | 0/4 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 after Phase 8 completion*
+*Last updated: 2026-01-22 after Phase 9 completion*
