@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 12.5 of 20 (Manual Association)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-22 — Completed 12.5-01-PLAN.md (Association APIs)
+Last activity: 2026-01-22 — Completed 12.5-03-PLAN.md (Badge Visibility)
 
-Progress: [██░░░░░░░░] 22%
+Progress: [███░░░░░░░] 26%
 
 ## Performance Metrics
 
@@ -24,11 +24,11 @@ Progress: [██░░░░░░░░] 22%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 5
+- Total plans completed: 6
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
-- Phase 12.5: 1/3 plans complete
+- Phase 12.5: 2/3 plans complete
 
 ## Accumulated Context
 
@@ -60,6 +60,9 @@ Recent decisions affecting current work:
 - v1.1 (12.5-01): Signal status reverts to 'reviewed' when last project unlinked
 - v1.1 (12.5-01): Persona linking does not affect signal status
 - v1.1 (12.5-01): Project signals ordered by linkedAt DESC
+- v1.1 (12.5-03): Project badges navigate to project page in new tab
+- v1.1 (12.5-03): Persona badges display personaId (no name lookup for MVP)
+- v1.1 (12.5-03): Show first badge with +N count for multiple associations
 
 ### Pending Todos
 
@@ -74,8 +77,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 12.5-01-PLAN.md (Association APIs)
+Stopped at: Completed 12.5-03-PLAN.md (Badge Visibility)
 Resume file: None
 Next steps:
   - `/gsd:execute-plan 12.5-02` to implement signal modal association UI
-  - Or `/gsd:plan-phase 12.5` to review remaining plans
+  - Or complete Phase 12.5 and move to Phase 13 (AI Classification)
