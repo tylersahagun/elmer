@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Activity Logging** - Audit trail for workspace actions ✓
 - [x] **Phase 8: Data Migration** - Assign existing data to first user ✓
 - [x] **Phase 9: UI Integration** - Landing page, protected routes, auth state in nav ✓
-- [ ] **Phase 10: Testing & Hardening** - Comprehensive auth and permission tests
+- [x] **Phase 10: Testing & Hardening** - Comprehensive auth and permission tests ✓
 
 ## Phase Details
 
@@ -223,10 +223,12 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 10-01: Authentication flow tests (signup, login, logout, reset)
-- [ ] 10-02: Invitation system tests (send, accept, expire, reuse)
-- [ ] 10-03: Permission enforcement tests (cross-user, role levels)
-- [ ] 10-04: Migration script tests
+- [x] 10-01: Authentication flow tests (signup, login, logout) ✓
+- [x] 10-02: Invitation system tests (send, accept, expire, reuse) ✓
+- [x] 10-03: Permission enforcement tests (cross-user, role levels) ✓
+- [x] 10-04: Migration script tests ✓
+
+**Completed:** 2026-01-22 | All plans complete.
 
 ## Progress
 
@@ -244,8 +246,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Activity Logging | 3/3 | ✓ Complete | 2026-01-22 |
 | 8. Data Migration | 2/2 | ✓ Complete | 2026-01-22 |
 | 9. UI Integration | 3/3 | ✓ Complete | 2026-01-22 |
-| 10. Testing & Hardening | 0/4 | Not started | - |
+| 10. Testing & Hardening | 4/4 | ✓ Complete | 2026-01-22 |
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 after Phase 9 completion*
+*Last updated: 2026-01-22 after Phase 10 completion — ROADMAP COMPLETE*
