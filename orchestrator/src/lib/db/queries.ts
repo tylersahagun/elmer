@@ -39,7 +39,7 @@ import {
   type SignalFrequency,
   type SignalSourceMetadata,
 } from "./schema";
-import { eq, and, desc, asc, isNull, ne, or, lt, gte, lte, ilike, sql } from "drizzle-orm";
+import { eq, and, desc, asc, isNull, ne, or, lt, gte, lte, ilike, sql, inArray } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
 // ============================================
@@ -1282,6 +1282,7 @@ export interface GetSignalsOptions {
   sortOrder?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+  personaId?: string;
 }
 
 export async function getSignals(
@@ -1298,6 +1299,7 @@ export async function getSignals(
     sortOrder = "desc",
     page = 1,
     pageSize = 20,
+    personaId,
   } = options;
 
   // Build dynamic WHERE conditions
@@ -1328,6 +1330,16 @@ export async function getSignals(
     conditions.push(lte(signals.createdAt, dateTo));
   }
 
+  // Filter by persona if specified
+  if (personaId) {
+    const signalIdsWithPersona = db
+      .select({ signalId: signalPersonas.signalId })
+      .from(signalPersonas)
+      .where(eq(signalPersonas.personaId, personaId));
+
+    conditions.push(inArray(signals.id, signalIdsWithPersona));
+  }
+
   // Build sort
   const sortColumn = {
     createdAt: signals.createdAt,
@@ -1340,12 +1352,42 @@ export async function getSignals(
 
   const offset = (page - 1) * pageSize;
 
-  return db.query.signals.findMany({
+  // Fetch signals with linked projects and personas
+  const results = await db.query.signals.findMany({
     where: and(...conditions),
+    with: {
+      projects: {
+        with: {
+          project: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        limit: 3, // Only need first few for display
+      },
+      personas: true,
+    },
     orderBy: [orderFn(sortColumn)],
     limit: pageSize,
     offset,
   });
+
+  // Transform results to include linkedProjects and linkedPersonas arrays
+  return results.map((signal) => ({
+    ...signal,
+    linkedProjects: signal.projects.map((sp) => ({
+      id: sp.project.id,
+      name: sp.project.name,
+    })),
+    linkedPersonas: signal.personas.map((sp) => ({
+      personaId: sp.personaId,
+    })),
+    // Clean up the raw relations from response
+    projects: undefined,
+    personas: undefined,
+  }));
 }
 
 export async function getSignalsCount(

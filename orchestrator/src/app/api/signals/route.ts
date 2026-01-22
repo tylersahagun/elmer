@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
     const sortBy = (searchParams.get("sortBy") as "createdAt" | "updatedAt" | "status" | "source") || "createdAt";
     const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || "desc";
+    const personaId = searchParams.get("personaId") || undefined;
 
     const filterOptions = {
       search,
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
       sortOrder,
       page,
       pageSize,
+      personaId,
     };
 
     const [signals, total] = await Promise.all([
