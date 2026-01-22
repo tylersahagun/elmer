@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [~] **Phase 3: Session Management** - Login ✓, logout ✓, password reset paused (needs email service)
 - [x] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher ✓
 - [x] **Phase 5: Invitation System** - Invite links for workspace collaboration ✓
-- [ ] **Phase 6: Role Enforcement** - Permission checks in API and UI
+- [x] **Phase 6: Role Enforcement** - Permission checks in API and UI ✓
 - [ ] **Phase 7: Activity Logging** - Audit trail for workspace actions
 - [ ] **Phase 8: Data Migration** - Assign existing data to first user
 - [ ] **Phase 9: UI Integration** - Landing page, protected routes, auth state in nav
@@ -143,9 +143,11 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 06-01: Permission service with requireWorkspaceAccess helper
-- [ ] 06-02: Update all API routes with permission checks
-- [ ] 06-03: Role-based UI rendering (conditional buttons, disabled states)
+- [x] 06-01: Permission service with requireWorkspaceAccess helper ✓
+- [x] 06-02: Update all API routes with permission checks ✓
+- [x] 06-03: Role-based UI rendering (conditional buttons, disabled states) ✓
+
+**Completed:** 2026-01-22 | All plans complete.
 
 ### Phase 7: Activity Logging
 **Goal**: Track who did what, when for audit and accountability
@@ -231,7 +233,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Session Management | 2/3 | Partial (reset paused) | 2026-01-22 |
 | 4. Workspace Ownership | 3/3 | ✓ Complete | 2026-01-22 |
 | 5. Invitation System | 3/3 | ✓ Complete | 2026-01-22 |
-| 6. Role Enforcement | 0/3 | Not started | - |
+| 6. Role Enforcement | 3/3 | ✓ Complete | 2026-01-22 |
 | 7. Activity Logging | 0/3 | Not started | - |
 | 8. Data Migration | 0/2 | Not started | - |
 | 9. UI Integration | 0/3 | Not started | - |
@@ -239,4 +241,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 ---
 *Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 after Phase 2 partial completion*
+*Last updated: 2026-01-22 after Phase 6 completion*
