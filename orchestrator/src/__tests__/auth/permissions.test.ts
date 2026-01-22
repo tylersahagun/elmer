@@ -107,16 +107,16 @@ describe("Permission Enforcement Tests", () => {
       expect(result?.workspaceId).toBe(TEST_WORKSPACE_ID);
     });
 
-    it("should return null for non-member", async () => {
+    it("should return undefined for non-member", async () => {
       const result = await getWorkspaceMembership(TEST_WORKSPACE_ID, TEST_OUTSIDER_ID);
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
 
-    it("should return null for non-existent workspace", async () => {
+    it("should return undefined for non-existent workspace", async () => {
       const result = await getWorkspaceMembership("nonexistent_workspace", TEST_ADMIN_ID);
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
@@ -179,12 +179,12 @@ describe("Permission Enforcement Tests", () => {
   describe("Cross-User Access Denial", () => {
     it("should deny access to users not in workspace", async () => {
       const membership = await getWorkspaceMembership(TEST_WORKSPACE_ID, TEST_OUTSIDER_ID);
-      expect(membership).toBeNull();
+      expect(membership).toBeUndefined();
     });
 
     it("should deny access with invalid user ID", async () => {
       const membership = await getWorkspaceMembership(TEST_WORKSPACE_ID, "invalid_user_id");
-      expect(membership).toBeNull();
+      expect(membership).toBeUndefined();
     });
   });
 
