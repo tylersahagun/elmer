@@ -16,6 +16,8 @@ interface Signal {
   source: string;
   severity?: string | null;
   createdAt: string;
+  linkedProjects?: Array<{ id: string; name: string }>;
+  linkedPersonas?: Array<{ personaId: string }>;
 }
 
 interface SignalsResponse {
@@ -247,6 +249,12 @@ export function SignalsTable({
                   >
                     Source
                     <SortIndicator field="source" />
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Projects
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Personas
                   </th>
                   <th
                     className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
