@@ -1,253 +1,287 @@
-# Roadmap: Elmer Multi-User Collaboration
+# Roadmap: Elmer v1.1 Signals System
+
+## Milestones
+
+- v1.0 Multi-User Collaboration - Phases 1-10 (shipped 2026-01-22)
+- **v1.1 Signals System** - Phases 11-20 (in progress)
 
 ## Overview
 
-Transform elmer from a single-user PM orchestrator into a multi-tenant team collaboration platform. This roadmap progresses from foundational schema changes through authentication, workspace ownership, collaboration features, and data migration, culminating in comprehensive testing. Each phase builds on the previous, with authentication enabling ownership, ownership enabling invitations, and invitations enabling role enforcement.
+The Signals System transforms Elmer from a project management tool into a user evidence platform. Signals flow in from multiple sources (webhooks, uploads, manual entry), get processed through an intelligence layer (extraction, classification, clustering), and link to projects with full provenance tracking. Every PRD decision traces back to the user feedback that sparked it.
+
+This roadmap delivers the three-layer architecture: Ingestion (Phases 11-14.6), Intelligence (Phases 15-16), and Integration (Phases 17-20). Foundation phases establish schema and UI, ingestion phases handle multi-source input, intelligence phases add AI processing, and integration phases connect signals to projects with provenance.
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Continues from v1.0 (Phases 1-10 complete)
+- Integer phases (11, 12, 13): Planned milestone work
+- Decimal phases (12.5, 14.5, 14.6): Scoped insertions for better parallelization
 
-Decimal phases appear between their surrounding integers in numeric order.
+**Parallelization Note:**
+Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
+```
+       +--> 12 (UI) --> 12.5 (Manual Association)
+11 ----+
+       +--> 13 (Webhook) --> 14 --> 14.5 --> 14.6
+```
 
-- [x] **Phase 1: Schema & Auth Foundation** - Database schema extensions and Auth.js configuration ✓
-- [~] **Phase 2: User Registration** - Email/password signup ✓, Google OAuth paused
-- [~] **Phase 3: Session Management** - Login ✓, logout ✓, password reset paused (needs email service)
-- [x] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher ✓
-- [x] **Phase 5: Invitation System** - Invite links for workspace collaboration ✓
-- [x] **Phase 6: Role Enforcement** - Permission checks in API and UI ✓
-- [x] **Phase 7: Activity Logging** - Audit trail for workspace actions ✓
-- [x] **Phase 8: Data Migration** - Assign existing data to first user ✓
-- [x] **Phase 9: UI Integration** - Landing page, protected routes, auth state in nav ✓
-- [x] **Phase 10: Testing & Hardening** - Comprehensive auth and permission tests ✓
+- [ ] **Phase 11: Signal Schema & Storage** - Foundation tables and core data model
+- [ ] **Phase 12: Signal Management UI** - List, search, filter, and manual entry
+- [ ] **Phase 12.5: Manual Association** - Basic link/unlink signals to projects/personas
+- [ ] **Phase 13: Webhook Ingestion** - Core webhook infrastructure with queue-first pattern
+- [ ] **Phase 14: File & Paste Upload** - Upload documents/transcripts and paste text
+- [ ] **Phase 14.5: Video Caption Fetch** - Fetch existing captions from YouTube/Loom APIs
+- [ ] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
+- [ ] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
+- [ ] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
+- [ ] **Phase 17: Smart Association** - AI-suggested links and bulk operations
+- [ ] **Phase 18: Provenance & PRD Citation** - Project integration and evidence tracking
+- [ ] **Phase 19: Workflow Automation** - Auto triggers and notification thresholds
+- [ ] **Phase 20: Maintenance Agents** - Cleanup, orphan detection, and archival
 
 ## Phase Details
 
-### Phase 1: Schema & Auth Foundation
-**Goal**: Establish database schema and Auth.js infrastructure required for all subsequent phases
-**Depends on**: Nothing (first phase)
-**Requirements**: AUTH-06
+### Phase 11: Signal Schema & Storage
+**Goal**: Establish the data foundation for signals with schema, storage, and source tracking
+**Depends on**: v1.0 complete (workspace and auth infrastructure)
+**Requirements**: SGNL-01, SGNL-02, SGNL-07, SGNL-08
 **Success Criteria** (what must be TRUE):
-  1. Users table exists with id, email, name, image, passwordHash, emailVerified columns
-  2. workspaceMembers table exists with userId, workspaceId, role columns
-  3. invitations table exists with token, email, role, expiresAt columns
-  4. activityLogs table exists with action, targetType, targetId, metadata columns
-  5. Auth.js is configured with JWT strategy and Drizzle adapter
-  6. `npm run db:migrate` creates all new tables without errors
+  1. Signal table exists with source, verbatim, interpretation, severity, frequency fields
+  2. Signals are associated with workspaces (workspace-scoped data)
+  3. Source attribution captures where signal originated (Slack, email, interview, webhook)
+  4. Status tracking shows signal lifecycle (new, reviewed, linked, archived)
 **Plans**: TBD
 
 Plans:
-- [x] 01-01: Database schema extensions (users, workspaceMembers, invitations, activityLogs) ✓
-- [x] 01-02: Auth.js configuration with Drizzle adapter ✓
+- [ ] 11-01: TBD
 
-**Completed:** 2026-01-22 | 2 plans | ~50 minutes
+---
 
-### Phase 2: User Registration
-**Goal**: Users can create accounts with email/password or Google OAuth
-**Depends on**: Phase 1
-**Requirements**: AUTH-01, AUTH-02, USER-01
+### Phase 12: Signal Management UI
+**Goal**: Users can view, search, filter, and manually create signals
+**Depends on**: Phase 11
+**Parallel with**: Phase 13 (both depend only on Phase 11)
+**Requirements**: SGNL-03, SGNL-04, SGNL-05, SGNL-06
 **Success Criteria** (what must be TRUE):
-  1. User can fill signup form (email, password, name) and account is created
-  2. Password is hashed with bcryptjs before storage
-  3. User can click "Sign in with Google" and account is created from OAuth profile
-  4. User record includes name, email, and avatar (from Google or default)
-  5. Duplicate email registrations are rejected with clear error message
+  1. User can paste or type feedback directly to create a signal
+  2. User can view paginated list of all signals in workspace
+  3. User can search signals by keyword and find matching results
+  4. User can filter signals by date range, source type, and status
 **Plans**: TBD
 
 Plans:
-- [x] 02-01: Signup page with email/password form and validation ✓
-- [~] 02-02: Google OAuth provider configuration and callback handling (PAUSED)
+- [ ] 12-01: TBD
 
-**Partial Completion:** 2026-01-22 | Plan 02-01 complete, Plan 02-02 paused per user request
-**Note:** Google OAuth can be enabled later by configuring credentials in .env.local
+---
 
-### Phase 3: Session Management
-**Goal**: Users can log in, stay logged in, and recover forgotten passwords
-**Depends on**: Phase 2
-**Requirements**: AUTH-03, AUTH-04, AUTH-05
+### Phase 12.5: Manual Association
+**Goal**: Users can manually link and unlink signals to projects and personas (P0 table stakes)
+**Depends on**: Phase 12
+**Requirements**: ASSC-01, ASSC-02, ASSC-03, ASSC-04, ASSC-05
 **Success Criteria** (what must be TRUE):
-  1. User can log in with email/password and is redirected to dashboard
-  2. User can log in with Google OAuth and is redirected to dashboard
-  3. User session persists across browser refresh (JWT in httpOnly cookie)
-  4. User can click "Forgot password" and receives email with reset link
-  5. User can reset password via email link and log in with new password
-  6. User can log out and session cookie is cleared
+  1. User can link a signal to one or more projects (many-to-many)
+  2. User can link a signal to a persona (build evidence library)
+  3. User can unlink signals from projects or personas
+  4. User can view all signals linked to a specific project
+  5. User can view all signals linked to a specific persona
 **Plans**: TBD
 
 Plans:
-- [x] 03-01: Login page with email/password ✓
-- [ ] 03-02: Password reset flow (PAUSED - requires email service)
-- [x] 03-03: Logout functionality and session management ✓
+- [ ] 12.5-01: TBD
 
-**Partial Completion:** 2026-01-22 | Plans 03-01, 03-03 complete. Plan 03-02 paused pending email service.
-**Note:** Password reset requires email service (Resend/SendGrid). Login/logout working.
+---
 
-### Phase 4: Workspace Ownership
-**Goal**: Users own workspaces and can switch between them
-**Depends on**: Phase 3
-**Requirements**: WORK-01, WORK-02, WORK-03, WORK-04, WORK-05, WORK-06
+### Phase 13: Webhook Ingestion
+**Goal**: External systems can post signals via authenticated webhooks with reliable delivery
+**Depends on**: Phase 11
+**Parallel with**: Phase 12 (both depend only on Phase 11)
+**Requirements**: INGST-01, INGST-02, INGST-03
 **Success Criteria** (what must be TRUE):
-  1. Authenticated user can create a new workspace
-  2. Workspace creator is automatically added as Admin member
-  3. User can see all workspaces they belong to in dropdown
-  4. User can switch between workspaces and UI updates accordingly
-  5. Admin can rename their workspace
-  6. Workspace displays member list with roles
-  7. First-time user is prompted to create workspace on first login
+  1. Webhook endpoint accepts POST requests from external sources (Ask Elephant, etc.)
+  2. Webhooks are authenticated via API key or HMAC signature verification
+  3. Webhook returns 200 within 5 seconds (queue-first, async processing)
+  4. Duplicate webhooks are handled idempotently (no duplicate signals)
 **Plans**: TBD
 
 Plans:
-- [x] 04-01: Workspace creation with automatic admin membership ✓
-- [x] 04-02: Workspace switcher and first-time user flow ✓
-- [x] 04-03: Workspace settings and member management ✓
+- [ ] 13-01: TBD
 
-**Completed:** 2026-01-22 | All plans complete.
+---
 
-### Phase 5: Invitation System
-**Goal**: Admins can invite collaborators via email with magic links
-**Depends on**: Phase 4
-**Requirements**: INVT-01, INVT-02, INVT-03, INVT-04, INVT-05, INVT-06, INVT-07, INVT-08
+### Phase 14: File & Paste Upload
+**Goal**: Users can ingest signals from uploaded files and pasted text
+**Depends on**: Phase 13
+**Requirements**: INGST-04, INGST-05
 **Success Criteria** (what must be TRUE):
-  1. Admin sees Share button in workspace UI
-  2. Admin can enter email and select role in invite modal
-  3. Invited user receives email with branded template
-  4. Magic link in email creates user account if needed
-  5. Magic link adds user to workspace with selected role
-  6. Expired links (>7 days) show clear error message
-  7. Already-used links show clear error message
+  1. User can upload documents and transcripts (PDF, CSV, TXT) to create signals
+  2. User can paste text with source selection to create a signal
+  3. Uploaded files are processed and signal created with source attribution
 **Plans**: TBD
 
 Plans:
-- [x] 05-01: Invitation service and API endpoints ✓
-- [x] 05-02: Invitation UI for admins (Share button, invite modal) ✓
-- [x] 05-03: Accept invitation flow ✓
+- [ ] 14-01: TBD
 
-**Completed:** 2026-01-22 | All plans complete.
-**Note:** Email sending not implemented - admins copy/share invite links directly.
+---
 
-### Phase 6: Role Enforcement
-**Goal**: Permissions are enforced in API routes and reflected in UI
-**Depends on**: Phase 5
-**Requirements**: ROLE-01, ROLE-02, ROLE-03, ROLE-04, ROLE-05, ROLE-06
+### Phase 14.5: Video Caption Fetch
+**Goal**: Users can create signals from video links by fetching existing captions via API
+**Depends on**: Phase 14
+**Requirements**: INGST-06, INGST-07
 **Success Criteria** (what must be TRUE):
-  1. requireWorkspaceAccess() helper validates membership and role
-  2. All workspace API routes use requireWorkspaceAccess()
-  3. Admin can invite, Member cannot invite, Viewer cannot invite
-  4. Member can edit projects, Viewer cannot edit projects
-  5. Viewer can view projects but not trigger jobs
-  6. UI hides Share button for non-admins
-  7. UI disables edit actions for viewers
-  8. User cannot modify their own role via API
+  1. User can input YouTube link and system fetches existing captions via YouTube API
+  2. User can input Loom link and system fetches existing transcript via Loom API
+  3. Timestamps are extracted and preserved in signal metadata
+  4. Signal created with video source attribution and link to original
+**Note**: This is NOT transcription. We fetch pre-existing captions/transcripts from video platform APIs.
 **Plans**: TBD
 
 Plans:
-- [x] 06-01: Permission service with requireWorkspaceAccess helper ✓
-- [x] 06-02: Update all API routes with permission checks ✓
-- [x] 06-03: Role-based UI rendering (conditional buttons, disabled states) ✓
+- [ ] 14.5-01: TBD
 
-**Completed:** 2026-01-22 | All plans complete.
+---
 
-### Phase 7: Activity Logging
-**Goal**: Track who did what, when for audit and accountability
-**Depends on**: Phase 6
-**Requirements**: ACTV-01, ACTV-02, ACTV-03, ACTV-04, ACTV-05, ACTV-06
+### Phase 14.6: Third-Party Integrations
+**Goal**: Signals flow in from Pylon support tickets and Slack channel messages
+**Depends on**: Phase 14.5
+**Requirements**: INGST-08, INGST-09
 **Success Criteria** (what must be TRUE):
-  1. Project creation logs activity with actor and target
-  2. Stage transitions log activity with actor and target
-  3. Member invitations log activity with inviter and invitee email
-  4. Member joins log activity when invitation accepted
-  5. Job triggers log activity with actor
-  6. Activity feed displays in workspace settings with timestamps
+  1. Pylon integration can be configured to flow support tickets into signals
+  2. Slack integration can be configured to flow channel messages into signals
+  3. Integration credentials stored securely per workspace
+  4. Source attribution clearly shows Pylon or Slack origin
 **Plans**: TBD
 
 Plans:
-- [x] 07-01: Activity service with logging functions ✓
-- [x] 07-02: Integrate activity logging into existing operations ✓
-- [x] 07-03: Activity feed UI in workspace settings ✓
+- [ ] 14.6-01: TBD
 
-**Completed:** 2026-01-22 | All plans complete.
+---
 
-### Phase 8: Data Migration
-**Goal**: Existing workspaces and projects are owned by first user
-**Depends on**: Phase 7
-**Requirements**: MIGR-01, MIGR-02, MIGR-03, MIGR-04, MIGR-05
+### Phase 15: Signal Extraction & Embedding
+**Goal**: Raw signals are processed into structured data with semantic embeddings
+**Depends on**: Phase 11 (works on ANY signal regardless of ingestion source)
+**Requirements**: INTL-03, INTL-04, INTL-06
 **Success Criteria** (what must be TRUE):
-  1. Migration script assigns all orphaned workspaces to first authenticated user
-  2. Workspace assignments include admin role in workspaceMembers
-  3. Migration runs in database transaction (all-or-nothing)
-  4. Migration can be run multiple times without duplicating data
-  5. Existing stage transitions updated with actor attribution
-  6. Post-migration, user can access all previously existing workspaces
+  1. LLM extracts structured data from raw input (severity, frequency, user segment)
+  2. Signals have embeddings generated (OpenAI text-embedding-3-small)
+  3. `/ingest` command processes raw input into structured signal
+  4. Raw content is preserved alongside extracted structure
 **Plans**: TBD
 
 Plans:
-- [x] 08-01: Migration script with transaction and idempotency ✓
-- [x] 08-02: Backfill actor attribution in existing records ✓
+- [ ] 15-01: TBD
 
-**Completed:** 2026-01-22 | All plans complete.
+---
 
-### Phase 9: UI Integration
-**Goal**: Auth flows integrate seamlessly with existing elmer UI
-**Depends on**: Phase 8
-**Requirements**: USER-02, USER-03
+### Phase 16: Classification & Clustering
+**Goal**: Signals are auto-classified to projects and clustered by semantic similarity
+**Depends on**: Phase 15
+**Requirements**: INTL-01, INTL-02, INTL-05, INTL-07
 **Success Criteria** (what must be TRUE):
-  1. Landing page shows for unauthenticated users with login/signup CTAs
-  2. Authenticated users redirected from landing to dashboard
-  3. User avatar and name display in navigation header
-  4. Unauthenticated users redirected from dashboard to login
-  5. Auth state updates immediately after login/logout
-  6. User can view basic profile information
+  1. System auto-classifies signals as "belongs to Project X" or "new initiative"
+  2. Classification includes confidence score with configurable threshold
+  3. Related signals cluster together by semantic similarity (pgvector)
+  4. `/synthesize` command finds patterns and proposes new initiatives from clusters
 **Plans**: TBD
 
 Plans:
-- [x] 09-01: Landing page with auth CTAs ✓ (already implemented)
-- [x] 09-02: Navigation auth state (avatar, name, logout) ✓ (already implemented)
-- [x] 09-03: Protected route middleware configuration ✓
+- [ ] 16-01: TBD
 
-**Completed:** 2026-01-22 | All plans complete.
-**Note:** Plans 09-01 and 09-02 were already implemented during earlier phases.
+---
 
-### Phase 10: Testing & Hardening
-**Goal**: Comprehensive tests verify auth and permissions work correctly
-**Depends on**: Phase 9
-**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, TEST-05
+### Phase 17: Smart Association
+**Goal**: AI-suggested signal linking and bulk operations (builds on Phase 12.5 manual linking)
+**Depends on**: Phase 16, Phase 12.5
+**Requirements**: ASSC-06
 **Success Criteria** (what must be TRUE):
-  1. Unit tests pass for password hashing, token generation
-  2. Integration tests pass for signup, login, logout flows
-  3. Integration tests pass for invitation send and accept
-  4. Permission tests verify cross-user workspace access denied
-  5. Permission tests verify role enforcement for each role level
-  6. Migration tests verify idempotency and correctness
+  1. User can bulk link/unlink multiple signals at once
+  2. System suggests relevant projects for unlinked signals based on classification
+  3. User can accept/reject AI-suggested associations
+  4. Bulk operations respect existing manual associations
 **Plans**: TBD
 
 Plans:
-- [x] 10-01: Authentication flow tests (signup, login, logout) ✓
-- [x] 10-02: Invitation system tests (send, accept, expire, reuse) ✓
-- [x] 10-03: Permission enforcement tests (cross-user, role levels) ✓
-- [x] 10-04: Migration script tests ✓
+- [ ] 17-01: TBD
 
-**Completed:** 2026-01-22 | All plans complete.
+---
+
+### Phase 18: Provenance & PRD Citation
+**Goal**: Projects show signal evidence with provenance tracking and PRD citation
+**Depends on**: Phase 17
+**Requirements**: PROV-01, PROV-02, PROV-03, PROV-04, PROV-05, PROV-06
+**Success Criteria** (what must be TRUE):
+  1. Project page shows linked signals as evidence section
+  2. "Signals that informed this project" section visible on project detail
+  3. Provenance chain is immutable (junction table with link reason preserved)
+  4. Generated PRDs automatically cite linked signals as evidence
+  5. User can create new project from a cluster of related signals
+  6. Project cards show signal count badge
+**Plans**: TBD
+
+Plans:
+- [ ] 18-01: TBD
+
+---
+
+### Phase 19: Workflow Automation
+**Goal**: System automatically triggers actions based on signal patterns and thresholds
+**Depends on**: Phase 18
+**Requirements**: AUTO-01, AUTO-02, AUTO-03, AUTO-04
+**Success Criteria** (what must be TRUE):
+  1. User can configure automation depth per workflow stage
+  2. System auto-triggers PRD generation when N+ signals cluster on unlinked topic
+  3. Notifications only fire when configurable thresholds are met
+  4. System auto-creates initiatives from signal clusters above threshold
+**Plans**: TBD
+
+Plans:
+- [ ] 19-01: TBD
+
+---
+
+### Phase 20: Maintenance Agents
+**Goal**: System maintains signal hygiene with cleanup suggestions and archival
+**Depends on**: Phase 19
+**Requirements**: MAINT-01, MAINT-02, MAINT-03, MAINT-04
+**Success Criteria** (what must be TRUE):
+  1. Cleanup agent suggests signal-to-project associations for unlinked signals
+  2. System detects and flags orphan signals after configurable days
+  3. System detects duplicate signals and suggests merges
+  4. Signal archival workflow moves old signals to archived status
+**Plans**: TBD
+
+Plans:
+- [ ] 20-01: TBD
+
+---
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases 12 and 13 can run in parallel after Phase 11 completes.
+```
+11 --> 12 --> 12.5 -----------------------> 17 --> 18 --> 19 --> 20
+  \--> 13 --> 14 --> 14.5 --> 14.6 --> 15 --> 16 --^
+```
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema & Auth Foundation | 2/2 | ✓ Complete | 2026-01-22 |
-| 2. User Registration | 1/2 | Partial (OAuth paused) | 2026-01-22 |
-| 3. Session Management | 2/3 | Partial (reset paused) | 2026-01-22 |
-| 4. Workspace Ownership | 3/3 | ✓ Complete | 2026-01-22 |
-| 5. Invitation System | 3/3 | ✓ Complete | 2026-01-22 |
-| 6. Role Enforcement | 3/3 | ✓ Complete | 2026-01-22 |
-| 7. Activity Logging | 3/3 | ✓ Complete | 2026-01-22 |
-| 8. Data Migration | 2/2 | ✓ Complete | 2026-01-22 |
-| 9. UI Integration | 3/3 | ✓ Complete | 2026-01-22 |
-| 10. Testing & Hardening | 4/4 | ✓ Complete | 2026-01-22 |
+| 11. Signal Schema & Storage | 0/TBD | Not started | - |
+| 12. Signal Management UI | 0/TBD | Not started | - |
+| 12.5. Manual Association | 0/TBD | Not started | - |
+| 13. Webhook Ingestion | 0/TBD | Not started | - |
+| 14. File & Paste Upload | 0/TBD | Not started | - |
+| 14.5. Video Caption Fetch | 0/TBD | Not started | - |
+| 14.6. Third-Party Integrations | 0/TBD | Not started | - |
+| 15. Signal Extraction & Embedding | 0/TBD | Not started | - |
+| 16. Classification & Clustering | 0/TBD | Not started | - |
+| 17. Smart Association | 0/TBD | Not started | - |
+| 18. Provenance & PRD Citation | 0/TBD | Not started | - |
+| 19. Workflow Automation | 0/TBD | Not started | - |
+| 20. Maintenance Agents | 0/TBD | Not started | - |
 
 ---
-*Roadmap created: 2026-01-21*
-*Last updated: 2026-01-22 after Phase 10 completion — ROADMAP COMPLETE*
+*Roadmap created: 2026-01-22*
+*Roadmap revised: 2026-01-22*
+*Milestone: v1.1 Signals System*
+*Phases: 11-20 (continues from v1.0)*

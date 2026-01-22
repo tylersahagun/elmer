@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** v1.1 Signals System — defining requirements
+**Current focus:** Phase 11 - Signal Schema & Storage
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements for v1.1 Signals System
-Last activity: 2026-01-22 — Milestone v1.1 started
+Phase: 11 of 20 (Signal Schema & Storage)
+Plan: Ready to plan
+Status: Ready to plan Phase 11
+Last activity: 2026-01-22 — Created v1.1 Signals System roadmap
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -23,6 +23,10 @@ Progress: [░░░░░░░░░░] 0%
 - Total execution time: ~360 minutes
 - Phases: 10 (all complete)
 
+**Current Milestone (v1.1 Signals System):**
+- Total plans completed: 0
+- Phases: 10 (Phases 11-20)
+
 ## Accumulated Context
 
 ### Decisions
@@ -32,10 +36,10 @@ Recent decisions affecting current work:
 
 - v1.0: User-owned workspaces with three-role permission model
 - v1.0: Magic links for invites only (not general auth)
-- v1.0: JWT session strategy for Edge compatibility
 - v1.1: Inbox becomes signal processing queue (not project queue)
 - v1.1: Pre-transcribed text only (Ask Elephant handles transcription)
-- v1.1: Three-layer architecture: Ingestion → Intelligence → Integration
+- v1.1: Three-layer architecture: Ingestion -> Intelligence -> Integration
+- v1.1: Provenance chain for PRDs (every decision traces to user evidence)
 
 ### Pending Todos
 
@@ -50,9 +54,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Defining requirements for v1.1 Signals System
-Resume file: N/A (starting fresh milestone)
+Stopped at: Created v1.1 roadmap with 10 phases (11-20)
+Resume file: None
 Next steps:
-  - Research signals/feedback systems (optional)
-  - Define v1.1 requirements
-  - Create roadmap
+  - `/gsd:plan-phase 11` to create Phase 11 plans

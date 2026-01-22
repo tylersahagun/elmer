@@ -25,8 +25,8 @@ Requirements for signals system release. Each maps to roadmap phases.
 - [ ] **INGST-03**: Queue-first webhook pattern (fast ACK, async processing)
 - [ ] **INGST-04**: File upload for documents and transcripts
 - [ ] **INGST-05**: Paste text entry with source selection
-- [ ] **INGST-06**: Video link input (YouTube, Loom)
-- [ ] **INGST-07**: Video timestamp extraction from links
+- [ ] **INGST-06**: Video link input (YouTube, Loom) - fetch existing captions via API
+- [ ] **INGST-07**: Video timestamp extraction from captions
 - [ ] **INGST-08**: Pylon integration for support ticket ingestion
 - [ ] **INGST-09**: Slack integration for channel message ingestion
 
@@ -49,7 +49,7 @@ Requirements for signals system release. Each maps to roadmap phases.
 - [ ] **ASSC-05**: View all signals linked to a persona
 - [ ] **ASSC-06**: Bulk link/unlink signals
 
-### Signal → Project Integration
+### Signal -> Project Integration
 
 - [ ] **PROV-01**: Signals visible on project page as linked evidence
 - [ ] **PROV-02**: "Signals that informed this project" section on project detail
@@ -63,11 +63,11 @@ Requirements for signals system release. Each maps to roadmap phases.
 - [ ] **AUTO-01**: Configurable automation depth per workflow stage
 - [ ] **AUTO-02**: Auto-PRD trigger when N+ signals cluster on unlinked topic
 - [ ] **AUTO-03**: Notification thresholds (only notify when criteria met)
-- [ ] **AUTO-04**: Signal → initiative auto-creation from clusters
+- [ ] **AUTO-04**: Signal -> initiative auto-creation from clusters
 
 ### Maintenance & Hygiene
 
-- [ ] **MAINT-01**: Cleanup agent: suggest signal → project associations
+- [ ] **MAINT-01**: Cleanup agent: suggest signal -> project associations
 - [ ] **MAINT-02**: Orphan signal detection (flag unlinked signals after X days)
 - [ ] **MAINT-03**: Duplicate signal detection and merge suggestion
 - [ ] **MAINT-04**: Signal archival workflow
@@ -79,7 +79,7 @@ Deferred to future release. Tracked but not in current roadmap.
 ### Enhanced Intelligence
 
 - **INTL-V2-01**: AI-suggested tags based on content
-- **INTL-V2-02**: Signal strength scoring (frequency × severity × segment value)
+- **INTL-V2-02**: Signal strength scoring (frequency x severity x segment value)
 - **INTL-V2-03**: Trend detection (alert when theme volume spikes)
 - **INTL-V2-04**: Adaptive taxonomy (categories evolve with product)
 
@@ -102,7 +102,7 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Audio/video transcription | Handled externally by Ask Elephant; elmer receives pre-transcribed text |
+| Audio/video transcription | Handled externally by Ask Elephant; elmer receives pre-transcribed text or fetches existing captions |
 | Public voting board | Creates vocal minority bias, popularity contest; PM judgment preferred |
 | Customer-facing feedback portal | Support/spam burden; signals come from curated sources |
 | Feature roadmap publishing | Over-commitment risk; separate changelog after ship |
@@ -118,56 +118,56 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SGNL-01 | TBD | Pending |
-| SGNL-02 | TBD | Pending |
-| SGNL-03 | TBD | Pending |
-| SGNL-04 | TBD | Pending |
-| SGNL-05 | TBD | Pending |
-| SGNL-06 | TBD | Pending |
-| SGNL-07 | TBD | Pending |
-| SGNL-08 | TBD | Pending |
-| INGST-01 | TBD | Pending |
-| INGST-02 | TBD | Pending |
-| INGST-03 | TBD | Pending |
-| INGST-04 | TBD | Pending |
-| INGST-05 | TBD | Pending |
-| INGST-06 | TBD | Pending |
-| INGST-07 | TBD | Pending |
-| INGST-08 | TBD | Pending |
-| INGST-09 | TBD | Pending |
-| INTL-01 | TBD | Pending |
-| INTL-02 | TBD | Pending |
-| INTL-03 | TBD | Pending |
-| INTL-04 | TBD | Pending |
-| INTL-05 | TBD | Pending |
-| INTL-06 | TBD | Pending |
-| INTL-07 | TBD | Pending |
-| ASSC-01 | TBD | Pending |
-| ASSC-02 | TBD | Pending |
-| ASSC-03 | TBD | Pending |
-| ASSC-04 | TBD | Pending |
-| ASSC-05 | TBD | Pending |
-| ASSC-06 | TBD | Pending |
-| PROV-01 | TBD | Pending |
-| PROV-02 | TBD | Pending |
-| PROV-03 | TBD | Pending |
-| PROV-04 | TBD | Pending |
-| PROV-05 | TBD | Pending |
-| PROV-06 | TBD | Pending |
-| AUTO-01 | TBD | Pending |
-| AUTO-02 | TBD | Pending |
-| AUTO-03 | TBD | Pending |
-| AUTO-04 | TBD | Pending |
-| MAINT-01 | TBD | Pending |
-| MAINT-02 | TBD | Pending |
-| MAINT-03 | TBD | Pending |
-| MAINT-04 | TBD | Pending |
+| SGNL-01 | Phase 11 | Pending |
+| SGNL-02 | Phase 11 | Pending |
+| SGNL-03 | Phase 12 | Pending |
+| SGNL-04 | Phase 12 | Pending |
+| SGNL-05 | Phase 12 | Pending |
+| SGNL-06 | Phase 12 | Pending |
+| SGNL-07 | Phase 11 | Pending |
+| SGNL-08 | Phase 11 | Pending |
+| INGST-01 | Phase 13 | Pending |
+| INGST-02 | Phase 13 | Pending |
+| INGST-03 | Phase 13 | Pending |
+| INGST-04 | Phase 14 | Pending |
+| INGST-05 | Phase 14 | Pending |
+| INGST-06 | Phase 14.5 | Pending |
+| INGST-07 | Phase 14.5 | Pending |
+| INGST-08 | Phase 14.6 | Pending |
+| INGST-09 | Phase 14.6 | Pending |
+| INTL-01 | Phase 16 | Pending |
+| INTL-02 | Phase 16 | Pending |
+| INTL-03 | Phase 15 | Pending |
+| INTL-04 | Phase 15 | Pending |
+| INTL-05 | Phase 16 | Pending |
+| INTL-06 | Phase 15 | Pending |
+| INTL-07 | Phase 16 | Pending |
+| ASSC-01 | Phase 12.5 | Pending |
+| ASSC-02 | Phase 12.5 | Pending |
+| ASSC-03 | Phase 12.5 | Pending |
+| ASSC-04 | Phase 12.5 | Pending |
+| ASSC-05 | Phase 12.5 | Pending |
+| ASSC-06 | Phase 17 | Pending |
+| PROV-01 | Phase 18 | Pending |
+| PROV-02 | Phase 18 | Pending |
+| PROV-03 | Phase 18 | Pending |
+| PROV-04 | Phase 18 | Pending |
+| PROV-05 | Phase 18 | Pending |
+| PROV-06 | Phase 18 | Pending |
+| AUTO-01 | Phase 19 | Pending |
+| AUTO-02 | Phase 19 | Pending |
+| AUTO-03 | Phase 19 | Pending |
+| AUTO-04 | Phase 19 | Pending |
+| MAINT-01 | Phase 20 | Pending |
+| MAINT-02 | Phase 20 | Pending |
+| MAINT-03 | Phase 20 | Pending |
+| MAINT-04 | Phase 20 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 44 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 44
+- Mapped to phases: 44
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-22*
-*Last updated: 2026-01-22 after initial definition*
+*Last updated: 2026-01-22 after roadmap revision*
