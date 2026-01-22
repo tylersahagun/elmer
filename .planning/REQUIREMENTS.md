@@ -1,111 +1,100 @@
-# Requirements: Elmer Multi-User Collaboration
+# Requirements: Elmer v1.1 Signals System
 
-**Defined:** 2026-01-21
-**Core Value:** Enable PM teams to collaborate on product initiatives in shared workspaces while maintaining clear ownership, audit trails, and permission controls.
+**Defined:** 2026-01-22
+**Core Value:** Every product decision traces back to user evidence. Signals flow in, get processed, route to projects, and become the provenance chain for PRDs and prototypes.
 
-## v1 Requirements
+## v1.1 Requirements
 
-Requirements for initial release. Each maps to roadmap phases.
+Requirements for signals system release. Each maps to roadmap phases.
 
-### Authentication
+### Signal Foundation
 
-- [x] **AUTH-01**: User can sign up with email and password ✓
-- [~] **AUTH-02**: User can sign in with Google OAuth (Gmail) — PAUSED
-- [~] **AUTH-03**: User can reset password via email link — PAUSED
-- [x] **AUTH-04**: User session persists across browser refresh ✓
-- [x] **AUTH-05**: User can sign out and session is cleared ✓
-- [x] **AUTH-06**: Passwords are securely hashed with bcryptjs ✓
+- [ ] **SGNL-01**: Signal schema with source, verbatim, interpretation, severity, frequency fields
+- [ ] **SGNL-02**: Signal storage in database with workspace association
+- [ ] **SGNL-03**: Manual signal entry form (paste/type feedback)
+- [ ] **SGNL-04**: Signal list view with pagination
+- [ ] **SGNL-05**: Search signals by keyword
+- [ ] **SGNL-06**: Filter signals by date, source, status
+- [ ] **SGNL-07**: Source attribution field (Slack, email, interview, webhook, etc.)
+- [ ] **SGNL-08**: Status tracking (new, reviewed, linked, archived)
 
-### User Management
+### Signal Ingestion
 
-- [x] **USER-01**: User profile created on first sign up (name, email, avatar) ✓
-- [x] **USER-02**: User profile displays in navigation when logged in ✓
-- [x] **USER-03**: User can view their profile information ✓
+- [ ] **INGST-01**: Webhook endpoint to receive signals from external sources
+- [ ] **INGST-02**: Webhook authentication (API key or signature verification)
+- [ ] **INGST-03**: Queue-first webhook pattern (fast ACK, async processing)
+- [ ] **INGST-04**: File upload for documents and transcripts
+- [ ] **INGST-05**: Paste text entry with source selection
+- [ ] **INGST-06**: Video link input (YouTube, Loom)
+- [ ] **INGST-07**: Video timestamp extraction from links
+- [ ] **INGST-08**: Pylon integration for support ticket ingestion
+- [ ] **INGST-09**: Slack integration for channel message ingestion
 
-### Workspace Ownership
+### Signal Intelligence
 
-- [x] **WORK-01**: User can create a new workspace ✓
-- [x] **WORK-02**: Workspace creator automatically becomes Admin ✓
-- [x] **WORK-03**: User can switch between workspaces via dropdown ✓
-- [x] **WORK-04**: User can rename their owned workspaces ✓
-- [x] **WORK-05**: User can view list of workspace members ✓
-- [x] **WORK-06**: First-time user is prompted to create initial workspace ✓
+- [ ] **INTL-01**: Auto-classify signal: "belongs to Project X" vs "new initiative"
+- [ ] **INTL-02**: Classification confidence score with threshold
+- [ ] **INTL-03**: Extract structured data: severity, frequency, user segment
+- [ ] **INTL-04**: Generate embeddings for signals (OpenAI text-embedding-3-small)
+- [ ] **INTL-05**: Cluster related signals by semantic similarity
+- [ ] **INTL-06**: `/ingest` command to process raw input into structured signal
+- [ ] **INTL-07**: `/synthesize` command to find patterns and propose initiatives
 
-### Invitation System
+### Signal Association
 
-- [x] **INVT-01**: Admin can invite users by email address ✓
-- [x] **INVT-02**: Admin can select role when inviting (Admin/Member/Viewer) ✓
-- [~] **INVT-03**: Invited user receives email with magic link — PAUSED (link shared manually)
-- [x] **INVT-04**: Magic link creates account if user doesn't exist ✓
-- [x] **INVT-05**: Magic link adds user to workspace with selected role ✓
-- [x] **INVT-06**: Invitation tokens expire after 7 days ✓
-- [x] **INVT-07**: Invitation tokens are single-use ✓
-- [x] **INVT-08**: Share button visible in workspace UI for admins ✓
+- [ ] **ASSC-01**: Link signal to existing project (many-to-many)
+- [ ] **ASSC-02**: Link signal to persona (build persona evidence library)
+- [ ] **ASSC-03**: Unlink signal from project/persona
+- [ ] **ASSC-04**: View all signals linked to a project
+- [ ] **ASSC-05**: View all signals linked to a persona
+- [ ] **ASSC-06**: Bulk link/unlink signals
 
-### Role-Based Access Control
+### Signal → Project Integration
 
-- [x] **ROLE-01**: Admin role can invite members, configure workspace, manage members ✓
-- [x] **ROLE-02**: Member role can view and edit projects, trigger jobs, create documents ✓
-- [x] **ROLE-03**: Viewer role has read-only access to projects and documents ✓
-- [x] **ROLE-04**: Permission checks enforced in all API routes ✓
-- [x] **ROLE-05**: Unauthorized actions hidden in UI based on role ✓
-- [x] **ROLE-06**: Users cannot promote themselves to higher role ✓
+- [ ] **PROV-01**: Signals visible on project page as linked evidence
+- [ ] **PROV-02**: "Signals that informed this project" section on project detail
+- [ ] **PROV-03**: Provenance chain: immutable junction table with link reason
+- [ ] **PROV-04**: PRD citation: auto-cite signals in generated PRDs
+- [ ] **PROV-05**: Create new project from clustered signals
+- [ ] **PROV-06**: Signal count badge on project cards
 
-### Activity Logging
+### Automation & Workflow
 
-- [x] **ACTV-01**: Log when project is created ✓
-- [x] **ACTV-02**: Log when project stage changes ✓
-- [x] **ACTV-03**: Log when member is invited ✓
-- [x] **ACTV-04**: Log when member joins workspace ✓
-- [x] **ACTV-05**: Log when job is triggered ✓
-- [x] **ACTV-06**: Activity feed viewable in workspace settings ✓
+- [ ] **AUTO-01**: Configurable automation depth per workflow stage
+- [ ] **AUTO-02**: Auto-PRD trigger when N+ signals cluster on unlinked topic
+- [ ] **AUTO-03**: Notification thresholds (only notify when criteria met)
+- [ ] **AUTO-04**: Signal → initiative auto-creation from clusters
 
-### Data Migration
+### Maintenance & Hygiene
 
-- [x] **MIGR-01**: First authenticated user owns all existing workspaces ✓
-- [x] **MIGR-02**: First authenticated user owns all existing projects ✓
-- [x] **MIGR-03**: Migration runs in transaction (all-or-nothing) ✓
-- [x] **MIGR-04**: Migration is idempotent (safe to run multiple times) ✓
-- [x] **MIGR-05**: Existing stage transitions get actor attribution ✓
-
-### Testing
-
-- [x] **TEST-01**: Unit tests for authentication flows ✓
-- [x] **TEST-02**: Integration tests for invitation system ✓
-- [x] **TEST-03**: Permission enforcement tests (API routes) ✓
-- [x] **TEST-04**: Cross-user access denied tests ✓
-- [x] **TEST-05**: Migration script tests ✓
+- [ ] **MAINT-01**: Cleanup agent: suggest signal → project associations
+- [ ] **MAINT-02**: Orphan signal detection (flag unlinked signals after X days)
+- [ ] **MAINT-03**: Duplicate signal detection and merge suggestion
+- [ ] **MAINT-04**: Signal archival workflow
 
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
 
-### Enhanced Authentication
+### Enhanced Intelligence
 
-- **AUTH-V2-01**: Email verification for new accounts
-- **AUTH-V2-02**: Two-factor authentication (TOTP)
-- **AUTH-V2-03**: SSO/SAML enterprise authentication
-- **AUTH-V2-04**: Magic link login (not just for invites)
+- **INTL-V2-01**: AI-suggested tags based on content
+- **INTL-V2-02**: Signal strength scoring (frequency × severity × segment value)
+- **INTL-V2-03**: Trend detection (alert when theme volume spikes)
+- **INTL-V2-04**: Adaptive taxonomy (categories evolve with product)
 
-### Workspace Management
+### Additional Integrations
 
-- **WORK-V2-01**: Workspace templates (clone structure)
-- **WORK-V2-02**: Workspace archiving
-- **WORK-V2-03**: Workspace transfer to another user
-- **WORK-V2-04**: Bulk member invite via CSV
+- **INGST-V2-01**: Intercom integration
+- **INGST-V2-02**: Zendesk integration
+- **INGST-V2-03**: Linear issue ingestion
+- **INGST-V2-04**: Email forwarding ingestion
 
-### Invitation Enhancements
+### Advanced Features
 
-- **INVT-V2-01**: Pending invitations management UI
-- **INVT-V2-02**: Resend invitation option
-- **INVT-V2-03**: Invitation expiry notification
-
-### User Settings
-
-- **USER-V2-01**: User can change display name
-- **USER-V2-02**: User can upload custom avatar
-- **USER-V2-03**: User can change password
-- **USER-V2-04**: User can delete account
+- **ADV-V2-01**: Revenue attribution (link signal to customer ARR)
+- **ADV-V2-02**: Customer segment weighting
+- **ADV-V2-03**: Evidence dashboard ("why we built this" view)
 
 ## Out of Scope
 
@@ -113,15 +102,15 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Magic link general login | Adds email dependency for every login; OAuth + password sufficient |
-| Project-level permissions | Complexity; workspace roles cover 95% of cases |
-| Public workspaces | Security risk; workspaces contain company context |
-| Guest/time-limited access | Complexity; defer to v2 |
-| Real-time presence | High complexity, minimal value for PM workflow |
-| User-to-user messaging | Scope creep; use Slack/email instead |
-| Custom roles | Three-role model sufficient; enterprise feature |
-| Team billing | Payment integration deferred; free tier first |
-| Granular notification preferences | Standard emails sufficient for v1 |
+| Audio/video transcription | Handled externally by Ask Elephant; elmer receives pre-transcribed text |
+| Public voting board | Creates vocal minority bias, popularity contest; PM judgment preferred |
+| Customer-facing feedback portal | Support/spam burden; signals come from curated sources |
+| Feature roadmap publishing | Over-commitment risk; separate changelog after ship |
+| Real-time notifications | Notification fatigue; batch digests and threshold-based only |
+| Granular per-signal permissions | Complexity; workspace-level permissions sufficient |
+| Custom signal fields | Schema fragmentation; standardized extraction + interpretation field |
+| Signal assignment to team member | Creates ownership silos; tag for topic instead |
+| Customer response/reply | Scope creep into CRM; use source system for communication |
 
 ## Traceability
 
@@ -129,57 +118,56 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 2 | Complete |
-| AUTH-02 | Phase 2 | Paused |
-| AUTH-03 | Phase 3 | Paused |
-| AUTH-04 | Phase 3 | Complete |
-| AUTH-05 | Phase 3 | Complete |
-| AUTH-06 | Phase 1 | Complete |
-| USER-01 | Phase 2 | Complete |
-| USER-02 | Phase 9 | Complete |
-| USER-03 | Phase 9 | Complete |
-| WORK-01 | Phase 4 | Complete |
-| WORK-02 | Phase 4 | Complete |
-| WORK-03 | Phase 4 | Complete |
-| WORK-04 | Phase 4 | Complete |
-| WORK-05 | Phase 4 | Complete |
-| WORK-06 | Phase 4 | Complete |
-| INVT-01 | Phase 5 | Complete |
-| INVT-02 | Phase 5 | Complete |
-| INVT-03 | Phase 5 | Paused |
-| INVT-04 | Phase 5 | Complete |
-| INVT-05 | Phase 5 | Complete |
-| INVT-06 | Phase 5 | Complete |
-| INVT-07 | Phase 5 | Complete |
-| INVT-08 | Phase 5 | Complete |
-| ROLE-01 | Phase 6 | Complete |
-| ROLE-02 | Phase 6 | Complete |
-| ROLE-03 | Phase 6 | Complete |
-| ROLE-04 | Phase 6 | Complete |
-| ROLE-05 | Phase 6 | Complete |
-| ROLE-06 | Phase 6 | Complete |
-| ACTV-01 | Phase 7 | Complete |
-| ACTV-02 | Phase 7 | Complete |
-| ACTV-03 | Phase 7 | Complete |
-| ACTV-04 | Phase 7 | Complete |
-| ACTV-05 | Phase 7 | Complete |
-| ACTV-06 | Phase 7 | Complete |
-| MIGR-01 | Phase 8 | Complete |
-| MIGR-02 | Phase 8 | Complete |
-| MIGR-03 | Phase 8 | Complete |
-| MIGR-04 | Phase 8 | Complete |
-| MIGR-05 | Phase 8 | Complete |
-| TEST-01 | Phase 10 | Complete |
-| TEST-02 | Phase 10 | Complete |
-| TEST-03 | Phase 10 | Complete |
-| TEST-04 | Phase 10 | Complete |
-| TEST-05 | Phase 10 | Complete |
+| SGNL-01 | TBD | Pending |
+| SGNL-02 | TBD | Pending |
+| SGNL-03 | TBD | Pending |
+| SGNL-04 | TBD | Pending |
+| SGNL-05 | TBD | Pending |
+| SGNL-06 | TBD | Pending |
+| SGNL-07 | TBD | Pending |
+| SGNL-08 | TBD | Pending |
+| INGST-01 | TBD | Pending |
+| INGST-02 | TBD | Pending |
+| INGST-03 | TBD | Pending |
+| INGST-04 | TBD | Pending |
+| INGST-05 | TBD | Pending |
+| INGST-06 | TBD | Pending |
+| INGST-07 | TBD | Pending |
+| INGST-08 | TBD | Pending |
+| INGST-09 | TBD | Pending |
+| INTL-01 | TBD | Pending |
+| INTL-02 | TBD | Pending |
+| INTL-03 | TBD | Pending |
+| INTL-04 | TBD | Pending |
+| INTL-05 | TBD | Pending |
+| INTL-06 | TBD | Pending |
+| INTL-07 | TBD | Pending |
+| ASSC-01 | TBD | Pending |
+| ASSC-02 | TBD | Pending |
+| ASSC-03 | TBD | Pending |
+| ASSC-04 | TBD | Pending |
+| ASSC-05 | TBD | Pending |
+| ASSC-06 | TBD | Pending |
+| PROV-01 | TBD | Pending |
+| PROV-02 | TBD | Pending |
+| PROV-03 | TBD | Pending |
+| PROV-04 | TBD | Pending |
+| PROV-05 | TBD | Pending |
+| PROV-06 | TBD | Pending |
+| AUTO-01 | TBD | Pending |
+| AUTO-02 | TBD | Pending |
+| AUTO-03 | TBD | Pending |
+| AUTO-04 | TBD | Pending |
+| MAINT-01 | TBD | Pending |
+| MAINT-02 | TBD | Pending |
+| MAINT-03 | TBD | Pending |
+| MAINT-04 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 42 total
-- Completed: 39
-- Paused: 3 (AUTH-02, AUTH-03, INVT-03 — need external service config)
+- v1.1 requirements: 44 total
+- Mapped to phases: 0 (pending roadmap creation)
+- Unmapped: 44
 
 ---
-*Requirements defined: 2026-01-21*
-*Last updated: 2026-01-22 after Phase 10 completion*
+*Requirements defined: 2026-01-22*
+*Last updated: 2026-01-22 after initial definition*
