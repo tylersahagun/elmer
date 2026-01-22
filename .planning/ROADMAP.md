@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Schema & Auth Foundation** - Database schema extensions and Auth.js configuration ✓
 - [~] **Phase 2: User Registration** - Email/password signup ✓, Google OAuth paused
 - [~] **Phase 3: Session Management** - Login ✓, logout ✓, password reset paused (needs email service)
-- [ ] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher
+- [x] **Phase 4: Workspace Ownership** - User-owned workspaces and workspace switcher ✓
 - [ ] **Phase 5: Invitation System** - Email invites with magic links
 - [ ] **Phase 6: Role Enforcement** - Permission checks in API and UI
 - [ ] **Phase 7: Activity Logging** - Audit trail for workspace actions
@@ -99,9 +99,11 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: Workspace creation with automatic admin membership
-- [ ] 04-02: Workspace switcher dropdown component
-- [ ] 04-03: Workspace member list and settings
+- [x] 04-01: Workspace creation with automatic admin membership ✓
+- [x] 04-02: Workspace switcher and first-time user flow ✓
+- [x] 04-03: Workspace settings and member management ✓
+
+**Completed:** 2026-01-22 | All plans complete.
 
 ### Phase 5: Invitation System
 **Goal**: Admins can invite collaborators via email with magic links
@@ -225,7 +227,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Schema & Auth Foundation | 2/2 | ✓ Complete | 2026-01-22 |
 | 2. User Registration | 1/2 | Partial (OAuth paused) | 2026-01-22 |
 | 3. Session Management | 2/3 | Partial (reset paused) | 2026-01-22 |
-| 4. Workspace Ownership | 0/3 | Not started | - |
+| 4. Workspace Ownership | 3/3 | ✓ Complete | 2026-01-22 |
 | 5. Invitation System | 0/4 | Not started | - |
 | 6. Role Enforcement | 0/3 | Not started | - |
 | 7. Activity Logging | 0/3 | Not started | - |
