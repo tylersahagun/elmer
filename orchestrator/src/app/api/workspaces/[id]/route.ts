@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { getWorkspace, updateWorkspace, getWorkspaceMembership } from "@/lib/db/queries";
+import { getWorkspace, updateWorkspace } from "@/lib/db/queries";
 import { getResolvedPaths } from "@/lib/knowledgebase/sync";
+import {
+  requireWorkspaceAccess,
+  handlePermissionError,
+  PermissionError,
+} from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
@@ -9,6 +13,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    // Require at least viewer access to see workspace details
+    await requireWorkspaceAccess(id, "viewer");
+
     const workspace = await getWorkspace(id);
 
     if (!workspace) {
@@ -30,6 +38,10 @@ export async function GET(
       resolvedPaths,
     });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to get workspace:", error);
     return NextResponse.json(
       { error: "Failed to get workspace" },
@@ -43,35 +55,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
     const { id } = await params;
+
+    // Require admin access to update workspace settings
+    await requireWorkspaceAccess(id, "admin");
+
     const body = await request.json();
     const { name, description, githubRepo, contextPath, settings } = body;
-
-    // Check if user is an admin of this workspace
-    const membership = await getWorkspaceMembership(id, session.user.id);
-    
-    if (!membership) {
-      return NextResponse.json(
-        { error: "Not a member of this workspace" },
-        { status: 403 }
-      );
-    }
-
-    if (membership.role !== "admin") {
-      return NextResponse.json(
-        { error: "Only admins can update workspace settings" },
-        { status: 403 }
-      );
-    }
 
     const updated = await updateWorkspace(id, {
       name,
@@ -90,6 +80,10 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Failed to update workspace:", errorMessage, error);
     return NextResponse.json(

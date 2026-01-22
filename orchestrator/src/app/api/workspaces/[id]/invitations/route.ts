@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { getWorkspaceMembership } from "@/lib/db/queries";
 import {
   createInvitation,
   getWorkspaceInvitations,
   revokeInvitation,
 } from "@/lib/invitations";
+import {
+  requireWorkspaceAccess,
+  handlePermissionError,
+  PermissionError,
+} from "@/lib/permissions";
 import type { WorkspaceRole } from "@/lib/db/schema";
 
 export async function GET(
@@ -13,37 +16,18 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
     const { id: workspaceId } = await params;
 
-    // Check if user is an admin of this workspace
-    const membership = await getWorkspaceMembership(workspaceId, session.user.id);
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: "Not a member of this workspace" },
-        { status: 403 }
-      );
-    }
-
-    if (membership.role !== "admin") {
-      return NextResponse.json(
-        { error: "Only admins can view invitations" },
-        { status: 403 }
-      );
-    }
+    // Require admin access to view invitations
+    await requireWorkspaceAccess(workspaceId, "admin");
 
     const invitations = await getWorkspaceInvitations(workspaceId);
     return NextResponse.json(invitations);
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to get invitations:", error);
     return NextResponse.json(
       { error: "Failed to get invitations" },
@@ -57,33 +41,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
     const { id: workspaceId } = await params;
 
-    // Check if user is an admin of this workspace
-    const membership = await getWorkspaceMembership(workspaceId, session.user.id);
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: "Not a member of this workspace" },
-        { status: 403 }
-      );
-    }
-
-    if (membership.role !== "admin") {
-      return NextResponse.json(
-        { error: "Only admins can send invitations" },
-        { status: 403 }
-      );
-    }
+    // Require admin access to send invitations
+    const membership = await requireWorkspaceAccess(workspaceId, "admin");
 
     const body = await request.json();
     const { email, role } = body;
@@ -117,11 +78,15 @@ export async function POST(
       workspaceId,
       email,
       role: role || "member",
-      invitedBy: session.user.id,
+      invitedBy: membership.userId,
     });
 
     return NextResponse.json(invitation, { status: 201 });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     const message = error instanceof Error ? error.message : "Failed to create invitation";
     console.error("Failed to create invitation:", error);
     return NextResponse.json(
@@ -136,33 +101,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
     const { id: workspaceId } = await params;
 
-    // Check if user is an admin of this workspace
-    const membership = await getWorkspaceMembership(workspaceId, session.user.id);
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: "Not a member of this workspace" },
-        { status: 403 }
-      );
-    }
-
-    if (membership.role !== "admin") {
-      return NextResponse.json(
-        { error: "Only admins can revoke invitations" },
-        { status: 403 }
-      );
-    }
+    // Require admin access to revoke invitations
+    await requireWorkspaceAccess(workspaceId, "admin");
 
     const { searchParams } = new URL(request.url);
     const invitationId = searchParams.get("invitationId");
@@ -185,6 +127,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to revoke invitation:", error);
     return NextResponse.json(
       { error: "Failed to revoke invitation" },

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProjects, createProject, getWorkspace, createJob } from "@/lib/db/queries";
 import { buildFeatureBranchName } from "@/lib/git/branches";
+import {
+  requireWorkspaceAccess,
+  handlePermissionError,
+  PermissionError,
+} from "@/lib/permissions";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,9 +20,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Require viewer access to list projects
+    await requireWorkspaceAccess(workspaceId, "viewer");
+
     const projects = await getProjects(workspaceId, { includeArchived });
     return NextResponse.json(projects);
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to get projects:", error);
     return NextResponse.json(
       { error: "Failed to get projects" },
@@ -37,6 +49,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Require member access to create projects
+    await requireWorkspaceAccess(workspaceId, "member");
 
     const workspace = await getWorkspace(workspaceId);
     if (!workspace) {
@@ -76,6 +91,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to create project:", error);
     return NextResponse.json(
       { error: "Failed to create project" },

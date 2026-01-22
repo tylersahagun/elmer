@@ -3,6 +3,11 @@ import { createJob, getJobs } from "@/lib/db/queries";
 import { db } from "@/lib/db";
 import { jobs } from "@/lib/db/schema";
 import { eq, and, or } from "drizzle-orm";
+import {
+  requireWorkspaceAccess,
+  handlePermissionError,
+  PermissionError,
+} from "@/lib/permissions";
 import type { JobType, JobStatus } from "@/lib/db/schema";
 
 export async function GET(request: NextRequest) {
@@ -18,9 +23,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const jobs = await getJobs(workspaceId, status || undefined);
-    return NextResponse.json(jobs);
+    // Require viewer access to list jobs
+    await requireWorkspaceAccess(workspaceId, "viewer");
+
+    const jobsList = await getJobs(workspaceId, status || undefined);
+    return NextResponse.json(jobsList);
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to get jobs:", error);
     return NextResponse.json(
       { error: "Failed to get jobs" },
@@ -40,6 +52,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Require member access to trigger jobs
+    await requireWorkspaceAccess(workspaceId, "member");
 
     // Validate job type
     const validJobTypes: JobType[] = [
@@ -75,6 +90,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(job, { status: 201 });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to create job:", error);
     return NextResponse.json(
       { error: "Failed to create job" },
@@ -102,6 +121,9 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Require member access to retry jobs
+    await requireWorkspaceAccess(workspaceId, "member");
 
     if (action !== "retry_failed" && action !== "reset_pending") {
       return NextResponse.json(
@@ -147,6 +169,10 @@ export async function PATCH(request: NextRequest) {
       jobs: result.map(j => ({ id: j.id, type: j.type })),
     });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to retry jobs:", error);
     return NextResponse.json(
       { error: "Failed to retry jobs" },
@@ -176,6 +202,9 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Require admin access to clear jobs
+    await requireWorkspaceAccess(workspaceId, "admin");
 
     // Build the status filter
     let statusFilter;
@@ -215,6 +244,10 @@ export async function DELETE(request: NextRequest) {
       status,
     });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to clear jobs:", error);
     return NextResponse.json(
       { error: "Failed to clear jobs" },
