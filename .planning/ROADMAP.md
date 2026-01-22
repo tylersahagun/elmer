@@ -26,7 +26,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
        +--> 13 (Webhook) --> 14 --> 14.5 --> 14.6
 ```
 
-- [ ] **Phase 11: Signal Schema & Storage** - Foundation tables and core data model
+- [x] **Phase 11: Signal Schema & Storage** - Foundation tables and core data model
 - [ ] **Phase 12: Signal Management UI** - List, search, filter, and manual entry
 - [ ] **Phase 12.5: Manual Association** - Basic link/unlink signals to projects/personas
 - [ ] **Phase 13: Webhook Ingestion** - Core webhook infrastructure with queue-first pattern
@@ -54,7 +54,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 11-01-PLAN.md — Schema definitions, types, relations, and migration
+- [x] 11-01-PLAN.md — Schema definitions, types, relations, and migration
 
 ---
 
@@ -266,7 +266,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Signal Schema & Storage | 0/1 | Planned | - |
+| 11. Signal Schema & Storage | 1/1 | Complete | 2026-01-22 |
 | 12. Signal Management UI | 0/TBD | Not started | - |
 | 12.5. Manual Association | 0/TBD | Not started | - |
 | 13. Webhook Ingestion | 0/TBD | Not started | - |

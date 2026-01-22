@@ -9,14 +9,14 @@ Requirements for signals system release. Each maps to roadmap phases.
 
 ### Signal Foundation
 
-- [ ] **SGNL-01**: Signal schema with source, verbatim, interpretation, severity, frequency fields
-- [ ] **SGNL-02**: Signal storage in database with workspace association
+- [x] **SGNL-01**: Signal schema with source, verbatim, interpretation, severity, frequency fields
+- [x] **SGNL-02**: Signal storage in database with workspace association
 - [ ] **SGNL-03**: Manual signal entry form (paste/type feedback)
 - [ ] **SGNL-04**: Signal list view with pagination
 - [ ] **SGNL-05**: Search signals by keyword
 - [ ] **SGNL-06**: Filter signals by date, source, status
-- [ ] **SGNL-07**: Source attribution field (Slack, email, interview, webhook, etc.)
-- [ ] **SGNL-08**: Status tracking (new, reviewed, linked, archived)
+- [x] **SGNL-07**: Source attribution field (Slack, email, interview, webhook, etc.)
+- [x] **SGNL-08**: Status tracking (new, reviewed, linked, archived)
 
 ### Signal Ingestion
 
@@ -118,14 +118,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SGNL-01 | Phase 11 | Pending |
-| SGNL-02 | Phase 11 | Pending |
+| SGNL-01 | Phase 11 | Complete |
+| SGNL-02 | Phase 11 | Complete |
 | SGNL-03 | Phase 12 | Pending |
 | SGNL-04 | Phase 12 | Pending |
 | SGNL-05 | Phase 12 | Pending |
 | SGNL-06 | Phase 12 | Pending |
-| SGNL-07 | Phase 11 | Pending |
-| SGNL-08 | Phase 11 | Pending |
+| SGNL-07 | Phase 11 | Complete |
+| SGNL-08 | Phase 11 | Complete |
 | INGST-01 | Phase 13 | Pending |
 | INGST-02 | Phase 13 | Pending |
 | INGST-03 | Phase 13 | Pending |
