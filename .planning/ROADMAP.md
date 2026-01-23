@@ -116,19 +116,21 @@ Plans:
 ---
 
 ### Phase 14: File & Paste Upload
-**Goal**: Users can ingest signals from uploaded files and pasted text
+**Goal**: Users can ingest signals from uploaded files (paste text already exists from Phase 12)
 **Depends on**: Phase 13
 **Requirements**: INGST-04, INGST-05
 **Success Criteria** (what must be TRUE):
   1. User can upload documents and transcripts (PDF, CSV, TXT) to create signals
-  2. User can paste text with source selection to create a signal
+  2. User can paste text with source selection to create a signal (pre-existing from Phase 12)
   3. Uploaded files are processed and signal created with source attribution
-**Plans**: 3 plans
+**Note**: Success criterion 2 (paste text) was already delivered in Phase 12 via CreateSignalModal. This phase adds FILE upload capability.
+**Plans**: 4 plans
 
 Plans:
 - [ ] 14-01-PLAN.md — File parsing infrastructure (unpdf, papaparse, validators)
 - [ ] 14-02-PLAN.md — Upload API endpoint with text extraction and signal creation
-- [ ] 14-03-PLAN.md — Upload UI components and tabbed CreateSignalModal
+- [ ] 14-03-PLAN.md — FileDropZone and FileUploadTab components
+- [ ] 14-04-PLAN.md — CreateSignalModal tabbed interface integration
 
 ---
 
@@ -278,7 +280,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 12. Signal Management UI | 3/3 | Complete | 2026-01-22 |
 | 12.5. Manual Association | 4/4 | Complete | 2026-01-22 |
 | 13. Webhook Ingestion | 2/2 | Complete | 2026-01-22 |
-| 14. File & Paste Upload | 0/3 | Planned | - |
+| 14. File & Paste Upload | 0/4 | Planned | - |
 | 14.5. Video Caption Fetch | 0/TBD | Not started | - |
 | 14.6. Third-Party Integrations | 0/TBD | Not started | - |
 | 15. Signal Extraction & Embedding | 0/TBD | Not started | - |
