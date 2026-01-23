@@ -1,6 +1,31 @@
-import { pgTable, text, integer, real, timestamp, boolean, jsonb, unique, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, timestamp, boolean, jsonb, unique, primaryKey, customType } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { nanoid } from "nanoid";
+
+// ============================================
+// CUSTOM TYPES
+// ============================================
+
+// Custom type for pgvector vector columns (Phase 16)
+export const vector = customType<{
+  data: number[];
+  driverData: string;
+  config: { dimensions: number };
+}>({
+  dataType(config) {
+    return `vector(${config?.dimensions ?? 1536})`;
+  },
+  toDriver(value: number[]): string {
+    return `[${value.join(",")}]`;
+  },
+  fromDriver(value: string): number[] {
+    // Parse pgvector format: [0.1,0.2,0.3,...]
+    return value
+      .slice(1, -1)
+      .split(",")
+      .map((v) => parseFloat(v));
+  },
+});
 
 // ============================================
 // WORKSPACES
@@ -194,6 +219,10 @@ export const projects = pgTable("projects", {
   metadata: jsonb("metadata").$type<ProjectMetadata>(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
+
+  // Embedding for signal classification (Phase 16)
+  embeddingVector: vector("embedding_vector", { dimensions: 1536 }),
+  embeddingUpdatedAt: timestamp("embedding_updated_at", { mode: "string" }),
 });
 
 export interface ProjectMetadata {
@@ -1190,6 +1219,17 @@ export interface SignalClassification {
   clusterName?: string;
 }
 
+// Classification result from Phase 16 classifier (stored in signals.classification)
+export interface SignalClassificationResult {
+  projectId?: string;
+  projectName?: string;
+  confidence: number;
+  method: "embedding" | "llm" | "manual";
+  isNewInitiative?: boolean;
+  reason?: string;
+  classifiedAt: string;
+}
+
 export const signals = pgTable("signals", {
   id: text("id").primaryKey().$defaultFn(() => nanoid()),
   workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
@@ -1212,8 +1252,14 @@ export const signals = pgTable("signals", {
   status: text("status").$type<SignalStatus>().notNull().default("new"),
 
   // AI processing fields (populated in Phase 15-16)
-  embedding: text("embedding"),                   // Vector embedding (base64)
+  embedding: text("embedding"),                   // Vector embedding (base64) - deprecated, use embeddingVector
   aiClassification: jsonb("ai_classification").$type<SignalClassification>(),
+
+  // Native pgvector column (Phase 16 - for similarity search)
+  embeddingVector: vector("embedding_vector", { dimensions: 1536 }),
+
+  // Classification metadata (Phase 16)
+  classification: jsonb("classification").$type<SignalClassificationResult>(),
 
   // Provenance (for Phase 18)
   inboxItemId: text("inbox_item_id").references(() => inboxItems.id, { onDelete: "set null" }),
