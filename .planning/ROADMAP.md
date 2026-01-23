@@ -30,7 +30,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 12: Signal Management UI** - List, search, filter, and manual entry
 - [x] **Phase 12.5: Manual Association** - Basic link/unlink signals to projects/personas
 - [x] **Phase 13: Webhook Ingestion** - Core webhook infrastructure with queue-first pattern
-- [ ] **Phase 14: File & Paste Upload** - Upload documents/transcripts and paste text
+- [x] **Phase 14: File & Paste Upload** - Upload documents/transcripts and paste text
 - [ ] **Phase 14.5: Video Caption Fetch** - Fetch existing captions from YouTube/Loom APIs
 - [ ] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
 - [ ] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
@@ -135,19 +135,21 @@ Plans:
 ---
 
 ### Phase 14.5: Video Caption Fetch
-**Goal**: Users can create signals from video links by fetching existing captions via API
+**Goal**: Users can create signals from YouTube video links by fetching existing captions
 **Depends on**: Phase 14
 **Requirements**: INGST-06, INGST-07
 **Success Criteria** (what must be TRUE):
-  1. User can input YouTube link and system fetches existing captions via YouTube API
-  2. User can input Loom link and system fetches existing transcript via Loom API
-  3. Timestamps are extracted and preserved in signal metadata
-  4. Signal created with video source attribution and link to original
-**Note**: This is NOT transcription. We fetch pre-existing captions/transcripts from video platform APIs.
-**Plans**: TBD
+  1. User can input YouTube link and system fetches existing captions via library
+  2. Timestamps are extracted and preserved in signal verbatim
+  3. Signal created with video source attribution and link to original
+  4. Loom URLs show "coming soon" message (deferred pending official API)
+**Note**: This is NOT transcription. We fetch pre-existing captions using youtube-caption-extractor library. Loom support deferred due to lack of official API.
+**Plans**: 3 plans
 
 Plans:
-- [ ] 14.5-01: TBD
+- [ ] 14.5-01-PLAN.md — Video caption infrastructure (validators, formatters, extractCaptions)
+- [ ] 14.5-02-PLAN.md — /api/signals/video endpoint with caption fetch and signal creation
+- [ ] 14.5-03-PLAN.md — VideoLinkTab component and CreateSignalModal third tab integration
 
 ---
 
@@ -281,7 +283,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 12.5. Manual Association | 4/4 | Complete | 2026-01-22 |
 | 13. Webhook Ingestion | 2/2 | Complete | 2026-01-22 |
 | 14. File & Paste Upload | 4/4 | Complete | 2026-01-23 |
-| 14.5. Video Caption Fetch | 0/TBD | Not started | - |
+| 14.5. Video Caption Fetch | 0/3 | Not started | - |
 | 14.6. Third-Party Integrations | 0/TBD | Not started | - |
 | 15. Signal Extraction & Embedding | 0/TBD | Not started | - |
 | 16. Classification & Clustering | 0/TBD | Not started | - |
