@@ -54,7 +54,7 @@ export function verifySlackSignature(
 export async function createSignalFromSlack(
   input: SlackMessageInput
 ): Promise<SignalCreateResult> {
-  const { workspaceId, event, teamId } = input;
+  const { workspaceId, event, teamId, receivedAt } = input;
 
   // Generate unique sourceRef for idempotency
   const sourceRef = `slack-${teamId}-${event.channel}-${event.ts}`;
@@ -75,23 +75,26 @@ export async function createSignalFromSlack(
     }
 
     const signalId = nanoid();
-    await db.insert(signals).values({
-      id: signalId,
-      workspaceId,
-      verbatim: event.text,
-      source: "slack",
-      sourceRef,
-      sourceMetadata: {
-        channelId: event.channel,
-        messageTs: event.ts,
-        threadTs: event.thread_ts,
-        externalId: `${teamId}/${event.channel}/${event.ts}`,
-        rawPayload: event as unknown as Record<string, unknown>,
-      },
-      status: "new",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    const [signal] = await db
+      .insert(signals)
+      .values({
+        id: signalId,
+        workspaceId,
+        verbatim: event.text,
+        source: "slack",
+        sourceRef,
+        sourceMetadata: {
+          channelId: event.channel,
+          messageTs: event.ts,
+          threadTs: event.thread_ts,
+          externalId: `${teamId}/${event.channel}/${event.ts}`,
+          rawPayload: event as unknown as Record<string, unknown>,
+        },
+        status: "new",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
 
     // Log activity
     await db.insert(activityLogs).values({
