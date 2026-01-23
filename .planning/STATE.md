@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 15 - Signal Extraction & Embedding (plan 1 of 3 complete)
+**Current focus:** Phase 15 - Signal Extraction & Embedding (plan 2 of 3 complete)
 
 ## Current Position
 
 Phase: 15 of 20 (Signal Extraction & Embedding)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-23 - Completed 15-01-PLAN.md (AI Infrastructure)
+Last activity: 2026-01-23 - Completed 15-02-PLAN.md (Signal Processor)
 
-Progress: [██████░░░░] 62%
+Progress: [██████░░░░] 64%
 
 ## Performance Metrics
 
@@ -33,7 +33,7 @@ Progress: [██████░░░░] 62%
 - Phase 14: 4/4 plans complete (verified)
 - Phase 14.5: 3/3 plans complete (verified)
 - Phase 14.6: 3/3 plans complete (verified)
-- Phase 15: 1/3 plans complete
+- Phase 15: 2/3 plans complete
 
 ## Accumulated Context
 
@@ -127,6 +127,10 @@ Recent decisions affecting current work:
 - v1.1 (15-01): Claude claude-sonnet-4-20250514 for signal field extraction
 - v1.1 (15-01): 30000 char truncation limit for embedding input
 - v1.1 (15-01): Float32Array for Base64 embedding storage (matches memoryEntries pattern)
+- v1.1 (15-02): processedAt set BEFORE processing to prevent duplicate processing
+- v1.1 (15-02): processedAt reset to null on failure to allow retry
+- v1.1 (15-02): Preserve user interpretation if already set (don't overwrite with AI)
+- v1.1 (15-02): Batch size 10 with 100ms delay between batches for rate limiting
 
 ### Pending Todos
 
@@ -143,8 +147,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 15-01-PLAN.md (AI Infrastructure)
+Stopped at: Completed 15-02-PLAN.md (Signal Processor)
 Resume file: None
 Next steps:
-  - Continue with Plan 15-02 (Signal Processor)
-  - Then Plan 15-03 (/ingest endpoint)
+  - Continue with Plan 15-03 (/ingest endpoint integration)
+  - Phase 15 completion verification
