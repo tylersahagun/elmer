@@ -127,10 +127,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — File parsing infrastructure (unpdf, papaparse, validators)
-- [ ] 14-02-PLAN.md — Upload API endpoint with text extraction and signal creation
-- [ ] 14-03-PLAN.md — FileDropZone and FileUploadTab components
-- [ ] 14-04-PLAN.md — CreateSignalModal tabbed interface integration
+- [x] 14-01-PLAN.md — File parsing infrastructure (unpdf, papaparse, validators)
+- [x] 14-02-PLAN.md — Upload API endpoint with text extraction and signal creation
+- [x] 14-03-PLAN.md — FileDropZone and FileUploadTab components
+- [x] 14-04-PLAN.md — CreateSignalModal tabbed interface integration
 
 ---
 
@@ -280,7 +280,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 12. Signal Management UI | 3/3 | Complete | 2026-01-22 |
 | 12.5. Manual Association | 4/4 | Complete | 2026-01-22 |
 | 13. Webhook Ingestion | 2/2 | Complete | 2026-01-22 |
-| 14. File & Paste Upload | 0/4 | Planned | - |
+| 14. File & Paste Upload | 4/4 | Complete | 2026-01-23 |
 | 14.5. Video Caption Fetch | 0/TBD | Not started | - |
 | 14.6. Third-Party Integrations | 0/TBD | Not started | - |
 | 15. Signal Extraction & Embedding | 0/TBD | Not started | - |
@@ -292,6 +292,6 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 
 ---
 *Roadmap created: 2026-01-22*
-*Roadmap revised: 2026-01-22*
+*Roadmap revised: 2026-01-23*
 *Milestone: v1.1 Signals System*
 *Phases: 11-20 (continues from v1.0)*
