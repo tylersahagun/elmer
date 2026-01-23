@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 15 - Signal Extraction & Embedding (plan 2 of 3 complete)
+**Current focus:** Phase 16 - Classification & Clustering (Phase 15 complete)
 
 ## Current Position
 
-Phase: 15 of 20 (Signal Extraction & Embedding)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-01-23 - Completed 15-02-PLAN.md (Signal Processor)
+Phase: 15 of 20 (Signal Extraction & Embedding) - COMPLETE
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-01-23 - Completed 15-03-PLAN.md (/ingest Endpoint and Processing Integration)
 
-Progress: [██████░░░░] 64%
+Progress: [██████░░░░] 65%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [██████░░░░] 64%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 23
+- Total plans completed: 26
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -33,7 +33,7 @@ Progress: [██████░░░░] 64%
 - Phase 14: 4/4 plans complete (verified)
 - Phase 14.5: 3/3 plans complete (verified)
 - Phase 14.6: 3/3 plans complete (verified)
-- Phase 15: 2/3 plans complete
+- Phase 15: 3/3 plans complete (verified)
 
 ## Accumulated Context
 
@@ -131,6 +131,8 @@ Recent decisions affecting current work:
 - v1.1 (15-02): processedAt reset to null on failure to allow retry
 - v1.1 (15-02): Preserve user interpretation if already set (don't overwrite with AI)
 - v1.1 (15-02): Batch size 10 with 100ms delay between batches for rate limiting
+- v1.1 (15-03): Source defaults to "paste" for ingest endpoint (consistent with 12-01)
+- v1.1 (15-03): sourceRef format ingest-{timestamp}-{nanoid(6)} for uniqueness
 
 ### Pending Todos
 
@@ -139,6 +141,7 @@ Recent decisions affecting current work:
 - Configure email service for invitations (v1.0 - PAUSED)
 - Run migration for integrations table: `npx drizzle-kit migrate`
 - Add OPENAI_API_KEY to .env.local for embeddings functionality
+- Add ANTHROPIC_API_KEY to .env.local for signal extraction
 
 ### Blockers/Concerns
 
@@ -147,8 +150,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 15-02-PLAN.md (Signal Processor)
+Stopped at: Completed 15-03-PLAN.md (/ingest Endpoint and Processing Integration)
 Resume file: None
 Next steps:
-  - Continue with Plan 15-03 (/ingest endpoint integration)
-  - Phase 15 completion verification
+  - Phase 15 complete - proceed to Phase 16 (Classification & Clustering)
+  - Embeddings now generated for all signal sources
+  - Ready for similarity search and clustering features
