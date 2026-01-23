@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 13 - Webhook Ingestion (complete)
+**Current focus:** Phase 14 - File & Paste Upload (in progress)
 
 ## Current Position
 
-Phase: 13 of 20 (Webhook Ingestion)
-Plan: 2 of 2 complete
-Status: Phase complete
-Last activity: 2026-01-22 - Completed 13-02-PLAN.md (Signal Webhook Endpoint)
+Phase: 14 of 20 (File & Paste Upload)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-23 - Completed 14-01-PLAN.md (File Parsing Infrastructure)
 
-Progress: [████░░░░░░] 34%
+Progress: [████░░░░░░] 37%
 
 ## Performance Metrics
 
@@ -24,12 +24,13 @@ Progress: [████░░░░░░] 34%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 10
+- Total plans completed: 11
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
 - Phase 12.5: 4/4 plans complete
 - Phase 13: 2/2 plans complete
+- Phase 14: 1/3 plans complete
 
 ## Accumulated Context
 
@@ -76,6 +77,10 @@ Recent decisions affecting current work:
 - v1.1 (13-02): Queue-first pattern: return 200 immediately, process via after()
 - v1.1 (13-02): Check-then-insert pattern for sourceRef idempotency
 - v1.1 (13-02): Never throw in after() context - log errors for debugging
+- v1.1 (14-01): 5MB file size limit to stay under Vercel serverless 4.5MB body limit
+- v1.1 (14-01): Both MIME type AND extension checked for defense in depth
+- v1.1 (14-01): Magic bytes verification for PDFs to detect spoofed MIME types
+- v1.1 (14-01): CSV rows converted to readable text format for signal verbatim
 
 ### Pending Todos
 
@@ -89,9 +94,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-22
-Stopped at: Completed 13-02-PLAN.md (Signal Webhook Endpoint)
+Last session: 2026-01-23
+Stopped at: Completed 14-01-PLAN.md (File Parsing Infrastructure)
 Resume file: None
 Next steps:
-  - `/gsd:discuss-phase 14` to plan Webhook Key Management UI
-  - Or continue to AI Classification phases (15-16)
+  - Execute 14-02-PLAN.md (Upload API & Signal Creation)
+  - Execute 14-03-PLAN.md (Upload UI Components)
