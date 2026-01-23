@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploadTab } from "./FileUploadTab";
+import { VideoLinkTab } from "./VideoLinkTab";
 
 interface CreateSignalModalProps {
   workspaceId: string;
@@ -121,14 +122,15 @@ export function CreateSignalModal({
         <DialogHeader>
           <DialogTitle>Add Signal</DialogTitle>
           <DialogDescription>
-            Add user feedback by pasting text or uploading a file.
+            Add user feedback by pasting text, uploading a file, or fetching video captions.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="paste">Paste Text</TabsTrigger>
             <TabsTrigger value="upload">Upload File</TabsTrigger>
+            <TabsTrigger value="video">Video Link</TabsTrigger>
           </TabsList>
 
           <TabsContent value="paste" className="mt-4">
@@ -205,6 +207,14 @@ export function CreateSignalModal({
 
           <TabsContent value="upload" className="mt-4">
             <FileUploadTab
+              workspaceId={workspaceId}
+              onSuccess={onSuccess}
+              onClose={handleClose}
+            />
+          </TabsContent>
+
+          <TabsContent value="video" className="mt-4">
+            <VideoLinkTab
               workspaceId={workspaceId}
               onSuccess={onSuccess}
               onClose={handleClose}
