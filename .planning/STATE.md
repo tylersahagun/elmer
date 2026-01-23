@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 14.6 of 20 (Third-Party Integrations)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-01-23 - Completed 14.6-02-PLAN.md (integration utilities library)
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-01-23 - Completed 14.6-03-PLAN.md (webhook endpoints)
 
-Progress: [█████░░░░░] 58%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [█████░░░░░] 58%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 21
+- Total plans completed: 22
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -32,7 +32,7 @@ Progress: [█████░░░░░] 58%
 - Phase 13: 2/2 plans complete (verified)
 - Phase 14: 4/4 plans complete (verified)
 - Phase 14.5: 3/3 plans complete (verified)
-- Phase 14.6: 2/3 plans complete
+- Phase 14.6: 3/3 plans complete
 
 ## Accumulated Context
 
@@ -108,6 +108,10 @@ Recent decisions affecting current work:
 - v1.1 (14.6-02): Pylon signature uses {timestamp}.{body} format with hs256= prefix handling
 - v1.1 (14.6-02): Timing-safe HMAC comparison with crypto.timingSafeEqual
 - v1.1 (14.6-02): Platform-specific sourceRef patterns for idempotency
+- v1.1 (14.6-03): Pylon workspace mapping via integration_id query parameter
+- v1.1 (14.6-03): Slack workspace lookup via team_id from payload
+- v1.1 (14.6-03): URL verification challenge handled before signature verification
+- v1.1 (14.6-03): Filter bot messages and message subtypes from Slack signals
 
 ### Pending Todos
 
@@ -123,7 +127,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14.6-02-PLAN.md (integration utilities library)
+Stopped at: Completed 14.6-03-PLAN.md (webhook endpoints)
 Resume file: None
 Next steps:
-  - Continue with 14.6-03-PLAN.md (Slack webhook endpoint)
+  - Phase 14.6 complete
+  - Ready for Phase 15 (AI Classification)
