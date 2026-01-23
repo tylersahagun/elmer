@@ -198,10 +198,12 @@ Plans:
   2. Classification includes confidence score with configurable threshold
   3. Related signals cluster together by semantic similarity (pgvector)
   4. `/synthesize` command finds patterns and proposes new initiatives from clusters
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 16-01: TBD
+- [ ] 16-01-PLAN.md — pgvector migration, native vector columns, and HNSW indexes
+- [ ] 16-02-PLAN.md — Two-tier hybrid classifier (embedding similarity + LLM verification)
+- [ ] 16-03-PLAN.md — K-NN clustering, /synthesize endpoint, and similar signals API
 
 ---
 
@@ -290,7 +292,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 14.5. Video Caption Fetch | 3/3 | Complete | 2026-01-23 |
 | 14.6. Third-Party Integrations | 3/3 | Complete | 2026-01-23 |
 | 15. Signal Extraction & Embedding | 3/3 | Complete | 2026-01-23 |
-| 16. Classification & Clustering | 0/TBD | Not started | - |
+| 16. Classification & Clustering | 0/3 | Planned | - |
 | 17. Smart Association | 0/TBD | Not started | - |
 | 18. Provenance & PRD Citation | 0/TBD | Not started | - |
 | 19. Workflow Automation | 0/TBD | Not started | - |
