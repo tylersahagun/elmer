@@ -216,10 +216,13 @@ Plans:
   2. System suggests relevant projects for unlinked signals based on classification
   3. User can accept/reject AI-suggested associations
   4. Bulk operations respect existing manual associations
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 17-01: TBD
+- [ ] 17-01-PLAN.md — Schema & Suggestions API (dismiss columns, GET suggestions, POST dismiss)
+- [ ] 17-02-PLAN.md — Bulk Operations API (atomic bulk link/unlink endpoint)
+- [ ] 17-03-PLAN.md — Suggestions UI (SuggestionCard, SignalSuggestionsBanner)
+- [ ] 17-04-PLAN.md — Bulk Operations UI (multi-select, toolbar, modals)
 
 ---
 
@@ -293,7 +296,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 14.6. Third-Party Integrations | 3/3 | Complete | 2026-01-23 |
 | 15. Signal Extraction & Embedding | 3/3 | Complete | 2026-01-23 |
 | 16. Classification & Clustering | 3/3 | Complete | 2026-01-23 |
-| 17. Smart Association | 0/TBD | Not started | - |
+| 17. Smart Association | 0/4 | Not started | - |
 | 18. Provenance & PRD Citation | 0/TBD | Not started | - |
 | 19. Workflow Automation | 0/TBD | Not started | - |
 | 20. Maintenance Agents | 0/TBD | Not started | - |
