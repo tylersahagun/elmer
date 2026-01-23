@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 13 - Webhook Ingestion
+**Current focus:** Phase 13 - Webhook Ingestion (complete)
 
 ## Current Position
 
 Phase: 13 of 20 (Webhook Ingestion)
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-01-22 - Completed 13-01-PLAN.md (Webhook Keys Schema)
+Plan: 2 of 2 complete
+Status: Phase complete
+Last activity: 2026-01-22 - Completed 13-02-PLAN.md (Signal Webhook Endpoint)
 
-Progress: [███░░░░░░░] 32%
+Progress: [████░░░░░░] 34%
 
 ## Performance Metrics
 
@@ -24,12 +24,12 @@ Progress: [███░░░░░░░] 32%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 9
+- Total plans completed: 10
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
 - Phase 12.5: 4/4 plans complete
-- Phase 13: 1/2 plans complete
+- Phase 13: 2/2 plans complete
 
 ## Accumulated Context
 
@@ -72,6 +72,10 @@ Recent decisions affecting current work:
 - v1.1 (13-01): Unique constraint on apiKey ensures no duplicate keys across workspaces
 - v1.1 (13-01): createdBy uses SET NULL to preserve key records after user deletion
 - v1.1 (13-01): isActive flag allows deactivation without deletion for audit trail
+- v1.1 (13-02): Dual auth: API key for simple integrations, HMAC for secure integrations
+- v1.1 (13-02): Queue-first pattern: return 200 immediately, process via after()
+- v1.1 (13-02): Check-then-insert pattern for sourceRef idempotency
+- v1.1 (13-02): Never throw in after() context - log errors for debugging
 
 ### Pending Todos
 
@@ -86,8 +90,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 13-01-PLAN.md (Webhook Keys Schema)
+Stopped at: Completed 13-02-PLAN.md (Signal Webhook Endpoint)
 Resume file: None
 Next steps:
-  - Execute 13-02-PLAN.md for webhook endpoint implementation
-  - Or `/gsd:execute-plan 13-02` to continue
+  - `/gsd:discuss-phase 14` to plan Webhook Key Management UI
+  - Or continue to AI Classification phases (15-16)
