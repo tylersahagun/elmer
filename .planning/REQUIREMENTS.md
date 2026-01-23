@@ -34,10 +34,10 @@ Requirements for signals system release. Each maps to roadmap phases.
 
 - [ ] **INTL-01**: Auto-classify signal: "belongs to Project X" vs "new initiative"
 - [ ] **INTL-02**: Classification confidence score with threshold
-- [ ] **INTL-03**: Extract structured data: severity, frequency, user segment
-- [ ] **INTL-04**: Generate embeddings for signals (OpenAI text-embedding-3-small)
+- [x] **INTL-03**: Extract structured data: severity, frequency, user segment
+- [x] **INTL-04**: Generate embeddings for signals (OpenAI text-embedding-3-small)
 - [ ] **INTL-05**: Cluster related signals by semantic similarity
-- [ ] **INTL-06**: `/ingest` command to process raw input into structured signal
+- [x] **INTL-06**: `/ingest` command to process raw input into structured signal
 - [ ] **INTL-07**: `/synthesize` command to find patterns and propose initiatives
 
 ### Signal Association
@@ -137,10 +137,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INGST-09 | Phase 14.6 | Complete |
 | INTL-01 | Phase 16 | Pending |
 | INTL-02 | Phase 16 | Pending |
-| INTL-03 | Phase 15 | Pending |
-| INTL-04 | Phase 15 | Pending |
+| INTL-03 | Phase 15 | Complete |
+| INTL-04 | Phase 15 | Complete |
 | INTL-05 | Phase 16 | Pending |
-| INTL-06 | Phase 15 | Pending |
+| INTL-06 | Phase 15 | Complete |
 | INTL-07 | Phase 16 | Pending |
 | ASSC-01 | Phase 12.5 | Complete |
 | ASSC-02 | Phase 12.5 | Complete |

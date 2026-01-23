@@ -33,7 +33,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 14: File & Paste Upload** - Upload documents/transcripts and paste text
 - [x] **Phase 14.5: Video Caption Fetch** - Fetch existing captions from YouTube/Loom APIs
 - [x] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
-- [ ] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
+- [x] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
 - [ ] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
 - [ ] **Phase 17: Smart Association** - AI-suggested links and bulk operations
 - [ ] **Phase 18: Provenance & PRD Citation** - Project integration and evidence tracking
@@ -165,9 +165,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 14.6-01-PLAN.md — Integrations schema table and database migration
-- [ ] 14.6-02-PLAN.md — Integration utilities (Slack/Pylon signature verification, signal creation)
-- [ ] 14.6-03-PLAN.md — Pylon and Slack webhook endpoints
+- [x] 14.6-01-PLAN.md — Integrations schema table and database migration
+- [x] 14.6-02-PLAN.md — Integration utilities (Slack/Pylon signature verification, signal creation)
+- [x] 14.6-03-PLAN.md — Pylon and Slack webhook endpoints
 
 ---
 
@@ -180,10 +180,12 @@ Plans:
   2. Signals have embeddings generated (OpenAI text-embedding-3-small)
   3. `/ingest` command processes raw input into structured signal
   4. Raw content is preserved alongside extracted structure
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 15-01: TBD
+- [x] 15-01-PLAN.md — AI Infrastructure (OpenAI SDK, extraction module, embeddings module)
+- [x] 15-02-PLAN.md — Signal Processor (processing orchestration, batch processing)
+- [x] 15-03-PLAN.md — /ingest endpoint and processing integration across all signal sources
 
 ---
 
@@ -287,7 +289,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 14. File & Paste Upload | 4/4 | Complete | 2026-01-23 |
 | 14.5. Video Caption Fetch | 3/3 | Complete | 2026-01-23 |
 | 14.6. Third-Party Integrations | 3/3 | Complete | 2026-01-23 |
-| 15. Signal Extraction & Embedding | 0/TBD | Not started | - |
+| 15. Signal Extraction & Embedding | 3/3 | Complete | 2026-01-23 |
 | 16. Classification & Clustering | 0/TBD | Not started | - |
 | 17. Smart Association | 0/TBD | Not started | - |
 | 18. Provenance & PRD Citation | 0/TBD | Not started | - |
