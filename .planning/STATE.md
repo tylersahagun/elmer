@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 14.6 of 20 (Third-Party Integrations)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-23 - Completed 14.6-01-PLAN.md (integrations table schema)
+Last activity: 2026-01-23 - Completed 14.6-02-PLAN.md (integration utilities library)
 
-Progress: [█████░░░░░] 56%
+Progress: [█████░░░░░] 58%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [█████░░░░░] 56%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 20
+- Total plans completed: 21
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -32,7 +32,7 @@ Progress: [█████░░░░░] 56%
 - Phase 13: 2/2 plans complete (verified)
 - Phase 14: 4/4 plans complete (verified)
 - Phase 14.5: 3/3 plans complete (verified)
-- Phase 14.6: 1/3 plans complete
+- Phase 14.6: 2/3 plans complete
 
 ## Accumulated Context
 
@@ -104,6 +104,10 @@ Recent decisions affecting current work:
 - v1.1 (14.6-01): OAuth tokens stored directly in integrations table for MVP
 - v1.1 (14.6-01): Platform-specific fields nullable to avoid polymorphism
 - v1.1 (14.6-01): IntegrationConfig as JSONB for flexible channel/event filtering
+- v1.1 (14.6-02): Slack signature uses v0:{timestamp}:{body} format with 5-minute replay window
+- v1.1 (14.6-02): Pylon signature uses {timestamp}.{body} format with hs256= prefix handling
+- v1.1 (14.6-02): Timing-safe HMAC comparison with crypto.timingSafeEqual
+- v1.1 (14.6-02): Platform-specific sourceRef patterns for idempotency
 
 ### Pending Todos
 
@@ -119,8 +123,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14.6-01-PLAN.md (integrations table schema)
+Stopped at: Completed 14.6-02-PLAN.md (integration utilities library)
 Resume file: None
 Next steps:
-  - Continue with 14.6-02-PLAN.md (Pylon webhook endpoint)
-  - Then 14.6-03-PLAN.md (Slack webhook endpoint)
+  - Continue with 14.6-03-PLAN.md (Slack webhook endpoint)
