@@ -12,6 +12,7 @@ import { parseVideoUrl, extractYouTubeCaptions } from "@/lib/video";
 import { createSignal } from "@/lib/db/queries";
 import { db } from "@/lib/db";
 import { activityLogs } from "@/lib/db/schema";
+import { processSignalExtraction } from "@/lib/signals";
 
 /**
  * POST /api/signals/video
@@ -127,6 +128,15 @@ export async function POST(request: NextRequest) {
       } catch (logError) {
         // Never throw in after() context - log errors for debugging (Phase 13 pattern)
         console.error("Failed to log video activity:", logError);
+      }
+    });
+
+    // Queue AI extraction and embedding (Phase 15)
+    after(async () => {
+      try {
+        await processSignalExtraction(signal!.id);
+      } catch (error) {
+        console.error(`Failed to process video signal ${signal!.id}:`, error);
       }
     });
 
