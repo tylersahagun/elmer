@@ -17,6 +17,7 @@ import {
 import { createSignal } from "@/lib/db/queries";
 import { db } from "@/lib/db";
 import { activityLogs } from "@/lib/db/schema";
+import { processSignalExtraction } from "@/lib/signals";
 
 const ALLOWED_MIME_TYPES = ["application/pdf", "text/csv", "text/plain"];
 const ALLOWED_EXTENSIONS = ["pdf", "csv", "txt"];
@@ -151,6 +152,15 @@ export async function POST(request: NextRequest) {
       } catch (logError) {
         // Never throw in after() context - log errors for debugging (Phase 13 pattern)
         console.error("Failed to log upload activity:", logError);
+      }
+    });
+
+    // Queue AI extraction and embedding (Phase 15)
+    after(async () => {
+      try {
+        await processSignalExtraction(signal!.id);
+      } catch (error) {
+        console.error(`Failed to process uploaded signal ${signal!.id}:`, error);
       }
     });
 
