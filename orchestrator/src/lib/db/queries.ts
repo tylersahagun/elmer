@@ -38,8 +38,9 @@ import {
   type SignalSeverity,
   type SignalFrequency,
   type SignalSourceMetadata,
+  type SignalClassificationResult,
 } from "./schema";
-import { eq, and, desc, asc, isNull, ne, or, lt, gte, lte, ilike, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, isNull, isNotNull, ne, or, lt, gte, lte, ilike, sql, inArray } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
 // ============================================
@@ -1667,4 +1668,161 @@ export async function updateSignalProcessing(
     .where(eq(signals.id, id));
 
   return getSignal(id);
+}
+
+// ============================================
+// VECTOR SIMILARITY QUERIES (Phase 16)
+// ============================================
+
+/**
+ * Find signals similar to a given embedding vector.
+ * Uses pgvector cosine distance (1 - cosine_similarity).
+ *
+ * @param workspaceId - Filter to this workspace
+ * @param targetVector - The embedding to compare against
+ * @param limit - Max results (default 10)
+ * @param excludeId - Signal ID to exclude (the query signal itself)
+ * @returns Signals ordered by similarity (closest first)
+ */
+export async function findSimilarSignals(
+  workspaceId: string,
+  targetVector: number[],
+  limit = 10,
+  excludeId?: string
+) {
+  const vectorStr = `[${targetVector.join(",")}]`;
+
+  const result = await db.execute(sql`
+    SELECT
+      id,
+      verbatim,
+      interpretation,
+      severity,
+      frequency,
+      status,
+      source,
+      created_at,
+      embedding_vector <=> ${vectorStr}::vector AS distance
+    FROM signals
+    WHERE workspace_id = ${workspaceId}
+      AND embedding_vector IS NOT NULL
+      ${excludeId ? sql`AND id != ${excludeId}` : sql``}
+    ORDER BY embedding_vector <=> ${vectorStr}::vector
+    LIMIT ${limit}
+  `);
+
+  return result.rows.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    verbatim: row.verbatim as string,
+    interpretation: row.interpretation as string | null,
+    severity: row.severity as string | null,
+    frequency: row.frequency as string | null,
+    status: row.status as string,
+    source: row.source as string,
+    createdAt: row.created_at as Date,
+    distance: row.distance as number,
+    similarity: 1 - (row.distance as number), // Convert distance to similarity
+  }));
+}
+
+/**
+ * Find the best matching project for a signal embedding.
+ * Returns the project with lowest cosine distance.
+ *
+ * @param workspaceId - Filter to this workspace
+ * @param signalVector - The signal's embedding vector
+ * @returns Best matching project with distance/similarity, or null if no projects have embeddings
+ */
+export async function findBestProjectMatch(
+  workspaceId: string,
+  signalVector: number[]
+) {
+  const vectorStr = `[${signalVector.join(",")}]`;
+
+  const result = await db.execute(sql`
+    SELECT
+      id,
+      name,
+      description,
+      stage,
+      embedding_vector <=> ${vectorStr}::vector AS distance
+    FROM projects
+    WHERE workspace_id = ${workspaceId}
+      AND embedding_vector IS NOT NULL
+      AND status = 'active'
+    ORDER BY embedding_vector <=> ${vectorStr}::vector
+    LIMIT 1
+  `);
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const row = result.rows[0] as Record<string, unknown>;
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    description: row.description as string | null,
+    stage: row.stage as string,
+    distance: row.distance as number,
+    similarity: 1 - (row.distance as number),
+  };
+}
+
+/**
+ * Update a signal's classification result.
+ */
+export async function updateSignalClassification(
+  id: string,
+  classification: SignalClassificationResult
+) {
+  await db
+    .update(signals)
+    .set({
+      classification,
+      updatedAt: new Date(),
+    })
+    .where(eq(signals.id, id));
+
+  return getSignal(id);
+}
+
+/**
+ * Update a project's embedding vector.
+ */
+export async function updateProjectEmbedding(
+  id: string,
+  embeddingVector: number[]
+) {
+  await db
+    .update(projects)
+    .set({
+      embeddingVector,
+      embeddingUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date(),
+    })
+    .where(eq(projects.id, id));
+
+  return getProject(id);
+}
+
+/**
+ * Get unlinked signals with embeddings for clustering.
+ */
+export async function getUnlinkedSignalsWithEmbeddings(
+  workspaceId: string,
+  limit = 100
+) {
+  return db.query.signals.findMany({
+    where: and(
+      eq(signals.workspaceId, workspaceId),
+      isNotNull(signals.embeddingVector),
+      or(
+        eq(signals.status, "new"),
+        eq(signals.status, "reviewed")
+      )
+    ),
+    orderBy: [desc(signals.createdAt)],
+    limit,
+  });
 }
