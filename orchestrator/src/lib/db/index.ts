@@ -98,3 +98,7 @@ export type NewSignalProject = typeof schema.signalProjects.$inferInsert;
 
 export type SignalPersona = typeof schema.signalPersonas.$inferSelect;
 export type NewSignalPersona = typeof schema.signalPersonas.$inferInsert;
+
+// Webhook Keys
+export type WebhookKey = typeof schema.webhookKeys.$inferSelect;
+export type NewWebhookKey = typeof schema.webhookKeys.$inferInsert;
