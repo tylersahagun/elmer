@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 16 - Classification & Clustering (Plan 01 complete)
+**Current focus:** Phase 16 - Classification & Clustering (Plan 02 complete)
 
 ## Current Position
 
 Phase: 16 of 20 (Classification & Clustering)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-23 - Completed 16-01-PLAN.md (pgvector Schema Setup)
+Last activity: 2026-01-23 - Completed 16-02-PLAN.md (Classifier Module)
 
-Progress: [██████░░░░] 67%
+Progress: [██████░░░░] 70%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [██████░░░░] 67%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 27
+- Total plans completed: 28
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -34,7 +34,7 @@ Progress: [██████░░░░] 67%
 - Phase 14.5: 3/3 plans complete (verified)
 - Phase 14.6: 3/3 plans complete (verified)
 - Phase 15: 3/3 plans complete (verified)
-- Phase 16: 1/3 plans complete
+- Phase 16: 2/3 plans complete
 
 ## Accumulated Context
 
@@ -138,6 +138,10 @@ Recent decisions affecting current work:
 - v1.1 (16-01): HNSW index for cosine similarity (no training required, O(log n))
 - v1.1 (16-01): 1536 dimensions for text-embedding-3-small compatibility
 - v1.1 (16-01): Batch size 100 for vector migration script memory efficiency
+- v1.1 (16-02): Two-tier classification: embedding similarity first (free), LLM only for 0.5-0.75 ambiguous range
+- v1.1 (16-02): Thresholds: >0.75 auto-classify to project, <0.5 classify as new initiative
+- v1.1 (16-02): Classification failure doesn't fail signal processing (best-effort)
+- v1.1 (16-02): Project embeddings generated from name + description concatenation
 
 ### Pending Todos
 
@@ -148,6 +152,7 @@ Recent decisions affecting current work:
 - Run vector migration script: `npx tsx src/lib/db/migrate-vectors.ts`
 - Add OPENAI_API_KEY to .env.local for embeddings functionality
 - Add ANTHROPIC_API_KEY to .env.local for signal extraction
+- Generate project embeddings for existing projects (call generateProjectEmbedding)
 
 ### Blockers/Concerns
 
@@ -156,9 +161,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 16-01-PLAN.md (pgvector Schema Setup)
+Stopped at: Completed 16-02-PLAN.md (Classifier Module)
 Resume file: None
 Next steps:
-  - Continue to 16-02-PLAN.md (Classifier Module)
+  - Continue to 16-03-PLAN.md (Clustering & UI Integration)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
