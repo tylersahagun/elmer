@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 14.5 of 20 (Video Caption Fetch)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-23 - Completed 14.5-01-PLAN.md (Video Caption Infrastructure)
+Last activity: 2026-01-23 - Completed 14.5-02-PLAN.md (Video API Endpoint)
 
-Progress: [████░░░░░░] 48%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -24,14 +24,14 @@ Progress: [████░░░░░░] 48%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 14
+- Total plans completed: 15
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
 - Phase 12.5: 4/4 plans complete
 - Phase 13: 2/2 plans complete
 - Phase 14: 4/4 plans complete
-- Phase 14.5: 1/3 plans complete
+- Phase 14.5: 2/3 plans complete
 
 ## Accumulated Context
 
@@ -94,6 +94,9 @@ Recent decisions affecting current work:
 - v1.1 (14.5-01): Loom URLs detected but not implemented (platform='loom') for future extension
 - v1.1 (14.5-01): Timestamp format: M:SS for <1hr, H:MM:SS for >=1hr
 - v1.1 (14.5-01): CaptionExtractionResult interface mirrors lib/files/ExtractionResult pattern
+- v1.1 (14.5-02): Loom returns 400 with helpful "coming soon" message (not 501)
+- v1.1 (14.5-02): sourceRef format video-{platform}-{timestamp}-{nanoid(6)} for uniqueness
+- v1.1 (14.5-02): sourceMetadata includes videoUrl, videoPlatform, sourceName, rawPayload
 
 ### Pending Todos
 
@@ -108,8 +111,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14.5-01-PLAN.md (Video Caption Infrastructure)
+Stopped at: Completed 14.5-02-PLAN.md (Video API Endpoint)
 Resume file: None
 Next steps:
-  - Continue with 14.5-02-PLAN.md (Video API Endpoint)
-  - Then 14.5-03-PLAN.md (Video Link UI)
+  - Continue with 14.5-03-PLAN.md (Video Link UI)
