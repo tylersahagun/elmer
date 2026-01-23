@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 14 of 20 (File & Paste Upload)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-01-23 - Completed 14-01-PLAN.md (File Parsing Infrastructure)
+Last activity: 2026-01-23 - Completed 14-02-PLAN.md (Upload API & Signal Creation)
 
-Progress: [████░░░░░░] 37%
+Progress: [████░░░░░░] 38%
 
 ## Performance Metrics
 
@@ -24,13 +24,13 @@ Progress: [████░░░░░░] 37%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 11
+- Total plans completed: 12
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
 - Phase 12.5: 4/4 plans complete
 - Phase 13: 2/2 plans complete
-- Phase 14: 1/3 plans complete
+- Phase 14: 2/3 plans complete
 
 ## Accumulated Context
 
@@ -81,6 +81,8 @@ Recent decisions affecting current work:
 - v1.1 (14-01): Both MIME type AND extension checked for defense in depth
 - v1.1 (14-01): Magic bytes verification for PDFs to detect spoofed MIME types
 - v1.1 (14-01): CSV rows converted to readable text format for signal verbatim
+- v1.1 (14-02): File metadata stored in sourceMetadata.rawPayload for schema compatibility
+- v1.1 (14-02): sourceRef format upload-{timestamp}-{nanoid(6)} for uniqueness
 
 ### Pending Todos
 
@@ -95,8 +97,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14-01-PLAN.md (File Parsing Infrastructure)
+Stopped at: Completed 14-02-PLAN.md (Upload API & Signal Creation)
 Resume file: None
 Next steps:
-  - Execute 14-02-PLAN.md (Upload API & Signal Creation)
   - Execute 14-03-PLAN.md (Upload UI Components)
