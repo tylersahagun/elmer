@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 16 - Classification & Clustering (Complete)
+**Current focus:** Phase 17 - Smart Association (In Progress)
 
 ## Current Position
 
-Phase: 16 of 20 (Classification & Clustering)
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-01-23 - Completed 16-03-PLAN.md (Clustering & Synthesis)
+Phase: 17 of 20 (Smart Association)
+Plan: 2 of 4 complete
+Status: In progress
+Last activity: 2026-01-23 - Completed 17-02-PLAN.md (Bulk Operations API)
 
-Progress: [███████░░░] 73%
+Progress: [███████░░░] 75%
 
 ## Performance Metrics
 
@@ -35,6 +35,7 @@ Progress: [███████░░░] 73%
 - Phase 14.6: 3/3 plans complete (verified)
 - Phase 15: 3/3 plans complete (verified)
 - Phase 16: 3/3 plans complete (verified)
+- Phase 17: 2/4 plans complete (in progress)
 
 ## Accumulated Context
 
@@ -151,6 +152,9 @@ Recent decisions affecting current work:
 - v1.1 (16-03): Theme generation via Claude claude-sonnet-4-20250514 (max 100 tokens)
 - v1.1 (16-03): Aggregate severity/frequency by taking highest from cluster signals
 - v1.1 (16-03): Suggested action "new_project" for clusters with 3+ signals
+- v1.1 (17-02): Bulk link skips signals already linked to target project
+- v1.1 (17-02): Bulk unlink reverts status to "reviewed" only when no remaining project links
+- v1.1 (17-02): Maximum 50 signals per bulk operation to prevent timeout
 
 ### Pending Todos
 
@@ -170,9 +174,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 16-03-PLAN.md (Clustering & Synthesis)
+Stopped at: Completed 17-02-PLAN.md (Bulk Operations API)
 Resume file: None
 Next steps:
-  - Phase 16 complete - ready for Phase 17 (PRD Generation) or Phase 18 (Provenance)
+  - Continue Phase 17 with Plan 03 (Review UI) and Plan 04 (Suggestions UI)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
