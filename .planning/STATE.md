@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 14.5 - Video Caption Fetch (in progress)
+**Current focus:** Phase 14.5 - Video Caption Fetch (complete)
 
 ## Current Position
 
 Phase: 14.5 of 20 (Video Caption Fetch)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-01-23 - Completed 14.5-02-PLAN.md (Video API Endpoint)
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-01-23 - Completed 14.5-03-PLAN.md (Video Link UI)
 
-Progress: [█████░░░░░] 50%
+Progress: [█████░░░░░] 53%
 
 ## Performance Metrics
 
@@ -24,14 +24,14 @@ Progress: [█████░░░░░] 50%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 15
+- Total plans completed: 16
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
 - Phase 12.5: 4/4 plans complete
 - Phase 13: 2/2 plans complete
 - Phase 14: 4/4 plans complete
-- Phase 14.5: 2/3 plans complete
+- Phase 14.5: 3/3 plans complete
 
 ## Accumulated Context
 
@@ -97,6 +97,8 @@ Recent decisions affecting current work:
 - v1.1 (14.5-02): Loom returns 400 with helpful "coming soon" message (not 501)
 - v1.1 (14.5-02): sourceRef format video-{platform}-{timestamp}-{nanoid(6)} for uniqueness
 - v1.1 (14.5-02): sourceMetadata includes videoUrl, videoPlatform, sourceName, rawPayload
+- v1.1 (14.5-03): Client-side URL validation hints for UX; server does real validation
+- v1.1 (14.5-03): Same prop interface as FileUploadTab (workspaceId, onSuccess, onClose)
 
 ### Pending Todos
 
@@ -111,7 +113,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14.5-02-PLAN.md (Video API Endpoint)
+Stopped at: Completed 14.5-03-PLAN.md (Video Link UI) - Phase 14.5 complete
 Resume file: None
 Next steps:
-  - Continue with 14.5-03-PLAN.md (Video Link UI)
+  - Continue with Phase 15 or next phase in roadmap
