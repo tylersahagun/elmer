@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 14 of 20 (File & Paste Upload)
-Plan: 2 of 3 complete
+Plan: 3 of 4 complete
 Status: In progress
-Last activity: 2026-01-23 - Completed 14-02-PLAN.md (Upload API & Signal Creation)
+Last activity: 2026-01-23 - Completed 14-03-PLAN.md (Upload UI Components)
 
-Progress: [████░░░░░░] 38%
+Progress: [████░░░░░░] 42%
 
 ## Performance Metrics
 
@@ -30,7 +30,7 @@ Progress: [████░░░░░░] 38%
 - Phase 12: 3/3 plans complete
 - Phase 12.5: 4/4 plans complete
 - Phase 13: 2/2 plans complete
-- Phase 14: 2/3 plans complete
+- Phase 14: 3/4 plans complete
 
 ## Accumulated Context
 
@@ -83,6 +83,9 @@ Recent decisions affecting current work:
 - v1.1 (14-01): CSV rows converted to readable text format for signal verbatim
 - v1.1 (14-02): File metadata stored in sourceMetadata.rawPayload for schema compatibility
 - v1.1 (14-02): sourceRef format upload-{timestamp}-{nanoid(6)} for uniqueness
+- v1.1 (14-03): react-dropzone for drag-and-drop (de facto React standard)
+- v1.1 (14-03): Controlled file state in parent component for flexibility
+- v1.1 (14-03): Error state derived from both prop and dropzone rejections
 
 ### Pending Todos
 
@@ -97,7 +100,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14-02-PLAN.md (Upload API & Signal Creation)
+Stopped at: Completed 14-03-PLAN.md (Upload UI Components)
 Resume file: None
 Next steps:
-  - Execute 14-03-PLAN.md (Upload UI Components)
+  - Execute 14-04-PLAN.md (Modal Integration)
