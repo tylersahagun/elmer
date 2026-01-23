@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 14.6 - Third-Party Integrations (verified complete)
+**Current focus:** Phase 15 - Signal Extraction & Embedding (plan 1 of 3 complete)
 
 ## Current Position
 
-Phase: 14.6 of 20 (Third-Party Integrations)
-Plan: 3 of 3 complete
-Status: Verified complete
-Last activity: 2026-01-23 - Phase 14.6 verification passed (4/4 must-haves)
+Phase: 15 of 20 (Signal Extraction & Embedding)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-23 - Completed 15-01-PLAN.md (AI Infrastructure)
 
-Progress: [██████░░░░] 60%
+Progress: [██████░░░░] 62%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [██████░░░░] 60%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 22
+- Total plans completed: 23
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -33,6 +33,7 @@ Progress: [██████░░░░] 60%
 - Phase 14: 4/4 plans complete (verified)
 - Phase 14.5: 3/3 plans complete (verified)
 - Phase 14.6: 3/3 plans complete (verified)
+- Phase 15: 1/3 plans complete
 
 ## Accumulated Context
 
@@ -122,6 +123,10 @@ Recent decisions affecting current work:
 - v1.1 (14.6-03): Slack workspace lookup via team_id from payload
 - v1.1 (14.6-03): URL verification challenge handled before signature verification
 - v1.1 (14.6-03): Filter bot messages and message subtypes from Slack signals
+- v1.1 (15-01): OpenAI SDK v6.16.0 for text-embedding-3-small embeddings
+- v1.1 (15-01): Claude claude-sonnet-4-20250514 for signal field extraction
+- v1.1 (15-01): 30000 char truncation limit for embedding input
+- v1.1 (15-01): Float32Array for Base64 embedding storage (matches memoryEntries pattern)
 
 ### Pending Todos
 
@@ -129,6 +134,7 @@ Recent decisions affecting current work:
 - Configure email service for password reset (v1.0 - PAUSED)
 - Configure email service for invitations (v1.0 - PAUSED)
 - Run migration for integrations table: `npx drizzle-kit migrate`
+- Add OPENAI_API_KEY to .env.local for embeddings functionality
 
 ### Blockers/Concerns
 
@@ -137,7 +143,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Phase 14.6 verified complete (all must-haves passed)
+Stopped at: Completed 15-01-PLAN.md (AI Infrastructure)
 Resume file: None
 Next steps:
-  - Continue with Phase 15 (Signal Extraction & Embedding)
+  - Continue with Plan 15-02 (Signal Processor)
+  - Then Plan 15-03 (/ingest endpoint)
