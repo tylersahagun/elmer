@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 14.5 - Video Caption Fetch (verified complete)
+**Current focus:** Phase 14.6 - Third-Party Integrations (in progress)
 
 ## Current Position
 
-Phase: 14.5 of 20 (Video Caption Fetch)
-Plan: 3 of 3 complete
-Status: Verified complete
-Last activity: 2026-01-23 - Phase 14.5 verification passed (4/4 must-haves)
+Phase: 14.6 of 20 (Third-Party Integrations)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-23 - Completed 14.6-01-PLAN.md (integrations table schema)
 
-Progress: [█████░░░░░] 55%
+Progress: [█████░░░░░] 56%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [█████░░░░░] 55%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 19
+- Total plans completed: 20
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -32,6 +32,7 @@ Progress: [█████░░░░░] 55%
 - Phase 13: 2/2 plans complete (verified)
 - Phase 14: 4/4 plans complete (verified)
 - Phase 14.5: 3/3 plans complete (verified)
+- Phase 14.6: 1/3 plans complete
 
 ## Accumulated Context
 
@@ -99,12 +100,17 @@ Recent decisions affecting current work:
 - v1.1 (14.5-02): sourceMetadata includes videoUrl, videoPlatform, sourceName, rawPayload
 - v1.1 (14.5-03): Client-side URL validation hints for UX; server does real validation
 - v1.1 (14.5-03): Same prop interface as FileUploadTab (workspaceId, onSuccess, onClose)
+- v1.1 (14.6-01): Union type for IntegrationPlatform (pylon | slack)
+- v1.1 (14.6-01): OAuth tokens stored directly in integrations table for MVP
+- v1.1 (14.6-01): Platform-specific fields nullable to avoid polymorphism
+- v1.1 (14.6-01): IntegrationConfig as JSONB for flexible channel/event filtering
 
 ### Pending Todos
 
 - Configure Google OAuth credentials in Google Cloud Console (v1.0 - PAUSED)
 - Configure email service for password reset (v1.0 - PAUSED)
 - Configure email service for invitations (v1.0 - PAUSED)
+- Run migration for integrations table: `npx drizzle-kit migrate`
 
 ### Blockers/Concerns
 
@@ -113,7 +119,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Phase 14.5 verified complete (all must-haves passed)
+Stopped at: Completed 14.6-01-PLAN.md (integrations table schema)
 Resume file: None
 Next steps:
-  - Continue with Phase 14.6 (Third-Party Integrations) or Phase 15 (Signal Extraction & Embedding)
+  - Continue with 14.6-02-PLAN.md (Pylon webhook endpoint)
+  - Then 14.6-03-PLAN.md (Slack webhook endpoint)
