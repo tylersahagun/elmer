@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 12.5 - Manual Association
+**Current focus:** Phase 13 - Webhook Ingestion
 
 ## Current Position
 
-Phase: 12.5 of 20 (Manual Association)
-Plan: 4 of 4 complete
-Status: Phase 12.5 complete
-Last activity: 2026-01-22 — Completed 12.5-04-PLAN.md (Project-Side Signals Section)
+Phase: 13 of 20 (Webhook Ingestion)
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-01-22 - Completed 13-01-PLAN.md (Webhook Keys Schema)
 
-Progress: [███░░░░░░░] 30%
+Progress: [███░░░░░░░] 32%
 
 ## Performance Metrics
 
@@ -24,11 +24,12 @@ Progress: [███░░░░░░░] 30%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 8
+- Total plans completed: 9
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
 - Phase 12.5: 4/4 plans complete
+- Phase 13: 1/2 plans complete
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Recent decisions affecting current work:
 - v1.1 (12.5-04): Section collapsed by default to reduce visual noise
 - v1.1 (12.5-04): Filter out already-linked signals in picker to prevent duplicates
 - v1.1 (12.5-04): Sequential linking in bulk operation for simplicity
+- v1.1 (13-01): Unique constraint on apiKey ensures no duplicate keys across workspaces
+- v1.1 (13-01): createdBy uses SET NULL to preserve key records after user deletion
+- v1.1 (13-01): isActive flag allows deactivation without deletion for audit trail
 
 ### Pending Todos
 
@@ -77,13 +81,13 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- None for v1.1 — signals system is self-contained
+- None for v1.1 - signals system is self-contained
 
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed 12.5-04-PLAN.md (Project-Side Signals Section)
+Stopped at: Completed 13-01-PLAN.md (Webhook Keys Schema)
 Resume file: None
 Next steps:
-  - `/gsd:discuss-phase 13` to plan AI Classification phase
-  - Or `/gsd:plan-phase 13` to skip discussion and plan directly
+  - Execute 13-02-PLAN.md for webhook endpoint implementation
+  - Or `/gsd:execute-plan 13-02` to continue
