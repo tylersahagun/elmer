@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { signals, activityLogs } from "@/lib/db/schema";
 import { nanoid } from "nanoid";
 import type { PylonTicketInput, SignalCreateResult } from "./types";
+import { processSignalExtraction } from "@/lib/signals";
 
 /**
  * Verify Pylon webhook signature
@@ -143,6 +144,14 @@ export async function createSignalFromPylon(
       },
       createdAt: new Date(),
     });
+
+    // Queue AI extraction and embedding (Phase 15)
+    // Already in after() context, errors caught and logged
+    try {
+      await processSignalExtraction(signalId);
+    } catch (error) {
+      console.error(`Failed to process pylon signal ${signalId}:`, error);
+    }
 
     return { created: true, signalId };
   } catch (error) {
