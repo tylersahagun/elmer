@@ -31,7 +31,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 12.5: Manual Association** - Basic link/unlink signals to projects/personas
 - [x] **Phase 13: Webhook Ingestion** - Core webhook infrastructure with queue-first pattern
 - [x] **Phase 14: File & Paste Upload** - Upload documents/transcripts and paste text
-- [ ] **Phase 14.5: Video Caption Fetch** - Fetch existing captions from YouTube/Loom APIs
+- [x] **Phase 14.5: Video Caption Fetch** - Fetch existing captions from YouTube/Loom APIs
 - [ ] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
 - [ ] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
 - [ ] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
@@ -147,9 +147,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 14.5-01-PLAN.md — Video caption infrastructure (validators, formatters, extractCaptions)
-- [ ] 14.5-02-PLAN.md — /api/signals/video endpoint with caption fetch and signal creation
-- [ ] 14.5-03-PLAN.md — VideoLinkTab component and CreateSignalModal third tab integration
+- [x] 14.5-01-PLAN.md — Video caption infrastructure (validators, formatters, extractCaptions)
+- [x] 14.5-02-PLAN.md — /api/signals/video endpoint with caption fetch and signal creation
+- [x] 14.5-03-PLAN.md — VideoLinkTab component and CreateSignalModal third tab integration
 
 ---
 
@@ -162,10 +162,12 @@ Plans:
   2. Slack integration can be configured to flow channel messages into signals
   3. Integration credentials stored securely per workspace
   4. Source attribution clearly shows Pylon or Slack origin
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 14.6-01: TBD
+- [ ] 14.6-01-PLAN.md — Integrations schema table and database migration
+- [ ] 14.6-02-PLAN.md — Integration utilities (Slack/Pylon signature verification, signal creation)
+- [ ] 14.6-03-PLAN.md — Pylon and Slack webhook endpoints
 
 ---
 
@@ -284,7 +286,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 13. Webhook Ingestion | 2/2 | Complete | 2026-01-22 |
 | 14. File & Paste Upload | 4/4 | Complete | 2026-01-23 |
 | 14.5. Video Caption Fetch | 3/3 | Complete | 2026-01-23 |
-| 14.6. Third-Party Integrations | 0/TBD | Not started | - |
+| 14.6. Third-Party Integrations | 0/3 | Planned | - |
 | 15. Signal Extraction & Embedding | 0/TBD | Not started | - |
 | 16. Classification & Clustering | 0/TBD | Not started | - |
 | 17. Smart Association | 0/TBD | Not started | - |
