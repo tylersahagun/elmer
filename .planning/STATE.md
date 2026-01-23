@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 16 - Classification & Clustering (Phase 15 complete)
+**Current focus:** Phase 16 - Classification & Clustering (Plan 01 complete)
 
 ## Current Position
 
-Phase: 15 of 20 (Signal Extraction & Embedding) - COMPLETE
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-01-23 - Completed 15-03-PLAN.md (/ingest Endpoint and Processing Integration)
+Phase: 16 of 20 (Classification & Clustering)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-23 - Completed 16-01-PLAN.md (pgvector Schema Setup)
 
-Progress: [██████░░░░] 65%
+Progress: [██████░░░░] 67%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [██████░░░░] 65%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 26
+- Total plans completed: 27
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -34,6 +34,7 @@ Progress: [██████░░░░] 65%
 - Phase 14.5: 3/3 plans complete (verified)
 - Phase 14.6: 3/3 plans complete (verified)
 - Phase 15: 3/3 plans complete (verified)
+- Phase 16: 1/3 plans complete
 
 ## Accumulated Context
 
@@ -133,13 +134,18 @@ Recent decisions affecting current work:
 - v1.1 (15-02): Batch size 10 with 100ms delay between batches for rate limiting
 - v1.1 (15-03): Source defaults to "paste" for ingest endpoint (consistent with 12-01)
 - v1.1 (15-03): sourceRef format ingest-{timestamp}-{nanoid(6)} for uniqueness
+- v1.1 (16-01): Keep Base64 embedding column as backup during pgvector transition
+- v1.1 (16-01): HNSW index for cosine similarity (no training required, O(log n))
+- v1.1 (16-01): 1536 dimensions for text-embedding-3-small compatibility
+- v1.1 (16-01): Batch size 100 for vector migration script memory efficiency
 
 ### Pending Todos
 
 - Configure Google OAuth credentials in Google Cloud Console (v1.0 - PAUSED)
 - Configure email service for password reset (v1.0 - PAUSED)
 - Configure email service for invitations (v1.0 - PAUSED)
-- Run migration for integrations table: `npx drizzle-kit migrate`
+- Run migration for pgvector extension: `npx drizzle-kit migrate`
+- Run vector migration script: `npx tsx src/lib/db/migrate-vectors.ts`
 - Add OPENAI_API_KEY to .env.local for embeddings functionality
 - Add ANTHROPIC_API_KEY to .env.local for signal extraction
 
@@ -150,9 +156,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 15-03-PLAN.md (/ingest Endpoint and Processing Integration)
+Stopped at: Completed 16-01-PLAN.md (pgvector Schema Setup)
 Resume file: None
 Next steps:
-  - Phase 15 complete - proceed to Phase 16 (Classification & Clustering)
-  - Embeddings now generated for all signal sources
-  - Ready for similarity search and clustering features
+  - Continue to 16-02-PLAN.md (Classifier Module)
+  - Run database migration to enable pgvector extension
+  - Run vector migration script after deploying schema changes
