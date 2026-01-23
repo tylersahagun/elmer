@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileUploadTab } from "./FileUploadTab";
 
 interface CreateSignalModalProps {
   workspaceId: string;
@@ -45,13 +47,16 @@ export function CreateSignalModal({
 }: CreateSignalModalProps) {
   const queryClient = useQueryClient();
 
-  // Form state
+  // Tab state
+  const [activeTab, setActiveTab] = useState("paste");
+
+  // Paste form state (existing)
   const [verbatim, setVerbatim] = useState("");
   const [interpretation, setInterpretation] = useState("");
   const [source, setSource] = useState("paste");
   const [keepOpen, setKeepOpen] = useState(false);
 
-  // Create mutation
+  // Create mutation (for paste tab - existing)
   const createMutation = useMutation({
     mutationFn: async (data: {
       verbatim: string;
@@ -101,7 +106,8 @@ export function CreateSignalModal({
   };
 
   const handleClose = () => {
-    // Reset form state when closing
+    // Reset all state when closing
+    setActiveTab("paste");
     setVerbatim("");
     setInterpretation("");
     setSource("paste");
@@ -111,83 +117,100 @@ export function CreateSignalModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add Signal</DialogTitle>
           <DialogDescription>
-            Manually add user feedback to your signals library.
+            Add user feedback by pasting text or uploading a file.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Verbatim textarea (required) */}
-          <div className="space-y-2">
-            <Label htmlFor="verbatim">Feedback (required)</Label>
-            <Textarea
-              id="verbatim"
-              placeholder="Paste or type the user feedback verbatim..."
-              value={verbatim}
-              onChange={(e) => setVerbatim(e.target.value)}
-              rows={4}
-              className="resize-none"
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="paste">Paste Text</TabsTrigger>
+            <TabsTrigger value="upload">Upload File</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="paste" className="mt-4">
+            <div className="space-y-4">
+              {/* Verbatim textarea (required) */}
+              <div className="space-y-2">
+                <Label htmlFor="verbatim">Feedback (required)</Label>
+                <Textarea
+                  id="verbatim"
+                  placeholder="Paste or type the user feedback verbatim..."
+                  value={verbatim}
+                  onChange={(e) => setVerbatim(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Interpretation textarea (optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="interpretation">Interpretation (optional)</Label>
+                <Textarea
+                  id="interpretation"
+                  placeholder="What does this feedback really mean?"
+                  value={interpretation}
+                  onChange={(e) => setInterpretation(e.target.value)}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Source select */}
+              <div className="space-y-2">
+                <Label htmlFor="source">Source</Label>
+                <Select value={source} onValueChange={setSource}>
+                  <SelectTrigger id="source" className="w-full">
+                    <SelectValue placeholder="Select source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MANUAL_SOURCES.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter className="mt-6 gap-2 sm:gap-0">
+              <Button variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCreateAndAddAnother}
+                disabled={!verbatim.trim() || createMutation.isPending}
+              >
+                {createMutation.isPending && keepOpen ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                Create & Add Another
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={!verbatim.trim() || createMutation.isPending}
+              >
+                {createMutation.isPending && !keepOpen ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
+                Create Signal
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+
+          <TabsContent value="upload" className="mt-4">
+            <FileUploadTab
+              workspaceId={workspaceId}
+              onSuccess={onSuccess}
+              onClose={handleClose}
             />
-          </div>
-
-          {/* Interpretation textarea (optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="interpretation">Interpretation (optional)</Label>
-            <Textarea
-              id="interpretation"
-              placeholder="What does this feedback really mean?"
-              value={interpretation}
-              onChange={(e) => setInterpretation(e.target.value)}
-              rows={2}
-              className="resize-none"
-            />
-          </div>
-
-          {/* Source select */}
-          <div className="space-y-2">
-            <Label htmlFor="source">Source</Label>
-            <Select value={source} onValueChange={setSource}>
-              <SelectTrigger id="source" className="w-full">
-                <SelectValue placeholder="Select source" />
-              </SelectTrigger>
-              <SelectContent>
-                {MANUAL_SOURCES.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleCreateAndAddAnother}
-            disabled={!verbatim.trim() || createMutation.isPending}
-          >
-            {createMutation.isPending && keepOpen ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : null}
-            Create & Add Another
-          </Button>
-          <Button
-            onClick={handleCreate}
-            disabled={!verbatim.trim() || createMutation.isPending}
-          >
-            {createMutation.isPending && !keepOpen ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : null}
-            Create Signal
-          </Button>
-        </DialogFooter>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
