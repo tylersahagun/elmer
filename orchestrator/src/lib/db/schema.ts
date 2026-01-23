@@ -781,6 +781,8 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   activityLogs: many(activityLogs),
   // Signals (Phase 11+)
   signals: many(signals),
+  // Webhook keys (Phase 13+)
+  webhookKeys: many(webhookKeys),
 }));
 
 // ============================================
@@ -1285,6 +1287,34 @@ export const signalPersonasRelations = relations(signalPersonas, ({ one }) => ({
   }),
   linkedByUser: one(users, {
     fields: [signalPersonas.linkedBy],
+    references: [users.id],
+  }),
+}));
+
+// ============================================
+// WEBHOOK KEYS (Authentication for External Integrations)
+// ============================================
+
+export const webhookKeys = pgTable("webhook_keys", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),                    // "Ask Elephant", "Zapier", etc.
+  apiKey: text("api_key").notNull().unique(),      // For simple X-API-Key auth
+  secret: text("secret").notNull(),                // For HMAC signature verification
+  isActive: boolean("is_active").default(true),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+});
+
+// Relations
+export const webhookKeysRelations = relations(webhookKeys, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [webhookKeys.workspaceId],
+    references: [workspaces.id],
+  }),
+  creator: one(users, {
+    fields: [webhookKeys.createdBy],
     references: [users.id],
   }),
 }));
