@@ -783,6 +783,8 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   signals: many(signals),
   // Webhook keys (Phase 13+)
   webhookKeys: many(webhookKeys),
+  // Integrations (Phase 14.6+)
+  integrations: many(integrations),
 }));
 
 // ============================================
@@ -1315,6 +1317,63 @@ export const webhookKeysRelations = relations(webhookKeys, ({ one }) => ({
   }),
   creator: one(users, {
     fields: [webhookKeys.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// ============================================
+// INTEGRATIONS (Third-Party Platform Credentials)
+// ============================================
+
+export type IntegrationPlatform = "pylon" | "slack";
+
+export interface IntegrationConfig {
+  // Slack: which channels to listen to
+  slackChannels?: Array<{ id: string; name: string }>;
+  // Pylon: which ticket events to capture
+  pylonEvents?: Array<"issue.created" | "issue.updated" | "issue.closed">;
+}
+
+export const integrations = pgTable("integrations", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+
+  // Integration identification
+  platform: text("platform").$type<IntegrationPlatform>().notNull(),
+  name: text("name").notNull(),                    // User-friendly name like "Support Channel"
+
+  // Credential fields
+  webhookSecret: text("webhook_secret"),           // Pylon webhook secret, Slack signing secret
+  accessToken: text("access_token"),               // Slack xoxb-* bot token, null for Pylon
+  refreshToken: text("refresh_token"),             // Slack token rotation, null for Pylon
+  tokenExpiresAt: timestamp("token_expires_at"),   // Slack token expiry
+
+  // Slack-specific fields
+  slackTeamId: text("slack_team_id"),              // Slack workspace ID for team_id lookup
+  slackTeamName: text("slack_team_name"),          // Display name
+  slackBotUserId: text("slack_bot_user_id"),       // For filtering bot messages
+
+  // Pylon-specific fields
+  pylonAccountId: text("pylon_account_id"),        // Pylon account identifier
+
+  // Configuration
+  isActive: boolean("is_active").default(true),
+  config: jsonb("config").$type<IntegrationConfig>(),
+
+  // Metadata
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+});
+
+// Integrations Relations
+export const integrationsRelations = relations(integrations, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [integrations.workspaceId],
+    references: [workspaces.id],
+  }),
+  creator: one(users, {
+    fields: [integrations.createdBy],
     references: [users.id],
   }),
 }));
