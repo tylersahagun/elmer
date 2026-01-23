@@ -102,3 +102,10 @@ export type NewSignalPersona = typeof schema.signalPersonas.$inferInsert;
 // Webhook Keys
 export type WebhookKey = typeof schema.webhookKeys.$inferSelect;
 export type NewWebhookKey = typeof schema.webhookKeys.$inferInsert;
+
+// Integrations (Phase 14.6+)
+export type Integration = typeof schema.integrations.$inferSelect;
+export type NewIntegration = typeof schema.integrations.$inferInsert;
+
+// Re-export integration types from schema
+export type { IntegrationPlatform, IntegrationConfig } from "./schema";
