@@ -1268,6 +1268,10 @@ export const signals = pgTable("signals", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   processedAt: timestamp("processed_at"),         // When AI extraction completed
+
+  // Suggestion dismissal tracking (Phase 17)
+  suggestionDismissedAt: timestamp("suggestion_dismissed_at"),
+  suggestionDismissedBy: text("suggestion_dismissed_by").references(() => users.id, { onDelete: "set null" }),
 });
 
 // ============================================
