@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 12.5 of 20 (Manual Association)
-Plan: 3 of 3 complete
+Plan: 4 of 4 complete
 Status: Phase 12.5 complete
-Last activity: 2026-01-22 — Completed 12.5-02-PLAN.md (Signal Association Modal UI)
+Last activity: 2026-01-22 — Completed 12.5-04-PLAN.md (Project-Side Signals Section)
 
-Progress: [███░░░░░░░] 28%
+Progress: [███░░░░░░░] 30%
 
 ## Performance Metrics
 
@@ -24,11 +24,11 @@ Progress: [███░░░░░░░] 28%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 7
+- Total plans completed: 8
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
-- Phase 12.5: 3/3 plans complete
+- Phase 12.5: 4/4 plans complete
 
 ## Accumulated Context
 
@@ -65,6 +65,9 @@ Recent decisions affecting current work:
 - v1.1 (12.5-03): Show first badge with +N count for multiple associations
 - v1.1 (12.5-02): Use Select dropdown for linking (inline UX over dialog)
 - v1.1 (12.5-02): Query linked data separately from signal for targeted refetch
+- v1.1 (12.5-04): Section collapsed by default to reduce visual noise
+- v1.1 (12.5-04): Filter out already-linked signals in picker to prevent duplicates
+- v1.1 (12.5-04): Sequential linking in bulk operation for simplicity
 
 ### Pending Todos
 
@@ -79,7 +82,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-22
-Stopped at: Completed Phase 12.5 (Manual Association)
+Stopped at: Completed 12.5-04-PLAN.md (Project-Side Signals Section)
 Resume file: None
 Next steps:
   - `/gsd:discuss-phase 13` to plan AI Classification phase
