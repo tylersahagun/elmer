@@ -155,6 +155,9 @@ Recent decisions affecting current work:
 - v1.1 (17-02): Bulk link skips signals already linked to target project
 - v1.1 (17-02): Bulk unlink reverts status to "reviewed" only when no remaining project links
 - v1.1 (17-02): Maximum 50 signals per bulk operation to prevent timeout
+- v1.1 (17-01): 30-day window for suggestions to keep results relevant
+- v1.1 (17-01): Viewer for GET suggestions, member for POST dismiss
+- v1.1 (17-01): Cap suggestions limit at 50 to prevent abuse
 
 ### Pending Todos
 
@@ -180,3 +183,4 @@ Next steps:
   - Continue Phase 17 with Plan 03 (Review UI) and Plan 04 (Suggestions UI)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
+  - Run `npx drizzle-kit generate` for suggestion dismiss columns migration
