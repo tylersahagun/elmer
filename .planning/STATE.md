@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 14 - File & Paste Upload (in progress)
+**Current focus:** Phase 14 - File & Paste Upload (complete)
 
 ## Current Position
 
 Phase: 14 of 20 (File & Paste Upload)
-Plan: 3 of 4 complete
-Status: In progress
-Last activity: 2026-01-23 - Completed 14-03-PLAN.md (Upload UI Components)
+Plan: 4 of 4 complete
+Status: Phase complete
+Last activity: 2026-01-23 - Completed 14-04-PLAN.md (Modal Integration)
 
-Progress: [████░░░░░░] 42%
+Progress: [████░░░░░░] 43%
 
 ## Performance Metrics
 
@@ -24,13 +24,13 @@ Progress: [████░░░░░░] 42%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 12
+- Total plans completed: 14
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete
 - Phase 12: 3/3 plans complete
 - Phase 12.5: 4/4 plans complete
 - Phase 13: 2/2 plans complete
-- Phase 14: 3/4 plans complete
+- Phase 14: 4/4 plans complete
 
 ## Accumulated Context
 
@@ -86,6 +86,9 @@ Recent decisions affecting current work:
 - v1.1 (14-03): react-dropzone for drag-and-drop (de facto React standard)
 - v1.1 (14-03): Controlled file state in parent component for flexibility
 - v1.1 (14-03): Error state derived from both prop and dropzone rejections
+- v1.1 (14-04): Modal widened from 500px to 600px to accommodate tabs
+- v1.1 (14-04): DialogFooter moved inside paste TabsContent (upload has its own)
+- v1.1 (14-04): activeTab resets to paste on modal close
 
 ### Pending Todos
 
@@ -100,7 +103,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14-03-PLAN.md (Upload UI Components)
+Stopped at: Completed 14-04-PLAN.md (Modal Integration) - Phase 14 complete
 Resume file: None
 Next steps:
-  - Execute 14-04-PLAN.md (Modal Integration)
+  - Phase 14 complete, ready for Phase 15 (AI Classification)
