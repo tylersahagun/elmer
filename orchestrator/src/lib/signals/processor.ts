@@ -17,6 +17,7 @@ import {
   generateEmbedding,
   embeddingToBase64,
 } from "@/lib/ai";
+import { classifySignal } from "@/lib/classification";
 
 /**
  * Process a single signal: extract fields and generate embedding.
@@ -67,6 +68,26 @@ export async function processSignalExtraction(signalId: string): Promise<void> {
     });
 
     console.info(`Signal ${signalId} processed successfully`);
+
+    // Classify signal if embedding was generated
+    if (embeddingVector && embeddingVector.length === 1536) {
+      try {
+        // Get the signal's workspace for classification context
+        const updatedSignal = await getSignal(signalId);
+        if (updatedSignal) {
+          await classifySignal(
+            signalId,
+            embeddingVector,
+            signal.verbatim,
+            updatedSignal.workspaceId
+          );
+          console.info(`Signal ${signalId} classified`);
+        }
+      } catch (classifyError) {
+        // Classification failure should not fail the overall processing
+        console.error(`Classification failed for signal ${signalId}:`, classifyError);
+      }
+    }
   } catch (error) {
     // Reset processedAt to allow retry
     await updateSignalProcessing(signalId, {
