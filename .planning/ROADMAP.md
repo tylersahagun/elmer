@@ -29,7 +29,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 11: Signal Schema & Storage** - Foundation tables and core data model
 - [x] **Phase 12: Signal Management UI** - List, search, filter, and manual entry
 - [x] **Phase 12.5: Manual Association** - Basic link/unlink signals to projects/personas
-- [ ] **Phase 13: Webhook Ingestion** - Core webhook infrastructure with queue-first pattern
+- [x] **Phase 13: Webhook Ingestion** - Core webhook infrastructure with queue-first pattern
 - [ ] **Phase 14: File & Paste Upload** - Upload documents/transcripts and paste text
 - [ ] **Phase 14.5: Video Caption Fetch** - Fetch existing captions from YouTube/Loom APIs
 - [ ] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
@@ -110,8 +110,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — WebhookKeys schema table and database migration
-- [ ] 13-02-PLAN.md — Webhook auth utilities and /api/webhooks/signals endpoint
+- [x] 13-01-PLAN.md — WebhookKeys schema table and database migration
+- [x] 13-02-PLAN.md — Webhook auth utilities and /api/webhooks/signals endpoint
 
 ---
 
@@ -123,10 +123,12 @@ Plans:
   1. User can upload documents and transcripts (PDF, CSV, TXT) to create signals
   2. User can paste text with source selection to create a signal
   3. Uploaded files are processed and signal created with source attribution
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 14-01: TBD
+- [ ] 14-01-PLAN.md — File parsing infrastructure (unpdf, papaparse, validators)
+- [ ] 14-02-PLAN.md — Upload API endpoint with text extraction and signal creation
+- [ ] 14-03-PLAN.md — Upload UI components and tabbed CreateSignalModal
 
 ---
 
@@ -276,7 +278,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 12. Signal Management UI | 3/3 | Complete | 2026-01-22 |
 | 12.5. Manual Association | 4/4 | Complete | 2026-01-22 |
 | 13. Webhook Ingestion | 2/2 | Complete | 2026-01-22 |
-| 14. File & Paste Upload | 0/TBD | Not started | - |
+| 14. File & Paste Upload | 0/3 | Planned | - |
 | 14.5. Video Caption Fetch | 0/TBD | Not started | - |
 | 14.6. Third-Party Integrations | 0/TBD | Not started | - |
 | 15. Signal Extraction & Embedding | 0/TBD | Not started | - |
