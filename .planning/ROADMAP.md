@@ -275,7 +275,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 11. Signal Schema & Storage | 1/1 | Complete | 2026-01-22 |
 | 12. Signal Management UI | 3/3 | Complete | 2026-01-22 |
 | 12.5. Manual Association | 4/4 | Complete | 2026-01-22 |
-| 13. Webhook Ingestion | 0/2 | Not started | - |
+| 13. Webhook Ingestion | 2/2 | Complete | 2026-01-22 |
 | 14. File & Paste Upload | 0/TBD | Not started | - |
 | 14.5. Video Caption Fetch | 0/TBD | Not started | - |
 | 14.6. Third-Party Integrations | 0/TBD | Not started | - |

@@ -126,9 +126,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SGNL-06 | Phase 12 | Pending |
 | SGNL-07 | Phase 11 | Complete |
 | SGNL-08 | Phase 11 | Complete |
-| INGST-01 | Phase 13 | Pending |
-| INGST-02 | Phase 13 | Pending |
-| INGST-03 | Phase 13 | Pending |
+| INGST-01 | Phase 13 | Complete |
+| INGST-02 | Phase 13 | Complete |
+| INGST-03 | Phase 13 | Complete |
 | INGST-04 | Phase 14 | Pending |
 | INGST-05 | Phase 14 | Pending |
 | INGST-06 | Phase 14.5 | Pending |
