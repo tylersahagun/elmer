@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 14.6 - Third-Party Integrations (in progress)
+**Current focus:** Phase 14.6 - Third-Party Integrations (verified complete)
 
 ## Current Position
 
 Phase: 14.6 of 20 (Third-Party Integrations)
 Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-01-23 - Completed 14.6-03-PLAN.md (webhook endpoints)
+Status: Verified complete
+Last activity: 2026-01-23 - Phase 14.6 verification passed (4/4 must-haves)
 
 Progress: [██████░░░░] 60%
 
@@ -32,7 +32,7 @@ Progress: [██████░░░░] 60%
 - Phase 13: 2/2 plans complete (verified)
 - Phase 14: 4/4 plans complete (verified)
 - Phase 14.5: 3/3 plans complete (verified)
-- Phase 14.6: 3/3 plans complete
+- Phase 14.6: 3/3 plans complete (verified)
 
 ## Accumulated Context
 
@@ -100,6 +100,16 @@ Recent decisions affecting current work:
 - v1.1 (14.5-02): sourceMetadata includes videoUrl, videoPlatform, sourceName, rawPayload
 - v1.1 (14.5-03): Client-side URL validation hints for UX; server does real validation
 - v1.1 (14.5-03): Same prop interface as FileUploadTab (workspaceId, onSuccess, onClose)
+- v1.1 (14.6-01): integrations table stores per-workspace Pylon/Slack credentials
+- v1.1 (14.6-01): Platform-specific fields for Slack OAuth tokens and Pylon account IDs
+- v1.1 (14.6-02): Slack signature uses v0:{timestamp}:{body} format with 5-min replay window
+- v1.1 (14.6-02): Pylon signature uses {timestamp}.{body} format with optional hs256= prefix
+- v1.1 (14.6-02): Both use crypto.timingSafeEqual for timing-safe signature comparison
+- v1.1 (14.6-03): Dedicated endpoints per platform (not overloading generic webhook)
+- v1.1 (14.6-03): Pylon uses integration_id query param for workspace mapping
+- v1.1 (14.6-03): Slack uses team_id from payload for workspace mapping
+- v1.1 (14.6-03): Slack endpoint handles url_verification challenge for setup
+- v1.1 (14.6-03): Slack filters bot messages, subtypes, and empty messages
 - v1.1 (14.6-01): Union type for IntegrationPlatform (pylon | slack)
 - v1.1 (14.6-01): OAuth tokens stored directly in integrations table for MVP
 - v1.1 (14.6-01): Platform-specific fields nullable to avoid polymorphism
@@ -127,8 +137,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14.6-03-PLAN.md (webhook endpoints)
+Stopped at: Phase 14.6 verified complete (all must-haves passed)
 Resume file: None
 Next steps:
-  - Phase 14.6 complete
-  - Ready for Phase 15 (AI Classification)
+  - Continue with Phase 15 (Signal Extraction & Embedding)

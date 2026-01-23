@@ -32,7 +32,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 13: Webhook Ingestion** - Core webhook infrastructure with queue-first pattern
 - [x] **Phase 14: File & Paste Upload** - Upload documents/transcripts and paste text
 - [x] **Phase 14.5: Video Caption Fetch** - Fetch existing captions from YouTube/Loom APIs
-- [ ] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
+- [x] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
 - [ ] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
 - [ ] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
 - [ ] **Phase 17: Smart Association** - AI-suggested links and bulk operations
@@ -286,7 +286,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 13. Webhook Ingestion | 2/2 | Complete | 2026-01-22 |
 | 14. File & Paste Upload | 4/4 | Complete | 2026-01-23 |
 | 14.5. Video Caption Fetch | 3/3 | Complete | 2026-01-23 |
-| 14.6. Third-Party Integrations | 0/3 | Planned | - |
+| 14.6. Third-Party Integrations | 3/3 | Complete | 2026-01-23 |
 | 15. Signal Extraction & Embedding | 0/TBD | Not started | - |
 | 16. Classification & Clustering | 0/TBD | Not started | - |
 | 17. Smart Association | 0/TBD | Not started | - |

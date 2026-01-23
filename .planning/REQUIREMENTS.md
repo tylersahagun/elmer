@@ -133,8 +133,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INGST-05 | Phase 14 | Pending |
 | INGST-06 | Phase 14.5 | Pending |
 | INGST-07 | Phase 14.5 | Pending |
-| INGST-08 | Phase 14.6 | Pending |
-| INGST-09 | Phase 14.6 | Pending |
+| INGST-08 | Phase 14.6 | Complete |
+| INGST-09 | Phase 14.6 | Complete |
 | INTL-01 | Phase 16 | Pending |
 | INTL-02 | Phase 16 | Pending |
 | INTL-03 | Phase 15 | Pending |
