@@ -1639,3 +1639,32 @@ export async function countSignalProjectLinks(signalId: string) {
 
   return Number(result[0]?.count ?? 0);
 }
+
+/**
+ * Update a signal with AI-processed fields (extraction results and embedding).
+ * Separate from updateSignal because:
+ * - Accepts nullable fields (extraction may return nulls)
+ * - Includes processedAt timestamp
+ * - Updates embedding field (text type for base64)
+ */
+export async function updateSignalProcessing(
+  id: string,
+  data: {
+    severity?: SignalSeverity | null;
+    frequency?: SignalFrequency | null;
+    userSegment?: string | null;
+    interpretation?: string | null;
+    embedding?: string | null;
+    processedAt?: Date | null;
+  }
+) {
+  await db
+    .update(signals)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(signals.id, id));
+
+  return getSignal(id);
+}
