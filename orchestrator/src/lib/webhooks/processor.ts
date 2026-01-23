@@ -7,6 +7,7 @@ import { signals, webhookKeys, activityLogs } from "@/lib/db/schema";
 import type { SignalSeverity, SignalFrequency, SignalSourceMetadata } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { processSignalExtraction } from "@/lib/signals";
 
 export interface SignalWebhookPayload {
   // Required
@@ -134,6 +135,15 @@ export async function processSignalWebhook(
       },
       createdAt: new Date(),
     });
+
+    // Queue AI extraction and embedding (Phase 15)
+    // Note: We're already in after() context, so this runs synchronously here
+    // but errors are caught and logged, not thrown
+    try {
+      await processSignalExtraction(signal.id);
+    } catch (error) {
+      console.error(`Failed to process webhook signal ${signal.id}:`, error);
+    }
 
     return { created: true, signalId: signal.id };
   } catch (error) {
