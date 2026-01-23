@@ -34,7 +34,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 14.5: Video Caption Fetch** - Fetch existing captions from YouTube/Loom APIs
 - [x] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
 - [x] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
-- [ ] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
+- [x] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
 - [ ] **Phase 17: Smart Association** - AI-suggested links and bulk operations
 - [ ] **Phase 18: Provenance & PRD Citation** - Project integration and evidence tracking
 - [ ] **Phase 19: Workflow Automation** - Auto triggers and notification thresholds
@@ -201,9 +201,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 16-01-PLAN.md — pgvector migration, native vector columns, and HNSW indexes
-- [ ] 16-02-PLAN.md — Two-tier hybrid classifier (embedding similarity + LLM verification)
-- [ ] 16-03-PLAN.md — K-NN clustering, /synthesize endpoint, and similar signals API
+- [x] 16-01-PLAN.md — pgvector migration, native vector columns, and HNSW indexes
+- [x] 16-02-PLAN.md — Two-tier hybrid classifier (embedding similarity + LLM verification)
+- [x] 16-03-PLAN.md — K-NN clustering, /synthesize endpoint, and similar signals API
 
 ---
 
@@ -292,7 +292,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 14.5. Video Caption Fetch | 3/3 | Complete | 2026-01-23 |
 | 14.6. Third-Party Integrations | 3/3 | Complete | 2026-01-23 |
 | 15. Signal Extraction & Embedding | 3/3 | Complete | 2026-01-23 |
-| 16. Classification & Clustering | 0/3 | Planned | - |
+| 16. Classification & Clustering | 3/3 | Complete | 2026-01-23 |
 | 17. Smart Association | 0/TBD | Not started | - |
 | 18. Provenance & PRD Citation | 0/TBD | Not started | - |
 | 19. Workflow Automation | 0/TBD | Not started | - |

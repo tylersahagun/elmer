@@ -142,6 +142,10 @@ Recent decisions affecting current work:
 - v1.1 (16-02): Thresholds: >0.75 auto-classify to project, <0.5 classify as new initiative
 - v1.1 (16-02): Classification failure doesn't fail signal processing (best-effort)
 - v1.1 (16-02): Project embeddings generated from name + description concatenation
+- v1.1 (16-03): K-NN clustering with distance threshold 0.3 (similarity > 0.7)
+- v1.1 (16-03): Minimum cluster size 2 signals for pattern discovery
+- v1.1 (16-03): Cluster themes generated via Claude with 5-signal context window
+- v1.1 (16-03): Suggested actions based on cluster size and severity (new_project vs review)
 - v1.1 (16-03): Distance threshold 0.3 for K-NN clustering (similarity > 0.7)
 - v1.1 (16-03): Minimum cluster size of 2 signals to form a cluster
 - v1.1 (16-03): Theme generation via Claude claude-sonnet-4-20250514 (max 100 tokens)
