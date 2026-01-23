@@ -107,10 +107,11 @@ Plans:
   2. Webhooks are authenticated via API key or HMAC signature verification
   3. Webhook returns 200 within 5 seconds (queue-first, async processing)
   4. Duplicate webhooks are handled idempotently (no duplicate signals)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 13-01: TBD
+- [ ] 13-01-PLAN.md — WebhookKeys schema table and database migration
+- [ ] 13-02-PLAN.md — Webhook auth utilities and /api/webhooks/signals endpoint
 
 ---
 
@@ -274,7 +275,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 11. Signal Schema & Storage | 1/1 | Complete | 2026-01-22 |
 | 12. Signal Management UI | 3/3 | Complete | 2026-01-22 |
 | 12.5. Manual Association | 4/4 | Complete | 2026-01-22 |
-| 13. Webhook Ingestion | 0/TBD | Not started | - |
+| 13. Webhook Ingestion | 0/2 | Not started | - |
 | 14. File & Paste Upload | 0/TBD | Not started | - |
 | 14.5. Video Caption Fetch | 0/TBD | Not started | - |
 | 14.6. Third-Party Integrations | 0/TBD | Not started | - |
