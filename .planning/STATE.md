@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 14 - File & Paste Upload (complete)
+**Current focus:** Phase 14.5 - Video Caption Fetch (in progress)
 
 ## Current Position
 
-Phase: 14 of 20 (File & Paste Upload)
-Plan: 4 of 4 complete
-Status: Phase complete
-Last activity: 2026-01-23 - Completed 14-04-PLAN.md (Modal Integration)
+Phase: 14.5 of 20 (Video Caption Fetch)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-01-23 - Completed 14.5-01-PLAN.md (Video Caption Infrastructure)
 
-Progress: [████░░░░░░] 46%
+Progress: [████░░░░░░] 48%
 
 ## Performance Metrics
 
@@ -31,6 +31,7 @@ Progress: [████░░░░░░] 46%
 - Phase 12.5: 4/4 plans complete
 - Phase 13: 2/2 plans complete
 - Phase 14: 4/4 plans complete
+- Phase 14.5: 1/3 plans complete
 
 ## Accumulated Context
 
@@ -89,6 +90,10 @@ Recent decisions affecting current work:
 - v1.1 (14-04): Modal widened from 500px to 600px to accommodate tabs
 - v1.1 (14-04): DialogFooter moved inside paste TabsContent (upload has its own)
 - v1.1 (14-04): activeTab resets to paste on modal close
+- v1.1 (14.5-01): youtube-caption-extractor chosen for serverless compatibility, no API key required
+- v1.1 (14.5-01): Loom URLs detected but not implemented (platform='loom') for future extension
+- v1.1 (14.5-01): Timestamp format: M:SS for <1hr, H:MM:SS for >=1hr
+- v1.1 (14.5-01): CaptionExtractionResult interface mirrors lib/files/ExtractionResult pattern
 
 ### Pending Todos
 
@@ -103,7 +108,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 14-04-PLAN.md (Modal Integration) - Phase 14 complete
+Stopped at: Completed 14.5-01-PLAN.md (Video Caption Infrastructure)
 Resume file: None
 Next steps:
-  - Phase 14 complete, ready for Phase 15 (AI Classification)
+  - Continue with 14.5-02-PLAN.md (Video API Endpoint)
+  - Then 14.5-03-PLAN.md (Video Link UI)
