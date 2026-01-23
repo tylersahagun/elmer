@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 16 - Classification & Clustering (Plan 02 complete)
+**Current focus:** Phase 16 - Classification & Clustering (Complete)
 
 ## Current Position
 
 Phase: 16 of 20 (Classification & Clustering)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-01-23 - Completed 16-02-PLAN.md (Classifier Module)
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-01-23 - Completed 16-03-PLAN.md (Clustering & Synthesis)
 
-Progress: [██████░░░░] 70%
+Progress: [███████░░░] 73%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [██████░░░░] 70%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 28
+- Total plans completed: 29
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -34,7 +34,7 @@ Progress: [██████░░░░] 70%
 - Phase 14.5: 3/3 plans complete (verified)
 - Phase 14.6: 3/3 plans complete (verified)
 - Phase 15: 3/3 plans complete (verified)
-- Phase 16: 2/3 plans complete
+- Phase 16: 3/3 plans complete (verified)
 
 ## Accumulated Context
 
@@ -142,6 +142,11 @@ Recent decisions affecting current work:
 - v1.1 (16-02): Thresholds: >0.75 auto-classify to project, <0.5 classify as new initiative
 - v1.1 (16-02): Classification failure doesn't fail signal processing (best-effort)
 - v1.1 (16-02): Project embeddings generated from name + description concatenation
+- v1.1 (16-03): Distance threshold 0.3 for K-NN clustering (similarity > 0.7)
+- v1.1 (16-03): Minimum cluster size of 2 signals to form a cluster
+- v1.1 (16-03): Theme generation via Claude claude-sonnet-4-20250514 (max 100 tokens)
+- v1.1 (16-03): Aggregate severity/frequency by taking highest from cluster signals
+- v1.1 (16-03): Suggested action "new_project" for clusters with 3+ signals
 
 ### Pending Todos
 
@@ -161,9 +166,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-23
-Stopped at: Completed 16-02-PLAN.md (Classifier Module)
+Stopped at: Completed 16-03-PLAN.md (Clustering & Synthesis)
 Resume file: None
 Next steps:
-  - Continue to 16-03-PLAN.md (Clustering & UI Integration)
+  - Phase 16 complete - ready for Phase 17 (PRD Generation) or Phase 18 (Provenance)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
