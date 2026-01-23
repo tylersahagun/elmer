@@ -1826,3 +1826,213 @@ export async function getUnlinkedSignalsWithEmbeddings(
     limit,
   });
 }
+
+// ============================================
+// BULK SIGNAL ASSOCIATION QUERIES
+// ============================================
+
+/**
+ * Bulk link signals to a project
+ * Skips signals already linked to the project
+ * Updates signal status to "linked" for newly linked signals
+ * Returns count of newly linked signals
+ */
+export async function bulkLinkSignalsToProject(
+  signalIds: string[],
+  projectId: string,
+  userId: string,
+  linkReason?: string
+): Promise<{ linked: number; skipped: number }> {
+  if (signalIds.length === 0) {
+    return { linked: 0, skipped: 0 };
+  }
+
+  // Find which signals are already linked to this project
+  const existingLinks = await db.query.signalProjects.findMany({
+    where: and(
+      inArray(signalProjects.signalId, signalIds),
+      eq(signalProjects.projectId, projectId)
+    ),
+    columns: { signalId: true },
+  });
+  const alreadyLinked = new Set(existingLinks.map((l) => l.signalId));
+
+  // Filter to signals that need linking
+  const toLink = signalIds.filter((id) => !alreadyLinked.has(id));
+
+  if (toLink.length === 0) {
+    return { linked: 0, skipped: signalIds.length };
+  }
+
+  // Batch insert new links
+  await db.insert(signalProjects).values(
+    toLink.map((signalId) => ({
+      signalId,
+      projectId,
+      linkedBy: userId,
+      linkReason: linkReason || "Bulk linked",
+    }))
+  );
+
+  // Update status to "linked" for signals that weren't already linked
+  await db
+    .update(signals)
+    .set({ status: "linked", updatedAt: new Date() })
+    .where(
+      and(
+        inArray(signals.id, toLink),
+        ne(signals.status, "linked")
+      )
+    );
+
+  return { linked: toLink.length, skipped: alreadyLinked.size };
+}
+
+/**
+ * Bulk unlink signals from a project
+ * Returns count of unlinked signals
+ * Updates signal status to "reviewed" if no remaining project links
+ */
+export async function bulkUnlinkSignalsFromProject(
+  signalIds: string[],
+  projectId: string
+): Promise<{ unlinked: number; skipped: number }> {
+  if (signalIds.length === 0) {
+    return { unlinked: 0, skipped: 0 };
+  }
+
+  // Find which signals are actually linked to this project
+  const existingLinks = await db.query.signalProjects.findMany({
+    where: and(
+      inArray(signalProjects.signalId, signalIds),
+      eq(signalProjects.projectId, projectId)
+    ),
+    columns: { signalId: true },
+  });
+  const linkedSignalIds = existingLinks.map((l) => l.signalId);
+
+  if (linkedSignalIds.length === 0) {
+    return { unlinked: 0, skipped: signalIds.length };
+  }
+
+  // Delete the links
+  await db
+    .delete(signalProjects)
+    .where(
+      and(
+        inArray(signalProjects.signalId, linkedSignalIds),
+        eq(signalProjects.projectId, projectId)
+      )
+    );
+
+  // For each unlinked signal, check if it has any remaining project links
+  // If not, revert status to "reviewed"
+  for (const signalId of linkedSignalIds) {
+    const remainingLinks = await db.query.signalProjects.findMany({
+      where: eq(signalProjects.signalId, signalId),
+      columns: { id: true },
+      limit: 1,
+    });
+
+    if (remainingLinks.length === 0) {
+      // No more project links, revert to reviewed
+      await db
+        .update(signals)
+        .set({ status: "reviewed", updatedAt: new Date() })
+        .where(
+          and(
+            eq(signals.id, signalId),
+            eq(signals.status, "linked")
+          )
+        );
+    }
+  }
+
+  return {
+    unlinked: linkedSignalIds.length,
+    skipped: signalIds.length - linkedSignalIds.length,
+  };
+}
+
+// ============================================
+// SIGNAL SUGGESTION QUERIES (Phase 17)
+// ============================================
+
+/**
+ * Get unlinked signals with classification suggestions
+ * Returns signals that:
+ * - Have classification.projectId set (AI suggested a project)
+ * - Are NOT already linked to that suggested project
+ * - Have not been dismissed (suggestionDismissedAt is null)
+ * - Were created in the last 30 days
+ * - classification.isNewInitiative is not true
+ */
+export async function getSignalSuggestions(
+  workspaceId: string,
+  limit: number = 20
+): Promise<Array<{
+  signalId: string;
+  verbatim: string;
+  source: string;
+  projectId: string;
+  projectName: string;
+  confidence: number;
+  reason?: string;
+  createdAt: Date;
+}>> {
+  // Use raw SQL for JSONB query performance
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const result = await db.execute(sql`
+    SELECT
+      s.id as signal_id,
+      s.verbatim,
+      s.source,
+      s.classification->>'projectId' as project_id,
+      s.classification->>'projectName' as project_name,
+      (s.classification->>'confidence')::float as confidence,
+      s.classification->>'reason' as reason,
+      s.created_at
+    FROM signals s
+    LEFT JOIN signal_projects sp ON s.id = sp.signal_id
+      AND sp.project_id = s.classification->>'projectId'
+    WHERE s.workspace_id = ${workspaceId}
+      AND s.classification->>'projectId' IS NOT NULL
+      AND COALESCE(s.classification->>'isNewInitiative', 'false') != 'true'
+      AND sp.id IS NULL
+      AND s.suggestion_dismissed_at IS NULL
+      AND s.created_at > ${thirtyDaysAgo.toISOString()}
+    ORDER BY (s.classification->>'confidence')::float DESC
+    LIMIT ${limit}
+  `);
+
+  return result.rows.map((row: Record<string, unknown>) => ({
+    signalId: row.signal_id as string,
+    verbatim: row.verbatim as string,
+    source: row.source as string,
+    projectId: row.project_id as string,
+    projectName: row.project_name as string,
+    confidence: row.confidence as number,
+    reason: row.reason as string | undefined,
+    createdAt: new Date(row.created_at as string),
+  }));
+}
+
+/**
+ * Dismiss suggestion for a signal
+ * Sets suggestionDismissedAt and suggestionDismissedBy
+ */
+export async function dismissSignalSuggestion(
+  signalId: string,
+  userId: string
+): Promise<void> {
+  await db
+    .update(signals)
+    .set({
+      suggestionDismissedAt: new Date(),
+      suggestionDismissedBy: userId,
+      updatedAt: new Date(),
+    })
+    .where(eq(signals.id, signalId));
+}
