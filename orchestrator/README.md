@@ -43,6 +43,7 @@ docker compose up -d
 ```
 
 This starts a PostgreSQL 16 container with:
+
 - **Host**: localhost:5432
 - **Database**: orchestrator
 - **User**: elmer
@@ -102,18 +103,18 @@ npm start
 
 ### Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `generate-prd` | Generate PRD from research/context |
-| `generate-design-brief` | Generate design brief from PRD |
-| `generate-engineering-spec` | Generate engineering spec |
-| `generate-gtm-brief` | Generate go-to-market brief |
-| `analyze-transcript` | Extract insights from transcripts |
-| `run-jury-evaluation` | Run synthetic user jury |
-| `build-standalone-prototype` | Build Storybook prototype |
-| `build-context-prototype` | Build context-aware prototype |
-| `generate-tickets` | Generate Linear tickets |
-| `validate-tickets` | Validate ticket coverage |
+| Tool                         | Description                        |
+| ---------------------------- | ---------------------------------- |
+| `generate-prd`               | Generate PRD from research/context |
+| `generate-design-brief`      | Generate design brief from PRD     |
+| `generate-engineering-spec`  | Generate engineering spec          |
+| `generate-gtm-brief`         | Generate go-to-market brief        |
+| `analyze-transcript`         | Extract insights from transcripts  |
+| `run-jury-evaluation`        | Run synthetic user jury            |
+| `build-standalone-prototype` | Build Storybook prototype          |
+| `build-context-prototype`    | Build context-aware prototype      |
+| `generate-tickets`           | Generate Linear tickets            |
+| `validate-tickets`           | Validate ticket coverage           |
 
 ## Workflow Stages
 
@@ -136,6 +137,7 @@ Default Kanban columns (configurable per workspace):
 ### Aurora Background
 
 Animated gradient mesh with soft aurora colors:
+
 - Teal (`#4fd1c5`)
 - Purple (`#9f7aea`)
 - Pink (`#ed64a6`)
@@ -156,23 +158,23 @@ border: 1px solid rgba(255, 255, 255, 0.2);
 Framer Motion presets for natural interactions:
 
 ```typescript
-springPresets.snappy   // Buttons, toggles
-springPresets.bouncy   // Card movements
-springPresets.gentle   // Background elements
-springPresets.layout   // Drag-drop reordering
+springPresets.snappy; // Buttons, toggles
+springPresets.bouncy; // Card movements
+springPresets.gentle; // Background elements
+springPresets.layout; // Drag-drop reordering
 ```
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | Next.js 16, React 19, TypeScript |
-| UI | shadcn/ui, Tailwind CSS v4 |
-| Animations | Framer Motion |
-| Drag/Drop | @dnd-kit |
-| State | Zustand, TanStack Query |
-| Database | PostgreSQL (Drizzle ORM) |
-| AI | Claude API (Anthropic SDK) |
+| Layer      | Technology                       |
+| ---------- | -------------------------------- |
+| Framework  | Next.js 16, React 19, TypeScript |
+| UI         | shadcn/ui, Tailwind CSS v4       |
+| Animations | Framer Motion                    |
+| Drag/Drop  | @dnd-kit                         |
+| State      | Zustand, TanStack Query          |
+| Database   | PostgreSQL (Drizzle ORM)         |
+| AI         | Claude API (Anthropic SDK)       |
 
 ## Scripts
 
@@ -206,6 +208,7 @@ docker compose down -v
 ```
 
 **Connection Details:**
+
 - Host: `localhost:5432`
 - Database: `orchestrator`
 - User: `elmer`

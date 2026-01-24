@@ -6,13 +6,13 @@
 
 The `/company-context/` folder contains the strategic foundation that guides all PM work:
 
-| File | Purpose |
-|------|---------|
-| `product-vision.md` | Core identity, mission, principles, anti-vision, leadership quotes |
+| File                      | Purpose                                                             |
+| ------------------------- | ------------------------------------------------------------------- |
+| `product-vision.md`       | Core identity, mission, principles, anti-vision, leadership quotes  |
 | `strategic-guardrails.md` | Red flags, decision framework, alignment checks, pushback questions |
-| `personas.md` | User personas with jobs-to-be-done and pain points |
-| `tech-stack.md` | Technology overview |
-| `integrations.md` | Integration landscape |
+| `personas.md`             | User personas with jobs-to-be-done and pain points                  |
+| `tech-stack.md`           | Technology overview                                                 |
+| `integrations.md`         | Integration landscape                                               |
 
 **The AI will automatically reference these** when using any PM command and will push back if initiatives don't align.
 
@@ -22,12 +22,12 @@ The `/company-context/` folder contains the strategic foundation that guides all
 
 You don't need to memorize slash commands. Just describe what you want:
 
-| Say this... | AI will... |
-|-------------|------------|
+| Say this...                                | AI will...                   |
+| ------------------------------------------ | ---------------------------- |
 | "I have a transcript from a customer call" | Suggest `/research` workflow |
-| "Build a prototype for the settings page" | Suggest `/proto` workflow |
-| "Save my work" | Auto-run `/save` |
-| "What's the roadmap?" | Auto-run `/roadmap` |
+| "Build a prototype for the settings page"  | Suggest `/proto` workflow    |
+| "Save my work"                             | Auto-run `/save`             |
+| "What's the roadmap?"                      | Auto-run `/roadmap`          |
 
 The AI recognizes your intent and either executes simple commands automatically or confirms complex workflows before proceeding.
 
@@ -37,74 +37,74 @@ The AI recognizes your intent and either executes simple commands automatically 
 
 ### Core PM Workflows
 
-| Command | Purpose |
-|---------|---------|
-| `/research [name]` | Analyze transcripts with strategic lens, flag red flags |
-| `/PM [name]` | Create full project documentation (PRD, design brief, eng spec, GTM) |
-| `/proto [name]` | Build prototypes in Storybook |
-| `/new-initiative [name]` | Create initiative folder structure |
+| Command                  | Purpose                                                              |
+| ------------------------ | -------------------------------------------------------------------- |
+| `/research [name]`       | Analyze transcripts with strategic lens, flag red flags              |
+| `/PM [name]`             | Create full project documentation (PRD, design brief, eng spec, GTM) |
+| `/proto [name]`          | Build prototypes in Storybook                                        |
+| `/new-initiative [name]` | Create initiative folder structure                                   |
 
 ### Validation and Iteration
 
-| Command | Purpose |
-|---------|---------|
-| `/validate [name]` | Run synthetic user jury evaluation |
-| `/iterate [name]` | Refine existing prototype based on feedback |
-| `/design [name]` | Review design considerations |
-| `/measure [name]` | Generate measurement plan (PostHog events, funnels) |
+| Command            | Purpose                                             |
+| ------------------ | --------------------------------------------------- |
+| `/validate [name]` | Run synthetic user jury evaluation                  |
+| `/iterate [name]`  | Refine existing prototype based on feedback         |
+| `/design [name]`   | Review design considerations                        |
+| `/measure [name]`  | Generate measurement plan (PostHog events, funnels) |
 
 ### Git and Sharing
 
-| Command | Purpose |
-|---------|---------|
-| `/save` | Stage, commit, and push all changes |
+| Command   | Purpose                                 |
+| --------- | --------------------------------------- |
+| `/save`   | Stage, commit, and push all changes     |
 | `/update` | Pull latest changes and sync submodules |
-| `/share` | Create Pull Request for review |
+| `/share`  | Create Pull Request for review          |
 
 ### Planning and Discovery
 
-| Command | Purpose |
-|---------|---------|
+| Command              | Purpose                               |
+| -------------------- | ------------------------------------- |
 | `/hypothesis [name]` | Track product assumptions to validate |
-| `/roadmap` | View/update product roadmap |
-| `/brainstorm-board` | Generate creative ideas |
-| `/status` | Show workspace overview |
+| `/roadmap`           | View/update product roadmap           |
+| `/brainstorm-board`  | Generate creative ideas               |
+| `/status`            | Show workspace overview               |
 
 ### Signals and Sync
 
-| Command | Purpose |
-|---------|---------|
-| `/ingest` | Process new signals/feedback |
-| `/synthesize` | Find patterns across signals |
-| `/sync` | Pull from all external sources |
-| `/sync-linear` | Pull issues from Linear |
-| `/sync-notion` | Pull from Notion |
+| Command        | Purpose                        |
+| -------------- | ------------------------------ |
+| `/ingest`      | Process new signals/feedback   |
+| `/synthesize`  | Find patterns across signals   |
+| `/sync`        | Pull from all external sources |
+| `/sync-linear` | Pull issues from Linear        |
+| `/sync-notion` | Pull from Notion               |
 
 ### Maintenance and Admin
 
-| Command | Purpose |
-|---------|---------|
-| `/maintain` | Audit and clean workspace |
-| `/admin` | Modify workspace rules/commands |
-| `/agents` | Generate AGENTS.md documentation |
-| `/help` | Get command guidance |
-| `/setup` | One-time workspace setup |
+| Command     | Purpose                          |
+| ----------- | -------------------------------- |
+| `/maintain` | Audit and clean workspace        |
+| `/admin`    | Modify workspace rules/commands  |
+| `/agents`   | Generate AGENTS.md documentation |
+| `/help`     | Get command guidance             |
+| `/setup`    | One-time workspace setup         |
 
 ---
 
 ## Rules (auto-activate on file patterns)
 
-| Rule | Activates On | Purpose |
-|------|-------------|---------|
-| `command-router.mdc` | Always | Recognize natural language intent, route to commands |
-| `pm-copilot.mdc` | Always | Load company context, enforce strategic alignment |
-| `elmer.mdc` | Always | Handle workflows with Notion integration |
-| `prd-writer.mdc` | `**/prd*.md` | PRD structure with alignment checks |
-| `research-analyst.mdc` | `research/**`, `meeting-notes/**` | Extract insights with strategic filter |
-| `prototype-builder.mdc` | `prototypes/**` | Prototype building guidance |
-| `context-orchestrator.mdc` | `initiatives/**` | Auto-load relevant context by initiative and phase |
-| `jury-system.mdc` | Validation workflows | Synthetic user evaluation |
-| `agents-generator.mdc` | AGENTS.md work | Documentation generation |
+| Rule                       | Activates On                      | Purpose                                              |
+| -------------------------- | --------------------------------- | ---------------------------------------------------- |
+| `command-router.mdc`       | Always                            | Recognize natural language intent, route to commands |
+| `pm-copilot.mdc`           | Always                            | Load company context, enforce strategic alignment    |
+| `elmer.mdc`                | Always                            | Handle workflows with Notion integration             |
+| `prd-writer.mdc`           | `**/prd*.md`                      | PRD structure with alignment checks                  |
+| `research-analyst.mdc`     | `research/**`, `meeting-notes/**` | Extract insights with strategic filter               |
+| `prototype-builder.mdc`    | `prototypes/**`                   | Prototype building guidance                          |
+| `context-orchestrator.mdc` | `initiatives/**`                  | Auto-load relevant context by initiative and phase   |
+| `jury-system.mdc`          | Validation workflows              | Synthetic user evaluation                            |
+| `agents-generator.mdc`     | AGENTS.md work                    | Documentation generation                             |
 
 ---
 
@@ -206,6 +206,7 @@ This ensures initiatives are well-formed before investing in PRDs or prototypes.
 ## Deployment
 
 Elmer is self-hosted using:
+
 - **Database:** Local PostgreSQL via Docker (with pgvector extension)
 - **Hosting:** Cloudflare Tunnel exposing https://elmer.studio
 - **Prototypes:** Chromatic for Storybook hosting

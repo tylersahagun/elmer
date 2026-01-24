@@ -35,11 +35,13 @@ Elmer runs as a self-hosted application:
 ### Option 1: Use the `/local` Command (Recommended)
 
 In Cursor, run:
+
 ```
 /local
 ```
 
 This automatically:
+
 1. Starts Docker if needed
 2. Starts PostgreSQL container
 3. Runs database migrations
@@ -72,6 +74,7 @@ cloudflared tunnel run elmer
 ## Pre-Deployment Checklist (v1.1)
 
 ### Code Readiness
+
 - [x] All 10 phases complete (45 plans executed)
 - [x] All 40 requirements satisfied
 - [x] TypeScript compiles without errors
@@ -128,6 +131,7 @@ npm run db:migrate
 ```
 
 **Migrations for v1.1:**
+
 1. `0006_brave_purifiers.sql` - signals, signalProjects, signalPersonas tables
 2. `0007_mute_warbird.sql` - webhookKeys table
 3. `0008_colossal_havok.sql` - integrations table
@@ -162,6 +166,7 @@ docker exec -it elmer-postgres psql -U elmer -d orchestrator
 ```
 
 **Connection Details:**
+
 - Host: `localhost`
 - Port: `5432`
 - Database: `orchestrator`
@@ -200,6 +205,7 @@ cat ~/.cloudflared/config.yml
 ```
 
 **Tunnel Configuration** (`~/.cloudflared/config.yml`):
+
 ```yaml
 tunnel: <tunnel-id>
 credentials-file: ~/.cloudflared/<tunnel-id>.json
@@ -221,12 +227,14 @@ Instead of serverless cron (Vercel), cron jobs run locally or via launchd/cron:
 The `/api/cron/signal-automation` endpoint processes signals hourly.
 
 **Option 1: Manual trigger**
+
 ```bash
 curl -X GET http://localhost:3000/api/cron/signal-automation \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
 
 **Option 2: macOS launchd** (create `~/Library/LaunchAgents/com.elmer.signal-automation.plist`):
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -291,6 +299,7 @@ curl https://elmer.studio  # Public URL accessible
 ### 3. E2E Workflow Tests
 
 **Test 1: Manual Signal Creation**
+
 1. Navigate to Signals page at https://elmer.studio/signals
 2. Click "Add Signal"
 3. Paste some feedback text
@@ -300,6 +309,7 @@ curl https://elmer.studio  # Public URL accessible
 7. Check signal has severity/frequency populated (AI processing worked)
 
 **Test 2: PRD Generation with Citations**
+
 1. Create a new project
 2. Link 2-3 signals to the project
 3. Trigger PRD generation
@@ -390,19 +400,19 @@ docker compose down -v
 
 ## Quick Reference
 
-| Service | URL/Port | Start Command |
-|---------|----------|---------------|
-| PostgreSQL | localhost:5432 | `docker compose up -d` |
-| Dev Server | localhost:3000 | `npm run dev` |
-| Tunnel | elmer.studio | `cloudflared tunnel run elmer` |
-| Drizzle Studio | localhost:4983 | `npm run db:studio` |
+| Service        | URL/Port       | Start Command                  |
+| -------------- | -------------- | ------------------------------ |
+| PostgreSQL     | localhost:5432 | `docker compose up -d`         |
+| Dev Server     | localhost:3000 | `npm run dev`                  |
+| Tunnel         | elmer.studio   | `cloudflared tunnel run elmer` |
+| Drizzle Studio | localhost:4983 | `npm run db:studio`            |
 
-| Command | Purpose |
-|---------|---------|
-| `/local` | Start all services |
-| `/local status` | Check service health |
-| `/local reset` | Wipe and recreate database |
-| `/local tunnel` | Start only the tunnel |
+| Command         | Purpose                    |
+| --------------- | -------------------------- |
+| `/local`        | Start all services         |
+| `/local status` | Check service health       |
+| `/local reset`  | Wipe and recreate database |
+| `/local tunnel` | Start only the tunnel      |
 
 ---
 

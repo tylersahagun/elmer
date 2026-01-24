@@ -13,6 +13,7 @@ Every product decision traces back to user evidence. No more lost feedback, no m
 **Goal:** Build a signal ingestion and intelligence layer that transforms the inbox into a processing queue for user feedback, auto-classifies and routes signals to projects, and synthesizes patterns to propose new initiatives.
 
 **Target features:**
+
 - Inbox redesign as signal processing queue
 - Multi-source ingestion (webhooks, upload, paste, video links)
 - Auto-triage: existing project vs new initiative
@@ -49,6 +50,7 @@ Every product decision traces back to user evidence. No more lost feedback, no m
 <!-- v1.1 Signals System -->
 
 **Signal Ingestion (Layer 1):**
+
 - [ ] Inbox redesign as signal processing queue (not project queue)
 - [ ] Webhook endpoint to receive signals from external sources
 - [ ] File upload for documents, transcripts
@@ -58,6 +60,7 @@ Every product decision traces back to user evidence. No more lost feedback, no m
 - [ ] Signal storage in database with workspace association
 
 **Signal Intelligence (Layer 2):**
+
 - [ ] Auto-classify: "this belongs to Project X" vs "this is new"
 - [ ] Extract structured signal data from raw input
 - [ ] Cluster related signals by topic/theme
@@ -66,6 +69,7 @@ Every product decision traces back to user evidence. No more lost feedback, no m
 - [ ] `/synthesize` command to find patterns and propose initiatives
 
 **Signal → Project Integration (Layer 3):**
+
 - [ ] Signals visible on project page as linked evidence
 - [ ] "Signals that informed this project" section
 - [ ] Signals can trigger PRD iteration/refinement
@@ -85,6 +89,7 @@ Every product decision traces back to user evidence. No more lost feedback, no m
 
 **Existing System:**
 Elmer is a fully functional PM orchestration tool with:
+
 - Glassmorphic Kanban UI for managing product initiatives
 - AI-powered document generation (PRDs, specs, briefs)
 - Prototype building via Cursor agent with Storybook integration
@@ -94,6 +99,7 @@ Elmer is a fully functional PM orchestration tool with:
 - Configurable automation per workflow stage
 
 **Current State (after v1.0):**
+
 - Multi-user authentication with email/password
 - User-owned workspaces with invitation system
 - Role-based permissions (Admin/Member/Viewer)
@@ -101,12 +107,14 @@ Elmer is a fully functional PM orchestration tool with:
 - Inbox currently creates projects directly (not signals)
 
 **Why Signals:**
+
 - User feedback comes from many sources (Ask Elephant transcripts, documents, conversations)
 - Currently: manual process to extract insights and create projects
 - Goal: automate ingestion, classification, routing, and pattern finding
 - Every PRD should trace back to the user evidence that sparked it
 
 **Integration Points:**
+
 - Ask Elephant sends webhooks with transcripts
 - Signals land in inbox, get processed, route to projects
 - Projects accumulate signals as evidence over time
@@ -122,16 +130,17 @@ Elmer is a fully functional PM orchestration tool with:
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| User-owned workspaces | Matches Notion/Figma model where users create spaces and invite others | ✓ Good |
-| Three-role permission model (Admin/Member/Viewer) | Simple enough to understand, covers 95% of collaboration patterns | ✓ Good |
-| Magic links for invites only | Reduces invite friction without complicating general authentication | ✓ Good |
-| First user owns all existing data | Clean migration path for brownfield deployment | ✓ Good |
-| Inbox becomes signal queue | Signals are the input, projects are the output — separates ingestion from creation | — Pending |
-| Pre-transcribed text only | Transcription handled by Ask Elephant, reduces complexity | — Pending |
-| Three-layer signal architecture | Ingestion → Intelligence → Integration allows incremental delivery | — Pending |
-| Provenance chain for PRDs | Every decision traces to user evidence — builds trust and audit capability | — Pending |
+| Decision                                          | Rationale                                                                          | Outcome   |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------- | --------- |
+| User-owned workspaces                             | Matches Notion/Figma model where users create spaces and invite others             | ✓ Good    |
+| Three-role permission model (Admin/Member/Viewer) | Simple enough to understand, covers 95% of collaboration patterns                  | ✓ Good    |
+| Magic links for invites only                      | Reduces invite friction without complicating general authentication                | ✓ Good    |
+| First user owns all existing data                 | Clean migration path for brownfield deployment                                     | ✓ Good    |
+| Inbox becomes signal queue                        | Signals are the input, projects are the output — separates ingestion from creation | — Pending |
+| Pre-transcribed text only                         | Transcription handled by Ask Elephant, reduces complexity                          | — Pending |
+| Three-layer signal architecture                   | Ingestion → Intelligence → Integration allows incremental delivery                 | — Pending |
+| Provenance chain for PRDs                         | Every decision traces to user evidence — builds trust and audit capability         | — Pending |
 
 ---
-*Last updated: 2026-01-22 after v1.1 milestone initialization*
+
+_Last updated: 2026-01-22 after v1.1 milestone initialization_
