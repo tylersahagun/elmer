@@ -64,6 +64,20 @@
       "when": 1769196362900,
       "tag": "0008_colossal_havok",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1769200000000,
+      "tag": "0009_pgvector_classification",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769228400000,
+      "tag": "0010_signal_automation",
+      "breakpoints": true
     }
   ]
 }
