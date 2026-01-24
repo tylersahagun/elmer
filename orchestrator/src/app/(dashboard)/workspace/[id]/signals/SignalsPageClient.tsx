@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { SignalsTable } from "@/components/signals/SignalsTable";
 import { SignalSuggestionsBanner } from "@/components/signals/SignalSuggestionsBanner";
 import { OrphanSignalsBanner } from "@/components/signals/OrphanSignalsBanner";
@@ -17,9 +18,11 @@ export function SignalsPageClient({ workspaceId }: SignalsPageClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      {/* AI Suggestions Banner */}
-      <SignalSuggestionsBanner workspaceId={workspaceId} />
+    <>
+      <SimpleNavbar path={`~/workspace/${workspaceId}/signals`} />
+      <div className="container mx-auto py-6 px-4">
+        {/* AI Suggestions Banner */}
+        <SignalSuggestionsBanner workspaceId={workspaceId} />
 
       {/* Orphan Signals Banner - shows when orphans exist with project suggestions (MAINT-01) */}
       <OrphanSignalsBanner workspaceId={workspaceId} />
@@ -47,6 +50,7 @@ export function SignalsPageClient({ workspaceId }: SignalsPageClientProps) {
         onUpdate={() => {}}
         onDelete={() => setSelectedSignal(null)}
       />
-    </div>
+      </div>
+    </>
   );
 }
