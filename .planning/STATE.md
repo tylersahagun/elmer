@@ -36,6 +36,7 @@ Progress: [█████████░] 82%
 - Phase 15: 3/3 plans complete (verified)
 - Phase 16: 3/3 plans complete (verified)
 - Phase 17: 4/4 plans complete (verified)
+- Phase 18: 3/3 plans complete (gaps found)
 - Phase 18: 3/4 plans complete
 
 ## Accumulated Context
@@ -167,6 +168,16 @@ Recent decisions affecting current work:
 - v1.1 (17-04): Selection clears on data change to prevent stale references
 - v1.1 (17-04): Toolbar only shows when signals selected (progressive disclosure)
 - v1.1 (17-04): Checkbox click stops propagation to prevent row click handler
+- v1.1 (18-01): LinkedSignalsSection header changed to "Signals that informed this project"
+- v1.1 (18-01): Provenance display shows linkedBy name, confidence %, and linkReason
+- v1.1 (18-01): getSignalsForProject joins linkedByUser relation for provenance data
+- v1.1 (18-02): PRD generation fetches up to 10 linked signals for evidence
+- v1.1 (18-02): "Supporting User Evidence" section injected into PRD generation prompt
+- v1.1 (18-02): PRD system prompt includes citation requirements
+- v1.1 (18-03): POST /api/projects/from-cluster creates project from signal cluster
+- v1.1 (18-03): getProjectsWithCounts aggregates signal counts for all projects
+- v1.1 (18-03): ProjectCard displays MessageSquare badge when signalCount > 0
+- v1.1 (18-03): CreateProjectFromClusterModal component created but not wired to UI (gap)
 - v1.1 (18-02): Limit signal citations to 10 to prevent context bloat
 - v1.1 (18-02): Truncate verbatim quotes to 200 characters in PRD evidence
 - v1.1 (18-02): "Supporting User Evidence" section format for PRD citations

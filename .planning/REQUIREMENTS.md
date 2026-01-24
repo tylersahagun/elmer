@@ -148,12 +148,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ASSC-04 | Phase 12.5 | Complete |
 | ASSC-05 | Phase 12.5 | Complete |
 | ASSC-06 | Phase 17 | Complete |
-| PROV-01 | Phase 18 | Pending |
-| PROV-02 | Phase 18 | Pending |
-| PROV-03 | Phase 18 | Pending |
-| PROV-04 | Phase 18 | Pending |
-| PROV-05 | Phase 18 | Pending |
-| PROV-06 | Phase 18 | Pending |
+| PROV-01 | Phase 18 | Complete |
+| PROV-02 | Phase 18 | Complete |
+| PROV-03 | Phase 18 | Complete |
+| PROV-04 | Phase 18 | Complete |
+| PROV-05 | Phase 18 | Gaps found |
+| PROV-06 | Phase 18 | Complete |
 | AUTO-01 | Phase 19 | Pending |
 | AUTO-02 | Phase 19 | Pending |
 | AUTO-03 | Phase 19 | Pending |
