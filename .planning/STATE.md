@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 17 - Smart Association (Complete)
+**Current focus:** Phase 18 - Provenance & PRD Citation (In Progress)
 
 ## Current Position
 
-Phase: 17 of 20 (Smart Association)
-Plan: 4 of 4 complete
-Status: Phase complete
-Last activity: 2026-01-24 - Completed 17-04-PLAN.md (Bulk Operations UI)
+Phase: 18 of 20 (Provenance & PRD Citation)
+Plan: 2 of 4 complete
+Status: In progress
+Last activity: 2026-01-24 - Completed 18-02-PLAN.md (PRD Signal Citation)
 
-Progress: [████████░░] 78%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [████████░░] 78%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 33
+- Total plans completed: 35
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -36,6 +36,7 @@ Progress: [████████░░] 78%
 - Phase 15: 3/3 plans complete (verified)
 - Phase 16: 3/3 plans complete (verified)
 - Phase 17: 4/4 plans complete (verified)
+- Phase 18: 2/4 plans complete
 
 ## Accumulated Context
 
@@ -166,6 +167,9 @@ Recent decisions affecting current work:
 - v1.1 (17-04): Selection clears on data change to prevent stale references
 - v1.1 (17-04): Toolbar only shows when signals selected (progressive disclosure)
 - v1.1 (17-04): Checkbox click stops propagation to prevent row click handler
+- v1.1 (18-02): Limit signal citations to 10 to prevent context bloat
+- v1.1 (18-02): Truncate verbatim quotes to 200 characters in PRD evidence
+- v1.1 (18-02): "Supporting User Evidence" section format for PRD citations
 
 ### Pending Todos
 
@@ -185,10 +189,11 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 17-04-PLAN.md (Bulk Operations UI)
+Stopped at: Completed 18-02-PLAN.md (PRD Signal Citation)
 Resume file: None
 Next steps:
-  - Begin Phase 18 (PRD Generation)
+  - Continue Phase 18-03 (Signal Count Badge on Project Cards)
+  - Continue Phase 18-04 (Create Project from Cluster)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
   - Run `npx drizzle-kit generate` for suggestion dismiss columns migration
