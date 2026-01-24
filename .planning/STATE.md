@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 18 of 20 (Provenance & PRD Citation)
-Plan: 2 of 4 complete
+Plan: 3 of 4 complete
 Status: In progress
-Last activity: 2026-01-24 - Completed 18-02-PLAN.md (PRD Signal Citation)
+Last activity: 2026-01-24 - Completed 18-03-PLAN.md (Cluster-to-Project Creation)
 
-Progress: [████████░░] 80%
+Progress: [█████████░] 82%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [████████░░] 80%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 35
+- Total plans completed: 36
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -36,7 +36,7 @@ Progress: [████████░░] 80%
 - Phase 15: 3/3 plans complete (verified)
 - Phase 16: 3/3 plans complete (verified)
 - Phase 17: 4/4 plans complete (verified)
-- Phase 18: 2/4 plans complete
+- Phase 18: 3/4 plans complete
 
 ## Accumulated Context
 
@@ -170,6 +170,9 @@ Recent decisions affecting current work:
 - v1.1 (18-02): Limit signal citations to 10 to prevent context bloat
 - v1.1 (18-02): Truncate verbatim quotes to 200 characters in PRD evidence
 - v1.1 (18-02): "Supporting User Evidence" section format for PRD citations
+- v1.1 (18-03): Signal count fetched via single aggregation query for efficiency
+- v1.1 (18-03): MessageSquare icon for signal badge (distinct from documents/prototypes)
+- v1.1 (18-03): Cluster theme becomes link reason for traceability
 
 ### Pending Todos
 
@@ -189,11 +192,10 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 18-02-PLAN.md (PRD Signal Citation)
+Stopped at: Completed 18-03-PLAN.md (Cluster-to-Project Creation)
 Resume file: None
 Next steps:
-  - Continue Phase 18-03 (Signal Count Badge on Project Cards)
-  - Continue Phase 18-04 (Create Project from Cluster)
+  - Continue Phase 18-04 (if exists - remaining PRD citation work)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
   - Run `npx drizzle-kit generate` for suggestion dismiss columns migration
