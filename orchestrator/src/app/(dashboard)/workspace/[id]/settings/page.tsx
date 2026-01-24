@@ -34,7 +34,8 @@ import {
 import Link from "next/link";
 import { InviteModal } from "@/components/invite-modal";
 import { ActivityFeed } from "@/components/activity-feed";
-import type { WorkspaceRole } from "@/lib/db/schema";
+import { MaintenanceSettingsPanel } from "@/components/settings/MaintenanceSettingsPanel";
+import type { WorkspaceRole, MaintenanceSettings } from "@/lib/db/schema";
 
 interface WorkspaceMember {
   id: string;
@@ -68,6 +69,9 @@ interface Workspace {
   id: string;
   name: string;
   description: string | null;
+  settings?: {
+    maintenance?: MaintenanceSettings;
+  };
 }
 
 export default function WorkspaceSettingsPage({
@@ -460,6 +464,12 @@ export default function WorkspaceSettingsPage({
 
       {/* Activity Feed */}
       <ActivityFeed workspaceId={workspaceId} />
+
+      {/* Maintenance Settings (Phase 20) */}
+      <MaintenanceSettingsPanel
+        workspaceId={workspaceId}
+        initialSettings={workspace?.settings?.maintenance}
+      />
 
       {/* Invite Modal */}
       <InviteModal
