@@ -5,8 +5,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, ChevronUp, ChevronDown, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SignalFilters } from "./SignalFilters";
 import { SignalRow } from "./SignalRow";
+import { BulkOperationsToolbar } from "./BulkOperationsToolbar";
+import { BulkLinkModal } from "./BulkLinkModal";
+import { BulkUnlinkModal } from "./BulkUnlinkModal";
 
 interface Signal {
   id: string;
@@ -60,6 +64,11 @@ export function SignalsTable({
   const [sortBy, setSortBy] = useState<SortField>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
+  // Selection state
+  const [selectedSignals, setSelectedSignals] = useState<Set<string>>(new Set());
+  const [showBulkLinkModal, setShowBulkLinkModal] = useState(false);
+  const [showBulkUnlinkModal, setShowBulkUnlinkModal] = useState(false);
+
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -104,6 +113,11 @@ export function SignalsTable({
     },
   });
 
+  // Reset selection when signals change (page change, filter change, etc.)
+  useEffect(() => {
+    setSelectedSignals(new Set());
+  }, [data?.signals]);
+
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -124,6 +138,31 @@ export function SignalsTable({
       setSortBy(field);
       setSortOrder("desc");
     }
+  };
+
+  // Selection handlers
+  const toggleSignalSelection = (id: string) => {
+    setSelectedSignals((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedSignals.size === signals.length) {
+      setSelectedSignals(new Set());
+    } else {
+      setSelectedSignals(new Set(signals.map((s) => s.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedSignals(new Set());
   };
 
   // Sort indicator component
@@ -222,6 +261,16 @@ export function SignalsTable({
         </div>
       )}
 
+      {/* Bulk Operations Toolbar */}
+      {!isLoading && !isError && signals.length > 0 && selectedSignals.size > 0 && (
+        <BulkOperationsToolbar
+          selectedCount={selectedSignals.size}
+          onBulkLink={() => setShowBulkLinkModal(true)}
+          onBulkUnlink={() => setShowBulkUnlinkModal(true)}
+          onClearSelection={clearSelection}
+        />
+      )}
+
       {/* Table */}
       {!isLoading && !isError && signals.length > 0 && (
         <div className="border border-border rounded-lg overflow-hidden">
@@ -229,6 +278,12 @@ export function SignalsTable({
             <table className="w-full">
               <thead className="bg-muted/50">
                 <tr>
+                  <th className="py-3 px-2 w-10">
+                    <Checkbox
+                      checked={selectedSignals.size === signals.length && signals.length > 0}
+                      onCheckedChange={toggleAllSelection}
+                    />
+                  </th>
                   <th
                     className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("verbatim")}
@@ -282,6 +337,8 @@ export function SignalsTable({
                     signal={signal}
                     onView={onViewSignal}
                     onDelete={(id) => deleteMutation.mutate(id)}
+                    isSelected={selectedSignals.has(signal.id)}
+                    onToggleSelect={toggleSignalSelection}
                   />
                 ))}
               </tbody>
@@ -317,6 +374,22 @@ export function SignalsTable({
           </div>
         </div>
       )}
+
+      {/* Bulk Modals */}
+      <BulkLinkModal
+        isOpen={showBulkLinkModal}
+        onClose={() => setShowBulkLinkModal(false)}
+        selectedSignalIds={Array.from(selectedSignals)}
+        workspaceId={workspaceId}
+        onSuccess={clearSelection}
+      />
+      <BulkUnlinkModal
+        isOpen={showBulkUnlinkModal}
+        onClose={() => setShowBulkUnlinkModal(false)}
+        selectedSignalIds={Array.from(selectedSignals)}
+        workspaceId={workspaceId}
+        onSuccess={clearSelection}
+      />
     </div>
   );
 }

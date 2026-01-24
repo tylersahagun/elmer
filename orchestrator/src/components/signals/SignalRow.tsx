@@ -3,6 +3,7 @@
 import { MoreHorizontal, Eye, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,8 @@ interface SignalRowProps {
   };
   onView: (signal: SignalRowProps["signal"]) => void;
   onDelete: (id: string) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -104,7 +107,7 @@ function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength).trim() + "...";
 }
 
-export function SignalRow({ signal, onView, onDelete }: SignalRowProps) {
+export function SignalRow({ signal, onView, onDelete, isSelected, onToggleSelect }: SignalRowProps) {
   const statusColor = STATUS_COLORS[signal.status] || STATUS_COLORS.new;
   const sourceColor = SOURCE_COLORS[signal.source] || SOURCE_COLORS.other;
   const severityColor = signal.severity
@@ -115,6 +118,17 @@ export function SignalRow({ signal, onView, onDelete }: SignalRowProps) {
 
   return (
     <tr className="border-b border-border hover:bg-muted/30 transition-colors">
+      {/* Checkbox */}
+      {onToggleSelect && (
+        <td className="py-3 px-2 w-10">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onToggleSelect(signal.id)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </td>
+      )}
+
       {/* Verbatim */}
       <td className="py-3 px-4">
         <p className="text-sm max-w-xs truncate" title={signal.verbatim}>
