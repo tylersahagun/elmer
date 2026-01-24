@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 20 of 20 (Maintenance Agents)
-Plan: 1 of TBD
+Plan: 2 of TBD
 Status: In progress
-Last activity: 2026-01-24 - Completed 20-01-PLAN.md (Maintenance Settings Schema)
+Last activity: 2026-01-24 - Completed 20-02-PLAN.md (Detection Layer)
 
-Progress: [██████████] 96%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [██████████] 96%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 43
+- Total plans completed: 45
 - Phases: 11 (Phases 11-20, including 18.1 gap closure)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -39,7 +39,7 @@ Progress: [██████████] 96%
 - Phase 18: 3/3 plans complete (verified)
 - Phase 18.1: 1/1 plans complete (verified)
 - Phase 19: 6/6 plans complete (verified, including gap closure)
-- Phase 20: 1/TBD plans complete
+- Phase 20: 2/TBD plans complete
 
 ## Accumulated Context
 
@@ -212,6 +212,10 @@ Recent decisions affecting current work:
 - v1.1 (20-01): Conservative defaults: auto-archive off by default
 - v1.1 (20-01): MaintenanceSettings pattern follows SignalAutomationSettings - optional JSONB in WorkspaceSettings
 - v1.1 (20-01): 11 fields covering orphan detection, duplicate detection, archival, suggestions, notifications
+- v1.1 (20-02): NOT EXISTS pattern for orphan detection (efficient subqueries)
+- v1.1 (20-02): Raw SQL for pgvector queries (Drizzle lacks native operator support)
+- v1.1 (20-02): Canonical pair IDs for duplicate deduplication (sorted signal IDs)
+- v1.1 (20-02): High similarity threshold 0.9+ for duplicate detection (minimize false positives)
 
 ### Pending Todos
 
@@ -231,9 +235,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 20-01-PLAN.md (Maintenance Settings Schema)
+Stopped at: Completed 20-02-PLAN.md (Detection Layer)
 Resume file: None
 Next steps:
-  - Continue Phase 20: Execute 20-02-PLAN.md (Orphan Detection)
+  - Continue Phase 20: Execute 20-03-PLAN.md (Archival Workflows)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
