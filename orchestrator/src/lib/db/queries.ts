@@ -1605,6 +1605,7 @@ export async function unlinkSignalFromPersona(
 
 /**
  * Get all signals linked to a project with pagination
+ * Includes full provenance data: linkedBy user, linkReason, confidence
  */
 export async function getSignalsForProject(
   projectId: string,
@@ -1616,6 +1617,7 @@ export async function getSignalsForProject(
     where: eq(signalProjects.projectId, projectId),
     with: {
       signal: true,
+      linkedByUser: true,
     },
     orderBy: [desc(signalProjects.linkedAt)],
     limit,
@@ -1626,6 +1628,11 @@ export async function getSignalsForProject(
     ...link.signal,
     linkedAt: link.linkedAt,
     linkReason: link.linkReason,
+    confidence: link.confidence,
+    linkedBy: link.linkedByUser ? {
+      id: link.linkedByUser.id,
+      name: link.linkedByUser.name,
+    } : null,
   }));
 }
 
