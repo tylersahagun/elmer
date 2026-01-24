@@ -329,10 +329,10 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 18. Provenance & PRD Citation | 3/3 | Complete | 2026-01-24 |
 | 18.1. Wire Cluster-to-Project Creation | 1/1 | Complete | 2026-01-24 |
 | 19. Workflow Automation | 6/6 | Complete | 2026-01-24 |
-| 20. Maintenance Agents | 0/5 | Planning complete | - |
+| 20. Maintenance Agents | 5/5 | Complete | 2026-01-23 |
 
 ---
 *Roadmap created: 2026-01-22*
-*Roadmap revised: 2026-01-24 (Phase 20 planned - 5 plans in 3 waves)*
+*Roadmap revised: 2026-01-23 (v1.1 milestone complete - all 10 phases shipped)*
 *Milestone: v1.1 Signals System*
 *Phases: 11-20 (continues from v1.0)*
