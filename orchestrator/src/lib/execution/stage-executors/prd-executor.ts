@@ -15,8 +15,8 @@
  */
 
 import { db } from "@/lib/db";
-import { documents, type DocumentType } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { documents, signalProjects, signals as signalsTable, type DocumentType } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDefaultProvider, type StreamCallback } from "../providers";
 import type { StageContext, StageExecutionResult } from "./index";
@@ -88,6 +88,12 @@ Include user quotes from research when available.
 1. [Questions that need answers]
 
 Format as clean markdown. Be specific to the company context provided.
+
+## Citation Requirements
+When writing the PRD, reference the provided user evidence:
+- Use signal quotes to support problem statements
+- Cite specific signals when defining requirements
+- Ensure traceability from user feedback to PRD decisions
 `;
 
 const DESIGN_BRIEF_SYSTEM_PROMPT = `You are a design lead. Create a design brief based on the PRD that covers:
@@ -145,17 +151,39 @@ export async function executePRD(
     callbacks.onLog("warn", "No company context found - PRD may be generic", "prd");
   }
 
-  callbacks.onProgress(0.1, "Loading research context...");
+  callbacks.onProgress(0.10, "Loading research context...");
 
   // Get research document
   const researchDoc = existingDocs.find((doc) => doc.type === "research");
-  
+
   if (!researchDoc) {
     callbacks.onLog("warn", "No research document found", "prd");
     return {
       success: false,
       error: "No research document found. Complete discovery stage first.",
     };
+  }
+
+  // Fetch linked signals for evidence section
+  callbacks.onProgress(0.15, "Loading signal evidence...");
+  const linkedSignals = await db
+    .select({
+      verbatim: signalsTable.verbatim,
+      source: signalsTable.source,
+      severity: signalsTable.severity,
+      frequency: signalsTable.frequency,
+      interpretation: signalsTable.interpretation,
+    })
+    .from(signalProjects)
+    .innerJoin(signalsTable, eq(signalProjects.signalId, signalsTable.id))
+    .where(eq(signalProjects.projectId, project.id))
+    .orderBy(desc(signalProjects.linkedAt))
+    .limit(10); // Top 10 signals to prevent context bloat
+
+  if (linkedSignals.length > 0) {
+    callbacks.onLog("info", `Found ${linkedSignals.length} signal(s) to cite as evidence`, "prd");
+  } else {
+    callbacks.onLog("info", "No linked signals found - PRD will be generated without user evidence", "prd");
   }
 
   const provider = getDefaultProvider();
@@ -232,11 +260,45 @@ export async function executePRD(
     return true;
   }
 
+  // Format signals for PRD evidence section
+  function formatSignalsForPRD(signals: typeof linkedSignals): string {
+    if (signals.length === 0) return '';
+
+    const citations = signals.map((s, i) => {
+      const source = s.source.charAt(0).toUpperCase() + s.source.slice(1);
+      const severity = s.severity ? ` (${s.severity})` : '';
+      const quote = s.verbatim.length > 200
+        ? s.verbatim.slice(0, 197) + '...'
+        : s.verbatim;
+
+      return `[Signal ${i + 1}] **${source}${severity}**: "${quote}"`;
+    });
+
+    return `
+## Supporting User Evidence
+
+This PRD is informed by ${signals.length} user feedback signal${signals.length === 1 ? '' : 's'}:
+
+${citations.join('\n\n')}
+
+---
+`;
+  }
+
+  // Build evidence section
+  const evidenceSection = formatSignalsForPRD(linkedSignals);
+
+  if (linkedSignals.length > 0) {
+    callbacks.onLog("info", `Including ${linkedSignals.length} signal(s) as evidence`, "prd");
+  }
+
   // Generate all documents
   const basePrompt = `Project: ${project.name}
 ${project.description ? `Description: ${project.description}` : ""}
 
 ${companyContext ? `## Company Context\n${companyContext}\n` : ""}
+
+${evidenceSection}
 
 ## Research
 ${researchDoc.content}`;
