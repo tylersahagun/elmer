@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 20 of 20 (Maintenance Agents)
-Plan: 3 of TBD
+Plan: 4 of TBD
 Status: In progress
-Last activity: 2026-01-24 - Completed 20-03-PLAN.md (Archival Workflows)
+Last activity: 2026-01-24 - Completed 20-04-PLAN.md (API Endpoints & Cron)
 
-Progress: [██████████] 98%
+Progress: [██████████] 99%
 
 ## Performance Metrics
 
@@ -39,7 +39,7 @@ Progress: [██████████] 98%
 - Phase 18: 3/3 plans complete (verified)
 - Phase 18.1: 1/1 plans complete (verified)
 - Phase 19: 6/6 plans complete (verified, including gap closure)
-- Phase 20: 3/TBD plans complete
+- Phase 20: 4/TBD plans complete
 
 ## Accumulated Context
 
@@ -220,6 +220,11 @@ Recent decisions affecting current work:
 - v1.1 (20-03): Restore to "reviewed" status (not "new" since already processed)
 - v1.1 (20-03): Link transfer on merge preserves all project/persona associations
 - v1.1 (20-03): Canonical pair IDs for dismissal tracking (sorted signal IDs)
+- v1.1 (20-04): requireWorkspaceAccess for all maintenance API auth
+- v1.1 (20-04): Viewer for GET, member for POST/DELETE maintenance endpoints
+- v1.1 (20-04): MAINT-01 suggestions via embedding similarity (reuses Phase 17 infrastructure)
+- v1.1 (20-04): Daily cron schedule (0 0 * * *) for maintenance checks
+- v1.1 (20-04): 5-minute max duration for maintenance cron
 
 ### Pending Todos
 
@@ -239,9 +244,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 20-03-PLAN.md (Archival Workflows)
+Stopped at: Completed 20-04-PLAN.md (API Endpoints & Cron)
 Resume file: None
 Next steps:
-  - Continue Phase 20: Execute 20-04-PLAN.md (API Endpoints & Cron)
+  - Continue Phase 20: Execute remaining maintenance agent plans if any
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
