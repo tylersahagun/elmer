@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Sun, Moon, Globe, Menu, LogOut, User } from "lucide-react";
+import { Sun, Moon, Globe, Menu, LogOut, User, Settings } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -165,6 +165,7 @@ export function SimpleNavbar({
   const isKnowledgebaseActive = pathname?.includes("/knowledgebase");
   const isPersonasActive = pathname?.includes("/personas");
   const isSignalsActive = pathname?.includes("/signals");
+  const isSettingsActive = pathname?.includes("/settings");
 
   // Extract workspace ID from pathname, or fall back to stored workspace
   const workspaceIdFromPath = pathname?.match(/\/workspace\/([^\/]+)/)?.[1];
@@ -258,21 +259,39 @@ export function SimpleNavbar({
                 </Link>
 
                 {workspaceId && (
-                  <Link
-                    href={`/workspace/${workspaceId}/signals`}
-                    className="w-full"
-                  >
-                    <DropdownMenuItem
-                      className={cn(
-                        "gap-2 font-mono text-sm",
-                        isSignalsActive && "bg-accent",
-                      )}
+                  <>
+                    <Link
+                      href={`/workspace/${workspaceId}/signals`}
+                      className="w-full"
                     >
-                      <span className="text-emerald-500">$</span>
-                      <span>cat</span>
-                      <span className="text-muted-foreground">signals/</span>
-                    </DropdownMenuItem>
-                  </Link>
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isSignalsActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>cat</span>
+                        <span className="text-muted-foreground">signals/</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
+                      href={`/workspace/${workspaceId}/settings`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isSettingsActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>vim</span>
+                        <span className="text-muted-foreground">settings</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  </>
                 )}
 
                 <DropdownMenuSeparator />
