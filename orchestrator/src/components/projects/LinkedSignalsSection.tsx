@@ -13,6 +13,12 @@ interface LinkedSignal {
   source: string;
   severity?: string | null;
   linkedAt: string;
+  linkReason?: string | null;
+  confidence?: number | null;
+  linkedBy?: {
+    id: string;
+    name: string | null;
+  } | null;
 }
 
 interface LinkedSignalsSectionProps {
@@ -93,7 +99,7 @@ export function LinkedSignalsSection({
             )}
           />
           <span className="font-medium text-sm">
-            Signals ({isLoading ? "..." : count})
+            Signals that informed this project ({isLoading ? "..." : count})
           </span>
         </div>
         <Button
@@ -152,8 +158,19 @@ export function LinkedSignalsSection({
                     )}
                     <span className="text-[10px] text-muted-foreground">
                       Linked {new Date(signal.linkedAt).toLocaleDateString()}
+                      {signal.linkedBy?.name && ` by ${signal.linkedBy.name}`}
+                      {signal.confidence != null && (
+                        <span className="ml-1">
+                          ({Math.round(signal.confidence * 100)}% AI confidence)
+                        </span>
+                      )}
                     </span>
                   </div>
+                  {signal.linkReason && (
+                    <p className="text-[10px] text-muted-foreground italic mt-1">
+                      Reason: {signal.linkReason}
+                    </p>
+                  )}
                 </div>
 
                 {/* Actions */}
