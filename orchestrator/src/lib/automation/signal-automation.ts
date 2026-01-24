@@ -13,6 +13,7 @@ import { findSignalClusters, type SignalCluster } from "@/lib/classification/clu
 import { getWorkspaceAutomationSettings } from "@/lib/db/queries";
 import { canPerformAutoAction, recordAutomationAction, hasClusterBeenActioned } from "./rate-limiter";
 import { createProjectFromClusterAuto, triggerPrdGeneration } from "./auto-actions";
+import { notifyClusterDiscovered } from "@/lib/notifications";
 import type { SignalSeverity, SignalAutomationSettings } from "@/lib/db/schema";
 
 export interface AutomationCheckResult {
@@ -62,6 +63,19 @@ export async function checkSignalAutomation(
 
     const now = new Date().toISOString();
 
+    // SUGGEST MODE: Only notify, no actions
+    if (settings.automationDepth === "suggest") {
+      await notifyClusterDiscovered(
+        workspaceId,
+        cluster.id,
+        cluster.theme,
+        cluster.signalCount,
+        cluster.severity,
+        cluster.signalCount >= 3 ? "new_project" : "review"
+      );
+      continue; // Don't proceed to auto-actions
+    }
+
     // AUTO-04: Auto-create initiative from cluster above threshold
     if (settings.automationDepth === "auto_create" || settings.automationDepth === "full_auto") {
       if (cluster.signalCount >= settings.autoInitiativeThreshold) {
@@ -81,6 +95,16 @@ export async function checkSignalAutomation(
           projectId,
           timestamp: now,
         });
+
+        // Notify user of auto-created project
+        await notifyClusterDiscovered(
+          workspaceId,
+          cluster.id,
+          cluster.theme,
+          cluster.signalCount,
+          cluster.severity,
+          "new_project" // Project was created, action completed
+        );
 
         // AUTO-02: Auto-trigger PRD if full_auto and threshold met
         if (settings.automationDepth === "full_auto" &&
