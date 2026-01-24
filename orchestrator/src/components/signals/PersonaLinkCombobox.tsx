@@ -27,17 +27,20 @@ export function PersonaLinkCombobox({
   isLoading = false,
 }: PersonaLinkComboboxProps) {
   // Fetch personas from API
-  const { data: personasData, isLoading: personasLoading } = useQuery({
+  const { data: personasData, isLoading: personasLoading } = useQuery<{
+    personas: Persona[];
+  }>({
     queryKey: ["personas"],
     queryFn: async () => {
       const res = await fetch("/api/personas");
-      if (!res.ok) throw new Error("Failed to load personas");
+      if (!res.ok) return { personas: [] };
       const data = await res.json();
-      return data.personas as Persona[];
+      // Ensure we always return the expected shape
+      return { personas: Array.isArray(data.personas) ? data.personas : [] };
     },
   });
 
-  const availablePersonas = (personasData || []).filter(
+  const availablePersonas = (personasData?.personas || []).filter(
     (p) => !excludePersonaIds.includes(p.archetype_id)
   );
 

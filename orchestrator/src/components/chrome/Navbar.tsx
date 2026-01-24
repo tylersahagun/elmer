@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Sun, Moon, Globe, Menu, LogOut, User } from "lucide-react";
+import { Sun, Moon, Globe, Menu, LogOut, User, Settings } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -165,6 +165,7 @@ export function SimpleNavbar({
   const isKnowledgebaseActive = pathname?.includes("/knowledgebase");
   const isPersonasActive = pathname?.includes("/personas");
   const isSignalsActive = pathname?.includes("/signals");
+  const isSettingsActive = pathname?.includes("/settings");
 
   // Extract workspace ID from pathname, or fall back to stored workspace
   const workspaceIdFromPath = pathname?.match(/\/workspace\/([^\/]+)/)?.[1];

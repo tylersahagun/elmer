@@ -103,9 +103,19 @@ export function SignalSuggestionsBanner({ workspaceId }: SignalSuggestionsBanner
   return (
     <div className="border border-blue-500/30 rounded-lg bg-blue-500/5 mb-4">
       {/* Header */}
-      <button
+      <div
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-3 text-left"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsExpanded(!isExpanded);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        aria-label="Toggle AI suggestions"
+        className="w-full flex items-center justify-between p-3 text-left cursor-pointer hover:bg-blue-500/10 transition-colors"
       >
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-blue-400" />
@@ -138,7 +148,7 @@ export function SignalSuggestionsBanner({ workspaceId }: SignalSuggestionsBanner
             )}
           />
         </div>
-      </button>
+      </div>
 
       {/* Content */}
       {isExpanded && (
