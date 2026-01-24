@@ -17,21 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-// SignalCluster type matches what clustering.ts returns
-interface ClusterSignal {
-  id: string;
-  verbatim: string;
-  source?: string;
-  severity?: string;
-}
-
-interface SignalCluster {
-  id: string;
-  theme: string;
-  signals: ClusterSignal[];
-  signalCount: number;
-}
+import type { SignalCluster } from "@/lib/classification";
 
 interface CreateProjectFromClusterModalProps {
   isOpen: boolean;
@@ -130,8 +116,8 @@ export function CreateProjectFromClusterModal({
                 <div key={signal.id} className="text-xs text-muted-foreground py-1 border-b last:border-b-0">
                   <span className="font-medium">{i + 1}.</span>{" "}
                   &ldquo;{signal.verbatim.length > 80 ? `${signal.verbatim.slice(0, 80)}...` : signal.verbatim}&rdquo;
-                  {signal.source && (
-                    <span className="ml-2 text-muted-foreground/60">({signal.source})</span>
+                  {signal.severity && (
+                    <span className="ml-2 text-muted-foreground/60">({signal.severity})</span>
                   )}
                 </div>
               ))}
