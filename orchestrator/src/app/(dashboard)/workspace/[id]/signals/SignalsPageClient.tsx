@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SignalsTable } from "@/components/signals/SignalsTable";
 import { SignalSuggestionsBanner } from "@/components/signals/SignalSuggestionsBanner";
+import { SignalClustersPanel } from "@/components/signals/SignalClustersPanel";
 import { CreateSignalModal } from "@/components/signals/CreateSignalModal";
 import { SignalDetailModal, type Signal } from "@/components/signals/SignalDetailModal";
 
@@ -18,6 +19,9 @@ export function SignalsPageClient({ workspaceId }: SignalsPageClientProps) {
     <div className="container mx-auto py-6 px-4">
       {/* AI Suggestions Banner */}
       <SignalSuggestionsBanner workspaceId={workspaceId} />
+
+      {/* Signal Clusters Discovery */}
+      <SignalClustersPanel workspaceId={workspaceId} />
 
       <SignalsTable
         workspaceId={workspaceId}
