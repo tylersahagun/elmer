@@ -37,6 +37,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
 - [x] **Phase 17: Smart Association** - AI-suggested links and bulk operations
 - [ ] **Phase 18: Provenance & PRD Citation** - Project integration and evidence tracking
+- [ ] **Phase 18.1: Wire Cluster-to-Project Creation** - Connect orphaned modal to UI
 - [ ] **Phase 19: Workflow Automation** - Auto triggers and notification thresholds
 - [ ] **Phase 20: Maintenance Agents** - Cleanup, orphan detection, and archival
 
@@ -246,6 +247,23 @@ Plans:
 
 ---
 
+### Phase 18.1: Wire Cluster-to-Project Creation
+**Goal**: Enable users to create projects from signal clusters by connecting the orphaned CreateProjectFromClusterModal to the UI
+**Depends on**: Phase 18
+**Requirements**: PROV-05 (gap closure)
+**Gap Closure**: Closes verification gap from Phase 18 - CreateProjectFromClusterModal exists but not wired into UI
+**Success Criteria** (what must be TRUE):
+  1. User can view signal clusters on a dedicated UI page or section
+  2. Each cluster display has a "Create Project" action/button
+  3. Clicking "Create Project" opens CreateProjectFromClusterModal with cluster data
+  4. Modal successfully creates project and links signals with cluster theme as provenance
+**Plans**: TBD
+
+Plans:
+- [ ] 18.1-01: TBD
+
+---
+
 ### Phase 19: Workflow Automation
 **Goal**: System automatically triggers actions based on signal patterns and thresholds
 **Depends on**: Phase 18
@@ -283,7 +301,7 @@ Plans:
 **Execution Order:**
 Phases 12 and 13 can run in parallel after Phase 11 completes.
 ```
-11 --> 12 --> 12.5 -----------------------> 17 --> 18 --> 19 --> 20
+11 --> 12 --> 12.5 -----------------------> 17 --> 18 --> 18.1 --> 19 --> 20
   \--> 13 --> 14 --> 14.5 --> 14.6 --> 15 --> 16 --^
 ```
 
@@ -300,11 +318,12 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 16. Classification & Clustering | 3/3 | Complete | 2026-01-23 |
 | 17. Smart Association | 4/4 | Complete | 2026-01-23 |
 | 18. Provenance & PRD Citation | 3/3 | Gaps found | 2026-01-24 |
+| 18.1. Wire Cluster-to-Project Creation | 0/TBD | Not started | - |
 | 19. Workflow Automation | 0/TBD | Not started | - |
 | 20. Maintenance Agents | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-22*
-*Roadmap revised: 2026-01-24*
+*Roadmap revised: 2026-01-23 (added Phase 18.1 gap closure)*
 *Milestone: v1.1 Signals System*
 *Phases: 11-20 (continues from v1.0)*
