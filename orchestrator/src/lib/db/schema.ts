@@ -289,6 +289,10 @@ export interface ProjectMetadata {
       updatedAt: string;
     }
   >;
+  // Automation tracking (Phase 19)
+  autoCreated?: boolean;
+  sourceClusterId?: string;
+  clusterConfidence?: number;
 }
 
 // ============================================
@@ -480,6 +484,12 @@ export interface NotificationMetadata {
     name?: string;
   };
   context?: Record<string, unknown>;
+  // Signal automation fields (Phase 19)
+  clusterId?: string;
+  clusterSize?: number;
+  clusterSeverity?: SignalSeverity;
+  clusterTheme?: string;
+  suggestedAction?: "new_project" | "link_to_existing" | "review";
 }
 
 // ============================================

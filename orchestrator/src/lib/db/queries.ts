@@ -39,6 +39,8 @@ import {
   type SignalFrequency,
   type SignalSourceMetadata,
   type SignalClassificationResult,
+  type SignalAutomationSettings,
+  DEFAULT_SIGNAL_AUTOMATION,
 } from "./schema";
 import { eq, and, desc, asc, isNull, isNotNull, ne, or, lt, gte, lte, ilike, sql, inArray } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
@@ -2079,4 +2081,33 @@ export async function dismissSignalSuggestion(
       updatedAt: new Date(),
     })
     .where(eq(signals.id, signalId));
+}
+
+// ============================================
+// WORKSPACE AUTOMATION SETTINGS QUERIES (Phase 19)
+// ============================================
+
+/**
+ * Get signal automation settings for a workspace.
+ * Returns DEFAULT_SIGNAL_AUTOMATION if not configured.
+ *
+ * Used by automation engine and notification filters.
+ */
+export async function getWorkspaceAutomationSettings(
+  workspaceId: string
+): Promise<SignalAutomationSettings> {
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.id, workspaceId),
+    columns: { settings: true },
+  });
+
+  if (!workspace?.settings?.signalAutomation) {
+    return DEFAULT_SIGNAL_AUTOMATION;
+  }
+
+  // Merge with defaults to ensure all fields exist
+  return {
+    ...DEFAULT_SIGNAL_AUTOMATION,
+    ...workspace.settings.signalAutomation,
+  };
 }
