@@ -147,7 +147,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ASSC-03 | Phase 12.5 | Complete |
 | ASSC-04 | Phase 12.5 | Complete |
 | ASSC-05 | Phase 12.5 | Complete |
-| ASSC-06 | Phase 17 | Pending |
+| ASSC-06 | Phase 17 | Complete |
 | PROV-01 | Phase 18 | Pending |
 | PROV-02 | Phase 18 | Pending |
 | PROV-03 | Phase 18 | Pending |

@@ -35,7 +35,7 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 14.6: Third-Party Integrations** - Pylon and Slack integrations
 - [x] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
 - [x] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
-- [ ] **Phase 17: Smart Association** - AI-suggested links and bulk operations
+- [x] **Phase 17: Smart Association** - AI-suggested links and bulk operations
 - [ ] **Phase 18: Provenance & PRD Citation** - Project integration and evidence tracking
 - [ ] **Phase 19: Workflow Automation** - Auto triggers and notification thresholds
 - [ ] **Phase 20: Maintenance Agents** - Cleanup, orphan detection, and archival
@@ -219,10 +219,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — Schema & Suggestions API (dismiss columns, GET suggestions, POST dismiss)
-- [ ] 17-02-PLAN.md — Bulk Operations API (atomic bulk link/unlink endpoint)
-- [ ] 17-03-PLAN.md — Suggestions UI (SuggestionCard, SignalSuggestionsBanner)
-- [ ] 17-04-PLAN.md — Bulk Operations UI (multi-select, toolbar, modals)
+- [x] 17-01-PLAN.md — Schema & Suggestions API (dismiss columns, GET suggestions, POST dismiss)
+- [x] 17-02-PLAN.md — Bulk Operations API (atomic bulk link/unlink endpoint)
+- [x] 17-03-PLAN.md — Suggestions UI (SuggestionCard, SignalSuggestionsBanner)
+- [x] 17-04-PLAN.md — Bulk Operations UI (multi-select, toolbar, modals)
 
 ---
 
@@ -296,7 +296,7 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 14.6. Third-Party Integrations | 3/3 | Complete | 2026-01-23 |
 | 15. Signal Extraction & Embedding | 3/3 | Complete | 2026-01-23 |
 | 16. Classification & Clustering | 3/3 | Complete | 2026-01-23 |
-| 17. Smart Association | 0/4 | Not started | - |
+| 17. Smart Association | 4/4 | Complete | 2026-01-23 |
 | 18. Provenance & PRD Citation | 0/TBD | Not started | - |
 | 19. Workflow Automation | 0/TBD | Not started | - |
 | 20. Maintenance Agents | 0/TBD | Not started | - |
