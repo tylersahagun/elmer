@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 18.1 - Wire Cluster-to-Project Creation (Not Started)
+**Current focus:** Phase 18.1 - Wire Cluster-to-Project Creation (Complete)
 
 ## Current Position
 
 Phase: 18.1 of 20 (Gap Closure - Wire Cluster-to-Project Creation)
-Plan: 0 of TBD complete
-Status: Not started
-Last activity: 2026-01-23 - Added Phase 18.1 to close PROV-05 gap from Phase 18 verification
+Plan: 1 of 1 complete
+Status: Phase complete
+Last activity: 2026-01-24 - Completed 18.1-01-PLAN.md (SignalClustersPanel + signals page integration)
 
-Progress: [█████████░] 84%
+Progress: [██████████] 85%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [█████████░] 84%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 36
+- Total plans completed: 37
 - Phases: 11 (Phases 11-20, including 18.1 gap closure)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -37,7 +37,7 @@ Progress: [█████████░] 84%
 - Phase 16: 3/3 plans complete (verified)
 - Phase 17: 4/4 plans complete (verified)
 - Phase 18: 3/3 plans complete (gaps found - PROV-05 blocked)
-- Phase 18.1: 0/TBD plans complete (gap closure phase)
+- Phase 18.1: 1/1 plans complete (gap closure complete)
 
 ## Accumulated Context
 
@@ -184,6 +184,9 @@ Recent decisions affecting current work:
 - v1.1 (18-03): Signal count fetched via single aggregation query for efficiency
 - v1.1 (18-03): MessageSquare icon for signal badge (distinct from documents/prototypes)
 - v1.1 (18-03): Cluster theme becomes link reason for traceability
+- v1.1 (18.1-01): Use SignalCluster type from lib/classification for type safety
+- v1.1 (18.1-01): Panel placed between suggestions banner and signals table for natural flow
+- v1.1 (18.1-01): Cluster cards with theme, badges (count, severity, confidence), and signal previews
 
 ### Pending Todos
 
@@ -202,12 +205,11 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-23
-Stopped at: Added Phase 18.1 gap closure phase
+Last session: 2026-01-24
+Stopped at: Completed 18.1-01-PLAN.md
 Resume file: None
 Next steps:
-  - Plan Phase 18.1: `/gsd:plan-phase 18.1` (wire CreateProjectFromClusterModal to UI)
-  - After Phase 18.1 complete, re-verify Phase 18 to confirm PROV-05 satisfied
+  - Re-verify Phase 18 to confirm PROV-05 gap is now satisfied
   - Continue to Phase 19: Workflow Automation
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
