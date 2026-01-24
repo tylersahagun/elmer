@@ -92,6 +92,8 @@ export interface WorkspaceSettings {
   aiVerificationModel?: string; // Model for AI-based verification checks
   // Signal Automation Settings (Phase 19)
   signalAutomation?: SignalAutomationSettings;
+  // Maintenance Settings (Phase 20)
+  maintenance?: MaintenanceSettings;
 }
 
 // ============================================
@@ -137,6 +139,47 @@ export const DEFAULT_SIGNAL_AUTOMATION: SignalAutomationSettings = {
   suppressDuplicateNotifications: true,
   maxAutoActionsPerDay: 10,
   cooldownMinutes: 60,
+};
+
+// ============================================
+// MAINTENANCE SETTINGS (Phase 20)
+// ============================================
+
+export interface MaintenanceSettings {
+  // Orphan detection
+  orphanThresholdDays: number;           // Days before unlinked signal is flagged (default: 14)
+  flagOrphansEnabled: boolean;           // Whether to detect orphans (default: true)
+
+  // Duplicate detection
+  duplicateDetectionEnabled: boolean;    // Whether to detect duplicates (default: true)
+  duplicateSimilarityThreshold: number;  // Cosine similarity threshold 0-1 (default: 0.9)
+
+  // Auto-archival
+  autoArchiveEnabled: boolean;           // Whether to auto-archive (default: false - conservative)
+  autoArchiveLinkedAfterDays: number;    // Archive linked signals after N days (default: 90)
+  autoArchiveReviewedAfterDays: number;  // Archive reviewed signals after N days (default: 30)
+
+  // Cleanup suggestions
+  suggestAssociationsEnabled: boolean;   // Whether to suggest links (default: true)
+  minSuggestionConfidence: number;       // Min confidence for suggestions (default: 0.6)
+
+  // Notifications
+  notifyOnOrphanThreshold: number | null; // Notify when orphan count >= N (default: 10)
+  notifyOnDuplicates: boolean;           // Notify when duplicates found (default: false)
+}
+
+export const DEFAULT_MAINTENANCE_SETTINGS: MaintenanceSettings = {
+  orphanThresholdDays: 14,
+  flagOrphansEnabled: true,
+  duplicateDetectionEnabled: true,
+  duplicateSimilarityThreshold: 0.9,
+  autoArchiveEnabled: false,
+  autoArchiveLinkedAfterDays: 90,
+  autoArchiveReviewedAfterDays: 30,
+  suggestAssociationsEnabled: true,
+  minSuggestionConfidence: 0.6,
+  notifyOnOrphanThreshold: 10,
+  notifyOnDuplicates: false,
 };
 
 // ============================================
