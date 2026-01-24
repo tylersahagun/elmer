@@ -259,21 +259,39 @@ export function SimpleNavbar({
                 </Link>
 
                 {workspaceId && (
-                  <Link
-                    href={`/workspace/${workspaceId}/signals`}
-                    className="w-full"
-                  >
-                    <DropdownMenuItem
-                      className={cn(
-                        "gap-2 font-mono text-sm",
-                        isSignalsActive && "bg-accent",
-                      )}
+                  <>
+                    <Link
+                      href={`/workspace/${workspaceId}/signals`}
+                      className="w-full"
                     >
-                      <span className="text-emerald-500">$</span>
-                      <span>cat</span>
-                      <span className="text-muted-foreground">signals/</span>
-                    </DropdownMenuItem>
-                  </Link>
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isSignalsActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>cat</span>
+                        <span className="text-muted-foreground">signals/</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
+                      href={`/workspace/${workspaceId}/settings`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isSettingsActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>vim</span>
+                        <span className="text-muted-foreground">settings</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  </>
                 )}
 
                 <DropdownMenuSeparator />
