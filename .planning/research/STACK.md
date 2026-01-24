@@ -69,17 +69,13 @@ npm install jose
 | Custom JWT auth | Security footguns, maintenance burden | Auth.js with JWT sessions |
 | Magic link for all auth | Adds email dependency for every login | Only for invites, use password for regular login |
 
-## Stack Patterns by Variant
+## Stack Patterns (Self-Hosted)
 
-**If deploying to Vercel Edge:**
-- Use bcryptjs (pure JS implementation)
-- Use Auth.js with JWT strategy (not database sessions)
-- Use Neon serverless driver (already configured)
-
-**If deploying to Node.js (self-hosted):**
-- Can use bcrypt native for better performance
-- Can use database sessions for easier revocation
-- Standard pg driver works fine
+**Current Deployment (Local PostgreSQL + Cloudflare Tunnel):**
+- Use bcryptjs (pure JS implementation, simpler)
+- Use Auth.js with JWT strategy
+- Standard pg driver for local PostgreSQL
+- Public access via Cloudflare Tunnel at https://elmer.studio
 
 ## Auth.js Configuration Pattern
 

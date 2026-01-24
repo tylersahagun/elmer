@@ -114,8 +114,8 @@ Elmer is a fully functional PM orchestration tool with:
 ## Constraints
 
 - **Tech Stack**: Must use existing elmer stack (TypeScript, Next.js 16, React 19, PostgreSQL, Drizzle ORM)
-- **Deployment**: Must work with current hosting setup (Vercel + Neon Postgres serverless)
-- **Database**: Extend existing Drizzle schema for signals table
+- **Deployment**: Self-hosted via local PostgreSQL (Docker) + Cloudflare Tunnel (https://elmer.studio)
+- **Database**: Extend existing Drizzle schema for signals table; pgvector extension required
 - **UI Framework**: Use existing Radix UI + Tailwind CSS v4 for consistency
 - **External Transcription**: Elmer does not transcribe — receives pre-transcribed text
 - **Webhook Security**: Webhooks should be authenticated (API key or signature verification)

@@ -26,7 +26,7 @@
 - **Server State:** React Server Components + Server Actions
 
 ### Database
-- **Primary:** PostgreSQL (Neon serverless)
+- **Primary:** PostgreSQL (local Docker with pgvector)
 - **ORM:** Drizzle ORM
 - **Migrations:** Drizzle Kit
 
@@ -81,9 +81,9 @@
 ## Infrastructure
 
 ### Hosting
-- **Orchestrator:** Vercel (planned) or local development
+- **Orchestrator:** Self-hosted via Cloudflare Tunnel (https://elmer.studio)
 - **Prototypes:** Chromatic (Storybook hosting)
-- **Database:** Neon (serverless Postgres)
+- **Database:** Local PostgreSQL (Docker) with pgvector extension
 
 ### CI/CD
 - **Platform:** GitHub Actions
@@ -171,7 +171,7 @@ title: 'Organisms/Dialog'
 | UI | @radix-ui/* | latest | Accessible primitives |
 | Styling | tailwindcss | 3.4.x | Utility CSS |
 | Database | drizzle-orm | latest | Type-safe ORM |
-| Database | @neondatabase/serverless | latest | Serverless Postgres |
+| Database | pg | latest | PostgreSQL driver |
 | Forms | react-hook-form | 7.x | Form handling |
 | Validation | zod | 3.x | Schema validation |
 | Animation | framer-motion | 11.x | Motion library |

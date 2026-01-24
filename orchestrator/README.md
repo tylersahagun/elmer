@@ -184,13 +184,9 @@ npm run db:migrate   # Run migrations
 npm run db:studio    # Open Drizzle Studio
 ```
 
-## Database Options
+## Database
 
-The app supports two database configurations:
-
-### Local Development (Recommended)
-
-Uses Docker PostgreSQL with the standard `pg` driver:
+Uses Docker PostgreSQL with pgvector extension:
 
 ```bash
 # Start PostgreSQL
@@ -209,13 +205,25 @@ docker compose stop
 docker compose down -v
 ```
 
-Connection string: `postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator`
+**Connection Details:**
+- Host: `localhost:5432`
+- Database: `orchestrator`
+- User: `elmer`
+- Password: `elmer_local_dev`
+- Connection string: `postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator`
 
-### Neon Serverless (Production)
+## Public Access
 
-If your `DATABASE_URL` contains `neon.tech`, the app automatically uses the Neon serverless HTTP driver (optimized for Vercel Edge).
+The app is exposed publicly via Cloudflare Tunnel at **https://elmer.studio**.
 
-The app auto-detects which driver to use based on the connection string pattern.
+```bash
+# Start tunnel
+cloudflared tunnel run elmer
+
+# Or use the /local command in Cursor to start everything
+```
+
+**Note:** Site is only available when your Mac is running with all services active.
 
 ## License
 
