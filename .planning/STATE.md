@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 20 - Maintenance Agents (In Progress)
+**Current focus:** Phase 20 - Maintenance Agents (Complete)
 
 ## Current Position
 
 Phase: 20 of 20 (Maintenance Agents)
-Plan: 4 of TBD
-Status: In progress
-Last activity: 2026-01-24 - Completed 20-04-PLAN.md (API Endpoints & Cron)
+Plan: 5 of 5 (Phase Complete)
+Status: Phase complete
+Last activity: 2026-01-24 - Completed 20-05-PLAN.md (Maintenance UI)
 
-Progress: [██████████] 99%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -39,7 +39,7 @@ Progress: [██████████] 99%
 - Phase 18: 3/3 plans complete (verified)
 - Phase 18.1: 1/1 plans complete (verified)
 - Phase 19: 6/6 plans complete (verified, including gap closure)
-- Phase 20: 4/TBD plans complete
+- Phase 20: 5/5 plans complete (verified)
 
 ## Accumulated Context
 
@@ -225,6 +225,9 @@ Recent decisions affecting current work:
 - v1.1 (20-04): MAINT-01 suggestions via embedding similarity (reuses Phase 17 infrastructure)
 - v1.1 (20-04): Daily cron schedule (0 0 * * *) for maintenance checks
 - v1.1 (20-04): 5-minute max duration for maintenance cron
+- v1.1 (20-05): State-based collapsible for orphan signals (no new dependency)
+- v1.1 (20-05): Older signal kept as primary during merge (chronological ordering)
+- v1.1 (20-05): Workspace interface extended to include settings.maintenance
 
 ### Pending Todos
 
@@ -244,9 +247,10 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 20-04-PLAN.md (API Endpoints & Cron)
+Stopped at: Completed 20-05-PLAN.md (Maintenance UI)
 Resume file: None
 Next steps:
-  - Continue Phase 20: Execute remaining maintenance agent plans if any
+  - Phase 20 complete - v1.1 Signals System milestone complete
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
+  - Deploy and verify all maintenance agents working in production
