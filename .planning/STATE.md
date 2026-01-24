@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 17 of 20 (Smart Association)
-Plan: 2 of 4 complete
+Plan: 3 of 4 complete
 Status: In progress
-Last activity: 2026-01-23 - Completed 17-02-PLAN.md (Bulk Operations API)
+Last activity: 2026-01-24 - Completed 17-03-PLAN.md (Review UI)
 
-Progress: [███████░░░] 75%
+Progress: [███████░░░] 77%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [███████░░░] 75%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 29
+- Total plans completed: 30
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -35,7 +35,7 @@ Progress: [███████░░░] 75%
 - Phase 14.6: 3/3 plans complete (verified)
 - Phase 15: 3/3 plans complete (verified)
 - Phase 16: 3/3 plans complete (verified)
-- Phase 17: 2/4 plans complete (in progress)
+- Phase 17: 3/4 plans complete (in progress)
 
 ## Accumulated Context
 
@@ -158,6 +158,10 @@ Recent decisions affecting current work:
 - v1.1 (17-01): 30-day window for suggestions to keep results relevant
 - v1.1 (17-01): Viewer for GET suggestions, member for POST dismiss
 - v1.1 (17-01): Cap suggestions limit at 50 to prevent abuse
+- v1.1 (17-03): Accept mutation uses linkReason 'AI-suggested association accepted by user'
+- v1.1 (17-03): Dismiss All is session-only (not persisted via API)
+- v1.1 (17-03): Confidence color thresholds: green >= 80%, amber >= 60%, gray below
+- v1.1 (17-03): 5-minute staleTime for suggestions query cache
 
 ### Pending Todos
 
@@ -176,11 +180,11 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-23
-Stopped at: Completed 17-02-PLAN.md (Bulk Operations API)
+Last session: 2026-01-24
+Stopped at: Completed 17-03-PLAN.md (Review UI)
 Resume file: None
 Next steps:
-  - Continue Phase 17 with Plan 03 (Review UI) and Plan 04 (Suggestions UI)
+  - Continue Phase 17 with Plan 04 (Suggestions UI - bulk operations)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
   - Run `npx drizzle-kit generate` for suggestion dismiss columns migration
