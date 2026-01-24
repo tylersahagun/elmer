@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SignalsTable } from "@/components/signals/SignalsTable";
+import { SignalSuggestionsBanner } from "@/components/signals/SignalSuggestionsBanner";
 import { CreateSignalModal } from "@/components/signals/CreateSignalModal";
 import { SignalDetailModal, type Signal } from "@/components/signals/SignalDetailModal";
 
@@ -15,6 +16,9 @@ export function SignalsPageClient({ workspaceId }: SignalsPageClientProps) {
 
   return (
     <div className="container mx-auto py-6 px-4">
+      {/* AI Suggestions Banner */}
+      <SignalSuggestionsBanner workspaceId={workspaceId} />
+
       <SignalsTable
         workspaceId={workspaceId}
         onViewSignal={(signal) => setSelectedSignal(signal as Signal)}
