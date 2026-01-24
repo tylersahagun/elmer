@@ -17,6 +17,7 @@ export interface ProjectCard {
   // Computed/joined data
   documentCount?: number;
   prototypeCount?: number;
+  signalCount?: number;
   metadata?: {
     gitBranch?: string;
     baseBranch?: string;

@@ -237,6 +237,43 @@ export async function getProjects(
   });
 }
 
+/**
+ * Get projects with signal/document/prototype counts for kanban display.
+ * More efficient than fetching full relations when only counts are needed.
+ */
+export async function getProjectsWithCounts(
+  workspaceId: string,
+  options: { includeArchived?: boolean } = {}
+) {
+  const projectList = await getProjects(workspaceId, options);
+
+  // Get signal counts for all projects in one query
+  const signalCounts = await db
+    .select({
+      projectId: signalProjects.projectId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(signalProjects)
+    .where(
+      inArray(
+        signalProjects.projectId,
+        projectList.map((p) => p.id)
+      )
+    )
+    .groupBy(signalProjects.projectId);
+
+  // Create lookup map
+  const countMap = new Map(signalCounts.map((c) => [c.projectId, c.count]));
+
+  // Merge counts into projects
+  return projectList.map((project) => ({
+    ...project,
+    signalCount: countMap.get(project.id) || 0,
+    documentCount: project.documents?.length || 0,
+    prototypeCount: project.prototypes?.length || 0,
+  }));
+}
+
 export async function getProjectsByStage(workspaceId: string) {
   const allProjects = await getProjects(workspaceId);
   
