@@ -4,9 +4,13 @@
  * Signal Automation Settings Panel
  *
  * Configuration UI for signal automation (Phase 19).
- * Renders in WorkspaceSettingsModal as a new tab.
+ * Supports two modes:
+ * 1. Controlled mode (settings + onChange) - for modal dialogs
+ * 2. Self-contained mode (workspaceId + initialSettings) - for standalone pages
  */
 
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,39 +22,87 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEFAULT_SIGNAL_AUTOMATION, type SignalAutomationSettings, type SignalSeverity } from "@/lib/db/schema";
-import { Zap, Bell, Shield, Clock } from "lucide-react";
+import { Zap, Bell, Shield, Clock, Save, RotateCcw } from "lucide-react";
 
-interface Props {
+// Controlled mode props (for modals with external save)
+interface ControlledProps {
   settings: SignalAutomationSettings;
   onChange: (settings: SignalAutomationSettings) => void;
+  workspaceId?: never;
+  initialSettings?: never;
 }
 
-export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
+// Self-contained mode props (for standalone pages with built-in save)
+interface SelfContainedProps {
+  workspaceId: string;
+  initialSettings?: SignalAutomationSettings;
+  settings?: never;
+  onChange?: never;
+}
+
+type Props = ControlledProps | SelfContainedProps;
+
+export function SignalAutomationSettingsPanel(props: Props) {
+  const isControlled = "settings" in props && props.settings !== undefined;
+  
+  // For self-contained mode
+  const [internalSettings, setInternalSettings] = useState<SignalAutomationSettings>(
+    isControlled ? DEFAULT_SIGNAL_AUTOMATION : (props.initialSettings || DEFAULT_SIGNAL_AUTOMATION)
+  );
+  const [isDirty, setIsDirty] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Get current settings based on mode
+  const settings = isControlled ? props.settings : internalSettings;
+
+  useEffect(() => {
+    if (!isControlled && props.initialSettings) {
+      setInternalSettings({ ...DEFAULT_SIGNAL_AUTOMATION, ...props.initialSettings });
+    }
+  }, [isControlled, props]);
+
+  const updateMutation = useMutation({
+    mutationFn: async (newSettings: SignalAutomationSettings) => {
+      if (isControlled) return; // Controlled mode doesn't use mutation
+      const res = await fetch(`/api/workspaces/${props.workspaceId}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signalAutomation: newSettings }),
+      });
+      if (!res.ok) throw new Error("Failed to update settings");
+      return res.json();
+    },
+    onSuccess: () => {
+      if (!isControlled) {
+        queryClient.invalidateQueries({ queryKey: ["workspace", props.workspaceId] });
+      }
+      setIsDirty(false);
+    },
+  });
+
   const update = <K extends keyof SignalAutomationSettings>(
     key: K,
     value: SignalAutomationSettings[K]
   ) => {
-    onChange({ ...settings, [key]: value });
+    if (isControlled) {
+      props.onChange({ ...props.settings, [key]: value });
+    } else {
+      setInternalSettings((prev) => ({ ...prev, [key]: value }));
+      setIsDirty(true);
+    }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Introduction */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium">Signal Automation</h3>
-        <p className="text-sm text-muted-foreground">
-          Configure how the system automatically processes and acts on incoming signals. 
-          Signals are user feedback, feature requests, and issues collected from various sources.
-          The automation can cluster similar signals and optionally create initiatives or trigger workflows.
-        </p>
-      </div>
-
+  // Render the form content (shared between modes)
+  const formContent = (
+    <>
       {/* Automation Depth */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-amber-500" />
-          <Label className="text-sm font-medium">Automation Depth</Label>
+          <Label className="text-sm font-medium text-white/90">Automation Depth</Label>
         </div>
         <Select
           value={settings.automationDepth}
@@ -58,7 +110,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
             update("automationDepth", v as SignalAutomationSettings["automationDepth"])
           }
         >
-          <SelectTrigger className="bg-muted/30 border-border">
+          <SelectTrigger className="bg-white/5 border-white/10 text-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -88,43 +140,45 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
             </SelectItem>
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-white/50">
           Control how aggressively the system acts on signal patterns.
         </p>
       </div>
 
       {/* Thresholds Section */}
-      <div className="space-y-4 pt-4 border-t border-border">
+      <div className="space-y-4 pt-4 border-t border-white/10">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-blue-500" />
-          <h4 className="text-sm font-medium">Action Thresholds</h4>
+          <h4 className="text-sm font-medium text-white/90">Action Thresholds</h4>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs">Auto-Initiative (signals)</Label>
+            <Label className="text-xs text-white/70">Auto-Initiative (signals)</Label>
             <Input
               type="number"
               min={2}
               max={20}
+              className="bg-white/5 border-white/10 text-white"
               value={settings.autoInitiativeThreshold}
               onChange={(e) => update("autoInitiativeThreshold", Number(e.target.value))}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/50">
               Min signals to create initiative
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Auto-PRD (signals)</Label>
+            <Label className="text-xs text-white/70">Auto-PRD (signals)</Label>
             <Input
               type="number"
               min={3}
               max={30}
+              className="bg-white/5 border-white/10 text-white"
               value={settings.autoPrdThreshold}
               onChange={(e) => update("autoPrdThreshold", Number(e.target.value))}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/50">
               Min signals to trigger PRD
             </p>
           </div>
@@ -133,8 +187,8 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
         {/* Confidence Threshold */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs">Min Cluster Confidence</Label>
-            <span className="text-xs text-muted-foreground">
+            <Label className="text-xs text-white/70">Min Cluster Confidence</Label>
+            <span className="text-xs text-white/50">
               {Math.round(settings.minClusterConfidence * 100)}%
             </span>
           </div>
@@ -146,21 +200,21 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
             step={5}
             className="w-full"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-white/50">
             Clusters below this similarity won't trigger automation
           </p>
         </div>
 
         {/* Severity Filter */}
         <div className="space-y-2">
-          <Label className="text-xs">Min Severity for Auto-Actions</Label>
+          <Label className="text-xs text-white/70">Min Severity for Auto-Actions</Label>
           <Select
             value={settings.minSeverityForAuto ?? "any"}
             onValueChange={(v) =>
               update("minSeverityForAuto", v === "any" ? null : (v as SignalSeverity))
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/5 border-white/10 text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -175,20 +229,20 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
       </div>
 
       {/* Notification Settings */}
-      <div className="space-y-4 pt-4 border-t border-border">
+      <div className="space-y-4 pt-4 border-t border-white/10">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-purple-500" />
-          <h4 className="text-sm font-medium">Notification Thresholds</h4>
+          <h4 className="text-sm font-medium text-white/90">Notification Thresholds</h4>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs">Notify on Cluster Size</Label>
+            <Label className="text-xs text-white/70">Notify on Cluster Size</Label>
             <Input
               type="number"
               min={1}
               max={20}
-              className="bg-muted/30 border-border"
+              className="bg-white/5 border-white/10 text-white"
               value={settings.notifyOnClusterSize ?? ""}
               placeholder="Any size"
               onChange={(e) =>
@@ -198,14 +252,14 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Notify on Severity</Label>
+            <Label className="text-xs text-white/70">Notify on Severity</Label>
             <Select
               value={settings.notifyOnSeverity ?? "any"}
               onValueChange={(v) =>
                 update("notifyOnSeverity", v === "any" ? null : (v as SignalSeverity))
               }
             >
-              <SelectTrigger className="bg-muted/30 border-border">
+              <SelectTrigger className="bg-white/5 border-white/10 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -221,8 +275,8 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
 
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <Label className="text-sm">Suppress Duplicate Notifications</Label>
-            <p className="text-xs text-muted-foreground">
+            <Label className="text-sm text-white/70">Suppress Duplicate Notifications</Label>
+            <p className="text-xs text-white/50">
               Don't notify for same cluster within cooldown
             </p>
           </div>
@@ -235,42 +289,88 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
       </div>
 
       {/* Rate Limiting */}
-      <div className="space-y-4 pt-4 border-t border-border">
+      <div className="space-y-4 pt-4 border-t border-white/10">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-green-500" />
-          <h4 className="text-sm font-medium">Rate Limiting</h4>
+          <h4 className="text-sm font-medium text-white/90">Rate Limiting</h4>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs">Max Actions/Day</Label>
+            <Label className="text-xs text-white/70">Max Actions/Day</Label>
             <Input
               type="number"
               min={1}
               max={100}
-              className="bg-muted/30 border-border"
+              className="bg-white/5 border-white/10 text-white"
               value={settings.maxAutoActionsPerDay}
               onChange={(e) => update("maxAutoActionsPerDay", Number(e.target.value))}
             />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs">Cooldown (minutes)</Label>
+            <Label className="text-xs text-white/70">Cooldown (minutes)</Label>
             <Input
               type="number"
               min={5}
               max={1440}
-              className="bg-muted/30 border-border"
+              className="bg-white/5 border-white/10 text-white"
               value={settings.cooldownMinutes}
               onChange={(e) => update("cooldownMinutes", Number(e.target.value))}
             />
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-white/50">
           Safety limits to prevent runaway automation
         </p>
       </div>
-    </div>
+
+    </>
+  );
+
+  // Controlled mode: render just the form content (no card wrapper, no save button)
+  if (isControlled) {
+    return <div className="space-y-6">{formContent}</div>;
+  }
+
+  // Self-contained mode: render with card wrapper and save button
+  return (
+    <Card className="bg-white/5 border-white/10">
+      <CardHeader>
+        <CardTitle className="text-white">Signal Automation</CardTitle>
+        <CardDescription className="text-white/60">
+          Configure how the system automatically processes and acts on incoming signals.
+          Signals are user feedback, feature requests, and issues collected from various sources.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {formContent}
+
+        {/* Save Button (only in self-contained mode) */}
+        <div className="flex items-center gap-2 pt-4">
+          <Button
+            onClick={() => updateMutation.mutate(internalSettings)}
+            disabled={!isDirty || updateMutation.isPending}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {updateMutation.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+          {isDirty && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setInternalSettings(props.initialSettings || DEFAULT_SIGNAL_AUTOMATION);
+                setIsDirty(false);
+              }}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
