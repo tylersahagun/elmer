@@ -7,7 +7,6 @@ export { ProjectDetailModal } from "./ProjectDetailModal";
 export { ArchivedProjectsModal } from "./ArchivedProjectsModal";
 export { JobStatusIndicator, JobStatusBadge } from "./JobStatusIndicator";
 export { AddDocumentDialog } from "./AddDocumentDialog";
-export { WorkspaceSettingsModal } from "./WorkspaceSettingsModal";
 export { IterationLoopControls } from "./IterationLoopControls";
 export { IterationLoopOverlay } from "./IterationLoopOverlay";
 export { IterationLoopLanes } from "./IterationLoopLanes";

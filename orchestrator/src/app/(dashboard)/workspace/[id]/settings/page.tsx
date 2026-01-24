@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -33,12 +33,24 @@ import {
   Activity,
   Bot,
   Info,
+  Workflow,
+  Columns3,
+  Sparkles,
 } from "lucide-react";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { InviteModal } from "@/components/invite-modal";
 import { ActivityFeed } from "@/components/activity-feed";
-import { MaintenanceSettingsPanel } from "@/components/settings/MaintenanceSettingsPanel";
-import { SignalAutomationSettingsPanel } from "@/components/settings/SignalAutomationSettings";
+import {
+  RepositorySettingsCard,
+  ContextPathsCard,
+  GitAutomationCard,
+  PipelineSettingsCard,
+  ColumnsSettingsCard,
+  ExecutionSettingsCard,
+  SignalAutomationSettingsPanel,
+  MaintenanceSettingsPanel,
+  type KanbanColumn,
+} from "@/components/settings";
 import type { WorkspaceRole, MaintenanceSettings, SignalAutomationSettings } from "@/lib/db/schema";
 
 interface WorkspaceMember {
@@ -69,13 +81,61 @@ interface Invitation {
   };
 }
 
+interface ColumnConfig {
+  id: string;
+  stage: string;
+  displayName: string;
+  color: string;
+  order: number;
+  enabled: boolean;
+  autoTriggerJobs?: string[];
+  humanInLoop?: boolean;
+  requiredDocuments?: string[];
+  requiredApprovals?: number;
+  rules?: {
+    contextPaths?: string[];
+    contextNotes?: string;
+    loopGroupId?: string;
+    loopTargets?: string[];
+    dependencyNotes?: string;
+  };
+}
+
 interface Workspace {
   id: string;
   name: string;
   description: string | null;
+  githubRepo: string | null;
+  contextPath: string | null;
+  columnConfigs?: ColumnConfig[];
   settings?: {
+    prototypesPath?: string;
+    storybookPort?: number;
+    contextPaths?: string[];
+    baseBranch?: string;
+    autoCreateFeatureBranch?: boolean;
+    autoCommitJobs?: boolean;
+    cursorDeepLinkTemplate?: string;
+    knowledgebaseMapping?: Record<string, string>;
+    automationMode?: "manual" | "auto_to_stage" | "auto_all";
+    automationStopStage?: string;
+    automationNotifyStage?: string;
+    workerEnabled?: boolean;
+    workerMaxConcurrency?: number;
+    browserNotificationsEnabled?: boolean;
+    notifyOnJobComplete?: boolean;
+    notifyOnJobFailed?: boolean;
+    notifyOnApprovalRequired?: boolean;
+    atomicCommitsEnabled?: boolean;
+    verificationStrictness?: "strict" | "lenient" | "disabled";
+    stateTrackingEnabled?: boolean;
     maintenance?: MaintenanceSettings;
     signalAutomation?: SignalAutomationSettings;
+  };
+  resolvedPaths?: {
+    contextPath: string | null;
+    prototypesPath: string | null;
+    repoPath: string | null;
   };
 }
 
@@ -87,10 +147,44 @@ export default function WorkspaceSettingsPage({
   const { id: workspaceId } = use(params);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  
+  // UI state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  
+  // Form state - General
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceDescription, setWorkspaceDescription] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [githubRepo, setGithubRepo] = useState("");
+  const [baseBranch, setBaseBranch] = useState("main");
+  const [cursorDeepLinkTemplate, setCursorDeepLinkTemplate] = useState("");
+  const [prototypesPath, setPrototypesPath] = useState("");
+  const [storybookPort, setStorybookPort] = useState("6006");
+  const [contextPaths, setContextPaths] = useState<string[]>(["elmer-docs/"]);
+  const [autoCreateFeatureBranch, setAutoCreateFeatureBranch] = useState(true);
+  const [autoCommitJobs, setAutoCommitJobs] = useState(false);
+  
+  // Form state - Pipeline
+  const [automationMode, setAutomationMode] = useState<"manual" | "auto_to_stage" | "auto_all">("manual");
+  const [automationStopStage, setAutomationStopStage] = useState("");
+  const [automationNotifyStage, setAutomationNotifyStage] = useState("");
+  const [knowledgebaseMapping, setKnowledgebaseMapping] = useState<Record<string, string>>({});
+  
+  // Form state - Execution
+  const [workerEnabled, setWorkerEnabled] = useState(true);
+  const [workerMaxConcurrency, setWorkerMaxConcurrency] = useState("10");
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
+  const [notifyOnJobComplete, setNotifyOnJobComplete] = useState(true);
+  const [notifyOnJobFailed, setNotifyOnJobFailed] = useState(true);
+  const [notifyOnApprovalRequired, setNotifyOnApprovalRequired] = useState(true);
+  const [atomicCommitsEnabled, setAtomicCommitsEnabled] = useState(false);
+  const [stateTrackingEnabled, setStateTrackingEnabled] = useState(false);
+  const [verificationStrictness, setVerificationStrictness] = useState<"strict" | "lenient" | "disabled">("lenient");
+  
+  // Columns state
+  const [columns, setColumns] = useState<KanbanColumn[]>([]);
 
   // Fetch workspace details
   const { data: workspace, isLoading: isLoadingWorkspace } = useQuery<Workspace>({
@@ -131,9 +225,71 @@ export default function WorkspaceSettingsPage({
     enabled: !!workspaceId,
   });
 
+
+  // Initialize form state from workspace data
+  useEffect(() => {
+    if (workspace) {
+      setWorkspaceName(workspace.name || "");
+      setWorkspaceDescription(workspace.description || "");
+      setGithubRepo(workspace.githubRepo || "");
+      setBaseBranch(workspace.settings?.baseBranch || "main");
+      setCursorDeepLinkTemplate(workspace.settings?.cursorDeepLinkTemplate || "");
+      setPrototypesPath(workspace.settings?.prototypesPath || "");
+      setStorybookPort(workspace.settings?.storybookPort ? String(workspace.settings.storybookPort) : "6006");
+      
+      const workspaceContextPaths =
+        workspace.settings?.contextPaths?.length
+          ? workspace.settings.contextPaths
+          : workspace.contextPath
+            ? [workspace.contextPath]
+            : ["elmer-docs/"];
+      setContextPaths(workspaceContextPaths);
+      
+      setAutoCreateFeatureBranch(workspace.settings?.autoCreateFeatureBranch ?? true);
+      setAutoCommitJobs(workspace.settings?.autoCommitJobs ?? false);
+      setAutomationMode(workspace.settings?.automationMode || "manual");
+      setAutomationStopStage(workspace.settings?.automationStopStage || "");
+      setAutomationNotifyStage(workspace.settings?.automationNotifyStage || "");
+      setKnowledgebaseMapping(workspace.settings?.knowledgebaseMapping || {});
+      setWorkerEnabled(workspace.settings?.workerEnabled ?? true);
+      setWorkerMaxConcurrency(workspace.settings?.workerMaxConcurrency ? String(workspace.settings.workerMaxConcurrency) : "10");
+      setBrowserNotificationsEnabled(workspace.settings?.browserNotificationsEnabled ?? true);
+      setNotifyOnJobComplete(workspace.settings?.notifyOnJobComplete ?? true);
+      setNotifyOnJobFailed(workspace.settings?.notifyOnJobFailed ?? true);
+      setNotifyOnApprovalRequired(workspace.settings?.notifyOnApprovalRequired ?? true);
+      setAtomicCommitsEnabled(workspace.settings?.atomicCommitsEnabled ?? false);
+      setStateTrackingEnabled(workspace.settings?.stateTrackingEnabled ?? false);
+      setVerificationStrictness(workspace.settings?.verificationStrictness ?? "lenient");
+    }
+  }, [workspace]);
+
+  // Initialize columns from workspace data
+  useEffect(() => {
+    if (workspace?.columnConfigs) {
+      const mappedColumns: KanbanColumn[] = workspace.columnConfigs.map((col) => ({
+        id: col.stage,
+        configId: col.id,
+        displayName: col.displayName,
+        color: col.color,
+        order: col.order,
+        enabled: col.enabled,
+        autoTriggerJobs: col.autoTriggerJobs,
+        humanInLoop: col.humanInLoop,
+        requiredDocuments: col.requiredDocuments,
+        requiredApprovals: col.requiredApprovals,
+        contextPaths: col.rules?.contextPaths,
+        contextNotes: col.rules?.contextNotes,
+        loopGroupId: col.rules?.loopGroupId,
+        loopTargets: col.rules?.loopTargets,
+        dependencyNotes: col.rules?.dependencyNotes,
+      }));
+      setColumns(mappedColumns);
+    }
+  }, [workspace?.columnConfigs]);
+
   // Update workspace mutation
   const updateWorkspace = useMutation({
-    mutationFn: async (data: { name: string; description?: string }) => {
+    mutationFn: async (data: { name?: string; description?: string }) => {
       const res = await fetch(`/api/workspaces/${workspaceId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -145,7 +301,7 @@ export default function WorkspaceSettingsPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-      setIsEditing(false);
+      setIsEditingName(false);
     },
   });
 
@@ -175,7 +331,77 @@ export default function WorkspaceSettingsPage({
   // Filter invitations by status
   const pendingInvitations = invitations?.filter((i) => i.status === "pending") || [];
 
-  const handleSave = () => {
+  // Normalize paths
+  const normalizePath = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
+  };
+
+  const normalizePaths = (paths: string[]) => {
+    const normalized = paths.map(normalizePath).filter(Boolean);
+    return normalized.length ? normalized : ["elmer-docs/"];
+  };
+
+  // Save all settings
+  const handleSaveSettings = async () => {
+    if (!workspaceId) return;
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const normalizedContextPaths = normalizePaths(contextPaths);
+      const sanitizedMapping = Object.fromEntries(
+        Object.entries(knowledgebaseMapping).filter(([, value]) => value)
+      );
+      const res = await fetch(`/api/workspaces/${workspaceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: workspaceName.trim() || undefined,
+          description: workspaceDescription.trim() || undefined,
+          githubRepo: githubRepo.trim() || null,
+          contextPath: normalizedContextPaths[0],
+          settings: {
+            prototypesPath: prototypesPath.trim() || undefined,
+            storybookPort: storybookPort ? Number(storybookPort) : undefined,
+            contextPaths: normalizedContextPaths,
+            baseBranch: baseBranch.trim() || "main",
+            autoCreateFeatureBranch,
+            autoCommitJobs,
+            cursorDeepLinkTemplate: cursorDeepLinkTemplate.trim() || undefined,
+            aiExecutionMode: "server",
+            aiValidationMode: "schema",
+            knowledgebaseMapping: sanitizedMapping,
+            automationMode,
+            automationStopStage: automationStopStage || undefined,
+            automationNotifyStage: automationNotifyStage || undefined,
+            workerEnabled,
+            workerMaxConcurrency: workerMaxConcurrency ? Number(workerMaxConcurrency) : undefined,
+            browserNotificationsEnabled,
+            notifyOnJobComplete,
+            notifyOnJobFailed,
+            notifyOnApprovalRequired,
+            atomicCommitsEnabled,
+            verificationStrictness,
+            stateTrackingEnabled,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update workspace (${res.status})`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save settings";
+      console.error("Failed to save settings:", errorMessage);
+      setSaveError(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveName = () => {
     if (!workspaceName.trim()) return;
     updateWorkspace.mutate({
       name: workspaceName.trim(),
@@ -186,7 +412,7 @@ export default function WorkspaceSettingsPage({
   const handleStartEdit = () => {
     setWorkspaceName(workspace?.name || "");
     setWorkspaceDescription(workspace?.description || "");
-    setIsEditing(true);
+    setIsEditingName(true);
   };
 
   const getRoleIcon = (role: WorkspaceRole) => {
@@ -259,7 +485,7 @@ export default function WorkspaceSettingsPage({
                 Workspace Settings
               </h1>
               <p className="text-muted-foreground mt-1">
-                Manage workspace configuration and team
+                Manage workspace configuration, pipeline, and team
               </p>
             </div>
             {isAdmin && (
@@ -272,27 +498,36 @@ export default function WorkspaceSettingsPage({
 
           {/* Tabs */}
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+            <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
               <TabsTrigger value="general" className="gap-2">
                 <Info className="w-4 h-4" />
-                General
+                <span className="hidden sm:inline">General</span>
               </TabsTrigger>
-              <TabsTrigger value="team" className="gap-2">
-                <Users className="w-4 h-4" />
-                Team
+              <TabsTrigger value="pipeline" className="gap-2">
+                <Columns3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Pipeline</span>
+              </TabsTrigger>
+              <TabsTrigger value="execution" className="gap-2">
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">Execution</span>
               </TabsTrigger>
               <TabsTrigger value="automation" className="gap-2">
                 <Bot className="w-4 h-4" />
-                Automation
+                <span className="hidden sm:inline">Automation</span>
+              </TabsTrigger>
+              <TabsTrigger value="team" className="gap-2">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Team</span>
               </TabsTrigger>
               <TabsTrigger value="activity" className="gap-2">
                 <Activity className="w-4 h-4" />
-                Activity
+                <span className="hidden sm:inline">Activity</span>
               </TabsTrigger>
             </TabsList>
 
             {/* General Tab */}
             <TabsContent value="general" className="space-y-6">
+              {/* Workspace Details Card */}
               <Card>
                 <CardHeader>
                   <CardTitle>Workspace Details</CardTitle>
@@ -303,7 +538,7 @@ export default function WorkspaceSettingsPage({
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="workspace-name">Workspace Name</Label>
-                    {isEditing ? (
+                    {isEditingName ? (
                       <div className="flex items-center gap-2">
                         <Input
                           id="workspace-name"
@@ -313,7 +548,7 @@ export default function WorkspaceSettingsPage({
                           autoFocus
                         />
                         <Button
-                          onClick={handleSave}
+                          onClick={handleSaveName}
                           disabled={!workspaceName.trim() || updateWorkspace.isPending}
                           size="sm"
                           className="gap-2"
@@ -327,7 +562,7 @@ export default function WorkspaceSettingsPage({
                         </Button>
                         <Button
                           variant="ghost"
-                          onClick={() => setIsEditing(false)}
+                          onClick={() => setIsEditingName(false)}
                           size="sm"
                         >
                           Cancel
@@ -345,7 +580,7 @@ export default function WorkspaceSettingsPage({
                     )}
                   </div>
 
-                  {isEditing && (
+                  {isEditingName && (
                     <div className="space-y-2">
                       <Label htmlFor="workspace-description">Description (optional)</Label>
                       <Input
@@ -358,7 +593,7 @@ export default function WorkspaceSettingsPage({
                     </div>
                   )}
 
-                  {!isEditing && workspace?.description && (
+                  {!isEditingName && workspace?.description && (
                     <div className="space-y-2">
                       <Label>Description</Label>
                       <p className="text-muted-foreground">{workspace.description}</p>
@@ -377,8 +612,152 @@ export default function WorkspaceSettingsPage({
                       </Badge>
                     </div>
                   )}
+
+                  <div className="space-y-2">
+                    <Label>Workspace ID</Label>
+                    <p className="text-xs font-mono text-muted-foreground">{workspace?.id}</p>
+                  </div>
                 </CardContent>
               </Card>
+
+              {/* Repository & Prototypes */}
+              <RepositorySettingsCard
+                githubRepo={githubRepo}
+                setGithubRepo={setGithubRepo}
+                baseBranch={baseBranch}
+                setBaseBranch={setBaseBranch}
+                cursorDeepLinkTemplate={cursorDeepLinkTemplate}
+                setCursorDeepLinkTemplate={setCursorDeepLinkTemplate}
+                prototypesPath={prototypesPath}
+                setPrototypesPath={setPrototypesPath}
+                storybookPort={storybookPort}
+                setStorybookPort={setStorybookPort}
+                resolvedPaths={workspace?.resolvedPaths}
+              />
+
+              {/* Context Paths */}
+              <ContextPathsCard
+                contextPaths={contextPaths}
+                setContextPaths={setContextPaths}
+                resolvedContextPath={workspace?.resolvedPaths?.contextPath}
+                workspaceId={workspaceId}
+              />
+
+              {/* Git Automation */}
+              <GitAutomationCard
+                autoCreateFeatureBranch={autoCreateFeatureBranch}
+                setAutoCreateFeatureBranch={setAutoCreateFeatureBranch}
+                autoCommitJobs={autoCommitJobs}
+                setAutoCommitJobs={setAutoCommitJobs}
+              />
+
+              {/* Save Button */}
+              <div className="flex items-center justify-end gap-3">
+                {saveError && (
+                  <p className="text-sm text-destructive">{saveError}</p>
+                )}
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className="gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSaving ? "Saving..." : "Save Settings"}
+                </Button>
+              </div>
+            </TabsContent>
+
+            {/* Pipeline Tab */}
+            <TabsContent value="pipeline" className="space-y-6">
+              {/* Pipeline Configuration */}
+              <PipelineSettingsCard
+                automationMode={automationMode}
+                setAutomationMode={setAutomationMode}
+                automationStopStage={automationStopStage}
+                setAutomationStopStage={setAutomationStopStage}
+                automationNotifyStage={automationNotifyStage}
+                setAutomationNotifyStage={setAutomationNotifyStage}
+                knowledgebaseMapping={knowledgebaseMapping}
+                setKnowledgebaseMapping={setKnowledgebaseMapping}
+                columns={columns}
+              />
+
+              {/* Columns Configuration */}
+              <ColumnsSettingsCard
+                columns={columns}
+                setColumns={setColumns}
+                workspaceId={workspaceId}
+                onColumnChange={() => {
+                  queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+                }}
+              />
+
+              {/* Save Button */}
+              <div className="flex items-center justify-end gap-3">
+                {saveError && (
+                  <p className="text-sm text-destructive">{saveError}</p>
+                )}
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className="gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSaving ? "Saving..." : "Save Settings"}
+                </Button>
+              </div>
+            </TabsContent>
+
+            {/* Execution Tab */}
+            <TabsContent value="execution" className="space-y-6">
+              <ExecutionSettingsCard
+                workerEnabled={workerEnabled}
+                setWorkerEnabled={setWorkerEnabled}
+                workerMaxConcurrency={workerMaxConcurrency}
+                setWorkerMaxConcurrency={setWorkerMaxConcurrency}
+                browserNotificationsEnabled={browserNotificationsEnabled}
+                setBrowserNotificationsEnabled={setBrowserNotificationsEnabled}
+                notifyOnJobComplete={notifyOnJobComplete}
+                setNotifyOnJobComplete={setNotifyOnJobComplete}
+                notifyOnJobFailed={notifyOnJobFailed}
+                setNotifyOnJobFailed={setNotifyOnJobFailed}
+                notifyOnApprovalRequired={notifyOnApprovalRequired}
+                setNotifyOnApprovalRequired={setNotifyOnApprovalRequired}
+                atomicCommitsEnabled={atomicCommitsEnabled}
+                setAtomicCommitsEnabled={setAtomicCommitsEnabled}
+                stateTrackingEnabled={stateTrackingEnabled}
+                setStateTrackingEnabled={setStateTrackingEnabled}
+                verificationStrictness={verificationStrictness}
+                setVerificationStrictness={setVerificationStrictness}
+              />
+
+              {/* Save Button */}
+              <div className="flex items-center justify-end gap-3">
+                {saveError && (
+                  <p className="text-sm text-destructive">{saveError}</p>
+                )}
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className="gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {isSaving ? "Saving..." : "Save Settings"}
+                </Button>
+              </div>
+            </TabsContent>
+
+            {/* Automation Tab */}
+            <TabsContent value="automation" className="space-y-6">
+              <SignalAutomationSettingsPanel
+                workspaceId={workspaceId}
+                initialSettings={workspace?.settings?.signalAutomation}
+              />
+
+              <MaintenanceSettingsPanel
+                workspaceId={workspaceId}
+                initialSettings={workspace?.settings?.maintenance}
+              />
             </TabsContent>
 
             {/* Team Tab */}
@@ -509,19 +888,6 @@ export default function WorkspaceSettingsPage({
                   </CardContent>
                 </Card>
               )}
-            </TabsContent>
-
-            {/* Automation Tab */}
-            <TabsContent value="automation" className="space-y-6">
-              <SignalAutomationSettingsPanel
-                workspaceId={workspaceId}
-                initialSettings={workspace?.settings?.signalAutomation}
-              />
-
-              <MaintenanceSettingsPanel
-                workspaceId={workspaceId}
-                initialSettings={workspace?.settings?.maintenance}
-              />
             </TabsContent>
 
             {/* Activity Tab */}

@@ -202,7 +202,6 @@ interface UIState {
   // Modals
   newProjectModalOpen: boolean;
   projectDetailModalOpen: boolean;
-  settingsModalOpen: boolean;
   archivedProjectsModalOpen: boolean;
   
   // Job Logs Drawer
@@ -217,8 +216,6 @@ interface UIState {
   closeNewProjectModal: () => void;
   openProjectDetailModal: () => void;
   closeProjectDetailModal: () => void;
-  openSettingsModal: () => void;
-  closeSettingsModal: () => void;
   openArchivedProjectsModal: () => void;
   closeArchivedProjectsModal: () => void;
   openJobLogsDrawer: (jobId: string, projectName?: string) => void;
@@ -231,7 +228,6 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarTab: "chat",
   newProjectModalOpen: false,
   projectDetailModalOpen: false,
-  settingsModalOpen: false,
   archivedProjectsModalOpen: false,
   jobLogsDrawerOpen: false,
   jobLogsDrawerJobId: null,
@@ -244,8 +240,6 @@ export const useUIStore = create<UIState>((set) => ({
   closeNewProjectModal: () => set({ newProjectModalOpen: false }),
   openProjectDetailModal: () => set({ projectDetailModalOpen: true }),
   closeProjectDetailModal: () => set({ projectDetailModalOpen: false }),
-  openSettingsModal: () => set({ settingsModalOpen: true }),
-  closeSettingsModal: () => set({ settingsModalOpen: false }),
   openArchivedProjectsModal: () => set({ archivedProjectsModalOpen: true }),
   closeArchivedProjectsModal: () => set({ archivedProjectsModalOpen: false }),
   openJobLogsDrawer: (jobId, projectName) => set({ 

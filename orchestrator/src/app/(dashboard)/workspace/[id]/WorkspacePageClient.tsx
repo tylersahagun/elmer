@@ -12,7 +12,6 @@ import {
 } from "@/lib/store";
 import {
   KanbanBoard,
-  WorkspaceSettingsModal,
   ArchivedProjectsModal,
 } from "@/components/kanban";
 import { NewProjectDialog } from "@/components/kanban/NewProjectDialog";
@@ -35,7 +34,6 @@ import { StatusPill } from "@/components/chrome/StatusPill";
 import { useTheme } from "next-themes";
 import {
   Plus,
-  Settings,
   MessageSquare,
   Loader2,
   AlertCircle,
@@ -59,7 +57,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const setProjects = useKanbanStore((s) => s.setProjects);
   const storeWorkspace = useKanbanStore((s) => s.workspace);
   const openNewProjectModal = useUIStore((s) => s.openNewProjectModal);
-  const openSettingsModal = useUIStore((s) => s.openSettingsModal);
   const openArchivedProjectsModal = useUIStore(
     (s) => s.openArchivedProjectsModal,
   );
@@ -352,13 +349,13 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
 
                 {/* Settings - only show if user is admin */}
                 {isAdmin && (
-                  <DropdownMenuItem
-                    onClick={openSettingsModal}
-                    className="gap-2"
-                  >
-                    <Settings className="w-4 h-4" />
-                    Settings
-                  </DropdownMenuItem>
+                  <Link href={`/workspace/${workspaceId}/settings`} className="w-full">
+                    <DropdownMenuItem className="gap-2 font-mono text-sm">
+                      <span className="text-emerald-500">$</span>
+                      <span>vim</span>
+                      <span className="text-muted-foreground">settings</span>
+                    </DropdownMenuItem>
+                  </Link>
                 )}
 
                 <DropdownMenuSeparator />
@@ -405,7 +402,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       {/* Modals */}
       <NewProjectDialog />
       <ProjectDetailModal />
-      <WorkspaceSettingsModal />
       {workspace?.id && <ArchivedProjectsModal workspaceId={workspace.id} />}
     </div>
   );
