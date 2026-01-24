@@ -5,6 +5,7 @@ import { StatusPill } from "./StatusPill";
 import { CommandChip, CommandText } from "./CommandChip";
 import { WaveV4D, ElmerWordmark } from "../brand/ElmerLogo";
 import { Button } from "../ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Sun, Moon, Globe, Menu, Home, BookOpen, Users } from "lucide-react";
+import { Sun, Moon, Globe, Menu, Home, BookOpen, Users, LogOut, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { type ReactNode } from "react";
 
@@ -151,11 +153,20 @@ export function SimpleNavbar({
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session, status } = useSession();
 
   // Check active state for nav items
   const isHomeActive = pathname === "/";
   const isKnowledgebaseActive = pathname?.includes("/knowledgebase");
   const isPersonasActive = pathname?.includes("/personas");
+
+  // Get user initials for avatar fallback
+  const userInitials = session?.user?.name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || session?.user?.email?.[0]?.toUpperCase() || "U";
 
   return (
     <header
@@ -239,8 +250,45 @@ export function SimpleNavbar({
                   {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   {theme === "dark" ? "Light Mode" : "Dark Mode"}
                 </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Auth section */}
+                {status === "authenticated" && session?.user ? (
+                  <>
+                    <div className="px-2 py-1.5">
+                      <p className="text-sm font-medium truncate">{session.user.name || session.user.email}</p>
+                      {session.user.name && session.user.email && (
+                        <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                      )}
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => signOut({ callbackUrl: "/login" })} 
+                      className="gap-2 text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </>
+                ) : status === "unauthenticated" ? (
+                  <Link href="/login" className="w-full">
+                    <DropdownMenuItem className="gap-2">
+                      <User className="w-4 h-4" />
+                      Sign in
+                    </DropdownMenuItem>
+                  </Link>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* User Avatar (when logged in) */}
+            {status === "authenticated" && session?.user && (
+              <Avatar className="h-8 w-8 border border-border">
+                <AvatarImage src={session.user.image || undefined} alt={session.user.name || "User"} />
+                <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+              </Avatar>
+            )}
           </div>
         </div>
       </div>

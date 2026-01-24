@@ -1,10 +1,10 @@
 import { db } from "./index";
-import { 
-  workspaces, 
-  projects, 
-  projectStages, 
-  documents, 
-  prototypes, 
+import {
+  workspaces,
+  projects,
+  projectStages,
+  documents,
+  prototypes,
   jobs,
   jobRuns,
   memoryEntries,
@@ -15,6 +15,12 @@ import {
   knowledgeSources,
   prototypeVersions,
   notifications,
+  workspaceMembers,
+  activityLogs,
+  users,
+  signals,
+  signalProjects,
+  signalPersonas,
   type ProjectStage as ProjectStageType,
   type JobType,
   type JobStatus,
@@ -26,8 +32,19 @@ import {
   type WorkspaceSettings,
   type NotificationMetadata,
   type KnowledgebaseType,
+  type WorkspaceRole,
+  type SignalStatus,
+  type SignalSource,
+  type SignalSeverity,
+  type SignalFrequency,
+  type SignalSourceMetadata,
+  type SignalClassificationResult,
+  type SignalAutomationSettings,
+  DEFAULT_SIGNAL_AUTOMATION,
+  type MaintenanceSettings,
+  DEFAULT_MAINTENANCE_SETTINGS,
 } from "./schema";
-import { eq, and, desc, asc, isNull, ne, or, lt, gte } from "drizzle-orm";
+import { eq, and, desc, asc, isNull, isNotNull, ne, or, lt, gte, lte, ilike, sql, inArray } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
 // ============================================
@@ -38,6 +55,25 @@ export async function getWorkspaces() {
   return db.query.workspaces.findMany({
     orderBy: [desc(workspaces.updatedAt)],
   });
+}
+
+/**
+ * Get workspaces for a specific user (only workspaces they are a member of)
+ */
+export async function getWorkspacesForUser(userId: string) {
+  const memberships = await db.query.workspaceMembers.findMany({
+    where: eq(workspaceMembers.userId, userId),
+    with: {
+      workspace: true,
+    },
+    orderBy: [desc(workspaceMembers.joinedAt)],
+  });
+
+  return memberships.map((m) => ({
+    ...m.workspace,
+    role: m.role,
+    joinedAt: m.joinedAt,
+  }));
 }
 
 export async function getWorkspace(id: string) {
@@ -52,11 +88,50 @@ export async function getWorkspace(id: string) {
   });
 }
 
+/**
+ * Get all members of a workspace with user details
+ */
+export async function getWorkspaceMembers(workspaceId: string) {
+  const members = await db.query.workspaceMembers.findMany({
+    where: eq(workspaceMembers.workspaceId, workspaceId),
+    with: {
+      user: true,
+    },
+    orderBy: [desc(workspaceMembers.role), asc(workspaceMembers.joinedAt)],
+  });
+
+  return members.map((m) => ({
+    id: m.id,
+    userId: m.userId,
+    role: m.role,
+    joinedAt: m.joinedAt,
+    user: {
+      id: m.user.id,
+      name: m.user.name,
+      email: m.user.email,
+      image: m.user.image,
+    },
+  }));
+}
+
+/**
+ * Check if a user is a member of a workspace and get their role
+ */
+export async function getWorkspaceMembership(workspaceId: string, userId: string) {
+  return db.query.workspaceMembers.findFirst({
+    where: and(
+      eq(workspaceMembers.workspaceId, workspaceId),
+      eq(workspaceMembers.userId, userId)
+    ),
+  });
+}
+
 export async function createWorkspace(data: {
   name: string;
   description?: string;
   githubRepo?: string;
   contextPath?: string;
+  userId?: string; // Creator's user ID - if provided, they become admin
 }) {
   const id = uuid();
   const now = new Date();
@@ -70,6 +145,15 @@ export async function createWorkspace(data: {
     createdAt: now,
     updatedAt: now,
   });
+
+  // Add creator as admin member if userId provided
+  if (data.userId) {
+    await db.insert(workspaceMembers).values({
+      workspaceId: id,
+      userId: data.userId,
+      role: "admin",
+    });
+  }
 
   // Create default column configs
   // Default column configs for PM workflow
@@ -155,6 +239,43 @@ export async function getProjects(
       prototypes: true,
     },
   });
+}
+
+/**
+ * Get projects with signal/document/prototype counts for kanban display.
+ * More efficient than fetching full relations when only counts are needed.
+ */
+export async function getProjectsWithCounts(
+  workspaceId: string,
+  options: { includeArchived?: boolean } = {}
+) {
+  const projectList = await getProjects(workspaceId, options);
+
+  // Get signal counts for all projects in one query
+  const signalCounts = await db
+    .select({
+      projectId: signalProjects.projectId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(signalProjects)
+    .where(
+      inArray(
+        signalProjects.projectId,
+        projectList.map((p) => p.id)
+      )
+    )
+    .groupBy(signalProjects.projectId);
+
+  // Create lookup map
+  const countMap = new Map(signalCounts.map((c) => [c.projectId, c.count]));
+
+  // Merge counts into projects
+  return projectList.map((project) => ({
+    ...project,
+    signalCount: countMap.get(project.id) || 0,
+    documentCount: project.documents?.length || 0,
+    prototypeCount: project.prototypes?.length || 0,
+  }));
 }
 
 export async function getProjectsByStage(workspaceId: string) {
@@ -1133,4 +1254,934 @@ export async function createJobNotification(
   }
   
   return null;
+}
+
+// ============================================
+// ACTIVITY LOG QUERIES
+// ============================================
+
+export interface ActivityLogWithUser {
+  id: string;
+  workspaceId: string;
+  userId: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  } | null;
+}
+
+export async function getWorkspaceActivityLogs(
+  workspaceId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<ActivityLogWithUser[]> {
+  const { limit = 50, offset = 0 } = options || {};
+  
+  const logs = await db
+    .select({
+      id: activityLogs.id,
+      workspaceId: activityLogs.workspaceId,
+      userId: activityLogs.userId,
+      action: activityLogs.action,
+      targetType: activityLogs.targetType,
+      targetId: activityLogs.targetId,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+      user: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        image: users.image,
+      },
+    })
+    .from(activityLogs)
+    .leftJoin(users, eq(activityLogs.userId, users.id))
+    .where(eq(activityLogs.workspaceId, workspaceId))
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(limit)
+    .offset(offset);
+  
+  return logs;
+}
+
+// ============================================
+// SIGNAL QUERIES
+// ============================================
+
+export interface GetSignalsOptions {
+  search?: string;
+  status?: SignalStatus;
+  source?: SignalSource;
+  dateFrom?: Date;
+  dateTo?: Date;
+  sortBy?: "createdAt" | "updatedAt" | "status" | "source";
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  personaId?: string;
+}
+
+export async function getSignals(
+  workspaceId: string,
+  options: GetSignalsOptions = {}
+) {
+  const {
+    search,
+    status,
+    source,
+    dateFrom,
+    dateTo,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    page = 1,
+    pageSize = 20,
+    personaId,
+  } = options;
+
+  // Build dynamic WHERE conditions
+  const conditions = [eq(signals.workspaceId, workspaceId)];
+
+  if (search) {
+    conditions.push(
+      or(
+        ilike(signals.verbatim, `%${search}%`),
+        ilike(signals.interpretation, `%${search}%`)
+      )!
+    );
+  }
+
+  if (status) {
+    conditions.push(eq(signals.status, status));
+  }
+
+  if (source) {
+    conditions.push(eq(signals.source, source));
+  }
+
+  if (dateFrom) {
+    conditions.push(gte(signals.createdAt, dateFrom));
+  }
+
+  if (dateTo) {
+    conditions.push(lte(signals.createdAt, dateTo));
+  }
+
+  // Filter by persona if specified
+  if (personaId) {
+    const signalIdsWithPersona = db
+      .select({ signalId: signalPersonas.signalId })
+      .from(signalPersonas)
+      .where(eq(signalPersonas.personaId, personaId));
+
+    conditions.push(inArray(signals.id, signalIdsWithPersona));
+  }
+
+  // Build sort
+  const sortColumn = {
+    createdAt: signals.createdAt,
+    updatedAt: signals.updatedAt,
+    status: signals.status,
+    source: signals.source,
+  }[sortBy];
+
+  const orderFn = sortOrder === "asc" ? asc : desc;
+
+  const offset = (page - 1) * pageSize;
+
+  // Fetch signals with linked projects and personas
+  const results = await db.query.signals.findMany({
+    where: and(...conditions),
+    with: {
+      projects: {
+        with: {
+          project: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        limit: 3, // Only need first few for display
+      },
+      personas: true,
+    },
+    orderBy: [orderFn(sortColumn)],
+    limit: pageSize,
+    offset,
+  });
+
+  // Transform results to include linkedProjects and linkedPersonas arrays
+  return results.map((signal) => ({
+    ...signal,
+    linkedProjects: signal.projects.map((sp) => ({
+      id: sp.project.id,
+      name: sp.project.name,
+    })),
+    linkedPersonas: signal.personas.map((sp) => ({
+      personaId: sp.personaId,
+    })),
+    // Clean up the raw relations from response
+    projects: undefined,
+    personas: undefined,
+  }));
+}
+
+export async function getSignalsCount(
+  workspaceId: string,
+  options: Omit<GetSignalsOptions, "page" | "pageSize" | "sortBy" | "sortOrder"> = {}
+) {
+  const { search, status, source, dateFrom, dateTo } = options;
+
+  // Build dynamic WHERE conditions
+  const conditions = [eq(signals.workspaceId, workspaceId)];
+
+  if (search) {
+    conditions.push(
+      or(
+        ilike(signals.verbatim, `%${search}%`),
+        ilike(signals.interpretation, `%${search}%`)
+      )!
+    );
+  }
+
+  if (status) {
+    conditions.push(eq(signals.status, status));
+  }
+
+  if (source) {
+    conditions.push(eq(signals.source, source));
+  }
+
+  if (dateFrom) {
+    conditions.push(gte(signals.createdAt, dateFrom));
+  }
+
+  if (dateTo) {
+    conditions.push(lte(signals.createdAt, dateTo));
+  }
+
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(signals)
+    .where(and(...conditions));
+
+  return Number(result[0]?.count ?? 0);
+}
+
+export async function getSignal(id: string) {
+  return db.query.signals.findFirst({
+    where: eq(signals.id, id),
+  });
+}
+
+export async function createSignal(data: {
+  workspaceId: string;
+  verbatim: string;
+  interpretation?: string;
+  source: SignalSource;
+  sourceRef?: string;
+  sourceMetadata?: SignalSourceMetadata;
+  status?: SignalStatus;
+}) {
+  const id = uuid();
+  const now = new Date();
+
+  await db.insert(signals).values({
+    id,
+    workspaceId: data.workspaceId,
+    verbatim: data.verbatim,
+    interpretation: data.interpretation,
+    source: data.source,
+    sourceRef: data.sourceRef,
+    sourceMetadata: data.sourceMetadata,
+    status: data.status || "new",
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return getSignal(id);
+}
+
+export async function updateSignal(
+  id: string,
+  data: Partial<{
+    verbatim: string;
+    interpretation: string;
+    status: SignalStatus;
+    severity: SignalSeverity;
+    frequency: SignalFrequency;
+    userSegment: string;
+    sourceRef: string;
+    sourceMetadata: SignalSourceMetadata;
+  }>
+) {
+  const now = new Date();
+
+  await db
+    .update(signals)
+    .set({
+      ...data,
+      updatedAt: now,
+    })
+    .where(eq(signals.id, id));
+
+  return getSignal(id);
+}
+
+export async function deleteSignal(id: string) {
+  await db.delete(signals).where(eq(signals.id, id));
+  return { id };
+}
+
+// ============================================
+// SIGNAL ASSOCIATION QUERIES
+// ============================================
+
+/**
+ * Get a signal with its linked projects and personas
+ */
+export async function getSignalWithLinks(id: string) {
+  return db.query.signals.findFirst({
+    where: eq(signals.id, id),
+    with: {
+      projects: {
+        with: {
+          project: true,
+        },
+      },
+      personas: true,
+    },
+  });
+}
+
+/**
+ * Link a signal to a project
+ */
+export async function linkSignalToProject(
+  signalId: string,
+  projectId: string,
+  linkedBy: string,
+  linkReason?: string
+) {
+  const id = uuid();
+
+  await db.insert(signalProjects).values({
+    id,
+    signalId,
+    projectId,
+    linkedBy,
+    linkReason,
+  });
+
+  return db.query.signalProjects.findFirst({
+    where: eq(signalProjects.id, id),
+  });
+}
+
+/**
+ * Unlink a signal from a project
+ */
+export async function unlinkSignalFromProject(
+  signalId: string,
+  projectId: string
+) {
+  await db
+    .delete(signalProjects)
+    .where(
+      and(
+        eq(signalProjects.signalId, signalId),
+        eq(signalProjects.projectId, projectId)
+      )
+    );
+
+  return { deleted: true };
+}
+
+/**
+ * Link a signal to a persona
+ */
+export async function linkSignalToPersona(
+  signalId: string,
+  personaId: string,
+  linkedBy: string
+) {
+  const id = uuid();
+
+  await db.insert(signalPersonas).values({
+    id,
+    signalId,
+    personaId,
+    linkedBy,
+  });
+
+  return db.query.signalPersonas.findFirst({
+    where: eq(signalPersonas.id, id),
+  });
+}
+
+/**
+ * Unlink a signal from a persona
+ */
+export async function unlinkSignalFromPersona(
+  signalId: string,
+  personaId: string
+) {
+  await db
+    .delete(signalPersonas)
+    .where(
+      and(
+        eq(signalPersonas.signalId, signalId),
+        eq(signalPersonas.personaId, personaId)
+      )
+    );
+
+  return { deleted: true };
+}
+
+/**
+ * Get all signals linked to a project with pagination
+ * Includes full provenance data: linkedBy user, linkReason, confidence
+ */
+export async function getSignalsForProject(
+  projectId: string,
+  options?: { limit?: number; offset?: number }
+) {
+  const { limit = 50, offset = 0 } = options || {};
+
+  const links = await db.query.signalProjects.findMany({
+    where: eq(signalProjects.projectId, projectId),
+    with: {
+      signal: true,
+      linkedByUser: true,
+    },
+    orderBy: [desc(signalProjects.linkedAt)],
+    limit,
+    offset,
+  });
+
+  return links.map((link) => ({
+    ...link.signal,
+    linkedAt: link.linkedAt,
+    linkReason: link.linkReason,
+    confidence: link.confidence,
+    linkedBy: link.linkedByUser ? {
+      id: link.linkedByUser.id,
+      name: link.linkedByUser.name,
+    } : null,
+  }));
+}
+
+/**
+ * Count how many projects a signal is linked to
+ */
+export async function countSignalProjectLinks(signalId: string) {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(signalProjects)
+    .where(eq(signalProjects.signalId, signalId));
+
+  return Number(result[0]?.count ?? 0);
+}
+
+/**
+ * Update a signal with AI-processed fields (extraction results and embedding).
+ * Separate from updateSignal because:
+ * - Accepts nullable fields (extraction may return nulls)
+ * - Includes processedAt timestamp
+ * - Updates embedding field (text type for base64)
+ */
+export async function updateSignalProcessing(
+  id: string,
+  data: {
+    severity?: SignalSeverity | null;
+    frequency?: SignalFrequency | null;
+    userSegment?: string | null;
+    interpretation?: string | null;
+    embedding?: string | null;
+    processedAt?: Date | null;
+  }
+) {
+  await db
+    .update(signals)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(signals.id, id));
+
+  return getSignal(id);
+}
+
+// ============================================
+// VECTOR SIMILARITY QUERIES (Phase 16)
+// ============================================
+
+/**
+ * Find signals similar to a given embedding vector.
+ * Uses pgvector cosine distance (1 - cosine_similarity).
+ *
+ * @param workspaceId - Filter to this workspace
+ * @param targetVector - The embedding to compare against
+ * @param limit - Max results (default 10)
+ * @param excludeId - Signal ID to exclude (the query signal itself)
+ * @returns Signals ordered by similarity (closest first)
+ */
+export async function findSimilarSignals(
+  workspaceId: string,
+  targetVector: number[],
+  limit = 10,
+  excludeId?: string
+) {
+  const vectorStr = `[${targetVector.join(",")}]`;
+
+  const result = await db.execute(sql`
+    SELECT
+      id,
+      verbatim,
+      interpretation,
+      severity,
+      frequency,
+      status,
+      source,
+      created_at,
+      embedding_vector <=> ${vectorStr}::vector AS distance
+    FROM signals
+    WHERE workspace_id = ${workspaceId}
+      AND embedding_vector IS NOT NULL
+      ${excludeId ? sql`AND id != ${excludeId}` : sql``}
+    ORDER BY embedding_vector <=> ${vectorStr}::vector
+    LIMIT ${limit}
+  `);
+
+  return result.rows.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    verbatim: row.verbatim as string,
+    interpretation: row.interpretation as string | null,
+    severity: row.severity as string | null,
+    frequency: row.frequency as string | null,
+    status: row.status as string,
+    source: row.source as string,
+    createdAt: row.created_at as Date,
+    distance: row.distance as number,
+    similarity: 1 - (row.distance as number), // Convert distance to similarity
+  }));
+}
+
+/**
+ * Find the best matching project for a signal embedding.
+ * Returns the project with lowest cosine distance.
+ *
+ * @param workspaceId - Filter to this workspace
+ * @param signalVector - The signal's embedding vector
+ * @returns Best matching project with distance/similarity, or null if no projects have embeddings
+ */
+export async function findBestProjectMatch(
+  workspaceId: string,
+  signalVector: number[]
+) {
+  const vectorStr = `[${signalVector.join(",")}]`;
+
+  const result = await db.execute(sql`
+    SELECT
+      id,
+      name,
+      description,
+      stage,
+      embedding_vector <=> ${vectorStr}::vector AS distance
+    FROM projects
+    WHERE workspace_id = ${workspaceId}
+      AND embedding_vector IS NOT NULL
+      AND status = 'active'
+    ORDER BY embedding_vector <=> ${vectorStr}::vector
+    LIMIT 1
+  `);
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const row = result.rows[0] as Record<string, unknown>;
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    description: row.description as string | null,
+    stage: row.stage as string,
+    distance: row.distance as number,
+    similarity: 1 - (row.distance as number),
+  };
+}
+
+/**
+ * Update a signal's classification result.
+ */
+export async function updateSignalClassification(
+  id: string,
+  classification: SignalClassificationResult
+) {
+  await db
+    .update(signals)
+    .set({
+      classification,
+      updatedAt: new Date(),
+    })
+    .where(eq(signals.id, id));
+
+  return getSignal(id);
+}
+
+/**
+ * Update a project's embedding vector.
+ */
+export async function updateProjectEmbedding(
+  id: string,
+  embeddingVector: number[]
+) {
+  await db
+    .update(projects)
+    .set({
+      embeddingVector,
+      embeddingUpdatedAt: new Date().toISOString(),
+      updatedAt: new Date(),
+    })
+    .where(eq(projects.id, id));
+
+  return getProject(id);
+}
+
+/**
+ * Get unlinked signals with embeddings for clustering.
+ */
+export async function getUnlinkedSignalsWithEmbeddings(
+  workspaceId: string,
+  limit = 100
+) {
+  return db.query.signals.findMany({
+    where: and(
+      eq(signals.workspaceId, workspaceId),
+      isNotNull(signals.embeddingVector),
+      or(
+        eq(signals.status, "new"),
+        eq(signals.status, "reviewed")
+      )
+    ),
+    orderBy: [desc(signals.createdAt)],
+    limit,
+  });
+}
+
+// ============================================
+// BULK SIGNAL ASSOCIATION QUERIES
+// ============================================
+
+/**
+ * Bulk link signals to a project
+ * Skips signals already linked to the project
+ * Updates signal status to "linked" for newly linked signals
+ * Returns count of newly linked signals
+ */
+export async function bulkLinkSignalsToProject(
+  signalIds: string[],
+  projectId: string,
+  userId: string,
+  linkReason?: string
+): Promise<{ linked: number; skipped: number }> {
+  if (signalIds.length === 0) {
+    return { linked: 0, skipped: 0 };
+  }
+
+  // Find which signals are already linked to this project
+  const existingLinks = await db.query.signalProjects.findMany({
+    where: and(
+      inArray(signalProjects.signalId, signalIds),
+      eq(signalProjects.projectId, projectId)
+    ),
+    columns: { signalId: true },
+  });
+  const alreadyLinked = new Set(existingLinks.map((l) => l.signalId));
+
+  // Filter to signals that need linking
+  const toLink = signalIds.filter((id) => !alreadyLinked.has(id));
+
+  if (toLink.length === 0) {
+    return { linked: 0, skipped: signalIds.length };
+  }
+
+  // Batch insert new links
+  await db.insert(signalProjects).values(
+    toLink.map((signalId) => ({
+      signalId,
+      projectId,
+      linkedBy: userId,
+      linkReason: linkReason || "Bulk linked",
+    }))
+  );
+
+  // Update status to "linked" for signals that weren't already linked
+  await db
+    .update(signals)
+    .set({ status: "linked", updatedAt: new Date() })
+    .where(
+      and(
+        inArray(signals.id, toLink),
+        ne(signals.status, "linked")
+      )
+    );
+
+  return { linked: toLink.length, skipped: alreadyLinked.size };
+}
+
+/**
+ * Bulk unlink signals from a project
+ * Returns count of unlinked signals
+ * Updates signal status to "reviewed" if no remaining project links
+ */
+export async function bulkUnlinkSignalsFromProject(
+  signalIds: string[],
+  projectId: string
+): Promise<{ unlinked: number; skipped: number }> {
+  if (signalIds.length === 0) {
+    return { unlinked: 0, skipped: 0 };
+  }
+
+  // Find which signals are actually linked to this project
+  const existingLinks = await db.query.signalProjects.findMany({
+    where: and(
+      inArray(signalProjects.signalId, signalIds),
+      eq(signalProjects.projectId, projectId)
+    ),
+    columns: { signalId: true },
+  });
+  const linkedSignalIds = existingLinks.map((l) => l.signalId);
+
+  if (linkedSignalIds.length === 0) {
+    return { unlinked: 0, skipped: signalIds.length };
+  }
+
+  // Delete the links
+  await db
+    .delete(signalProjects)
+    .where(
+      and(
+        inArray(signalProjects.signalId, linkedSignalIds),
+        eq(signalProjects.projectId, projectId)
+      )
+    );
+
+  // For each unlinked signal, check if it has any remaining project links
+  // If not, revert status to "reviewed"
+  for (const signalId of linkedSignalIds) {
+    const remainingLinks = await db.query.signalProjects.findMany({
+      where: eq(signalProjects.signalId, signalId),
+      columns: { id: true },
+      limit: 1,
+    });
+
+    if (remainingLinks.length === 0) {
+      // No more project links, revert to reviewed
+      await db
+        .update(signals)
+        .set({ status: "reviewed", updatedAt: new Date() })
+        .where(
+          and(
+            eq(signals.id, signalId),
+            eq(signals.status, "linked")
+          )
+        );
+    }
+  }
+
+  return {
+    unlinked: linkedSignalIds.length,
+    skipped: signalIds.length - linkedSignalIds.length,
+  };
+}
+
+// ============================================
+// SIGNAL SUGGESTION QUERIES (Phase 17)
+// ============================================
+
+/**
+ * Get unlinked signals with classification suggestions
+ * Returns signals that:
+ * - Have classification.projectId set (AI suggested a project)
+ * - Are NOT already linked to that suggested project
+ * - Have not been dismissed (suggestionDismissedAt is null)
+ * - Were created in the last 30 days
+ * - classification.isNewInitiative is not true
+ */
+export async function getSignalSuggestions(
+  workspaceId: string,
+  limit: number = 20
+): Promise<Array<{
+  signalId: string;
+  verbatim: string;
+  source: string;
+  projectId: string;
+  projectName: string;
+  confidence: number;
+  reason?: string;
+  createdAt: Date;
+}>> {
+  // Use raw SQL for JSONB query performance
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const result = await db.execute(sql`
+    SELECT
+      s.id as signal_id,
+      s.verbatim,
+      s.source,
+      s.classification->>'projectId' as project_id,
+      s.classification->>'projectName' as project_name,
+      (s.classification->>'confidence')::float as confidence,
+      s.classification->>'reason' as reason,
+      s.created_at
+    FROM signals s
+    LEFT JOIN signal_projects sp ON s.id = sp.signal_id
+      AND sp.project_id = s.classification->>'projectId'
+    WHERE s.workspace_id = ${workspaceId}
+      AND s.classification->>'projectId' IS NOT NULL
+      AND COALESCE(s.classification->>'isNewInitiative', 'false') != 'true'
+      AND sp.id IS NULL
+      AND s.suggestion_dismissed_at IS NULL
+      AND s.created_at > ${thirtyDaysAgo.toISOString()}
+    ORDER BY (s.classification->>'confidence')::float DESC
+    LIMIT ${limit}
+  `);
+
+  return result.rows.map((row: Record<string, unknown>) => ({
+    signalId: row.signal_id as string,
+    verbatim: row.verbatim as string,
+    source: row.source as string,
+    projectId: row.project_id as string,
+    projectName: row.project_name as string,
+    confidence: row.confidence as number,
+    reason: row.reason as string | undefined,
+    createdAt: new Date(row.created_at as string),
+  }));
+}
+
+/**
+ * Dismiss suggestion for a signal
+ * Sets suggestionDismissedAt and suggestionDismissedBy
+ */
+export async function dismissSignalSuggestion(
+  signalId: string,
+  userId: string
+): Promise<void> {
+  await db
+    .update(signals)
+    .set({
+      suggestionDismissedAt: new Date(),
+      suggestionDismissedBy: userId,
+      updatedAt: new Date(),
+    })
+    .where(eq(signals.id, signalId));
+}
+
+// ============================================
+// WORKSPACE AUTOMATION SETTINGS QUERIES (Phase 19)
+// ============================================
+
+/**
+ * Get signal automation settings for a workspace.
+ * Returns DEFAULT_SIGNAL_AUTOMATION if not configured.
+ *
+ * Used by automation engine and notification filters.
+ */
+export async function getWorkspaceAutomationSettings(
+  workspaceId: string
+): Promise<SignalAutomationSettings> {
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.id, workspaceId),
+    columns: { settings: true },
+  });
+
+  if (!workspace?.settings?.signalAutomation) {
+    return DEFAULT_SIGNAL_AUTOMATION;
+  }
+
+  // Merge with defaults to ensure all fields exist
+  return {
+    ...DEFAULT_SIGNAL_AUTOMATION,
+    ...workspace.settings.signalAutomation,
+  };
+}
+
+// ============================================
+// WORKSPACE MAINTENANCE SETTINGS QUERIES (Phase 20)
+// ============================================
+
+/**
+ * Get workspace maintenance settings, merging with defaults.
+ */
+export async function getWorkspaceMaintenanceSettings(
+  workspaceId: string
+): Promise<MaintenanceSettings> {
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.id, workspaceId),
+    columns: {
+      settings: true,
+    },
+  });
+
+  const workspaceSettings = workspace?.settings?.maintenance;
+
+  // Merge with defaults (workspace settings override defaults)
+  return {
+    ...DEFAULT_MAINTENANCE_SETTINGS,
+    ...workspaceSettings,
+  };
+}
+
+/**
+ * Find multiple best matching projects for a signal vector.
+ * Used for cleanup agent suggestions (MAINT-01).
+ *
+ * @param workspaceId - Workspace to search
+ * @param signalVector - Signal embedding vector
+ * @param limit - Number of matches to return (default: 3)
+ * @returns Array of matching projects with similarity scores
+ */
+export async function findBestProjectMatches(
+  workspaceId: string,
+  signalVector: number[],
+  limit = 3
+): Promise<Array<{
+  id: string;
+  name: string;
+  description: string | null;
+  stage: string;
+  similarity: number;
+}>> {
+  const vectorStr = `[${signalVector.join(",")}]`;
+
+  const result = await db.execute(sql`
+    SELECT
+      id,
+      name,
+      description,
+      stage,
+      1 - (embedding_vector <=> ${vectorStr}::vector) AS similarity
+    FROM projects
+    WHERE workspace_id = ${workspaceId}
+      AND embedding_vector IS NOT NULL
+      AND status = 'active'
+    ORDER BY embedding_vector <=> ${vectorStr}::vector
+    LIMIT ${limit}
+  `);
+
+  return result.rows.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    name: row.name as string,
+    description: row.description as string | null,
+    stage: row.stage as string,
+    similarity: row.similarity as number,
+  }));
 }

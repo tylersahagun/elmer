@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { CommandExecutionPanel } from "@/components/commands";
 import { PrototypeFeedbackPanel } from "@/components/prototypes";
+import { LinkedSignalsSection } from "@/components/projects/LinkedSignalsSection";
+import { SignalPickerModal } from "@/components/projects/SignalPickerModal";
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -39,6 +41,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [isSignalPickerOpen, setIsSignalPickerOpen] = useState(false);
 
   // Fetch project data
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -168,6 +171,19 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
               </Badge>
             </div>
           </Window>
+        </motion.div>
+
+        {/* Linked Signals Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <LinkedSignalsSection
+            projectId={projectId}
+            workspaceId={project.workspaceId}
+            onOpenPicker={() => setIsSignalPickerOpen(true)}
+          />
         </motion.div>
 
         {/* Tabs */}
@@ -362,6 +378,17 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
           projectId={projectId}
           workspaceId={project.workspaceId}
           onSuccess={handleUploadSuccess}
+        />
+      )}
+
+      {/* Signal Picker Modal */}
+      {project?.workspaceId && (
+        <SignalPickerModal
+          isOpen={isSignalPickerOpen}
+          onClose={() => setIsSignalPickerOpen(false)}
+          projectId={projectId}
+          projectName={project.name}
+          workspaceId={project.workspaceId}
         />
       )}
     </div>

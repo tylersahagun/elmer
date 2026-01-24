@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProjects, createProject, getWorkspace, createJob } from "@/lib/db/queries";
+import { getProjectsWithCounts, createProject, getWorkspace, createJob } from "@/lib/db/queries";
 import { buildFeatureBranchName } from "@/lib/git/branches";
+import {
+  requireWorkspaceAccess,
+  handlePermissionError,
+  PermissionError,
+} from "@/lib/permissions";
+import { logProjectCreated } from "@/lib/activity";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,9 +21,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const projects = await getProjects(workspaceId, { includeArchived });
+    // Require viewer access to list projects
+    await requireWorkspaceAccess(workspaceId, "viewer");
+
+    const projects = await getProjectsWithCounts(workspaceId, { includeArchived });
     return NextResponse.json(projects);
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to get projects:", error);
     return NextResponse.json(
       { error: "Failed to get projects" },
@@ -37,6 +50,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Require member access to create projects
+    const membership = await requireWorkspaceAccess(workspaceId, "member");
 
     const workspace = await getWorkspace(workspaceId);
     if (!workspace) {
@@ -60,6 +76,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Log activity
+    if (project) {
+      await logProjectCreated(workspaceId, membership.userId, project.id, name);
+    }
+
     // Only create feature branch if setting is enabled AND workspace has a GitHub repo configured
     const shouldCreateBranch = workspace.settings?.autoCreateFeatureBranch ?? true;
     if (shouldCreateBranch && workspace.githubRepo) {
@@ -76,6 +97,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to create project:", error);
     return NextResponse.json(
       { error: "Failed to create project" },

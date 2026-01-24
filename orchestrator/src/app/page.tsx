@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Window, MiniWindow } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
@@ -9,6 +10,7 @@ import { CommandChip, CommandText, CommandCaret } from "@/components/chrome/Comm
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,25 +29,43 @@ import {
   Zap,
   FileText,
   Users,
+  LogIn,
+  UserPlus,
+  Shield,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WaveV4D, ElmerWordmark } from "@/components/brand/ElmerLogo";
+import Link from "next/link";
+import type { WorkspaceRole } from "@/lib/db/schema";
+
+interface WorkspaceWithRole {
+  id: string;
+  name: string;
+  description?: string | null;
+  role: WorkspaceRole;
+  updatedAt: string;
+}
 
 function HomeContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: session, status } = useSession();
   const [showNewWorkspace, setShowNewWorkspace] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
 
-  // Fetch workspaces
-  const { data: workspaces, isLoading } = useQuery({
+  // Fetch workspaces (only if authenticated)
+  const { data: workspaces, isLoading } = useQuery<WorkspaceWithRole[]>({
     queryKey: ["workspaces"],
     queryFn: async () => {
       const res = await fetch("/api/workspaces");
-      if (!res.ok) throw new Error("Failed to fetch workspaces");
+      if (!res.ok) {
+        if (res.status === 401) return [];
+        throw new Error("Failed to fetch workspaces");
+      }
       return res.json();
     },
+    enabled: status === "authenticated",
   });
 
   // Create workspace mutation
@@ -75,6 +95,23 @@ function HomeContent() {
       description: newWorkspaceDescription.trim() || undefined,
     });
   };
+
+  const getRoleBadgeVariant = (role: WorkspaceRole) => {
+    switch (role) {
+      case "admin":
+        return "default";
+      case "member":
+        return "secondary";
+      case "viewer":
+        return "outline";
+      default:
+        return "secondary";
+    }
+  };
+
+  const isAuthenticated = status === "authenticated";
+  const isLoadingAuth = status === "loading";
+  const hasWorkspaces = workspaces && workspaces.length > 0;
 
   return (
     <div className="min-h-screen">
@@ -177,74 +214,135 @@ function HomeContent() {
           </MiniWindow>
         </div>
 
-        {/* Workspaces Section */}
-        <Window
-          title="ls ./workspaces/"
-          rightMeta={
-            <Button
-              size="sm"
-              className="h-8 sm:h-7 w-8 sm:w-auto px-0 sm:px-3 gap-1.5"
-              onClick={() => setShowNewWorkspace(true)}
-            >
-              <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden sm:inline">New</span>
-            </Button>
-          }
-          className="animate-fade-up stagger-2"
-        >
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
-              <span className="text-emerald-500">$</span>
-              <span>Select a workspace or create a new one</span>
+        {/* Auth Loading State */}
+        {isLoadingAuth && (
+          <Window
+            title="auth.ts"
+            className="animate-fade-up stagger-2"
+          >
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
+          </Window>
+        )}
 
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        {/* Unauthenticated State */}
+        {!isLoadingAuth && !isAuthenticated && (
+          <Window
+            title="auth.ts"
+            className="animate-fade-up stagger-2"
+          >
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                <Shield className="w-8 h-8 text-purple-500" />
               </div>
-            ) : workspaces && workspaces.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {workspaces.map((workspace: { id: string; name: string; description?: string; updatedAt: string }) => (
-                  <div
-                    key={workspace.id}
-                    className="group cursor-pointer rounded-2xl border border-[#B8C0CC] dark:border-white/[0.14] bg-[#F5F7FA] dark:bg-[#1A2332]/50 p-4 transition-all duration-200 hover:border-[#A0A8B4] dark:hover:border-white/20 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
-                    onClick={() => router.push(`/workspace/${workspace.id}`)}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                        <FolderOpen className="w-5 h-5 text-purple-500 dark:text-purple-400" />
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <h3 className="font-semibold mb-1">{workspace.name}</h3>
-                    {workspace.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {workspace.description}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-3 font-mono">
-                      Updated {new Date(workspace.updatedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
-                  <FolderOpen className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="font-semibold mb-2">No workspaces yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Create your first workspace to get started
-                </p>
-                <Button onClick={() => setShowNewWorkspace(true)} className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Create Workspace
+              <h3 className="font-semibold text-xl mb-2">Welcome to Elmer</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Sign in to access your workspaces and start building AI-powered product workflows.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Button asChild variant="outline" className="gap-2">
+                  <Link href="/login">
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </Link>
+                </Button>
+                <Button asChild className="gap-2">
+                  <Link href="/signup">
+                    <UserPlus className="w-4 h-4" />
+                    Create Account
+                  </Link>
                 </Button>
               </div>
-            )}
-          </div>
-        </Window>
+            </div>
+          </Window>
+        )}
+
+        {/* Authenticated: First-time User (No Workspaces) */}
+        {!isLoadingAuth && isAuthenticated && !isLoading && !hasWorkspaces && (
+          <Window
+            title="onboarding.ts"
+            className="animate-fade-up stagger-2"
+          >
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+                <Sparkles className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h3 className="font-semibold text-xl mb-2">
+                Welcome, {session?.user?.name || session?.user?.email?.split("@")[0]}!
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Create your first workspace to start managing your product workflows with AI assistance.
+              </p>
+              <Button onClick={() => setShowNewWorkspace(true)} className="gap-2" size="lg">
+                <Sparkles className="w-4 h-4" />
+                Create Your First Workspace
+              </Button>
+            </div>
+          </Window>
+        )}
+
+        {/* Authenticated: Has Workspaces */}
+        {!isLoadingAuth && isAuthenticated && (
+          <Window
+            title="ls ./workspaces/"
+            rightMeta={
+              <Button
+                size="sm"
+                className="h-8 sm:h-7 w-8 sm:w-auto px-0 sm:px-3 gap-1.5"
+                onClick={() => setShowNewWorkspace(true)}
+              >
+                <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">New</span>
+              </Button>
+            }
+            className="animate-fade-up stagger-2"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono">
+                <span className="text-emerald-500">$</span>
+                <span>Select a workspace or create a new one</span>
+              </div>
+
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : hasWorkspaces ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {workspaces.map((workspace) => (
+                    <div
+                      key={workspace.id}
+                      className="group cursor-pointer rounded-2xl border border-[#B8C0CC] dark:border-white/[0.14] bg-[#F5F7FA] dark:bg-[#1A2332]/50 p-4 transition-all duration-200 hover:border-[#A0A8B4] dark:hover:border-white/20 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                      onClick={() => router.push(`/workspace/${workspace.id}`)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                          <FolderOpen className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={getRoleBadgeVariant(workspace.role)} className="text-xs">
+                            {workspace.role}
+                          </Badge>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                      <h3 className="font-semibold mb-1">{workspace.name}</h3>
+                      {workspace.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {workspace.description}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-3 font-mono">
+                        Updated {new Date(workspace.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </Window>
+        )}
 
         {/* Footer */}
         <footer className="text-center py-8">

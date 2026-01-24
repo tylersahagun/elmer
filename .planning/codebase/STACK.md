@@ -80,8 +80,7 @@
 **Critical:**
 - @anthropic-ai/sdk 0.71.2 - Claude AI API integration (core to execution engine)
 - drizzle-orm 0.45.1 - Type-safe ORM for database queries
-- @neondatabase/serverless 1.0.2 - Neon serverless PostgreSQL driver (for production)
-- pg 8.17.1 - Node PostgreSQL driver (for local development)
+- pg 8.17.1 - Node PostgreSQL driver (local and production)
 
 **Infrastructure:**
 - nanoid 5.0.7 - Unique ID generation (for records, jobs)
@@ -106,13 +105,10 @@
 
 ## Database
 
-**Type:** PostgreSQL
+**Type:** PostgreSQL (with pgvector extension)
 **ORM:** Drizzle ORM 0.45.1
 
-**Multi-Driver Strategy:**
-- Auto-detects database type from URL
-- **Neon Serverless (production):** Uses `@neondatabase/serverless` HTTP driver, auto-detected when URL contains "neon.tech" or "neon.database"
-- **Local/Self-Hosted:** Uses standard `pg` driver for local development
+**Driver:** Standard `pg` driver for local PostgreSQL via Docker
 
 Schema location: `src/lib/db/schema.ts`
 Migrations location: `drizzle/` directory
@@ -122,17 +118,14 @@ Drizzle Studio: `npm run db:studio`
 
 ## Platform Requirements
 
-**Development:**
+**Development & Production (Self-Hosted):**
 - Node.js 18+ (Next.js 16 requirement)
-- npm or yarn
-- PostgreSQL 12+ (local Docker or Neon serverless)
-- Docker (optional, recommended for local PostgreSQL: `docker compose up -d`)
-
-**Production:**
-- Vercel (Next.js deployment target, evident from Neon serverless HTTP driver optimization for edge)
-- PostgreSQL 12+ (Neon recommended for serverless/edge compatibility)
+- npm
+- Docker (for PostgreSQL container)
+- PostgreSQL 16+ with pgvector extension (via Docker)
+- Cloudflare Tunnel (for public access at https://elmer.studio)
 - Anthropic API access (for Claude integration)
-- SkillsMP API access (for skills marketplace)
+- OpenAI API access (for embeddings)
 
 ## Scripts
 

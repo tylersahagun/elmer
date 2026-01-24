@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ProjectStage as ProjectStageType } from "./db/schema";
+import type { ProjectStage as ProjectStageType, SignalAutomationSettings } from "./db/schema";
 
 // ============================================
 // TYPES
@@ -17,6 +17,7 @@ export interface ProjectCard {
   // Computed/joined data
   documentCount?: number;
   prototypeCount?: number;
+  signalCount?: number;
   metadata?: {
     gitBranch?: string;
     baseBranch?: string;
@@ -105,6 +106,8 @@ export interface WorkspaceState {
     compactMode?: boolean;
     // Display Mode: "immersive" for glassmorphism/animations, "focus" for solid/clean UI
     displayMode?: "immersive" | "focus";
+    // Signal Automation Settings (Phase 19)
+    signalAutomation?: SignalAutomationSettings;
   };
 }
 

@@ -1,6 +1,9 @@
 import NextAuth from "next-auth"
 import { DrizzleAdapter } from "@auth/drizzle-adapter"
 import Google from "next-auth/providers/google"
+import Credentials from "next-auth/providers/credentials"
+import bcrypt from "bcryptjs"
+import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import {
   users,
@@ -25,7 +28,49 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-    // Credentials provider will be added in Phase 2
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        // Validate credentials exist
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        const email = credentials.email as string
+        const password = credentials.password as string
+
+        // Query user by email
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1)
+
+        // Return null if user not found or no passwordHash
+        if (!user || !user.passwordHash) {
+          return null
+        }
+
+        // Compare password with bcrypt
+        const passwordMatch = await bcrypt.compare(password, user.passwordHash)
+
+        if (!passwordMatch) {
+          return null
+        }
+
+        // Return user object on success
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        }
+      },
+    }),
   ],
   callbacks: {
     jwt: async ({ token, user }) => {

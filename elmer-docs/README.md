@@ -203,27 +203,17 @@ This ensures initiatives are well-formed before investing in PRDs or prototypes.
 
 ---
 
-## Hosted Deployment (Vercel)
+## Deployment
 
-The orchestrator can be deployed to Vercel, but the current implementation uses SQLite on disk. Vercel does **not** provide persistent local storage, so production hosting requires a hosted database.
+Elmer is self-hosted using:
+- **Database:** Local PostgreSQL via Docker (with pgvector extension)
+- **Hosting:** Cloudflare Tunnel exposing https://elmer.studio
+- **Prototypes:** Chromatic for Storybook hosting
 
-### Recommended Path
+See `DEPLOYMENT.md` in the repo root for full deployment instructions.
 
-1. **Move from SQLite to Postgres** (Neon or Supabase)
-   - Update the Drizzle adapter and connection in `orchestrator/src/lib/db/index.ts`.
-   - Re-run migrations against the hosted database.
-2. **Configure Environment Variables**
-   - `DATABASE_URL` for Postgres
-   - `ANTHROPIC_API_KEY`
-   - `NEXT_PUBLIC_APP_URL`
-3. **Deploy to Vercel**
-   - Connect the `orchestrator/` folder as the Vercel project root.
-   - Ensure serverless functions have access to the hosted database.
+**Note:** The site is only available when your Mac is running with all services active.
 
-### Notes
-
-- Storybook/prototypes should remain local or deployed separately (e.g., Chromatic).
-- File-based workflows (e.g., knowledge base files) should remain in the repo or move to an external storage bucket if used in production.
 - **Leadership quotes are in product-vision.md** - the AI will cite them when pushing back
 - Run `/save` often to back up your work
 - Run `/update` at the start of each day to get latest changes

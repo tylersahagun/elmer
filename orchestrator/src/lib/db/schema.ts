@@ -1,6 +1,31 @@
-import { pgTable, text, integer, real, timestamp, boolean, jsonb, unique, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, timestamp, boolean, jsonb, unique, primaryKey, customType } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { nanoid } from "nanoid";
+
+// ============================================
+// CUSTOM TYPES
+// ============================================
+
+// Custom type for pgvector vector columns (Phase 16)
+export const vector = customType<{
+  data: number[];
+  driverData: string;
+  config: { dimensions: number };
+}>({
+  dataType(config) {
+    return `vector(${config?.dimensions ?? 1536})`;
+  },
+  toDriver(value: number[]): string {
+    return `[${value.join(",")}]`;
+  },
+  fromDriver(value: string): number[] {
+    // Parse pgvector format: [0.1,0.2,0.3,...]
+    return value
+      .slice(1, -1)
+      .split(",")
+      .map((v) => parseFloat(v));
+  },
+});
 
 // ============================================
 // WORKSPACES
@@ -65,7 +90,97 @@ export interface WorkspaceSettings {
   verificationStrictness?: "strict" | "lenient" | "disabled"; // How to handle verification failures
   stateTrackingEnabled?: boolean; // Auto-generate state.md documents
   aiVerificationModel?: string; // Model for AI-based verification checks
+  // Signal Automation Settings (Phase 19)
+  signalAutomation?: SignalAutomationSettings;
+  // Maintenance Settings (Phase 20)
+  maintenance?: MaintenanceSettings;
 }
+
+// ============================================
+// SIGNAL AUTOMATION SETTINGS (Phase 19)
+// ============================================
+
+export type AutomationActionType = "initiative_created" | "prd_triggered" | "notification_sent";
+
+export interface SignalAutomationSettings {
+  // Automation depth: how much the system does automatically
+  automationDepth: "manual" | "suggest" | "auto_create" | "full_auto";
+
+  // Threshold for auto-PRD trigger (number of signals in cluster)
+  autoPrdThreshold: number;  // Default: 5
+
+  // Threshold for auto-initiative creation (cluster size)
+  autoInitiativeThreshold: number;  // Default: 3
+
+  // Minimum cluster confidence for automation (0-1)
+  minClusterConfidence: number;  // Default: 0.7
+
+  // Severity filter: only auto-act on signals at or above this severity
+  minSeverityForAuto: SignalSeverity | null;  // Default: null (any)
+
+  // Notification thresholds
+  notifyOnClusterSize: number | null;  // Only notify when cluster >= N signals
+  notifyOnSeverity: SignalSeverity | null;  // Only notify when severity >= X
+  suppressDuplicateNotifications: boolean;  // Don't notify for same cluster twice
+
+  // Rate limiting
+  maxAutoActionsPerDay: number;  // Default: 10
+  cooldownMinutes: number;  // Minutes between auto-actions on same cluster
+}
+
+export const DEFAULT_SIGNAL_AUTOMATION: SignalAutomationSettings = {
+  automationDepth: "suggest",
+  autoPrdThreshold: 5,
+  autoInitiativeThreshold: 3,
+  minClusterConfidence: 0.7,
+  minSeverityForAuto: null,
+  notifyOnClusterSize: 3,
+  notifyOnSeverity: null,
+  suppressDuplicateNotifications: true,
+  maxAutoActionsPerDay: 10,
+  cooldownMinutes: 60,
+};
+
+// ============================================
+// MAINTENANCE SETTINGS (Phase 20)
+// ============================================
+
+export interface MaintenanceSettings {
+  // Orphan detection
+  orphanThresholdDays: number;           // Days before unlinked signal is flagged (default: 14)
+  flagOrphansEnabled: boolean;           // Whether to detect orphans (default: true)
+
+  // Duplicate detection
+  duplicateDetectionEnabled: boolean;    // Whether to detect duplicates (default: true)
+  duplicateSimilarityThreshold: number;  // Cosine similarity threshold 0-1 (default: 0.9)
+
+  // Auto-archival
+  autoArchiveEnabled: boolean;           // Whether to auto-archive (default: false - conservative)
+  autoArchiveLinkedAfterDays: number;    // Archive linked signals after N days (default: 90)
+  autoArchiveReviewedAfterDays: number;  // Archive reviewed signals after N days (default: 30)
+
+  // Cleanup suggestions
+  suggestAssociationsEnabled: boolean;   // Whether to suggest links (default: true)
+  minSuggestionConfidence: number;       // Min confidence for suggestions (default: 0.6)
+
+  // Notifications
+  notifyOnOrphanThreshold: number | null; // Notify when orphan count >= N (default: 10)
+  notifyOnDuplicates: boolean;           // Notify when duplicates found (default: false)
+}
+
+export const DEFAULT_MAINTENANCE_SETTINGS: MaintenanceSettings = {
+  orphanThresholdDays: 14,
+  flagOrphansEnabled: true,
+  duplicateDetectionEnabled: true,
+  duplicateSimilarityThreshold: 0.9,
+  autoArchiveEnabled: false,
+  autoArchiveLinkedAfterDays: 90,
+  autoArchiveReviewedAfterDays: 30,
+  suggestAssociationsEnabled: true,
+  minSuggestionConfidence: 0.6,
+  notifyOnOrphanThreshold: 10,
+  notifyOnDuplicates: false,
+};
 
 // ============================================
 // USERS (Authentication)
@@ -194,6 +309,10 @@ export const projects = pgTable("projects", {
   metadata: jsonb("metadata").$type<ProjectMetadata>(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
+
+  // Embedding for signal classification (Phase 16)
+  embeddingVector: vector("embedding_vector", { dimensions: 1536 }),
+  embeddingUpdatedAt: timestamp("embedding_updated_at", { mode: "string" }),
 });
 
 export interface ProjectMetadata {
@@ -213,6 +332,10 @@ export interface ProjectMetadata {
       updatedAt: string;
     }
   >;
+  // Automation tracking (Phase 19)
+  autoCreated?: boolean;
+  sourceClusterId?: string;
+  clusterConfidence?: number;
 }
 
 // ============================================
@@ -404,7 +527,27 @@ export interface NotificationMetadata {
     name?: string;
   };
   context?: Record<string, unknown>;
+  // Signal automation fields (Phase 19)
+  clusterId?: string;
+  clusterSize?: number;
+  clusterSeverity?: SignalSeverity;
+  clusterTheme?: string;
+  suggestedAction?: "new_project" | "link_to_existing" | "review";
 }
+
+// ============================================
+// AUTOMATION ACTIONS (Signal Automation Tracking - Phase 19)
+// ============================================
+
+export const automationActions = pgTable("automation_actions", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  clusterId: text("cluster_id").notNull(),
+  actionType: text("action_type").$type<AutomationActionType>().notNull(),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  triggeredAt: timestamp("triggered_at").defaultNow().notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+});
 
 // ============================================
 // MEMORY ENTRIES
@@ -779,6 +922,14 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   members: many(workspaceMembers),
   invitations: many(invitations),
   activityLogs: many(activityLogs),
+  // Signals (Phase 11+)
+  signals: many(signals),
+  // Webhook keys (Phase 13+)
+  webhookKeys: many(webhookKeys),
+  // Integrations (Phase 14.6+)
+  integrations: many(integrations),
+  // Automation Actions (Phase 19)
+  automationActions: many(automationActions),
 }));
 
 // ============================================
@@ -852,6 +1003,8 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   juryEvaluations: many(juryEvaluations),
   linearMapping: one(linearMappings),
   notifications: many(notifications),
+  // Signals (Phase 11+)
+  signalProjects: many(signalProjects),
 }));
 
 export const projectStagesRelations = relations(projectStages, ({ one }) => ({
@@ -1118,6 +1271,290 @@ export const inboxItemsRelations = relations(inboxItems, ({ one }) => ({
   }),
   assignedProject: one(projects, {
     fields: [inboxItems.assignedProjectId],
+    references: [projects.id],
+  }),
+}));
+
+// ============================================
+// SIGNALS (User Feedback Evidence)
+// ============================================
+
+// Union types (not PostgreSQL enums - extensible without migrations)
+export type SignalStatus = "new" | "reviewed" | "linked" | "archived";
+export type SignalSource = "webhook" | "upload" | "paste" | "video" | "slack" | "pylon" | "email" | "interview" | "other";
+export type SignalSeverity = "critical" | "high" | "medium" | "low";
+export type SignalFrequency = "common" | "occasional" | "rare";
+
+// Source metadata interface (flexible JSONB)
+export interface SignalSourceMetadata {
+  // Common fields
+  sourceUrl?: string;
+  sourceName?: string;
+  externalId?: string;
+
+  // Webhook-specific
+  webhookId?: string;
+  webhookName?: string;
+
+  // Video-specific
+  videoUrl?: string;
+  videoPlatform?: "youtube" | "loom";
+  videoTimestamp?: string;
+
+  // Slack-specific
+  channelId?: string;
+  channelName?: string;
+  messageTs?: string;
+  threadTs?: string;
+
+  // Pylon-specific
+  ticketId?: string;
+  ticketStatus?: string;
+  customerEmail?: string;
+
+  // Interview-specific
+  interviewDate?: string;
+  interviewee?: string;
+
+  // Raw data preservation
+  rawPayload?: Record<string, unknown>;
+}
+
+// AI classification interface (populated in Phase 15-16)
+export interface SignalClassification {
+  classifiedAt?: string;
+  projectMatches?: Array<{
+    projectId: string;
+    projectName: string;
+    confidence: number;
+    matchReason?: string;
+  }>;
+  isNewInitiative?: boolean;
+  suggestedInitiativeName?: string;
+  clusterId?: string;
+  clusterName?: string;
+}
+
+// Classification result from Phase 16 classifier (stored in signals.classification)
+export interface SignalClassificationResult {
+  projectId?: string;
+  projectName?: string;
+  confidence: number;
+  method: "embedding" | "llm" | "manual";
+  isNewInitiative?: boolean;
+  reason?: string;
+  classifiedAt: string;
+}
+
+export const signals = pgTable("signals", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+
+  // Core content
+  verbatim: text("verbatim").notNull(),           // Original user quote/feedback
+  interpretation: text("interpretation"),          // PM's "what this really means"
+
+  // Structured extraction (populated by AI in Phase 15)
+  severity: text("severity").$type<SignalSeverity>(),
+  frequency: text("frequency").$type<SignalFrequency>(),
+  userSegment: text("user_segment"),              // e.g., "enterprise", "SMB", "prosumer"
+
+  // Source attribution (SGNL-07)
+  source: text("source").$type<SignalSource>().notNull(),
+  sourceRef: text("source_ref"),                  // External reference (URL, ticket ID, etc.)
+  sourceMetadata: jsonb("source_metadata").$type<SignalSourceMetadata>(),
+
+  // Status tracking (SGNL-08)
+  status: text("status").$type<SignalStatus>().notNull().default("new"),
+
+  // AI processing fields (populated in Phase 15-16)
+  embedding: text("embedding"),                   // Vector embedding (base64) - deprecated, use embeddingVector
+  aiClassification: jsonb("ai_classification").$type<SignalClassification>(),
+
+  // Native pgvector column (Phase 16 - for similarity search)
+  embeddingVector: vector("embedding_vector", { dimensions: 1536 }),
+
+  // Classification metadata (Phase 16)
+  classification: jsonb("classification").$type<SignalClassificationResult>(),
+
+  // Provenance (for Phase 18)
+  inboxItemId: text("inbox_item_id").references(() => inboxItems.id, { onDelete: "set null" }),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),         // When AI extraction completed
+
+  // Suggestion dismissal tracking (Phase 17)
+  suggestionDismissedAt: timestamp("suggestion_dismissed_at"),
+  suggestionDismissedBy: text("suggestion_dismissed_by").references(() => users.id, { onDelete: "set null" }),
+});
+
+// ============================================
+// SIGNAL ASSOCIATIONS (Junction Tables)
+// ============================================
+
+export const signalProjects = pgTable("signal_projects", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  signalId: text("signal_id").notNull().references(() => signals.id, { onDelete: "cascade" }),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  linkedAt: timestamp("linked_at").defaultNow().notNull(),
+  linkedBy: text("linked_by").references(() => users.id, { onDelete: "set null" }),
+  linkReason: text("link_reason"),    // Why this signal relates to this project
+  confidence: real("confidence"),      // AI confidence score (0-1) if auto-linked
+}, (table) => ({
+  uniqueSignalProject: unique().on(table.signalId, table.projectId),
+}));
+
+export const signalPersonas = pgTable("signal_personas", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  signalId: text("signal_id").notNull().references(() => signals.id, { onDelete: "cascade" }),
+  personaId: text("persona_id").notNull(),  // References persona archetype name (not FK)
+  linkedAt: timestamp("linked_at").defaultNow().notNull(),
+  linkedBy: text("linked_by").references(() => users.id, { onDelete: "set null" }),
+}, (table) => ({
+  uniqueSignalPersona: unique().on(table.signalId, table.personaId),
+}));
+
+// ============================================
+// SIGNAL RELATIONS
+// ============================================
+
+export const signalsRelations = relations(signals, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [signals.workspaceId],
+    references: [workspaces.id],
+  }),
+  inboxItem: one(inboxItems, {
+    fields: [signals.inboxItemId],
+    references: [inboxItems.id],
+  }),
+  projects: many(signalProjects),
+  personas: many(signalPersonas),
+}));
+
+export const signalProjectsRelations = relations(signalProjects, ({ one }) => ({
+  signal: one(signals, {
+    fields: [signalProjects.signalId],
+    references: [signals.id],
+  }),
+  project: one(projects, {
+    fields: [signalProjects.projectId],
+    references: [projects.id],
+  }),
+  linkedByUser: one(users, {
+    fields: [signalProjects.linkedBy],
+    references: [users.id],
+  }),
+}));
+
+export const signalPersonasRelations = relations(signalPersonas, ({ one }) => ({
+  signal: one(signals, {
+    fields: [signalPersonas.signalId],
+    references: [signals.id],
+  }),
+  linkedByUser: one(users, {
+    fields: [signalPersonas.linkedBy],
+    references: [users.id],
+  }),
+}));
+
+// ============================================
+// WEBHOOK KEYS (Authentication for External Integrations)
+// ============================================
+
+export const webhookKeys = pgTable("webhook_keys", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),                    // "Ask Elephant", "Zapier", etc.
+  apiKey: text("api_key").notNull().unique(),      // For simple X-API-Key auth
+  secret: text("secret").notNull(),                // For HMAC signature verification
+  isActive: boolean("is_active").default(true),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+});
+
+// Relations
+export const webhookKeysRelations = relations(webhookKeys, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [webhookKeys.workspaceId],
+    references: [workspaces.id],
+  }),
+  creator: one(users, {
+    fields: [webhookKeys.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// ============================================
+// INTEGRATIONS (Third-Party Platform Credentials)
+// ============================================
+
+export type IntegrationPlatform = "pylon" | "slack";
+
+export interface IntegrationConfig {
+  // Slack: which channels to listen to
+  slackChannels?: Array<{ id: string; name: string }>;
+  // Pylon: which ticket events to capture
+  pylonEvents?: Array<"issue.created" | "issue.updated" | "issue.closed">;
+}
+
+export const integrations = pgTable("integrations", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+
+  // Integration identification
+  platform: text("platform").$type<IntegrationPlatform>().notNull(),
+  name: text("name").notNull(),                    // User-friendly name like "Support Channel"
+
+  // Credential fields
+  webhookSecret: text("webhook_secret"),           // Pylon webhook secret, Slack signing secret
+  accessToken: text("access_token"),               // Slack xoxb-* bot token, null for Pylon
+  refreshToken: text("refresh_token"),             // Slack token rotation, null for Pylon
+  tokenExpiresAt: timestamp("token_expires_at"),   // Slack token expiry
+
+  // Slack-specific fields
+  slackTeamId: text("slack_team_id"),              // Slack workspace ID for team_id lookup
+  slackTeamName: text("slack_team_name"),          // Display name
+  slackBotUserId: text("slack_bot_user_id"),       // For filtering bot messages
+
+  // Pylon-specific fields
+  pylonAccountId: text("pylon_account_id"),        // Pylon account identifier
+
+  // Configuration
+  isActive: boolean("is_active").default(true),
+  config: jsonb("config").$type<IntegrationConfig>(),
+
+  // Metadata
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+});
+
+// Integrations Relations
+export const integrationsRelations = relations(integrations, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [integrations.workspaceId],
+    references: [workspaces.id],
+  }),
+  creator: one(users, {
+    fields: [integrations.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// ============================================
+// AUTOMATION ACTIONS RELATIONS (Phase 19)
+// ============================================
+
+export const automationActionsRelations = relations(automationActions, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [automationActions.workspaceId],
+    references: [workspaces.id],
+  }),
+  project: one(projects, {
+    fields: [automationActions.projectId],
     references: [projects.id],
   }),
 }));

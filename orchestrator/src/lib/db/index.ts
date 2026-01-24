@@ -88,3 +88,24 @@ export type NewKnowledgeSource = typeof schema.knowledgeSources.$inferInsert;
 
 export type PrototypeVersion = typeof schema.prototypeVersions.$inferSelect;
 export type NewPrototypeVersion = typeof schema.prototypeVersions.$inferInsert;
+
+// Signal types (Phase 11+)
+export type Signal = typeof schema.signals.$inferSelect;
+export type NewSignal = typeof schema.signals.$inferInsert;
+
+export type SignalProject = typeof schema.signalProjects.$inferSelect;
+export type NewSignalProject = typeof schema.signalProjects.$inferInsert;
+
+export type SignalPersona = typeof schema.signalPersonas.$inferSelect;
+export type NewSignalPersona = typeof schema.signalPersonas.$inferInsert;
+
+// Webhook Keys
+export type WebhookKey = typeof schema.webhookKeys.$inferSelect;
+export type NewWebhookKey = typeof schema.webhookKeys.$inferInsert;
+
+// Integrations (Phase 14.6+)
+export type Integration = typeof schema.integrations.$inferSelect;
+export type NewIntegration = typeof schema.integrations.$inferInsert;
+
+// Re-export integration types from schema
+export type { IntegrationPlatform, IntegrationConfig } from "./schema";

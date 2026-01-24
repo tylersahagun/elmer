@@ -1,18 +1,29 @@
-# Elmer Multi-User Collaboration
+# Elmer PM Orchestration Platform
 
 ## What This Is
 
-A multi-user authentication and workspace collaboration system for elmer, transforming it from a single-user PM orchestrator into a team collaboration platform. Users can sign up with Gmail OAuth or email/password, create workspaces for their product initiatives, and invite teammates to collaborate with role-based permissions (Admin/Member/Viewer).
+A PM orchestration platform that captures user feedback from multiple sources, auto-triages signals to projects, finds patterns across feedback, and maintains provenance so every product decision traces back to user evidence. Built on a multi-user workspace foundation with role-based collaboration.
 
 ## Core Value
 
-Enable PM teams to collaborate on product initiatives in shared workspaces while maintaining clear ownership, audit trails, and permission controls. Every user should be able to invite collaborators and start working together within minutes of signing up.
+Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?" Signals flow in, get processed, route to projects, and become the provenance chain for PRDs and prototypes.
+
+## Current Milestone: v1.1 Signals System
+
+**Goal:** Build a signal ingestion and intelligence layer that transforms the inbox into a processing queue for user feedback, auto-classifies and routes signals to projects, and synthesizes patterns to propose new initiatives.
+
+**Target features:**
+- Inbox redesign as signal processing queue
+- Multi-source ingestion (webhooks, upload, paste, video links)
+- Auto-triage: existing project vs new initiative
+- Signal clustering and synthesis (`/synthesize`)
+- Signal → project linking with provenance
 
 ## Requirements
 
 ### Validated
 
-<!-- Existing elmer capabilities that work today -->
+<!-- Shipped capabilities -->
 
 - ✓ Kanban board with 11 workflow stages (inbox → discovery → PRD → design → prototype → validate → tickets → build → alpha → beta → GA) — existing
 - ✓ Project management (create, update, delete, stage transitions) — existing
@@ -25,78 +36,50 @@ Enable PM teams to collaborate on product initiatives in shared workspaces while
 - ✓ Background worker system for async jobs — existing
 - ✓ Knowledge base sync for workspace context — existing
 - ✓ Stage automation with configurable recipes — existing
+- ✓ Email/password authentication — v1.0
+- ✓ Session management with JWT — v1.0
+- ✓ User-owned workspaces with switcher — v1.0
+- ✓ Invitation system with magic links — v1.0
+- ✓ Role-based access control (Admin/Member/Viewer) — v1.0
+- ✓ Activity logging and audit trail — v1.0
+- ✓ Data migration for existing workspaces — v1.0
 
 ### Active
 
-<!-- New capabilities for multi-user collaboration -->
+<!-- v1.1 Signals System -->
 
-**Authentication:**
-- [ ] Gmail OAuth login (Google sign-in button)
-- [ ] Email/password signup and login
-- [ ] Password reset via email link
-- [ ] Session management across browser refresh
-- [ ] Email verification for new accounts
-- [ ] Secure password hashing and storage
+**Signal Ingestion (Layer 1):**
+- [ ] Inbox redesign as signal processing queue (not project queue)
+- [ ] Webhook endpoint to receive signals from external sources
+- [ ] File upload for documents, transcripts
+- [ ] Paste text/transcript directly
+- [ ] Video link input (YouTube, Loom, etc.)
+- [ ] Signal schema: source, verbatim, interpretation, severity, frequency, related_initiative
+- [ ] Signal storage in database with workspace association
 
-**User Management:**
-- [ ] User profile creation (name, email, avatar)
-- [ ] User settings page (edit profile, change password)
-- [ ] Account creation flow with onboarding
-- [ ] First-time user creates initial workspace
+**Signal Intelligence (Layer 2):**
+- [ ] Auto-classify: "this belongs to Project X" vs "this is new"
+- [ ] Extract structured signal data from raw input
+- [ ] Cluster related signals by topic/theme
+- [ ] Frequency and severity ranking across signals
+- [ ] `/ingest` command to process raw input into structured signal
+- [ ] `/synthesize` command to find patterns and propose initiatives
 
-**Workspace Ownership:**
-- [ ] User-owned workspaces (user creates and owns workspace)
-- [ ] Workspace switcher dropdown (Notion-style, in header)
-- [ ] Create new workspace from switcher
-- [ ] Rename/delete owned workspaces
-- [ ] Workspace member list display
-
-**Invitation System:**
-- [ ] Email invitation with role selection (Admin/Member/Viewer)
-- [ ] Magic link generation for invite acceptance
-- [ ] Invite email sending (with workspace context)
-- [ ] One-click join via magic link (auto-creates account if needed)
-- [ ] Share button in workspace UI (opens invite modal)
-- [ ] Pending invitations list and management
-- [ ] Revoke invitations before acceptance
-
-**Role-Based Access Control:**
-- [ ] Admin role: Full access, can invite, configure workspace, manage members
-- [ ] Member role: View and edit projects, trigger jobs, create documents
-- [ ] Viewer role: Read-only access to projects and documents
-- [ ] Permission enforcement in API routes
-- [ ] Permission checks in UI (hide/disable unauthorized actions)
-- [ ] Workspace collaborator list with roles displayed
-
-**Activity Logging:**
-- [ ] Audit trail of workspace actions (who did what, when)
-- [ ] Activity feed in workspace settings
-- [ ] Log key events: project created, stage changed, job triggered, member invited, role changed
-- [ ] Activity timestamps and actor attribution
-
-**Data Migration:**
-- [ ] Assign all existing workspaces to first authenticated user
-- [ ] Assign all existing projects to workspace owners
-- [ ] Migration script for existing data
-- [ ] Backfill actor attribution in transition events
-
-**Testing:**
-- [ ] Unit tests for authentication flows
-- [ ] Integration tests for invitation system
-- [ ] Permission enforcement tests (API and UI)
-- [ ] Activity logging tests
-- [ ] Migration script tests
+**Signal → Project Integration (Layer 3):**
+- [ ] Signals visible on project page as linked evidence
+- [ ] "Signals that informed this project" section
+- [ ] Signals can trigger PRD iteration/refinement
+- [ ] Provenance chain: trace PRD decisions to source signals
+- [ ] Create new project from clustered signals
 
 ### Out of Scope
 
-- Magic link authentication for general login — Only for invite acceptance; users still need email/password or OAuth for regular login
-- Project-level permissions within workspace — All workspace members see all projects; roles control actions, not visibility
-- Public workspaces or guest access — All workspaces are private; collaboration requires explicit email invitation
-- SSO/SAML enterprise auth — v1 focused on Gmail OAuth + email/password
-- User-to-user direct messaging — Use external communication tools
-- Notification preferences — All users receive standard email notifications
-- Workspace templates or cloning — Each workspace created fresh
-- Granular permission customization — Three roles only (Admin/Member/Viewer), no custom permissions
+- Audio/video transcription — handled externally by Ask Elephant, elmer receives pre-transcribed text
+- Pylon ticket integration — nice-to-have for future, not v1.1
+- Real-time signal processing — batch processing is sufficient
+- Google OAuth login — paused from v1.0, can enable later
+- Password reset via email — paused from v1.0, needs email service
+- Email sending for invitations — paused from v1.0, links shared manually
 
 ## Context
 
@@ -110,44 +93,45 @@ Elmer is a fully functional PM orchestration tool with:
 - Background job system with retry logic and progress tracking
 - Configurable automation per workflow stage
 
-**Current State:**
-- Single-user/single-tenant deployment (no auth, no user accounts)
-- Workspaces exist as configuration containers but aren't owned
-- Projects track actor as simple text ("user", "automation", "worker:{id}")
-- Database has no `users` table or authentication system
-- Designed for solo PM or small team sharing the same instance
+**Current State (after v1.0):**
+- Multi-user authentication with email/password
+- User-owned workspaces with invitation system
+- Role-based permissions (Admin/Member/Viewer)
+- Activity logging for audit trail
+- Inbox currently creates projects directly (not signals)
 
-**Why Multi-User:**
-- Enable team collaboration on product initiatives
-- Allow PMs to invite designers, engineers, stakeholders
-- Provide audit trail of who made decisions
-- Support multiple independent workspaces per user
-- Make elmer shareable like Notion or Figma
+**Why Signals:**
+- User feedback comes from many sources (Ask Elephant transcripts, documents, conversations)
+- Currently: manual process to extract insights and create projects
+- Goal: automate ingestion, classification, routing, and pattern finding
+- Every PRD should trace back to the user evidence that sparked it
 
-**Migration Challenge:**
-Existing production data (workspaces, projects, documents) needs to be owned by someone when multi-user launches. Strategy: First user to authenticate becomes owner of all existing data.
+**Integration Points:**
+- Ask Elephant sends webhooks with transcripts
+- Signals land in inbox, get processed, route to projects
+- Projects accumulate signals as evidence over time
 
 ## Constraints
 
 - **Tech Stack**: Must use existing elmer stack (TypeScript, Next.js 16, React 19, PostgreSQL, Drizzle ORM)
-- **Deployment**: Must work with current hosting setup (Vercel + Neon Postgres serverless)
-- **Database**: Extend existing Drizzle schema, maintain backward compatibility during migration
+- **Deployment**: Self-hosted via local PostgreSQL (Docker) + Cloudflare Tunnel (https://elmer.studio)
+- **Database**: Extend existing Drizzle schema for signals table; pgvector extension required
 - **UI Framework**: Use existing Radix UI + Tailwind CSS v4 for consistency
-- **Email Delivery**: Need email service for invites and password resets (e.g., Resend, SendGrid, or similar)
-- **Session Security**: HTTPOnly cookies with secure flags, CSRF protection for auth flows
+- **External Transcription**: Elmer does not transcribe — receives pre-transcribed text
+- **Webhook Security**: Webhooks should be authenticated (API key or signature verification)
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| User-owned workspaces | Matches Notion/Figma model where users create spaces and invite others | — Pending |
-| Gmail OAuth + Email/Password dual auth | OAuth for convenience, email/password as fallback for non-Google users | — Pending |
-| Three-role permission model (Admin/Member/Viewer) | Simple enough to understand, covers 95% of collaboration patterns | — Pending |
-| Magic links for invites only | Reduces invite friction without complicating general authentication | — Pending |
-| All workspace members see all projects | Simpler data model, roles control permissions not visibility | — Pending |
-| First user owns all existing data | Clean migration path for brownfield deployment | — Pending |
-| Activity log for audit compliance | PM decisions need attribution, especially in regulated industries | — Pending |
-| No SSO in v1 | Gmail OAuth covers most users, enterprise SSO deferred to v2 | — Pending |
+| User-owned workspaces | Matches Notion/Figma model where users create spaces and invite others | ✓ Good |
+| Three-role permission model (Admin/Member/Viewer) | Simple enough to understand, covers 95% of collaboration patterns | ✓ Good |
+| Magic links for invites only | Reduces invite friction without complicating general authentication | ✓ Good |
+| First user owns all existing data | Clean migration path for brownfield deployment | ✓ Good |
+| Inbox becomes signal queue | Signals are the input, projects are the output — separates ingestion from creation | — Pending |
+| Pre-transcribed text only | Transcription handled by Ask Elephant, reduces complexity | — Pending |
+| Three-layer signal architecture | Ingestion → Intelligence → Integration allows incremental delivery | — Pending |
+| Provenance chain for PRDs | Every decision traces to user evidence — builds trust and audit capability | — Pending |
 
 ---
-*Last updated: 2026-01-21 after initialization*
+*Last updated: 2026-01-22 after v1.1 milestone initialization*

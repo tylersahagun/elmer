@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
+import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
 import { cn } from "@/lib/utils";
 import { Window } from "@/components/chrome/Window";
 import { StatusPill } from "@/components/chrome/StatusPill";
@@ -59,6 +60,9 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     workspaceId,
     enabled: !!workspaceId,
   });
+
+  // Get user's role in this workspace
+  const { isAdmin, canEdit } = useWorkspaceRole(workspaceId);
 
   // Handle navigation from notifications
   const handleNotificationNavigate = useCallback((url: string) => {
@@ -248,11 +252,13 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
                 align="end" 
                 className="w-56 rounded-2xl border-border dark:border-[rgba(255,255,255,0.14)]"
               >
-                {/* Primary Actions */}
-                <DropdownMenuItem onClick={openNewProjectModal} className="gap-2 font-mono text-sm">
-                  <Plus className="w-4 h-4 text-emerald-500" />
-                  <span>New Project</span>
-                </DropdownMenuItem>
+                {/* Primary Actions - only show if user can edit */}
+                {canEdit && (
+                  <DropdownMenuItem onClick={openNewProjectModal} className="gap-2 font-mono text-sm">
+                    <Plus className="w-4 h-4 text-emerald-500" />
+                    <span>New Project</span>
+                  </DropdownMenuItem>
+                )}
                 
                 <DropdownMenuSeparator />
                 
@@ -292,10 +298,13 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
                   AI Assistant
                 </DropdownMenuItem>
                 
-                <DropdownMenuItem onClick={openSettingsModal} className="gap-2">
-                  <Settings className="w-4 h-4" />
-                  Settings
-                </DropdownMenuItem>
+                {/* Settings - only show if user is admin */}
+                {isAdmin && (
+                  <DropdownMenuItem onClick={openSettingsModal} className="gap-2">
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </DropdownMenuItem>
+                )}
                 
                 <DropdownMenuSeparator />
                 
