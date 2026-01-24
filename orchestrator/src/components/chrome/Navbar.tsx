@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Sun, Moon, Globe, Menu, Home, BookOpen, Users, LogOut, User } from "lucide-react";
+import { Sun, Moon, Globe, Menu, Home, BookOpen, Users, LogOut, User, MessageSquare } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -159,6 +159,10 @@ export function SimpleNavbar({
   const isHomeActive = pathname === "/";
   const isKnowledgebaseActive = pathname?.includes("/knowledgebase");
   const isPersonasActive = pathname?.includes("/personas");
+  const isSignalsActive = pathname?.includes("/signals");
+
+  // Extract workspace ID from pathname if in workspace context
+  const workspaceId = pathname?.match(/\/workspace\/([^\/]+)/)?.[1];
 
   // Get user initials for avatar fallback
   const userInitials = session?.user?.name
@@ -240,7 +244,19 @@ export function SimpleNavbar({
                     Personas
                   </DropdownMenuItem>
                 </Link>
-                
+
+                {workspaceId && (
+                  <Link href={`/workspace/${workspaceId}/signals`} className="w-full">
+                    <DropdownMenuItem className={cn(
+                      "gap-2 font-mono text-sm",
+                      isSignalsActive && "bg-accent"
+                    )}>
+                      <MessageSquare className="w-4 h-4" />
+                      Signals
+                    </DropdownMenuItem>
+                  </Link>
+                )}
+
                 <DropdownMenuSeparator />
                 
                 <DropdownMenuItem 
