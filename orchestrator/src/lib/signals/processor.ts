@@ -18,6 +18,7 @@ import {
   embeddingToBase64,
 } from "@/lib/ai";
 import { classifySignal } from "@/lib/classification";
+import { checkSignalAutomationForNewSignal } from "@/lib/automation/signal-automation";
 
 /**
  * Process a single signal: extract fields and generate embedding.
@@ -87,6 +88,22 @@ export async function processSignalExtraction(signalId: string): Promise<void> {
         // Classification failure should not fail the overall processing
         console.error(`Classification failed for signal ${signalId}:`, classifyError);
       }
+    }
+
+    // Check if automation thresholds are now met (Phase 19)
+    // This runs after classification completes - failures don't break the pipeline
+    try {
+      // getSignal is already imported and used in this file
+      const signalForAutomation = await getSignal(signalId);
+      if (signalForAutomation) {
+        await checkSignalAutomationForNewSignal(
+          signalForAutomation.workspaceId,
+          signalId
+        );
+      }
+    } catch (autoError) {
+      // Automation check failure should not fail signal processing
+      console.error(`Automation check failed for signal ${signalId}:`, autoError);
     }
   } catch (error) {
     // Reset processedAt to allow retry
