@@ -1362,6 +1362,7 @@ export const signals = pgTable("signals", {
   // Source attribution (SGNL-07)
   source: text("source").$type<SignalSource>().notNull(),
   sourceRef: text("source_ref"),                  // External reference (URL, ticket ID, etc.)
+  sourceUrl: text("source_url"),                  // URL to original source (if applicable)
   sourceMetadata: jsonb("source_metadata").$type<SignalSourceMetadata>(),
 
   // Status tracking (SGNL-08)
@@ -1379,6 +1380,14 @@ export const signals = pgTable("signals", {
 
   // Provenance (for Phase 18)
   inboxItemId: text("inbox_item_id").references(() => inboxItems.id, { onDelete: "set null" }),
+
+  // Interview/research metadata (for webhook signals)
+  interviewDate: timestamp("interview_date"),     // When the interview/research occurred
+  interviewee: text("interviewee"),               // Who was interviewed
+  tags: jsonb("tags").$type<string[]>().default([]),  // Free-form tags
+
+  // Webhook tracking
+  webhookKeyId: text("webhook_key_id").references(() => webhookKeys.id, { onDelete: "set null" }),
 
   // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1428,6 +1437,10 @@ export const signalsRelations = relations(signals, ({ one, many }) => ({
   inboxItem: one(inboxItems, {
     fields: [signals.inboxItemId],
     references: [inboxItems.id],
+  }),
+  webhookKey: one(webhookKeys, {
+    fields: [signals.webhookKeyId],
+    references: [webhookKeys.id],
   }),
   projects: many(signalProjects),
   personas: many(signalPersonas),
