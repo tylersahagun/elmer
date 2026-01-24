@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 18 - Provenance & PRD Citation (In Progress)
+**Current focus:** Phase 18.1 - Wire Cluster-to-Project Creation (Not Started)
 
 ## Current Position
 
-Phase: 18 of 20 (Provenance & PRD Citation)
-Plan: 3 of 4 complete
-Status: In progress
-Last activity: 2026-01-24 - Completed 18-03-PLAN.md (Cluster-to-Project Creation)
+Phase: 18.1 of 20 (Gap Closure - Wire Cluster-to-Project Creation)
+Plan: 0 of TBD complete
+Status: Not started
+Last activity: 2026-01-23 - Added Phase 18.1 to close PROV-05 gap from Phase 18 verification
 
-Progress: [█████████░] 82%
+Progress: [█████████░] 84%
 
 ## Performance Metrics
 
@@ -25,7 +25,7 @@ Progress: [█████████░] 82%
 
 **Current Milestone (v1.1 Signals System):**
 - Total plans completed: 36
-- Phases: 10 (Phases 11-20)
+- Phases: 11 (Phases 11-20, including 18.1 gap closure)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
 - Phase 12.5: 4/4 plans complete (verified)
@@ -36,8 +36,8 @@ Progress: [█████████░] 82%
 - Phase 15: 3/3 plans complete (verified)
 - Phase 16: 3/3 plans complete (verified)
 - Phase 17: 4/4 plans complete (verified)
-- Phase 18: 3/3 plans complete (gaps found)
-- Phase 18: 3/4 plans complete
+- Phase 18: 3/3 plans complete (gaps found - PROV-05 blocked)
+- Phase 18.1: 0/TBD plans complete (gap closure phase)
 
 ## Accumulated Context
 
@@ -202,11 +202,12 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-24
-Stopped at: Completed 18-03-PLAN.md (Cluster-to-Project Creation)
+Last session: 2026-01-23
+Stopped at: Added Phase 18.1 gap closure phase
 Resume file: None
 Next steps:
-  - Continue Phase 18-04 (if exists - remaining PRD citation work)
+  - Plan Phase 18.1: `/gsd:plan-phase 18.1` (wire CreateProjectFromClusterModal to UI)
+  - After Phase 18.1 complete, re-verify Phase 18 to confirm PROV-05 satisfied
+  - Continue to Phase 19: Workflow Automation
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
-  - Run `npx drizzle-kit generate` for suggestion dismiss columns migration
