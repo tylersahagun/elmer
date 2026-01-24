@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,11 +17,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  ArrowLeft,
   Loader2,
   Save,
   Users,
-  Settings,
+  Settings as SettingsIcon,
   Shield,
   Eye,
   UserCircle,
@@ -30,12 +30,16 @@ import {
   CheckCircle,
   XCircle,
   Trash2,
+  Activity,
+  Bot,
+  Info,
 } from "lucide-react";
-import Link from "next/link";
+import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { InviteModal } from "@/components/invite-modal";
 import { ActivityFeed } from "@/components/activity-feed";
 import { MaintenanceSettingsPanel } from "@/components/settings/MaintenanceSettingsPanel";
-import type { WorkspaceRole, MaintenanceSettings } from "@/lib/db/schema";
+import { SignalAutomationSettingsPanel } from "@/components/settings/SignalAutomationSettings";
+import type { WorkspaceRole, MaintenanceSettings, SignalAutomationSettings } from "@/lib/db/schema";
 
 interface WorkspaceMember {
   id: string;
@@ -71,6 +75,7 @@ interface Workspace {
   description: string | null;
   settings?: {
     maintenance?: MaintenanceSettings;
+    signalAutomation?: SignalAutomationSettings;
   };
 }
 
@@ -83,6 +88,7 @@ export default function WorkspaceSettingsPage({
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceDescription, setWorkspaceDescription] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
 
@@ -127,7 +133,7 @@ export default function WorkspaceSettingsPage({
 
   // Update workspace mutation
   const updateWorkspace = useMutation({
-    mutationFn: async (data: { name: string }) => {
+    mutationFn: async (data: { name: string; description?: string }) => {
       const res = await fetch(`/api/workspaces/${workspaceId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -171,11 +177,15 @@ export default function WorkspaceSettingsPage({
 
   const handleSave = () => {
     if (!workspaceName.trim()) return;
-    updateWorkspace.mutate({ name: workspaceName.trim() });
+    updateWorkspace.mutate({
+      name: workspaceName.trim(),
+      description: workspaceDescription.trim() || undefined,
+    });
   };
 
   const handleStartEdit = () => {
     setWorkspaceName(workspace?.name || "");
+    setWorkspaceDescription(workspace?.description || "");
     setIsEditing(true);
   };
 
@@ -226,250 +236,301 @@ export default function WorkspaceSettingsPage({
 
   if (isLoadingWorkspace) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
+      <>
+        <SimpleNavbar path={`~/workspace/${workspaceId}/settings`} />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={`/workspace/${workspaceId}`}>
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Settings className="w-6 h-6" />
-              Workspace Settings
-            </h1>
-            <p className="text-muted-foreground">
-              Manage your workspace settings and members
-            </p>
-          </div>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => setShowInviteModal(true)} className="gap-2">
-            <UserPlus className="w-4 h-4" />
-            Invite Member
-          </Button>
-        )}
-      </div>
+    <div className="h-screen flex flex-col overflow-hidden">
+      <SimpleNavbar path={`~/workspace/${workspaceId}/settings`} />
 
-      {/* Workspace Details Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Workspace Details</CardTitle>
-          <CardDescription>
-            Basic information about this workspace
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="workspace-name">Workspace Name</Label>
-            {isEditing ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  id="workspace-name"
-                  value={workspaceName}
-                  onChange={(e) => setWorkspaceName(e.target.value)}
-                  className="max-w-md"
-                  autoFocus
-                />
-                <Button
-                  onClick={handleSave}
-                  disabled={!workspaceName.trim() || updateWorkspace.isPending}
-                  size="sm"
-                  className="gap-2"
-                >
-                  {updateWorkspace.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  Save
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsEditing(false)}
-                  size="sm"
-                >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-medium">{workspace?.name}</p>
-                {isAdmin && (
-                  <Button variant="ghost" size="sm" onClick={handleStartEdit}>
-                    Edit
-                  </Button>
-                )}
-              </div>
+      <main className="flex-1 min-h-0 overflow-auto">
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <SettingsIcon className="w-7 h-7" />
+                Workspace Settings
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Manage workspace configuration and team
+              </p>
+            </div>
+            {isAdmin && (
+              <Button onClick={() => setShowInviteModal(true)} className="gap-2">
+                <UserPlus className="w-4 h-4" />
+                Invite Member
+              </Button>
             )}
           </div>
 
-          {workspace?.description && (
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <p className="text-muted-foreground">{workspace.description}</p>
-            </div>
-          )}
+          {/* Tabs */}
+          <Tabs defaultValue="general" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+              <TabsTrigger value="general" className="gap-2">
+                <Info className="w-4 h-4" />
+                General
+              </TabsTrigger>
+              <TabsTrigger value="team" className="gap-2">
+                <Users className="w-4 h-4" />
+                Team
+              </TabsTrigger>
+              <TabsTrigger value="automation" className="gap-2">
+                <Bot className="w-4 h-4" />
+                Automation
+              </TabsTrigger>
+              <TabsTrigger value="activity" className="gap-2">
+                <Activity className="w-4 h-4" />
+                Activity
+              </TabsTrigger>
+            </TabsList>
 
-          {currentUserMembership && (
-            <div className="space-y-2">
-              <Label>Your Role</Label>
-              <Badge
-                variant={getRoleBadgeVariant(currentUserMembership.role)}
-                className="gap-1"
-              >
-                {getRoleIcon(currentUserMembership.role)}
-                {currentUserMembership.role}
-              </Badge>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Members Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Members
-          </CardTitle>
-          <CardDescription>
-            People who have access to this workspace
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoadingMembers ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : members && members.length > 0 ? (
-            <div className="space-y-3">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={member.user.image || undefined} />
-                      <AvatarFallback>
-                        {getInitials(member.user.name, member.user.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">
-                        {member.user.name || member.user.email.split("@")[0]}
-                        {member.userId === session?.user?.id && (
-                          <span className="text-muted-foreground ml-2">(you)</span>
+            {/* General Tab */}
+            <TabsContent value="general" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Workspace Details</CardTitle>
+                  <CardDescription>
+                    Basic information about this workspace
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="workspace-name">Workspace Name</Label>
+                    {isEditing ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="workspace-name"
+                          value={workspaceName}
+                          onChange={(e) => setWorkspaceName(e.target.value)}
+                          className="max-w-md"
+                          autoFocus
+                        />
+                        <Button
+                          onClick={handleSave}
+                          disabled={!workspaceName.trim() || updateWorkspace.isPending}
+                          size="sm"
+                          className="gap-2"
+                        >
+                          {updateWorkspace.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Save className="w-4 h-4" />
+                          )}
+                          Save
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setIsEditing(false)}
+                          size="sm"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-medium">{workspace?.name}</p>
+                        {isAdmin && (
+                          <Button variant="ghost" size="sm" onClick={handleStartEdit}>
+                            Edit
+                          </Button>
                         )}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {member.user.email}
-                      </p>
-                    </div>
+                      </div>
+                    )}
                   </div>
-                  <Badge
-                    variant={getRoleBadgeVariant(member.role)}
-                    className="gap-1"
-                  >
-                    {getRoleIcon(member.role)}
-                    {member.role}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-8">
-              No members found
-            </p>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Pending Invitations Card (Admin Only) */}
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="w-5 h-5" />
-              Pending Invitations
-            </CardTitle>
-            <CardDescription>
-              Invitations waiting to be accepted
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingInvitations ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : pendingInvitations.length > 0 ? (
-              <div className="space-y-3">
-                {pendingInvitations.map((invitation) => (
-                  <div
-                    key={invitation.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                        <Mail className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{invitation.email}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          {getStatusIcon(invitation.status)}
-                          Expires{" "}
-                          {new Date(invitation.expiresAt).toLocaleDateString()}
-                        </p>
-                      </div>
+                  {isEditing && (
+                    <div className="space-y-2">
+                      <Label htmlFor="workspace-description">Description (optional)</Label>
+                      <Input
+                        id="workspace-description"
+                        value={workspaceDescription}
+                        onChange={(e) => setWorkspaceDescription(e.target.value)}
+                        placeholder="A brief description of this workspace"
+                        className="max-w-md"
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
+                  )}
+
+                  {!isEditing && workspace?.description && (
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <p className="text-muted-foreground">{workspace.description}</p>
+                    </div>
+                  )}
+
+                  {currentUserMembership && (
+                    <div className="space-y-2">
+                      <Label>Your Role</Label>
                       <Badge
-                        variant={getRoleBadgeVariant(invitation.role)}
+                        variant={getRoleBadgeVariant(currentUserMembership.role)}
                         className="gap-1"
                       >
-                        {getRoleIcon(invitation.role)}
-                        {invitation.role}
+                        {getRoleIcon(currentUserMembership.role)}
+                        {currentUserMembership.role}
                       </Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => revokeInvitation.mutate(invitation.id)}
-                        disabled={revokeInvitation.isPending}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">
-                No pending invitations
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-      {/* Activity Feed */}
-      <ActivityFeed workspaceId={workspaceId} />
+            {/* Team Tab */}
+            <TabsContent value="team" className="space-y-6">
+              {/* Members Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Members
+                  </CardTitle>
+                  <CardDescription>
+                    People who have access to this workspace
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingMembers ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : members && members.length > 0 ? (
+                    <div className="space-y-3">
+                      {members.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={member.user.image || undefined} />
+                              <AvatarFallback>
+                                {getInitials(member.user.name, member.user.email)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">
+                                {member.user.name || member.user.email.split("@")[0]}
+                                {member.userId === session?.user?.id && (
+                                  <span className="text-muted-foreground ml-2">(you)</span>
+                                )}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {member.user.email}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge
+                            variant={getRoleBadgeVariant(member.role)}
+                            className="gap-1"
+                          >
+                            {getRoleIcon(member.role)}
+                            {member.role}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">
+                      No members found
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
 
-      {/* Maintenance Settings (Phase 20) */}
-      <MaintenanceSettingsPanel
-        workspaceId={workspaceId}
-        initialSettings={workspace?.settings?.maintenance}
-      />
+              {/* Pending Invitations Card (Admin Only) */}
+              {isAdmin && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Mail className="w-5 h-5" />
+                      Pending Invitations
+                    </CardTitle>
+                    <CardDescription>
+                      Invitations waiting to be accepted
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingInvitations ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : pendingInvitations.length > 0 ? (
+                      <div className="space-y-3">
+                        {pendingInvitations.map((invitation) => (
+                          <div
+                            key={invitation.id}
+                            className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                                <Mail className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <p className="font-medium">{invitation.email}</p>
+                                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                  {getStatusIcon(invitation.status)}
+                                  Expires{" "}
+                                  {new Date(invitation.expiresAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={getRoleBadgeVariant(invitation.role)}
+                                className="gap-1"
+                              >
+                                {getRoleIcon(invitation.role)}
+                                {invitation.role}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => revokeInvitation.mutate(invitation.id)}
+                                disabled={revokeInvitation.isPending}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        No pending invitations
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Automation Tab */}
+            <TabsContent value="automation" className="space-y-6">
+              <SignalAutomationSettingsPanel
+                workspaceId={workspaceId}
+                initialSettings={workspace?.settings?.signalAutomation}
+              />
+
+              <MaintenanceSettingsPanel
+                workspaceId={workspaceId}
+                initialSettings={workspace?.settings?.maintenance}
+              />
+            </TabsContent>
+
+            {/* Activity Tab */}
+            <TabsContent value="activity">
+              <ActivityFeed workspaceId={workspaceId} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
 
       {/* Invite Modal */}
       <InviteModal
