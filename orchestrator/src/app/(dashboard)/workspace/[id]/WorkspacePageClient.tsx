@@ -4,8 +4,17 @@ import { useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { useKanbanStore, useUIStore, type KanbanColumn, type ProjectCard } from "@/lib/store";
-import { KanbanBoard, WorkspaceSettingsModal, ArchivedProjectsModal } from "@/components/kanban";
+import {
+  useKanbanStore,
+  useUIStore,
+  type KanbanColumn,
+  type ProjectCard,
+} from "@/lib/store";
+import {
+  KanbanBoard,
+  WorkspaceSettingsModal,
+  ArchivedProjectsModal,
+} from "@/components/kanban";
 import { NewProjectDialog } from "@/components/kanban/NewProjectDialog";
 import { ProjectDetailModal } from "@/components/kanban/ProjectDetailModal";
 import { ChatSidebar } from "@/components/chat";
@@ -24,10 +33,10 @@ import { cn } from "@/lib/utils";
 import { Window } from "@/components/chrome/Window";
 import { StatusPill } from "@/components/chrome/StatusPill";
 import { useTheme } from "next-themes";
-import { 
-  Plus, 
-  Settings, 
-  MessageSquare, 
+import {
+  Plus,
+  Settings,
+  MessageSquare,
   Loader2,
   AlertCircle,
   Menu,
@@ -51,7 +60,9 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const storeWorkspace = useKanbanStore((s) => s.workspace);
   const openNewProjectModal = useUIStore((s) => s.openNewProjectModal);
   const openSettingsModal = useUIStore((s) => s.openSettingsModal);
-  const openArchivedProjectsModal = useUIStore((s) => s.openArchivedProjectsModal);
+  const openArchivedProjectsModal = useUIStore(
+    (s) => s.openArchivedProjectsModal,
+  );
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
 
@@ -65,12 +76,19 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const { isAdmin, canEdit } = useWorkspaceRole(workspaceId);
 
   // Handle navigation from notifications
-  const handleNotificationNavigate = useCallback((url: string) => {
-    router.push(url);
-  }, [router]);
+  const handleNotificationNavigate = useCallback(
+    (url: string) => {
+      router.push(url);
+    },
+    [router],
+  );
 
   // Fetch workspace data
-  const { data: workspace, isLoading: workspaceLoading, error: workspaceError } = useQuery({
+  const {
+    data: workspace,
+    isLoading: workspaceLoading,
+    error: workspaceError,
+  } = useQuery({
     queryKey: ["workspace", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/workspaces/${workspaceId}`);
@@ -80,7 +98,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   });
 
   // Fetch projects
-    const { data: projects, isLoading: projectsLoading } = useQuery({
+  const { data: projects, isLoading: projectsLoading } = useQuery({
     queryKey: ["projects", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/projects?workspaceId=${workspaceId}`);
@@ -89,7 +107,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     },
     enabled: !!workspace,
   });
-
 
   // Update store when data loads
   useEffect(() => {
@@ -105,41 +122,43 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
 
       // Set columns from workspace config
       if (workspace.columnConfigs) {
-        const columns: KanbanColumn[] = workspace.columnConfigs.map((c: {
-          id: string;
-          stage: string;
-          displayName: string;
-          color: string;
-          order: number;
-          enabled: boolean;
-          autoTriggerJobs?: string[];
-          humanInLoop?: boolean;
-          requiredDocuments?: string[];
-          requiredApprovals?: number;
-          rules?: {
-            contextPaths?: string[];
-            contextNotes?: string;
-            loopGroupId?: string;
-            loopTargets?: string[];
-            dependencyNotes?: string;
-          };
-        }) => ({
-          id: c.stage,
-          configId: c.id,
-          displayName: c.displayName,
-          color: c.color,
-          order: c.order,
-          enabled: c.enabled,
-          autoTriggerJobs: c.autoTriggerJobs,
-          humanInLoop: c.humanInLoop,
-          requiredDocuments: c.requiredDocuments,
-          requiredApprovals: c.requiredApprovals,
-          contextPaths: c.rules?.contextPaths,
-          contextNotes: c.rules?.contextNotes,
-          loopGroupId: c.rules?.loopGroupId,
-          loopTargets: c.rules?.loopTargets,
-          dependencyNotes: c.rules?.dependencyNotes,
-        }));
+        const columns: KanbanColumn[] = workspace.columnConfigs.map(
+          (c: {
+            id: string;
+            stage: string;
+            displayName: string;
+            color: string;
+            order: number;
+            enabled: boolean;
+            autoTriggerJobs?: string[];
+            humanInLoop?: boolean;
+            requiredDocuments?: string[];
+            requiredApprovals?: number;
+            rules?: {
+              contextPaths?: string[];
+              contextNotes?: string;
+              loopGroupId?: string;
+              loopTargets?: string[];
+              dependencyNotes?: string;
+            };
+          }) => ({
+            id: c.stage,
+            configId: c.id,
+            displayName: c.displayName,
+            color: c.color,
+            order: c.order,
+            enabled: c.enabled,
+            autoTriggerJobs: c.autoTriggerJobs,
+            humanInLoop: c.humanInLoop,
+            requiredDocuments: c.requiredDocuments,
+            requiredApprovals: c.requiredApprovals,
+            contextPaths: c.rules?.contextPaths,
+            contextNotes: c.rules?.contextNotes,
+            loopGroupId: c.rules?.loopGroupId,
+            loopTargets: c.rules?.loopTargets,
+            dependencyNotes: c.rules?.dependencyNotes,
+          }),
+        );
         setColumns(columns);
       }
     }
@@ -147,34 +166,36 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
 
   useEffect(() => {
     if (projects) {
-      const mappedProjects: ProjectCard[] = projects.map((p: {
-        id: string;
-        name: string;
-        description?: string;
-        stage: string;
-        status: string;
-        priority?: number;
-        createdAt: string;
-        updatedAt: string;
-        documents?: unknown[];
-        prototypes?: unknown[];
-        metadata?: {
-          gitBranch?: string;
-          baseBranch?: string;
-        };
-      }) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        stage: p.stage,
-        status: p.status,
-        priority: p.priority || 0,
-        createdAt: new Date(p.createdAt),
-        updatedAt: new Date(p.updatedAt),
-        documentCount: p.documents?.length || 0,
-        prototypeCount: p.prototypes?.length || 0,
-        metadata: p.metadata,
-      }));
+      const mappedProjects: ProjectCard[] = projects.map(
+        (p: {
+          id: string;
+          name: string;
+          description?: string;
+          stage: string;
+          status: string;
+          priority?: number;
+          createdAt: string;
+          updatedAt: string;
+          documents?: unknown[];
+          prototypes?: unknown[];
+          metadata?: {
+            gitBranch?: string;
+            baseBranch?: string;
+          };
+        }) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          stage: p.stage,
+          status: p.status,
+          priority: p.priority || 0,
+          createdAt: new Date(p.createdAt),
+          updatedAt: new Date(p.updatedAt),
+          documentCount: p.documents?.length || 0,
+          prototypeCount: p.prototypes?.length || 0,
+          metadata: p.metadata,
+        }),
+      );
       setProjects(mappedProjects);
     }
   }, [projects, setProjects]);
@@ -182,10 +203,10 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const isLoading = workspaceLoading || projectsLoading;
 
   // Check active state for nav items
-  const isKnowledgebaseActive = pathname?.includes('/knowledgebase');
-  const isPersonasActive = pathname?.includes('/personas');
+  const isKnowledgebaseActive = pathname?.includes("/knowledgebase");
+  const isPersonasActive = pathname?.includes("/personas");
+  const isSignalsActive = pathname?.includes("/signals");
   const isWorkspaceActive = !isKnowledgebaseActive && !isPersonasActive;
-
 
   if (workspaceError) {
     return (
@@ -195,9 +216,10 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Workspace Not Found</h2>
             <p className="text-muted-foreground mb-4 font-mono text-sm">
-              The workspace you&apos;re looking for doesn&apos;t exist or you don&apos;t have access.
+              The workspace you&apos;re looking for doesn&apos;t exist or you
+              don&apos;t have access.
             </p>
-            <Button onClick={() => window.location.href = "/"}>
+            <Button onClick={() => (window.location.href = "/")}>
               Go Home
             </Button>
           </div>
@@ -214,7 +236,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
           "sticky top-0 z-50 border-b",
           "bg-white/95 dark:bg-[#0B0F14]/95",
           "border-[#B8C0CC] dark:border-white/[0.14]",
-          "backdrop-blur-sm"
+          "backdrop-blur-sm",
         )}
       >
         <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
@@ -225,12 +247,19 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
             >
               <WaveV4D size={28} palette="forest" />
-              <ElmerWordmark width={64} height={20} palette="forest" className="hidden sm:block" />
+              <ElmerWordmark
+                width={64}
+                height={20}
+                palette="forest"
+                className="hidden sm:block"
+              />
             </button>
             <div className="h-4 w-px bg-[#B8C0CC] dark:bg-white/[0.14]" />
             <StatusPill status="ready" />
             <span className="hidden sm:block font-mono text-sm text-muted-foreground truncate max-w-[200px]">
-              ~/workspace/{storeWorkspace?.name?.toLowerCase().replace(/\s+/g, '-') || 'loading'}
+              ~/workspace/
+              {storeWorkspace?.name?.toLowerCase().replace(/\s+/g, "-") ||
+                "loading"}
             </span>
           </div>
 
@@ -241,78 +270,108 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               jobSummary={jobSummary}
               onNavigate={handleNotificationNavigate}
             />
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Menu className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
+              <DropdownMenuContent
+                align="end"
                 className="w-56 rounded-2xl border-border dark:border-[rgba(255,255,255,0.14)]"
               >
                 {/* Primary Actions - only show if user can edit */}
                 {canEdit && (
-                  <DropdownMenuItem onClick={openNewProjectModal} className="gap-2 font-mono text-sm">
+                  <DropdownMenuItem
+                    onClick={openNewProjectModal}
+                    className="gap-2 font-mono text-sm"
+                  >
                     <Plus className="w-4 h-4 text-emerald-500" />
                     <span>New Project</span>
                   </DropdownMenuItem>
                 )}
-                
+
                 <DropdownMenuSeparator />
-                
+
                 {/* Navigation */}
                 <Link href="/knowledgebase" className="w-full">
-                  <DropdownMenuItem className={cn(
-                    "gap-2 font-mono text-sm",
-                    isKnowledgebaseActive && "bg-accent"
-                  )}>
+                  <DropdownMenuItem
+                    className={cn(
+                      "gap-2 font-mono text-sm",
+                      isKnowledgebaseActive && "bg-accent",
+                    )}
+                  >
                     <span className="text-emerald-500">$</span>
                     <span>cd</span>
                     <span className="text-muted-foreground">/files</span>
                   </DropdownMenuItem>
                 </Link>
-                
+
                 <Link href="/personas" className="w-full">
-                  <DropdownMenuItem className={cn(
-                    "gap-2 font-mono text-sm",
-                    isPersonasActive && "bg-accent"
-                  )}>
+                  <DropdownMenuItem
+                    className={cn(
+                      "gap-2 font-mono text-sm",
+                      isPersonasActive && "bg-accent",
+                    )}
+                  >
                     <span className="text-emerald-500">$</span>
                     <span>ls</span>
                     <span className="text-muted-foreground">personas/</span>
                   </DropdownMenuItem>
                 </Link>
-                
+
+                <Link href={`/workspace/${workspaceId}/signals`} className="w-full">
+                  <DropdownMenuItem
+                    className={cn(
+                      "gap-2 font-mono text-sm",
+                      isSignalsActive && "bg-accent",
+                    )}
+                  >
+                    <span className="text-emerald-500">$</span>
+                    <span>cat</span>
+                    <span className="text-muted-foreground">signals/</span>
+                  </DropdownMenuItem>
+                </Link>
+
                 <DropdownMenuSeparator />
-                
+
                 {/* Utilities */}
-                <DropdownMenuItem onClick={openArchivedProjectsModal} className="gap-2">
+                <DropdownMenuItem
+                  onClick={openArchivedProjectsModal}
+                  className="gap-2"
+                >
                   <Archive className="w-4 h-4" />
                   Archived Projects
                 </DropdownMenuItem>
-                
+
                 <DropdownMenuItem onClick={toggleSidebar} className="gap-2">
                   <MessageSquare className="w-4 h-4" />
                   AI Assistant
                 </DropdownMenuItem>
-                
+
                 {/* Settings - only show if user is admin */}
                 {isAdmin && (
-                  <DropdownMenuItem onClick={openSettingsModal} className="gap-2">
+                  <DropdownMenuItem
+                    onClick={openSettingsModal}
+                    className="gap-2"
+                  >
                     <Settings className="w-4 h-4" />
                     Settings
                   </DropdownMenuItem>
                 )}
-                
+
                 <DropdownMenuSeparator />
-                
-                <DropdownMenuItem 
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
+
+                <DropdownMenuItem
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                   className="gap-2"
                 >
-                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {theme === "dark" ? (
+                    <Sun className="w-4 h-4" />
+                  ) : (
+                    <Moon className="w-4 h-4" />
+                  )}
                   {theme === "dark" ? "Light Mode" : "Dark Mode"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -329,7 +388,9 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             <div className="flex items-center justify-center h-[calc(100vh-57px)]">
               <div className="flex flex-col items-center gap-4">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                <p className="text-muted-foreground font-mono text-sm">Loading workspace...</p>
+                <p className="text-muted-foreground font-mono text-sm">
+                  Loading workspace...
+                </p>
               </div>
             </div>
           ) : (

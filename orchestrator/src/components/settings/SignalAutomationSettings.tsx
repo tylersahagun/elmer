@@ -36,6 +36,16 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Introduction */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Signal Automation</h3>
+        <p className="text-sm text-muted-foreground">
+          Configure how the system automatically processes and acts on incoming signals. 
+          Signals are user feedback, feature requests, and issues collected from various sources.
+          The automation can cluster similar signals and optionally create initiatives or trigger workflows.
+        </p>
+      </div>
+
       {/* Automation Depth */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
@@ -48,7 +58,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
             update("automationDepth", v as SignalAutomationSettings["automationDepth"])
           }
         >
-          <SelectTrigger className="bg-white/5 border-white/10">
+          <SelectTrigger className="bg-muted/30 border-border">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -84,7 +94,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
       </div>
 
       {/* Thresholds Section */}
-      <div className="space-y-4 pt-4 border-t border-white/10">
+      <div className="space-y-4 pt-4 border-t border-border">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-blue-500" />
           <h4 className="text-sm font-medium">Action Thresholds</h4>
@@ -97,7 +107,6 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
               type="number"
               min={2}
               max={20}
-              className="bg-white/5 border-white/10"
               value={settings.autoInitiativeThreshold}
               onChange={(e) => update("autoInitiativeThreshold", Number(e.target.value))}
             />
@@ -112,7 +121,6 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
               type="number"
               min={3}
               max={30}
-              className="bg-white/5 border-white/10"
               value={settings.autoPrdThreshold}
               onChange={(e) => update("autoPrdThreshold", Number(e.target.value))}
             />
@@ -152,7 +160,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
               update("minSeverityForAuto", v === "any" ? null : (v as SignalSeverity))
             }
           >
-            <SelectTrigger className="bg-white/5 border-white/10">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -167,7 +175,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
       </div>
 
       {/* Notification Settings */}
-      <div className="space-y-4 pt-4 border-t border-white/10">
+      <div className="space-y-4 pt-4 border-t border-border">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-purple-500" />
           <h4 className="text-sm font-medium">Notification Thresholds</h4>
@@ -180,7 +188,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
               type="number"
               min={1}
               max={20}
-              className="bg-white/5 border-white/10"
+              className="bg-muted/30 border-border"
               value={settings.notifyOnClusterSize ?? ""}
               placeholder="Any size"
               onChange={(e) =>
@@ -197,7 +205,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
                 update("notifyOnSeverity", v === "any" ? null : (v as SignalSeverity))
               }
             >
-              <SelectTrigger className="bg-white/5 border-white/10">
+              <SelectTrigger className="bg-muted/30 border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -211,14 +219,15 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
             <Label className="text-sm">Suppress Duplicate Notifications</Label>
             <p className="text-xs text-muted-foreground">
               Don't notify for same cluster within cooldown
             </p>
           </div>
           <Switch
+            className="shrink-0"
             checked={settings.suppressDuplicateNotifications}
             onCheckedChange={(v) => update("suppressDuplicateNotifications", v)}
           />
@@ -226,7 +235,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
       </div>
 
       {/* Rate Limiting */}
-      <div className="space-y-4 pt-4 border-t border-white/10">
+      <div className="space-y-4 pt-4 border-t border-border">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-green-500" />
           <h4 className="text-sm font-medium">Rate Limiting</h4>
@@ -239,7 +248,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
               type="number"
               min={1}
               max={100}
-              className="bg-white/5 border-white/10"
+              className="bg-muted/30 border-border"
               value={settings.maxAutoActionsPerDay}
               onChange={(e) => update("maxAutoActionsPerDay", Number(e.target.value))}
             />
@@ -251,7 +260,7 @@ export function SignalAutomationSettingsPanel({ settings, onChange }: Props) {
               type="number"
               min={5}
               max={1440}
-              className="bg-white/5 border-white/10"
+              className="bg-muted/30 border-border"
               value={settings.cooldownMinutes}
               onChange={(e) => update("cooldownMinutes", Number(e.target.value))}
             />

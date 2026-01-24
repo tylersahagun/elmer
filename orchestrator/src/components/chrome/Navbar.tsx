@@ -1,11 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useKanbanStore } from "@/lib/store";
 import { StatusPill } from "./StatusPill";
 import { CommandChip, CommandText } from "./CommandChip";
 import { WaveV4D, ElmerWordmark } from "../brand/ElmerLogo";
 import { Button } from "../ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Sun, Moon, Globe, Menu, Home, BookOpen, Users, LogOut, User, MessageSquare } from "lucide-react";
+import { Sun, Moon, Globe, Menu, LogOut, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -63,7 +63,7 @@ export function Navbar({
         "border-b border-[#B8C0CC] dark:border-white/[0.14]",
         "bg-white/95 dark:bg-[#0B0F14]/95",
         "backdrop-blur-sm",
-        className
+        className,
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -75,7 +75,12 @@ export function Navbar({
               className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
             >
               <WaveV4D size={28} palette="forest" />
-              <ElmerWordmark width={64} height={20} palette="forest" className="hidden sm:block" />
+              <ElmerWordmark
+                width={64}
+                height={20}
+                palette="forest"
+                className="hidden sm:block"
+              />
             </button>
             <div className="h-4 w-px bg-[#B8C0CC] dark:bg-white/[0.14]" />
             <StatusPill status="ready" />
@@ -94,10 +99,7 @@ export function Navbar({
                   active={cmd.active}
                   variant="outline"
                 >
-                  <CommandText
-                    command={cmd.command}
-                    args={cmd.args}
-                  />
+                  <CommandText command={cmd.command} args={cmd.args} />
                 </CommandChip>
               ))}
             </nav>
@@ -106,7 +108,7 @@ export function Navbar({
           {/* Right section: Theme toggle, Language, Custom */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {rightContent}
-            
+
             {showThemeToggle && (
               <CommandChip
                 variant="ghost"
@@ -154,6 +156,9 @@ export function SimpleNavbar({
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  
+  // Get stored workspace from store (persists across page navigation)
+  const storedWorkspace = useKanbanStore((s) => s.workspace);
 
   // Check active state for nav items
   const isHomeActive = pathname === "/";
@@ -161,16 +166,9 @@ export function SimpleNavbar({
   const isPersonasActive = pathname?.includes("/personas");
   const isSignalsActive = pathname?.includes("/signals");
 
-  // Extract workspace ID from pathname if in workspace context
-  const workspaceId = pathname?.match(/\/workspace\/([^\/]+)/)?.[1];
-
-  // Get user initials for avatar fallback
-  const userInitials = session?.user?.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || session?.user?.email?.[0]?.toUpperCase() || "U";
+  // Extract workspace ID from pathname, or fall back to stored workspace
+  const workspaceIdFromPath = pathname?.match(/\/workspace\/([^\/]+)/)?.[1];
+  const workspaceId = workspaceIdFromPath || storedWorkspace?.id;
 
   return (
     <header
@@ -179,7 +177,7 @@ export function SimpleNavbar({
         "border-b border-[#B8C0CC] dark:border-white/[0.14]",
         "bg-white/95 dark:bg-[#0B0F14]/95",
         "backdrop-blur-sm",
-        className
+        className,
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -191,7 +189,12 @@ export function SimpleNavbar({
               className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
             >
               <WaveV4D size={28} palette="forest" />
-              <ElmerWordmark width={64} height={20} palette="forest" className="hidden sm:block" />
+              <ElmerWordmark
+                width={64}
+                height={20}
+                palette="forest"
+                className="hidden sm:block"
+              />
             </button>
             <div className="h-4 w-px bg-[#B8C0CC] dark:bg-white/[0.14]" />
             <StatusPill status="ready" />
@@ -203,84 +206,107 @@ export function SimpleNavbar({
           {/* Right: Custom content + Hamburger Menu */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {rightContent}
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Menu className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
+              <DropdownMenuContent
+                align="end"
                 className="w-56 rounded-2xl border-border dark:border-[rgba(255,255,255,0.14)]"
               >
-                {/* Navigation */}
+                {/* Navigation - Terminal style */}
                 <Link href="/" className="w-full">
-                  <DropdownMenuItem className={cn(
-                    "gap-2",
-                    isHomeActive && "bg-accent"
-                  )}>
-                    <Home className="w-4 h-4" />
-                    Home
+                  <DropdownMenuItem
+                    className={cn(
+                      "gap-2 font-mono text-sm",
+                      isHomeActive && "bg-accent",
+                    )}
+                  >
+                    <span className="text-emerald-500">$</span>
+                    <span>cd</span>
+                    <span className="text-muted-foreground">~</span>
                   </DropdownMenuItem>
                 </Link>
-                
+
                 <Link href="/knowledgebase" className="w-full">
-                  <DropdownMenuItem className={cn(
-                    "gap-2 font-mono text-sm",
-                    isKnowledgebaseActive && "bg-accent"
-                  )}>
-                    <BookOpen className="w-4 h-4" />
-                    Knowledge Base
+                  <DropdownMenuItem
+                    className={cn(
+                      "gap-2 font-mono text-sm",
+                      isKnowledgebaseActive && "bg-accent",
+                    )}
+                  >
+                    <span className="text-emerald-500">$</span>
+                    <span>cd</span>
+                    <span className="text-muted-foreground">/files</span>
                   </DropdownMenuItem>
                 </Link>
-                
+
                 <Link href="/personas" className="w-full">
-                  <DropdownMenuItem className={cn(
-                    "gap-2 font-mono text-sm",
-                    isPersonasActive && "bg-accent"
-                  )}>
-                    <Users className="w-4 h-4" />
-                    Personas
+                  <DropdownMenuItem
+                    className={cn(
+                      "gap-2 font-mono text-sm",
+                      isPersonasActive && "bg-accent",
+                    )}
+                  >
+                    <span className="text-emerald-500">$</span>
+                    <span>ls</span>
+                    <span className="text-muted-foreground">personas/</span>
                   </DropdownMenuItem>
                 </Link>
 
                 {workspaceId && (
-                  <Link href={`/workspace/${workspaceId}/signals`} className="w-full">
-                    <DropdownMenuItem className={cn(
-                      "gap-2 font-mono text-sm",
-                      isSignalsActive && "bg-accent"
-                    )}>
-                      <MessageSquare className="w-4 h-4" />
-                      Signals
+                  <Link
+                    href={`/workspace/${workspaceId}/signals`}
+                    className="w-full"
+                  >
+                    <DropdownMenuItem
+                      className={cn(
+                        "gap-2 font-mono text-sm",
+                        isSignalsActive && "bg-accent",
+                      )}
+                    >
+                      <span className="text-emerald-500">$</span>
+                      <span>cat</span>
+                      <span className="text-muted-foreground">signals/</span>
                     </DropdownMenuItem>
                   </Link>
                 )}
 
                 <DropdownMenuSeparator />
-                
-                <DropdownMenuItem 
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")} 
+
+                <DropdownMenuItem
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                   className="gap-2"
                 >
-                  {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {theme === "dark" ? (
+                    <Sun className="w-4 h-4" />
+                  ) : (
+                    <Moon className="w-4 h-4" />
+                  )}
                   {theme === "dark" ? "Light Mode" : "Dark Mode"}
                 </DropdownMenuItem>
-                
+
                 <DropdownMenuSeparator />
-                
+
                 {/* Auth section */}
                 {status === "authenticated" && session?.user ? (
                   <>
                     <div className="px-2 py-1.5">
-                      <p className="text-sm font-medium truncate">{session.user.name || session.user.email}</p>
+                      <p className="text-sm font-medium truncate">
+                        {session.user.name || session.user.email}
+                      </p>
                       {session.user.name && session.user.email && (
-                        <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {session.user.email}
+                        </p>
                       )}
                     </div>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => signOut({ callbackUrl: "/login" })} 
+                    <DropdownMenuItem
+                      onClick={() => signOut({ callbackUrl: "/login" })}
                       className="gap-2 text-destructive focus:text-destructive"
                     >
                       <LogOut className="w-4 h-4" />
@@ -297,14 +323,6 @@ export function SimpleNavbar({
                 ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
-            
-            {/* User Avatar (when logged in) */}
-            {status === "authenticated" && session?.user && (
-              <Avatar className="h-8 w-8 border border-border">
-                <AvatarImage src={session.user.image || undefined} alt={session.user.name || "User"} />
-                <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
-              </Avatar>
-            )}
           </div>
         </div>
       </div>
