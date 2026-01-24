@@ -260,7 +260,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 18.1-01-PLAN.md — SignalClustersPanel component and signals page integration
+- [x] 18.1-01-PLAN.md — SignalClustersPanel component and signals page integration
 
 ---
 
@@ -273,10 +273,14 @@ Plans:
   2. System auto-triggers PRD generation when N+ signals cluster on unlinked topic
   3. Notifications only fire when configurable thresholds are met
   4. System auto-creates initiatives from signal clusters above threshold
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 19-01: TBD
+- [ ] 19-01-PLAN.md — Schema and types (SignalAutomationSettings, automationActions table)
+- [ ] 19-02-PLAN.md — Automation core (signal-automation, auto-actions, rate-limiter modules)
+- [ ] 19-03-PLAN.md — Notification threshold filtering
+- [ ] 19-04-PLAN.md — Event integration and cron endpoint
+- [ ] 19-05-PLAN.md — Settings UI (SignalAutomationSettingsPanel in workspace settings)
 
 ---
 
@@ -318,12 +322,12 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 16. Classification & Clustering | 3/3 | Complete | 2026-01-23 |
 | 17. Smart Association | 4/4 | Complete | 2026-01-23 |
 | 18. Provenance & PRD Citation | 3/3 | Gaps found | 2026-01-24 |
-| 18.1. Wire Cluster-to-Project Creation | 0/1 | Planned | - |
-| 19. Workflow Automation | 0/TBD | Not started | - |
+| 18.1. Wire Cluster-to-Project Creation | 1/1 | Complete | 2026-01-24 |
+| 19. Workflow Automation | 0/5 | Planned | - |
 | 20. Maintenance Agents | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-22*
-*Roadmap revised: 2026-01-24 (Phase 18.1 planned - 1 plan for gap closure)*
+*Roadmap revised: 2026-01-24 (Phase 19 planned - 5 plans in 3 waves)*
 *Milestone: v1.1 Signals System*
 *Phases: 11-20 (continues from v1.0)*
