@@ -35,6 +35,8 @@ export async function middleware(request: NextRequest) {
     "/signup",
     "/invite",
     "/api/auth",
+    "/api/webhooks",
+    "/api/cron",
   ];
 
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
