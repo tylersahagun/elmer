@@ -4,6 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { GitBranch, FolderOpen } from "lucide-react";
+import { GithubRepoSelector } from "./GithubRepoSelector";
+
+interface DetectedPath {
+  type: "context" | "prototypes";
+  path: string;
+}
 
 interface RepositorySettingsCardProps {
   githubRepo: string;
@@ -20,6 +26,9 @@ interface RepositorySettingsCardProps {
     repoPath: string | null;
     prototypesPath: string | null;
   } | null;
+  // Optional callbacks for auto-configuration
+  onContextPathDetected?: (path: string) => void;
+  onPrototypesPathDetected?: (path: string) => void;
 }
 
 export function RepositorySettingsCard({
@@ -34,7 +43,33 @@ export function RepositorySettingsCard({
   storybookPort,
   setStorybookPort,
   resolvedPaths,
+  onContextPathDetected,
+  onPrototypesPathDetected,
 }: RepositorySettingsCardProps) {
+  // Handle repo selection and auto-configure branch
+  const handleRepoChange = (value: string, repoDetails?: { defaultBranch?: string }) => {
+    setGithubRepo(value);
+    // Auto-set branch if repo provides default branch
+    if (repoDetails?.defaultBranch) {
+      setBaseBranch(repoDetails.defaultBranch);
+    }
+  };
+
+  // Handle detected paths from GitHub repo scan
+  const handlePathsDetected = (paths: DetectedPath[]) => {
+    for (const detected of paths) {
+      if (detected.type === "context" && onContextPathDetected) {
+        onContextPathDetected(detected.path);
+      } else if (detected.type === "prototypes") {
+        // Auto-fill prototypes path
+        setPrototypesPath(detected.path);
+        if (onPrototypesPathDetected) {
+          onPrototypesPathDetected(detected.path);
+        }
+      }
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -48,20 +83,21 @@ export function RepositorySettingsCard({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Repository Settings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="githubRepo">GitHub Repo Path</Label>
-            <Input
-              id="githubRepo"
-              placeholder="product-repos/ask-elephant"
+            <Label>GitHub Repository</Label>
+            <GithubRepoSelector
               value={githubRepo}
-              onChange={(e) => setGithubRepo(e.target.value)}
+              onChange={handleRepoChange}
+              onBranchChange={setBaseBranch}
+              onPathsDetected={handlePathsDetected}
+              placeholder="Select a repository"
             />
             {resolvedPaths?.repoPath && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
                 <FolderOpen className="w-3 h-3" />
                 <span className="font-mono truncate" title={resolvedPaths.repoPath}>
-                  {resolvedPaths.repoPath}
+                  Resolved: {resolvedPaths.repoPath}
                 </span>
               </div>
             )}
@@ -74,6 +110,9 @@ export function RepositorySettingsCard({
               value={baseBranch}
               onChange={(e) => setBaseBranch(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Auto-filled when selecting a repository from GitHub.
+            </p>
           </div>
         </div>
 

@@ -6,6 +6,7 @@ export { PinnedProjectsSection } from "./PinnedProjectsSection";
 export { ProjectDetailModal } from "./ProjectDetailModal";
 export { ArchivedProjectsModal } from "./ArchivedProjectsModal";
 export { JobStatusIndicator, JobStatusBadge } from "./JobStatusIndicator";
+export { WorkerHealthIndicator, WorkerStatusBadge } from "./WorkerHealthIndicator";
 export { AddDocumentDialog } from "./AddDocumentDialog";
 export { IterationLoopControls } from "./IterationLoopControls";
 export { IterationLoopOverlay } from "./IterationLoopOverlay";

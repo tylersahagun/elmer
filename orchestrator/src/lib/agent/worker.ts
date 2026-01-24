@@ -268,7 +268,13 @@ export class JobWorker {
     const workspace = await getWorkspace(job.workspaceId);
     const settings = workspace?.settings;
 
-    const aiExecutionMode = settings?.aiExecutionMode || "hybrid";
+    // Check workerEnabled first - if explicitly disabled, don't process
+    if (settings?.workerEnabled === false) {
+      return false;
+    }
+
+    // Default to "server" mode for immediate processing
+    const aiExecutionMode = settings?.aiExecutionMode || "server";
     const aiFallbackAfterMinutes = settings?.aiFallbackAfterMinutes ?? 30;
 
     // Server mode: always process

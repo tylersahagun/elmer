@@ -1,4 +1,5 @@
 export { RepositorySettingsCard } from "./RepositorySettingsCard";
+export { GithubRepoSelector, GithubConnectionBadge } from "./GithubRepoSelector";
 export { ContextPathsCard } from "./ContextPathsCard";
 export { GitAutomationCard } from "./GitAutomationCard";
 export { PipelineSettingsCard } from "./PipelineSettingsCard";

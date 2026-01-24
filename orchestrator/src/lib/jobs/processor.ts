@@ -89,7 +89,20 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
   }
 
   const workspace = await getWorkspace(job.workspaceId);
-  const aiExecutionMode = workspace?.settings?.aiExecutionMode || "hybrid";
+  
+  // Check workerEnabled first - if explicitly disabled, don't process
+  if (workspace?.settings?.workerEnabled === false) {
+    return {
+      jobId,
+      type: job.type,
+      status: "pending",
+      error: "Worker disabled for this workspace",
+      duration: Date.now() - startTime,
+    };
+  }
+  
+  // Default to "server" mode for immediate processing
+  const aiExecutionMode = workspace?.settings?.aiExecutionMode || "server";
   const aiFallbackAfterMinutes = workspace?.settings?.aiFallbackAfterMinutes ?? 30;
   const notifyStage = workspace?.settings?.automationNotifyStage;
   const stageOrder = workspace?.columnConfigs?.reduce((acc, column) => {
