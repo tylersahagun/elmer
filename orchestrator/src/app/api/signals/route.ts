@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { getSignals, getSignalsCount, createSignal } from "@/lib/db/queries";
+import { processSignalExtraction } from "@/lib/signals";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -107,6 +108,15 @@ export async function POST(request: NextRequest) {
       source: signalSource,
       sourceRef,
       sourceMetadata,
+    });
+
+    // Queue AI extraction and embedding (Phase 15)
+    after(async () => {
+      try {
+        await processSignalExtraction(signal!.id);
+      } catch (error) {
+        console.error(`Failed to process signal ${signal!.id}:`, error);
+      }
     });
 
     return NextResponse.json(signal, { status: 201 });
