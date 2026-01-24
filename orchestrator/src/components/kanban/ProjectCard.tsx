@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 import { buildCursorDeepLink } from "@/lib/cursor/links";
 import { springPresets } from "@/lib/animations";
 import { useKanbanStore, useUIStore, type ProjectCard as ProjectCardType } from "@/lib/store";
-import { 
-  FileText, 
-  Layers, 
-  MoreHorizontal, 
+import {
+  FileText,
+  Layers,
+  MessageSquare,
+  MoreHorizontal,
   Clock,
   Loader2,
   Eye,
@@ -313,6 +314,13 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
             <span className="flex items-center gap-1">
               <Layers className="w-3 h-3" />
               {project.prototypeCount}
+            </span>
+          )}
+          {/* Signal count badge */}
+          {project.signalCount !== undefined && project.signalCount > 0 && (
+            <span className="flex items-center gap-1" title="Linked signals">
+              <MessageSquare className="w-3 h-3" />
+              {project.signalCount}
             </span>
           )}
         </div>
