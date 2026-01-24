@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 19 of 20 (Workflow Automation)
-Plan: 4 of 5 complete
+Plan: 5 of 5 complete (gap closure)
 Status: In progress
-Last activity: 2026-01-24 - Completed 19-04-PLAN.md (Cron Integration)
+Last activity: 2026-01-24 - Completed 19-06-PLAN.md (Notification Wiring Gap Closure)
 
-Progress: [██████████] 90%
+Progress: [██████████] 92%
 
 ## Performance Metrics
 
@@ -38,7 +38,7 @@ Progress: [██████████] 90%
 - Phase 17: 4/4 plans complete (verified)
 - Phase 18: 3/3 plans complete (gaps found - PROV-05 blocked)
 - Phase 18.1: 1/1 plans complete (gap closure complete)
-- Phase 19: 4/5 plans complete (in progress)
+- Phase 19: 5/5 plans complete + 1 gap closure (in progress)
 
 ## Accumulated Context
 
@@ -206,6 +206,8 @@ Recent decisions affecting current work:
 - v1.1 (19-04): Cron allows requests without secret in development for testing
 - v1.1 (19-04): 5 minute max duration for cron to handle many workspaces
 - v1.1 (19-04): Hourly schedule (0 * * * *) balances coverage with resource usage
+- v1.1 (19-06): Single notification per cluster: auto-create and full-auto both notify after project creation, PRD is secondary action
+- v1.1 (19-06): Suggest mode uses threshold >= 3 for new_project action, else review
 
 ### Pending Todos
 
@@ -225,7 +227,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 19-04-PLAN.md
+Stopped at: Completed 19-06-PLAN.md (Gap Closure)
 Resume file: None
 Next steps:
   - Continue Phase 19: Execute 19-05-PLAN.md (Integration tests)
