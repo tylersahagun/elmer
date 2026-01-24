@@ -20,7 +20,8 @@ import { useUIStore, useKanbanStore, type KanbanColumn } from "@/lib/store";
 import type { ProjectStage } from "@/lib/db/schema";
 import { popInVariants } from "@/lib/animations";
 import { cn } from "@/lib/utils";
-import type { DocumentType, KnowledgebaseType } from "@/lib/db/schema";
+import type { DocumentType, KnowledgebaseType, SignalAutomationSettings } from "@/lib/db/schema";
+import { SignalAutomationSettingsPanel, DEFAULT_SIGNAL_AUTOMATION } from "@/components/settings/SignalAutomationSettings";
 import {
   Settings,
   Columns3,
@@ -38,6 +39,7 @@ import {
   FolderOpen,
   CheckCircle2,
   XCircle,
+  Bot,
 } from "lucide-react";
 
 // Stage color mapping
@@ -108,6 +110,8 @@ export function WorkspaceSettingsModal() {
   const [atomicCommitsEnabled, setAtomicCommitsEnabled] = useState(false);
   const [verificationStrictness, setVerificationStrictness] = useState<"strict" | "lenient" | "disabled">("lenient");
   const [stateTrackingEnabled, setStateTrackingEnabled] = useState(false);
+  // Signal Automation Settings (Phase 19)
+  const [signalAutomation, setSignalAutomation] = useState<SignalAutomationSettings>(DEFAULT_SIGNAL_AUTOMATION);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [columnEdits, setColumnEdits] = useState<Record<string, Record<string, unknown>>>({});
@@ -175,6 +179,8 @@ export function WorkspaceSettingsModal() {
       setAtomicCommitsEnabled(workspace.settings?.atomicCommitsEnabled ?? false);
       setVerificationStrictness(workspace.settings?.verificationStrictness ?? "lenient");
       setStateTrackingEnabled(workspace.settings?.stateTrackingEnabled ?? false);
+      // Signal Automation Settings (Phase 19)
+      setSignalAutomation(workspace.settings?.signalAutomation ?? DEFAULT_SIGNAL_AUTOMATION);
     }
   }, [workspace]);
 
@@ -491,6 +497,8 @@ export function WorkspaceSettingsModal() {
             atomicCommitsEnabled,
             verificationStrictness,
             stateTrackingEnabled,
+            // Signal Automation Settings (Phase 19)
+            signalAutomation,
           },
         }),
       });
@@ -547,7 +555,7 @@ export function WorkspaceSettingsModal() {
               {/* Content with Tabs */}
               <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="flex-shrink-0 px-6 pt-4">
-                  <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-5">
+                  <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-6">
                     <TabsTrigger value="general" className="gap-1.5 text-xs">
                       <Settings className="w-3.5 h-3.5" />
                       General
@@ -559,6 +567,10 @@ export function WorkspaceSettingsModal() {
                     <TabsTrigger value="columns" className="gap-1.5 text-xs">
                       <Columns3 className="w-3.5 h-3.5" />
                       Columns
+                    </TabsTrigger>
+                    <TabsTrigger value="automation" className="gap-1.5 text-xs">
+                      <Bot className="w-3.5 h-3.5" />
+                      Automation
                     </TabsTrigger>
                     <TabsTrigger value="personas" className="gap-1.5 text-xs">
                       <Users className="w-3.5 h-3.5" />
@@ -1344,6 +1356,29 @@ export function WorkspaceSettingsModal() {
                       <p className="text-xs text-muted-foreground italic">
                         Visibility changes save immediately. Use Save to persist other edits.
                       </p>
+                    </TabsContent>
+
+                    {/* Automation Tab - Signal Automation Settings (Phase 19) */}
+                    <TabsContent value="automation" className="mt-0 space-y-6">
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)]">
+                        <SignalAutomationSettingsPanel
+                          settings={signalAutomation}
+                          onChange={setSignalAutomation}
+                        />
+                      </div>
+                      <div className="flex items-center justify-end gap-3">
+                        {saveError && (
+                          <p className="text-sm text-destructive">{saveError}</p>
+                        )}
+                        <Button
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          className="gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          {isSaving ? "Saving..." : "Save Settings"}
+                        </Button>
+                      </div>
                     </TabsContent>
 
                     {/* Personas Tab - Redirect to dedicated page */}
