@@ -237,10 +237,12 @@ Plans:
   4. Generated PRDs automatically cite linked signals as evidence
   5. User can create new project from a cluster of related signals
   6. Project cards show signal count badge
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 18-01: TBD
+- [ ] 18-01-PLAN.md — Enhanced provenance display (LinkedSignalsSection with who/when/why)
+- [ ] 18-02-PLAN.md — PRD citation (signal evidence injection in prd-executor)
+- [ ] 18-03-PLAN.md — Project from cluster and signal count badges
 
 ---
 
@@ -297,12 +299,12 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 15. Signal Extraction & Embedding | 3/3 | Complete | 2026-01-23 |
 | 16. Classification & Clustering | 3/3 | Complete | 2026-01-23 |
 | 17. Smart Association | 4/4 | Complete | 2026-01-23 |
-| 18. Provenance & PRD Citation | 0/TBD | Not started | - |
+| 18. Provenance & PRD Citation | 0/3 | Not started | - |
 | 19. Workflow Automation | 0/TBD | Not started | - |
 | 20. Maintenance Agents | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-22*
-*Roadmap revised: 2026-01-23*
+*Roadmap revised: 2026-01-24*
 *Milestone: v1.1 Signals System*
 *Phases: 11-20 (continues from v1.0)*
