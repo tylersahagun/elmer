@@ -241,9 +241,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — Enhanced provenance display (LinkedSignalsSection with who/when/why)
-- [ ] 18-02-PLAN.md — PRD citation (signal evidence injection in prd-executor)
-- [ ] 18-03-PLAN.md — Project from cluster and signal count badges
+- [x] 18-01-PLAN.md — Enhanced provenance display (LinkedSignalsSection with who/when/why)
+- [x] 18-02-PLAN.md — PRD citation (signal evidence injection in prd-executor)
+- [x] 18-03-PLAN.md — Project from cluster and signal count badges
 
 ---
 
@@ -257,10 +257,10 @@ Plans:
   2. Each cluster display has a "Create Project" action/button
   3. Clicking "Create Project" opens CreateProjectFromClusterModal with cluster data
   4. Modal successfully creates project and links signals with cluster theme as provenance
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 18.1-01: TBD
+- [ ] 18.1-01-PLAN.md — SignalClustersPanel component and signals page integration
 
 ---
 
@@ -318,12 +318,12 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 16. Classification & Clustering | 3/3 | Complete | 2026-01-23 |
 | 17. Smart Association | 4/4 | Complete | 2026-01-23 |
 | 18. Provenance & PRD Citation | 3/3 | Gaps found | 2026-01-24 |
-| 18.1. Wire Cluster-to-Project Creation | 0/TBD | Not started | - |
+| 18.1. Wire Cluster-to-Project Creation | 0/1 | Planned | - |
 | 19. Workflow Automation | 0/TBD | Not started | - |
 | 20. Maintenance Agents | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-22*
-*Roadmap revised: 2026-01-23 (added Phase 18.1 gap closure)*
+*Roadmap revised: 2026-01-24 (Phase 18.1 planned - 1 plan for gap closure)*
 *Milestone: v1.1 Signals System*
 *Phases: 11-20 (continues from v1.0)*
