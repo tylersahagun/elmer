@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 20 of 20 (Maintenance Agents)
-Plan: 2 of TBD
+Plan: 3 of TBD
 Status: In progress
-Last activity: 2026-01-24 - Completed 20-02-PLAN.md (Detection Layer)
+Last activity: 2026-01-24 - Completed 20-03-PLAN.md (Archival Workflows)
 
-Progress: [██████████] 97%
+Progress: [██████████] 98%
 
 ## Performance Metrics
 
@@ -39,7 +39,7 @@ Progress: [██████████] 97%
 - Phase 18: 3/3 plans complete (verified)
 - Phase 18.1: 1/1 plans complete (verified)
 - Phase 19: 6/6 plans complete (verified, including gap closure)
-- Phase 20: 2/TBD plans complete
+- Phase 20: 3/TBD plans complete
 
 ## Accumulated Context
 
@@ -216,6 +216,10 @@ Recent decisions affecting current work:
 - v1.1 (20-02): Raw SQL for pgvector queries (Drizzle lacks native operator support)
 - v1.1 (20-02): Canonical pair IDs for duplicate deduplication (sorted signal IDs)
 - v1.1 (20-02): High similarity threshold 0.9+ for duplicate detection (minimize false positives)
+- v1.1 (20-03): Soft-delete via status change to "archived" (signals are evidence, never deleted)
+- v1.1 (20-03): Restore to "reviewed" status (not "new" since already processed)
+- v1.1 (20-03): Link transfer on merge preserves all project/persona associations
+- v1.1 (20-03): Canonical pair IDs for dismissal tracking (sorted signal IDs)
 
 ### Pending Todos
 
@@ -235,9 +239,9 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 20-02-PLAN.md (Detection Layer)
+Stopped at: Completed 20-03-PLAN.md (Archival Workflows)
 Resume file: None
 Next steps:
-  - Continue Phase 20: Execute 20-03-PLAN.md (Archival Workflows)
+  - Continue Phase 20: Execute 20-04-PLAN.md (API Endpoints & Cron)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
