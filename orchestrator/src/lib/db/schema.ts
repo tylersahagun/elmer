@@ -90,7 +90,54 @@ export interface WorkspaceSettings {
   verificationStrictness?: "strict" | "lenient" | "disabled"; // How to handle verification failures
   stateTrackingEnabled?: boolean; // Auto-generate state.md documents
   aiVerificationModel?: string; // Model for AI-based verification checks
+  // Signal Automation Settings (Phase 19)
+  signalAutomation?: SignalAutomationSettings;
 }
+
+// ============================================
+// SIGNAL AUTOMATION SETTINGS (Phase 19)
+// ============================================
+
+export type AutomationActionType = "initiative_created" | "prd_triggered" | "notification_sent";
+
+export interface SignalAutomationSettings {
+  // Automation depth: how much the system does automatically
+  automationDepth: "manual" | "suggest" | "auto_create" | "full_auto";
+
+  // Threshold for auto-PRD trigger (number of signals in cluster)
+  autoPrdThreshold: number;  // Default: 5
+
+  // Threshold for auto-initiative creation (cluster size)
+  autoInitiativeThreshold: number;  // Default: 3
+
+  // Minimum cluster confidence for automation (0-1)
+  minClusterConfidence: number;  // Default: 0.7
+
+  // Severity filter: only auto-act on signals at or above this severity
+  minSeverityForAuto: SignalSeverity | null;  // Default: null (any)
+
+  // Notification thresholds
+  notifyOnClusterSize: number | null;  // Only notify when cluster >= N signals
+  notifyOnSeverity: SignalSeverity | null;  // Only notify when severity >= X
+  suppressDuplicateNotifications: boolean;  // Don't notify for same cluster twice
+
+  // Rate limiting
+  maxAutoActionsPerDay: number;  // Default: 10
+  cooldownMinutes: number;  // Minutes between auto-actions on same cluster
+}
+
+export const DEFAULT_SIGNAL_AUTOMATION: SignalAutomationSettings = {
+  automationDepth: "suggest",
+  autoPrdThreshold: 5,
+  autoInitiativeThreshold: 3,
+  minClusterConfidence: 0.7,
+  minSeverityForAuto: null,
+  notifyOnClusterSize: 3,
+  notifyOnSeverity: null,
+  suppressDuplicateNotifications: true,
+  maxAutoActionsPerDay: 10,
+  cooldownMinutes: 60,
+};
 
 // ============================================
 // USERS (Authentication)
@@ -434,6 +481,20 @@ export interface NotificationMetadata {
   };
   context?: Record<string, unknown>;
 }
+
+// ============================================
+// AUTOMATION ACTIONS (Signal Automation Tracking - Phase 19)
+// ============================================
+
+export const automationActions = pgTable("automation_actions", {
+  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  clusterId: text("cluster_id").notNull(),
+  actionType: text("action_type").$type<AutomationActionType>().notNull(),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  triggeredAt: timestamp("triggered_at").defaultNow().notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+});
 
 // ============================================
 // MEMORY ENTRIES
@@ -814,6 +875,8 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   webhookKeys: many(webhookKeys),
   // Integrations (Phase 14.6+)
   integrations: many(integrations),
+  // Automation Actions (Phase 19)
+  automationActions: many(automationActions),
 }));
 
 // ============================================
@@ -1425,5 +1488,20 @@ export const integrationsRelations = relations(integrations, ({ one }) => ({
   creator: one(users, {
     fields: [integrations.createdBy],
     references: [users.id],
+  }),
+}));
+
+// ============================================
+// AUTOMATION ACTIONS RELATIONS (Phase 19)
+// ============================================
+
+export const automationActionsRelations = relations(automationActions, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [automationActions.workspaceId],
+    references: [workspaces.id],
+  }),
+  project: one(projects, {
+    fields: [automationActions.projectId],
+    references: [projects.id],
   }),
 }));
