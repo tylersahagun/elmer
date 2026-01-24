@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 19 of 20 (Workflow Automation)
-Plan: 1 of 5 complete
+Plan: 2 of 5 complete
 Status: In progress
-Last activity: 2026-01-24 - Completed 19-01-PLAN.md (SignalAutomationSettings + automationActions schema)
+Last activity: 2026-01-24 - Completed 19-03-PLAN.md (Notification threshold filtering)
 
-Progress: [██████████] 87%
+Progress: [██████████] 88%
 
 ## Performance Metrics
 
@@ -38,7 +38,7 @@ Progress: [██████████] 87%
 - Phase 17: 4/4 plans complete (verified)
 - Phase 18: 3/3 plans complete (gaps found - PROV-05 blocked)
 - Phase 18.1: 1/1 plans complete (gap closure complete)
-- Phase 19: 1/5 plans complete (in progress)
+- Phase 19: 2/5 plans complete (in progress)
 
 ## Accumulated Context
 
@@ -194,6 +194,10 @@ Recent decisions affecting current work:
 - v1.1 (19-01): Cluster confidence minimum 0.7 for automation triggers
 - v1.1 (19-01): Rate limiting: 10 auto-actions per day, 60 minute cooldown per cluster
 - v1.1 (19-01): Duplicate notification suppression enabled by default
+- v1.1 (19-03): getWorkspaceAutomationSettings merges workspace config with defaults
+- v1.1 (19-03): Severity threshold uses ordered comparison (critical > high > medium > low)
+- v1.1 (19-03): Duplicate suppression checks recent notifications for matching clusterId
+- v1.1 (19-03): Notification priority derived from cluster severity
 
 ### Pending Todos
 
@@ -213,9 +217,11 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 19-01-PLAN.md
+Stopped at: Completed 19-03-PLAN.md
 Resume file: None
 Next steps:
   - Continue Phase 19: Execute 19-02-PLAN.md (Automation Engine)
+  - Execute 19-04-PLAN.md (Automation Settings UI)
+  - Execute 19-05-PLAN.md (Integration tests)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
