@@ -1,15 +1,22 @@
 # External Integrations
 
-**Analysis Date:** 2026-01-21
+**Analysis Date:** 2026-01-24
 
 ## APIs & External Services
 
 **AI/LLM:**
-- Claude (Anthropic) - LLM for content generation and execution automation
+- Claude (Anthropic) - LLM for content generation, signal extraction, and execution automation
   - SDK/Client: `@anthropic-ai/sdk` 0.71.2
   - Auth: `ANTHROPIC_API_KEY` env var
-  - Usage: `src/lib/execution/providers.ts`, `src/lib/agent/executor.ts`, `src/app/api/chat/route.ts`, `src/app/api/ai/generate/route.ts`
-  - Models used: claude-sonnet-4-20250514 (for generation and execution)
+  - Usage: `src/lib/execution/providers.ts`, `src/lib/agent/executor.ts`, `src/app/api/chat/route.ts`, `src/app/api/ai/generate/route.ts`, `src/lib/ai/extraction.ts`
+  - Models used: claude-sonnet-4-20250514 (generation), claude-3-5-haiku (classification)
+
+- OpenAI - Embeddings for signal similarity and classification
+  - SDK/Client: `openai` package
+  - Auth: `OPENAI_API_KEY` env var
+  - Model: text-embedding-3-small (1536 dimensions)
+  - Usage: `src/lib/ai/embeddings.ts`
+  - Purpose: Generate embeddings for signals and projects for pgvector similarity search
 
 **Skills Marketplace:**
 - SkillsMP - Skills/template marketplace for stage automation
@@ -22,15 +29,15 @@
 ## Data Storage
 
 **Databases:**
-- PostgreSQL (local or Neon serverless)
+- PostgreSQL (local Docker with pgvector)
   - Connection: `DATABASE_URL` env var
-  - Client/ORM: Drizzle ORM 0.45.1
+  - Default: `postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator`
+  - Client/ORM: Drizzle ORM 0.45.1 with `pg` driver
   - Location: `src/lib/db/`
-  - Supports dual-mode:
-    - Local: Uses `pg` driver with connection pooling
-    - Neon serverless: Uses `@neondatabase/serverless` HTTP driver (auto-detected from URL)
   - Schema: `src/lib/db/schema.ts`
   - Migrations: `drizzle/` directory
+  - Extensions: pgvector (for embeddings/similarity search)
+  - Container: `elmer-postgres` via Docker Compose
 
 **File Storage:**
 - Local filesystem (documents, artifacts, prototypes stored locally)
@@ -71,16 +78,26 @@
 ## CI/CD & Deployment
 
 **Hosting:**
-- Vercel (Next.js optimal target)
-  - Evidence: Neon serverless HTTP driver optimized for edge/serverless
-  - Edge runtime capable
+- Self-hosted via Cloudflare Tunnel
+  - Public URL: https://elmer.studio
+  - Tunnel name: `elmer`
+  - Config: `~/.cloudflared/config.yml`
+  - Start: `cloudflared tunnel run elmer`
+  - **Note:** Site only available when local Mac is running
+
+**Local Services:**
+- PostgreSQL: Docker container `elmer-postgres` on port 5432
+- Next.js Dev Server: `npm run dev` on port 3000
+- Cloudflare Tunnel: Proxies localhost:3000 to elmer.studio
 
 **CI Pipeline:**
-- Not detected (no GitHub Actions, GitLab CI, etc.)
-- Local development focus
+- GitHub Actions for PR validation
+- Storybook: Chromatic for visual regression
+- Local development focus (no automated production deployment)
 
-**Networking:**
-- Cloudflared tunnel support: `npm run tunnel` command references "elmer" tunnel configuration
+**Quick Start:**
+- Use `/local` command in Cursor to start all services
+- Or manually: `docker compose up -d && npm run dev && cloudflared tunnel run elmer`
 
 ## Integrations In Schema (Planned/Not Yet Integrated)
 
@@ -107,9 +124,12 @@
 ## Environment Configuration
 
 **Required env vars:**
-- `DATABASE_URL` - PostgreSQL connection string (critical)
-- `ANTHROPIC_API_KEY` - Claude API key (critical for execution)
-- `SKILLMP_API_KEY` - SkillsMP API key (required for skills integration)
+- `DATABASE_URL` - PostgreSQL connection string (default: `postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator`)
+- `ANTHROPIC_API_KEY` - Claude API key (critical for execution and signal extraction)
+- `OPENAI_API_KEY` - OpenAI API key (critical for embeddings/similarity search)
+- `AUTH_SECRET` - NextAuth session encryption key
+- `AUTH_URL` - Public URL (https://elmer.studio)
+- `CRON_SECRET` - Secret for cron endpoint authentication
 
 **Optional env vars:**
 - `CHROMATIC_PROJECT_TOKEN` - Storybook deployment
@@ -154,4 +174,5 @@
 
 ---
 
-*Integration audit: 2026-01-21*
+*Integration audit: 2026-01-24*
+*Updated: Removed Vercel/Neon references, added self-hosted Cloudflare Tunnel setup, added OpenAI embeddings*

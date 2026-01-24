@@ -11,6 +11,21 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +55,7 @@ import {
   CheckCircle2,
   XCircle,
   Bot,
+  ChevronDown,
 } from "lucide-react";
 
 // Stage color mapping
@@ -75,6 +91,34 @@ const documentTypeLabels: Record<DocumentType, string> = {
   jury_report: "Jury Report",
   state: "State",
 };
+
+// Job types that can be triggered automatically
+import type { JobType } from "@/lib/db/schema";
+
+const jobTypeOptions: Array<{ value: JobType; label: string; description?: string }> = [
+  { value: "analyze_transcript", label: "Analyze Transcript", description: "Extract insights from user research" },
+  { value: "generate_prd", label: "Generate PRD", description: "Create product requirements document" },
+  { value: "generate_design_brief", label: "Generate Design Brief", description: "Create design specifications" },
+  { value: "generate_engineering_spec", label: "Generate Engineering Spec", description: "Create technical specifications" },
+  { value: "generate_gtm_brief", label: "Generate GTM Brief", description: "Create go-to-market plan" },
+  { value: "run_jury_evaluation", label: "Run Jury Evaluation", description: "Evaluate with synthetic personas" },
+  { value: "build_prototype", label: "Build Prototype", description: "Generate prototype components" },
+  { value: "iterate_prototype", label: "Iterate Prototype", description: "Improve existing prototype" },
+  { value: "generate_tickets", label: "Generate Tickets", description: "Create engineering tickets" },
+  { value: "validate_tickets", label: "Validate Tickets", description: "Review and validate tickets" },
+  { value: "deploy_chromatic", label: "Deploy to Chromatic", description: "Deploy Storybook to Chromatic" },
+  { value: "create_feature_branch", label: "Create Feature Branch", description: "Create a git branch" },
+];
+
+const documentTypeOptions: Array<{ value: DocumentType; label: string }> = [
+  { value: "research", label: "Research" },
+  { value: "prd", label: "PRD" },
+  { value: "design_brief", label: "Design Brief" },
+  { value: "engineering_spec", label: "Engineering Spec" },
+  { value: "gtm_brief", label: "GTM Brief" },
+  { value: "prototype_notes", label: "Prototype Notes" },
+  { value: "jury_report", label: "Jury Report" },
+];
 
 export function WorkspaceSettingsModal() {
   const isOpen = useUIStore((s) => s.settingsModalOpen);
@@ -132,6 +176,19 @@ export function WorkspaceSettingsModal() {
   const [newColumnStage, setNewColumnStage] = useState("");
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnColor, setNewColumnColor] = useState("slate");
+  const [expandedColumns, setExpandedColumns] = useState<Set<string>>(new Set());
+
+  const toggleColumnExpanded = (columnId: string) => {
+    setExpandedColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(columnId)) {
+        next.delete(columnId);
+      } else {
+        next.add(columnId);
+      }
+      return next;
+    });
+  };
 
   const colorKeys = Object.keys(stageColors);
 
@@ -523,7 +580,7 @@ export function WorkspaceSettingsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-      <DialogContent className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-[90vw] w-[1400px] !p-0 !gap-0 h-[90vh] overflow-hidden">
+      <DialogContent className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] w-full max-w-4xl !p-0 !gap-0 max-h-[90vh] overflow-hidden">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -531,7 +588,7 @@ export function WorkspaceSettingsModal() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="flex flex-col h-[85vh]"
+              className="flex flex-col max-h-[85vh]"
             >
               {/* Header - macOS window style */}
               <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
@@ -554,31 +611,31 @@ export function WorkspaceSettingsModal() {
 
               {/* Content with Tabs */}
               <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <div className="flex-shrink-0 px-6 pt-4">
-                  <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl grid w-full grid-cols-6">
-                    <TabsTrigger value="general" className="gap-1.5 text-xs">
+                <div className="flex-shrink-0 px-4 sm:px-6 pt-4 overflow-x-auto">
+                  <TabsList className="bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)] rounded-xl inline-flex w-auto min-w-full">
+                    <TabsTrigger value="general" className="gap-1.5 text-xs flex-shrink-0">
                       <Settings className="w-3.5 h-3.5" />
-                      General
+                      <span className="hidden sm:inline">General</span>
                     </TabsTrigger>
-                    <TabsTrigger value="pipeline" className="gap-1.5 text-xs">
+                    <TabsTrigger value="pipeline" className="gap-1.5 text-xs flex-shrink-0">
                       <Workflow className="w-3.5 h-3.5" />
-                      Pipeline
+                      <span className="hidden sm:inline">Pipeline</span>
                     </TabsTrigger>
-                    <TabsTrigger value="columns" className="gap-1.5 text-xs">
+                    <TabsTrigger value="columns" className="gap-1.5 text-xs flex-shrink-0">
                       <Columns3 className="w-3.5 h-3.5" />
-                      Columns
+                      <span className="hidden sm:inline">Columns</span>
                     </TabsTrigger>
-                    <TabsTrigger value="automation" className="gap-1.5 text-xs">
+                    <TabsTrigger value="automation" className="gap-1.5 text-xs flex-shrink-0">
                       <Bot className="w-3.5 h-3.5" />
-                      Automation
+                      <span className="hidden sm:inline">Automation</span>
                     </TabsTrigger>
-                    <TabsTrigger value="personas" className="gap-1.5 text-xs">
+                    <TabsTrigger value="personas" className="gap-1.5 text-xs flex-shrink-0">
                       <Users className="w-3.5 h-3.5" />
-                      Personas
+                      <span className="hidden sm:inline">Personas</span>
                     </TabsTrigger>
-                    <TabsTrigger value="about" className="gap-1.5 text-xs">
+                    <TabsTrigger value="about" className="gap-1.5 text-xs flex-shrink-0">
                       <Info className="w-3.5 h-3.5" />
-                      About
+                      <span className="hidden sm:inline">About</span>
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -771,25 +828,27 @@ export function WorkspaceSettingsModal() {
                           <h4 className="text-sm font-medium mb-3">Git Automation</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                              <div>
+                              <div className="min-w-0">
                                 <Label className="text-sm">Auto-create feature branch</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Create a new branch when projects are added.
                                 </p>
                               </div>
                               <Switch
+                                className="shrink-0"
                                 checked={autoCreateFeatureBranch}
                                 onCheckedChange={setAutoCreateFeatureBranch}
                               />
                             </div>
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                              <div>
+                              <div className="min-w-0">
                                 <Label className="text-sm">Auto-commit job output</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Commit and push files from automation jobs.
                                 </p>
                               </div>
                               <Switch
+                                className="shrink-0"
                                 checked={autoCommitJobs}
                                 onCheckedChange={setAutoCommitJobs}
                               />
@@ -820,94 +879,117 @@ export function WorkspaceSettingsModal() {
                             <Workflow className="w-4 h-4 text-emerald-500" />
                             <h4 className="text-sm font-medium">Automation Depth</h4>
                           </div>
+                          <p className="text-xs text-muted-foreground mb-4">
+                            Control how projects flow through the pipeline automatically.
+                          </p>
                           <div className="grid gap-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="automationMode">Automation Mode</Label>
-                              <select
-                                id="automationMode"
+                            <div className="space-y-2">
+                              <Label>Automation Mode</Label>
+                              <Select
                                 value={automationMode}
-                                onChange={(e) =>
-                                  setAutomationMode(
-                                    e.target.value as "manual" | "auto_to_stage" | "auto_all"
-                                  )
+                                onValueChange={(value) =>
+                                  setAutomationMode(value as "manual" | "auto_to_stage" | "auto_all")
                                 }
-                                className="h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                               >
-                                <option value="manual">Manual</option>
-                                <option value="auto_to_stage">Auto until stage</option>
-                                <option value="auto_all">Auto all stages</option>
-                              </select>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="manual">Manual - Require approval for each stage</SelectItem>
+                                  <SelectItem value="auto_to_stage">Auto until stage - Run automatically then pause</SelectItem>
+                                  <SelectItem value="auto_all">Auto all stages - Fully automated pipeline</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="automationStopStage">Stop Stage</Label>
-                              <select
-                                id="automationStopStage"
-                                value={automationStopStage}
-                                onChange={(e) => setAutomationStopStage(e.target.value)}
-                                className="h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-                                disabled={automationMode !== "auto_to_stage"}
+                            {automationMode === "auto_to_stage" && (
+                              <div className="space-y-2">
+                                <Label>Stop At Stage</Label>
+                                <Select
+                                  value={automationStopStage || "none"}
+                                  onValueChange={(value) => setAutomationStopStage(value === "none" ? "" : value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select stage" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Select stage...</SelectItem>
+                                    {columns
+                                      .filter((column) => column.enabled)
+                                      .sort((a, b) => a.order - b.order)
+                                      .map((column) => (
+                                        <SelectItem key={column.id} value={column.id}>
+                                          {column.displayName}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                  Pipeline will pause for approval at this stage.
+                                </p>
+                              </div>
+                            )}
+                            <div className="space-y-2">
+                              <Label>Notify At Stage</Label>
+                              <Select
+                                value={automationNotifyStage || "always"}
+                                onValueChange={(value) => setAutomationNotifyStage(value === "always" ? "" : value)}
                               >
-                                <option value="">Select stage</option>
-                                {columns
-                                  .filter((column) => column.enabled)
-                                  .sort((a, b) => a.order - b.order)
-                                  .map((column) => (
-                                    <option key={column.id} value={column.id}>
-                                      {column.displayName}
-                                    </option>
-                                  ))}
-                              </select>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="automationNotifyStage">Notify At Stage</Label>
-                              <select
-                                id="automationNotifyStage"
-                                value={automationNotifyStage}
-                                onChange={(e) => setAutomationNotifyStage(e.target.value)}
-                                className="h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                              >
-                                <option value="">Always notify</option>
-                                {columns
-                                  .filter((column) => column.enabled)
-                                  .sort((a, b) => a.order - b.order)
-                                  .map((column) => (
-                                    <option key={column.id} value={column.id}>
-                                      {column.displayName}
-                                    </option>
-                                  ))}
-                              </select>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="always">Always notify</SelectItem>
+                                  {columns
+                                    .filter((column) => column.enabled)
+                                    .sort((a, b) => a.order - b.order)
+                                    .map((column) => (
+                                      <SelectItem key={column.id} value={column.id}>
+                                        Only at {column.displayName}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                         </div>
 
                         <div className="p-4 rounded-xl bg-muted/30 border border-border dark:border-[rgba(255,255,255,0.08)] lg:col-span-2">
                           <h4 className="text-sm font-medium mb-2">Knowledge Base Publishing</h4>
-                          <p className="text-xs text-muted-foreground mb-3">
-                            Map document types to knowledge base sections. Leave as &quot;None&quot; to disable publish.
+                          <p className="text-sm text-muted-foreground mb-4">
+                            When jobs generate documents (PRDs, design briefs, etc.), they can automatically be 
+                            copied to your knowledge base for team reference. Map each document type to a 
+                            knowledge base section, or leave as &quot;None&quot; to keep documents only in the project folder.
+                            <span className="block mt-1 text-xs italic">
+                              Note: This only affects where documents are published—jobs still generate all documents regardless of this setting.
+                            </span>
                           </p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {sortedDocumentTypes.map((docType) => (
-                              <div key={docType} className="flex items-center gap-2">
-                                <Label className="text-xs text-muted-foreground w-24 flex-shrink-0">
+                              <div key={docType} className="space-y-1.5">
+                                <Label className="text-sm font-medium">
                                   {documentTypeLabels[docType]}
                                 </Label>
-                                <select
-                                  value={knowledgebaseMapping[docType] || ""}
-                                  onChange={(e) =>
+                                <Select
+                                  value={knowledgebaseMapping[docType] || "none"}
+                                  onValueChange={(value) =>
                                     setKnowledgebaseMapping((prev) => ({
                                       ...prev,
-                                      [docType]: e.target.value,
+                                      [docType]: value === "none" ? "" : value,
                                     }))
                                   }
-                                  className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-xs shadow-xs"
                                 >
-                                  <option value="">None</option>
-                                  {knowledgebaseOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </select>
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue placeholder="None" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">None</SelectItem>
+                                    {knowledgebaseOptions.map((option) => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </div>
                             ))}
                           </div>
@@ -924,13 +1006,14 @@ export function WorkspaceSettingsModal() {
                           </p>
                           <div className="grid gap-4">
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                              <div>
+                              <div className="min-w-0">
                                 <Label className="text-sm">Enable Auto-Execution</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Automatically process jobs when projects move stages.
                                 </p>
                               </div>
                               <Switch
+                                className="shrink-0"
                                 checked={workerEnabled}
                                 onCheckedChange={setWorkerEnabled}
                               />
@@ -964,51 +1047,55 @@ export function WorkspaceSettingsModal() {
                           </p>
                           <div className="grid gap-3">
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                              <div>
+                              <div className="min-w-0">
                                 <Label className="text-sm">Enable Notifications</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Show browser notifications for job events.
                                 </p>
                               </div>
                               <Switch
+                                className="shrink-0"
                                 checked={browserNotificationsEnabled}
                                 onCheckedChange={setBrowserNotificationsEnabled}
                               />
                             </div>
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                              <div>
+                              <div className="min-w-0">
                                 <Label className="text-sm">Job Completed</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Notify when a job finishes successfully.
                                 </p>
                               </div>
                               <Switch
+                                className="shrink-0"
                                 checked={notifyOnJobComplete}
                                 onCheckedChange={setNotifyOnJobComplete}
                                 disabled={!browserNotificationsEnabled}
                               />
                             </div>
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                              <div>
+                              <div className="min-w-0">
                                 <Label className="text-sm">Job Failed</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Notify when a job fails or errors out.
                                 </p>
                               </div>
                               <Switch
+                                className="shrink-0"
                                 checked={notifyOnJobFailed}
                                 onCheckedChange={setNotifyOnJobFailed}
                                 disabled={!browserNotificationsEnabled}
                               />
                             </div>
                             <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                              <div>
+                              <div className="min-w-0">
                                 <Label className="text-sm">Approval Required</Label>
                                 <p className="text-xs text-muted-foreground">
                                   Notify when human input is needed.
                                 </p>
                               </div>
                               <Switch
+                                className="shrink-0"
                                 checked={notifyOnApprovalRequired}
                                 onCheckedChange={setNotifyOnApprovalRequired}
                                 disabled={!browserNotificationsEnabled}
@@ -1026,45 +1113,51 @@ export function WorkspaceSettingsModal() {
                         </div>
                         <div className="space-y-3">
                           <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                            <div>
+                            <div className="min-w-0">
                               <Label className="text-sm">Atomic Commits</Label>
                               <p className="text-xs text-muted-foreground">
                                 Create a git commit after each task completes
                               </p>
                             </div>
                             <Switch
+                              className="shrink-0"
                               checked={atomicCommitsEnabled}
                               onCheckedChange={setAtomicCommitsEnabled}
                             />
                           </div>
                           <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                            <div>
+                            <div className="min-w-0">
                               <Label className="text-sm">State Tracking</Label>
                               <p className="text-xs text-muted-foreground">
                                 Auto-generate state.md documents for progress
                               </p>
                             </div>
                             <Switch
+                              className="shrink-0"
                               checked={stateTrackingEnabled}
                               onCheckedChange={setStateTrackingEnabled}
                             />
                           </div>
-                          <div className="rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3">
-                            <div className="mb-2">
+                          <div className="rounded-lg border border-slate-200/50 dark:border-slate-700/50 p-3 space-y-2">
+                            <div>
                               <Label className="text-sm">Verification Strictness</Label>
                               <p className="text-xs text-muted-foreground">
                                 How to handle task verification failures
                               </p>
                             </div>
-                            <select
-                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            <Select
                               value={verificationStrictness}
-                              onChange={(e) => setVerificationStrictness(e.target.value as "strict" | "lenient" | "disabled")}
+                              onValueChange={(value) => setVerificationStrictness(value as "strict" | "lenient" | "disabled")}
                             >
-                              <option value="strict">Strict - Stop on any failure</option>
-                              <option value="lenient">Lenient - Log warnings, continue</option>
-                              <option value="disabled">Disabled - Skip verification</option>
-                            </select>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="strict">Strict - Stop on any failure</SelectItem>
+                                <SelectItem value="lenient">Lenient - Log warnings, continue</SelectItem>
+                                <SelectItem value="disabled">Disabled - Skip verification</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </div>
@@ -1086,15 +1179,20 @@ export function WorkspaceSettingsModal() {
 
                     {/* Columns Tab */}
                     <TabsContent value="columns" className="mt-0 space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Manage which columns are visible in your Kanban board.
-                        All stages are currently enabled.
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Configure your pipeline columns. Click a column to expand and edit its settings.
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Toggle visibility instantly. Other changes require clicking Save.
+                        </p>
+                      </div>
                       
-                      <div className="space-y-2 overflow-x-auto">
+                      <div className="space-y-2">
                         {columns.sort((a, b) => a.order - b.order).map((column) => {
                           const colorKey = String(getColumnEdit(column.id, "color", column.color || "slate"));
                           const colorConfig = stageColors[colorKey] || stageColors.slate;
+                          const isExpanded = expandedColumns.has(column.id);
                           const contextPathsValue = getColumnContextPaths(column);
                           const contextNotesValue = String(
                             getColumnEdit(column.id, "contextNotes", column.contextNotes || "")
@@ -1115,247 +1213,435 @@ export function WorkspaceSettingsModal() {
                           const colorOptions = colorKeys.includes(colorKey)
                             ? colorKeys
                             : [...colorKeys, colorKey];
+                          const displayNameValue = String(getColumnEdit(column.id, "displayName", column.displayName));
+                          
                           return (
                             <div
                               key={column.id}
-                              className="p-3 rounded-lg bg-white/30 dark:bg-slate-800/30 border border-slate-200/30 dark:border-slate-700/30"
+                              className={cn(
+                                "rounded-lg border transition-colors",
+                                isExpanded 
+                                  ? "border-primary/50 bg-muted/30" 
+                                  : "border-border hover:border-primary/30 bg-card"
+                              )}
                             >
-                              <div className="flex flex-col gap-3">
-                                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                                  <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
-                                    <div className="flex items-center gap-2">
-                                      <div className={cn("w-2.5 h-2.5 rounded-full", colorConfig.bg)} />
-                                      <span className="text-sm font-medium">{column.id}</span>
-                                    </div>
-                                    <Input
-                                      value={String(getColumnEdit(column.id, "displayName", column.displayName))}
-                                      onChange={(e) => updateColumnEdit(column.id, "displayName", e.target.value)}
-                                      className="h-8"
-                                      placeholder="Display name"
-                                    />
-                                    <select
-                                      value={colorKey}
-                                      onChange={(e) => updateColumnEdit(column.id, "color", e.target.value)}
-                                      className="h-8 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    >
-                                      {colorOptions.map((key) => (
-                                        <option key={key} value={key}>
-                                          {key}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    <Input
-                                      value={String(
-                                        getColumnEdit(
-                                          column.id,
-                                          "autoTriggerJobs",
-                                          (column.autoTriggerJobs || []).join(", ")
-                                        )
-                                      )}
-                                      onChange={(e) =>
-                                        updateColumnEdit(
-                                          column.id,
-                                          "autoTriggerJobs",
-                                          e.target.value.split(",").map((v) => v.trim()).filter(Boolean)
-                                        )
-                                      }
-                                      className="h-8"
-                                      placeholder="Auto jobs"
-                                    />
-                                    <Input
-                                      value={String(
-                                        getColumnEdit(
-                                          column.id,
-                                          "requiredDocuments",
-                                          (column as { requiredDocuments?: string[] }).requiredDocuments?.join(", ") || ""
-                                        )
-                                      )}
-                                      onChange={(e) =>
-                                        updateColumnEdit(
-                                          column.id,
-                                          "requiredDocuments",
-                                          e.target.value.split(",").map((v) => v.trim()).filter(Boolean)
-                                        )
-                                      }
-                                      className="h-8"
-                                      placeholder="Required docs"
-                                    />
+                              {/* Collapsed Header - Always Visible */}
+                              <button
+                                type="button"
+                                onClick={() => toggleColumnExpanded(column.id)}
+                                className="w-full p-3 flex items-center justify-between gap-3 text-left"
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className={cn("w-3 h-3 rounded-full flex-shrink-0", colorConfig.bg)} />
+                                  <div className="min-w-0">
+                                    <span className="font-medium text-sm block truncate">
+                                      {displayNameValue || column.id}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {column.id}
+                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      value={String(
-                                        getColumnEdit(
-                                          column.id,
-                                          "requiredApprovals",
-                                          column.requiredApprovals || 0
-                                        )
-                                      )}
-                                      onChange={(e) =>
-                                        updateColumnEdit(column.id, "requiredApprovals", Number(e.target.value))
-                                      }
-                                      className="h-8 w-20"
-                                      type="number"
-                                      min="0"
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleSaveColumn(column)}
-                                    >
-                                      Save
-                                    </Button>
-                                    <Label htmlFor={`col-${column.id}`} className="text-xs text-muted-foreground">
+                                </div>
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                  <div 
+                                    className="flex items-center gap-2"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span className="text-xs text-muted-foreground">
                                       {column.enabled ? "Visible" : "Hidden"}
-                                    </Label>
+                                    </span>
                                     <Switch
-                                      id={`col-${column.id}`}
                                       checked={column.enabled}
                                       onCheckedChange={(checked) => persistColumnUpdates(column, { enabled: checked })}
-                                      className="data-[state=checked]:bg-purple-500"
+                                      className="data-[state=checked]:bg-primary"
                                     />
                                   </div>
+                                  <ChevronDown 
+                                    className={cn(
+                                      "w-4 h-4 text-muted-foreground transition-transform",
+                                      isExpanded && "rotate-180"
+                                    )} 
+                                  />
                                 </div>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                                  <div className="space-y-2">
-                                    <Label className="text-xs text-muted-foreground">Column Context Paths</Label>
-                                    {contextPathsValue.map((path, idx) => (
-                                      <div key={`${column.id}-context-${idx}`} className="flex items-center gap-2">
+                              </button>
+                              
+                              {/* Expanded Content */}
+                              {isExpanded && (
+                                <div className="px-3 pb-4 space-y-4 border-t border-border">
+                                  {/* Basic Settings */}
+                                  <div className="pt-4">
+                                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                                      Basic Settings
+                                    </h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Display Name</Label>
                                         <Input
-                                          value={path}
-                                          onChange={(e) => updateColumnContextPath(column, idx, e.target.value)}
-                                          className="h-8"
-                                          placeholder="elmer-docs/"
+                                          value={displayNameValue}
+                                          onChange={(e) => updateColumnEdit(column.id, "displayName", e.target.value)}
+                                          placeholder="Display name"
                                         />
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          variant="ghost"
-                                          onClick={() => moveColumnContextPath(column, idx, idx - 1)}
-                                          disabled={idx === 0}
-                                        >
-                                          <ArrowUp className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          variant="ghost"
-                                          onClick={() => moveColumnContextPath(column, idx, idx + 1)}
-                                          disabled={idx === contextPathsValue.length - 1}
-                                        >
-                                          <ArrowDown className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          size="icon"
-                                          variant="ghost"
-                                          onClick={() => removeColumnContextPath(column, idx)}
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </Button>
                                       </div>
-                                    ))}
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Color</Label>
+                                        <Select
+                                          value={colorKey}
+                                          onValueChange={(value) => updateColumnEdit(column.id, "color", value)}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {colorOptions.map((key) => (
+                                              <SelectItem key={key} value={key}>
+                                                <div className="flex items-center gap-2">
+                                                  <div className={cn("w-3 h-3 rounded-full", stageColors[key]?.bg || "bg-slate-400")} />
+                                                  <span className="capitalize">{key}</span>
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Required Approvals</Label>
+                                        <Input
+                                          value={String(
+                                            getColumnEdit(
+                                              column.id,
+                                              "requiredApprovals",
+                                              column.requiredApprovals || 0
+                                            )
+                                          )}
+                                          onChange={(e) =>
+                                            updateColumnEdit(column.id, "requiredApprovals", Number(e.target.value))
+                                          }
+                                          type="number"
+                                          min="0"
+                                          placeholder="0"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Jobs & Requirements */}
+                                  <div>
+                                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                                      Jobs & Requirements
+                                    </h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Auto-trigger Jobs</Label>
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-2">
+                                              <span className="text-left truncate text-sm">
+                                                {(() => {
+                                                  const selectedJobs = getColumnEdit(
+                                                    column.id,
+                                                    "autoTriggerJobs",
+                                                    column.autoTriggerJobs || []
+                                                  ) as string[];
+                                                  if (selectedJobs.length === 0) return "Select jobs...";
+                                                  if (selectedJobs.length <= 2) {
+                                                    return selectedJobs
+                                                      .map(j => jobTypeOptions.find(o => o.value === j)?.label || j)
+                                                      .join(", ");
+                                                  }
+                                                  return `${selectedJobs.length} jobs selected`;
+                                                })()}
+                                              </span>
+                                              <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent className="w-64 max-h-72 overflow-y-auto">
+                                            <DropdownMenuLabel>Available Jobs</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {jobTypeOptions.map((job) => {
+                                              const selectedJobs = (getColumnEdit(
+                                                column.id,
+                                                "autoTriggerJobs",
+                                                column.autoTriggerJobs || []
+                                              ) as string[]);
+                                              const isSelected = selectedJobs.includes(job.value);
+                                              return (
+                                                <DropdownMenuCheckboxItem
+                                                  key={job.value}
+                                                  checked={isSelected}
+                                                  onCheckedChange={(checked) => {
+                                                    const newJobs = checked
+                                                      ? [...selectedJobs, job.value]
+                                                      : selectedJobs.filter(j => j !== job.value);
+                                                    updateColumnEdit(column.id, "autoTriggerJobs", newJobs);
+                                                  }}
+                                                  onSelect={(e) => e.preventDefault()}
+                                                >
+                                                  <div className="flex flex-col">
+                                                    <span>{job.label}</span>
+                                                    {job.description && (
+                                                      <span className="text-xs text-muted-foreground">{job.description}</span>
+                                                    )}
+                                                  </div>
+                                                </DropdownMenuCheckboxItem>
+                                              );
+                                            })}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <p className="text-xs text-muted-foreground">
+                                          Jobs that run automatically when a project enters this stage
+                                        </p>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Required Documents</Label>
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-between h-auto min-h-9 py-2">
+                                              <span className="text-left truncate text-sm">
+                                                {(() => {
+                                                  const selectedDocs = (getColumnEdit(
+                                                    column.id,
+                                                    "requiredDocuments",
+                                                    (column as { requiredDocuments?: string[] }).requiredDocuments || []
+                                                  ) as string[]);
+                                                  if (selectedDocs.length === 0) return "Select documents...";
+                                                  if (selectedDocs.length <= 2) {
+                                                    return selectedDocs
+                                                      .map(d => documentTypeOptions.find(o => o.value === d)?.label || d)
+                                                      .join(", ");
+                                                  }
+                                                  return `${selectedDocs.length} documents required`;
+                                                })()}
+                                              </span>
+                                              <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent className="w-56 max-h-72 overflow-y-auto">
+                                            <DropdownMenuLabel>Document Types</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {documentTypeOptions.map((doc) => {
+                                              const selectedDocs = (getColumnEdit(
+                                                column.id,
+                                                "requiredDocuments",
+                                                (column as { requiredDocuments?: string[] }).requiredDocuments || []
+                                              ) as string[]);
+                                              const isSelected = selectedDocs.includes(doc.value);
+                                              return (
+                                                <DropdownMenuCheckboxItem
+                                                  key={doc.value}
+                                                  checked={isSelected}
+                                                  onCheckedChange={(checked) => {
+                                                    const newDocs = checked
+                                                      ? [...selectedDocs, doc.value]
+                                                      : selectedDocs.filter(d => d !== doc.value);
+                                                    updateColumnEdit(column.id, "requiredDocuments", newDocs);
+                                                  }}
+                                                  onSelect={(e) => e.preventDefault()}
+                                                >
+                                                  {doc.label}
+                                                </DropdownMenuCheckboxItem>
+                                              );
+                                            })}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <p className="text-xs text-muted-foreground">
+                                          Documents that must exist before moving to this stage
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Context Settings */}
+                                  <div>
+                                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                                      Context
+                                    </h5>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Context Paths</Label>
+                                        <div className="space-y-2">
+                                          {contextPathsValue.map((path, idx) => (
+                                            <div key={`${column.id}-context-${idx}`} className="flex items-center gap-2">
+                                              <Input
+                                                value={path}
+                                                onChange={(e) => updateColumnContextPath(column, idx, e.target.value)}
+                                                placeholder="elmer-docs/"
+                                                className="flex-1"
+                                              />
+                                              <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                onClick={() => moveColumnContextPath(column, idx, idx - 1)}
+                                                disabled={idx === 0}
+                                                className="h-9 w-9"
+                                              >
+                                                <ArrowUp className="w-4 h-4" />
+                                              </Button>
+                                              <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                onClick={() => moveColumnContextPath(column, idx, idx + 1)}
+                                                disabled={idx === contextPathsValue.length - 1}
+                                                className="h-9 w-9"
+                                              >
+                                                <ArrowDown className="w-4 h-4" />
+                                              </Button>
+                                              <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                onClick={() => removeColumnContextPath(column, idx)}
+                                                className="h-9 w-9"
+                                              >
+                                                <Trash2 className="w-4 h-4" />
+                                              </Button>
+                                            </div>
+                                          ))}
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="gap-2"
+                                            onClick={() => addColumnContextPath(column)}
+                                          >
+                                            <Plus className="w-4 h-4" />
+                                            Add Path
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Context Notes</Label>
+                                        <Textarea
+                                          value={contextNotesValue}
+                                          onChange={(e) => updateColumnEdit(column.id, "contextNotes", e.target.value)}
+                                          className="min-h-[100px]"
+                                          placeholder="Optional notes or instructions for this stage"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Iteration Loops */}
+                                  <div>
+                                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                                      Iteration Loops
+                                    </h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Loop Group ID</Label>
+                                        <Input
+                                          value={loopGroupIdValue}
+                                          onChange={(e) =>
+                                            updateColumnEdit(column.id, "loopGroupId", e.target.value.trim())
+                                          }
+                                          placeholder="e.g. discovery-prd-loop"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                          Group stages that can iterate together
+                                        </p>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label className="text-sm">Loop Targets</Label>
+                                        <Input
+                                          value={loopTargetsValue}
+                                          onChange={(e) =>
+                                            updateColumnEdit(
+                                              column.id,
+                                              "loopTargets",
+                                              e.target.value
+                                                .split(",")
+                                                .map((v) => v.trim())
+                                                .filter(Boolean)
+                                            )
+                                          }
+                                          placeholder="e.g. discovery, prd"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                          Stage IDs this column can loop back to
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="mt-4 space-y-2">
+                                      <Label className="text-sm">Dependency Notes</Label>
+                                      <Textarea
+                                        value={dependencyNotesValue}
+                                        onChange={(e) =>
+                                          updateColumnEdit(column.id, "dependencyNotes", e.target.value)
+                                        }
+                                        className="min-h-[72px]"
+                                        placeholder="Describe validation criteria or dependency behavior"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Save Button */}
+                                  <div className="flex justify-end pt-2">
                                     <Button
-                                      type="button"
                                       size="sm"
-                                      variant="outline"
+                                      onClick={() => handleSaveColumn(column)}
                                       className="gap-2"
-                                      onClick={() => addColumnContextPath(column)}
                                     >
-                                      <Plus className="w-4 h-4" />
-                                      Add Context Path
+                                      <Save className="w-4 h-4" />
+                                      Save Column
                                     </Button>
                                   </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-xs text-muted-foreground">Context Notes</Label>
-                                    <Textarea
-                                      value={contextNotesValue}
-                                      onChange={(e) => updateColumnEdit(column.id, "contextNotes", e.target.value)}
-                                      className="min-h-[88px]"
-                                      placeholder="Optional notes for this stage"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-xs text-muted-foreground">Iteration Loop Group</Label>
-                                    <Input
-                                      value={loopGroupIdValue}
-                                      onChange={(e) =>
-                                        updateColumnEdit(column.id, "loopGroupId", e.target.value.trim())
-                                      }
-                                      className="h-8"
-                                      placeholder="e.g. discovery-prd-loop"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-xs text-muted-foreground">Loop Targets (stage ids)</Label>
-                                    <Input
-                                      value={loopTargetsValue}
-                                      onChange={(e) =>
-                                        updateColumnEdit(
-                                          column.id,
-                                          "loopTargets",
-                                          e.target.value
-                                            .split(",")
-                                            .map((v) => v.trim())
-                                            .filter(Boolean)
-                                        )
-                                      }
-                                      className="h-8"
-                                      placeholder="e.g. discovery, prd"
-                                    />
-                                  </div>
-                                  <div className="space-y-2 lg:col-span-2">
-                                    <Label className="text-xs text-muted-foreground">Dependency Notes</Label>
-                                    <Textarea
-                                      value={dependencyNotesValue}
-                                      onChange={(e) =>
-                                        updateColumnEdit(column.id, "dependencyNotes", e.target.value)
-                                      }
-                                      className="min-h-[72px]"
-                                      placeholder="Describe validation criteria or dependency behavior"
-                                    />
-                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           );
                         })}
                       </div>
 
-                      <div className="p-3 rounded-lg bg-white/30 dark:bg-slate-800/30 border border-slate-200/30 dark:border-slate-700/30">
-                        <p className="text-sm font-medium mb-2">Add Column</p>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                          <Input
-                            placeholder="Stage id"
-                            value={newColumnStage}
-                            onChange={(e) => setNewColumnStage(e.target.value)}
-                            className="h-8"
-                          />
-                          <Input
-                            placeholder="Display name"
-                            value={newColumnName}
-                            onChange={(e) => setNewColumnName(e.target.value)}
-                            className="h-8"
-                          />
-                            <select
+                      {/* Add New Column */}
+                      <div className="p-4 rounded-lg border border-dashed border-border bg-muted/20">
+                        <h4 className="text-sm font-medium mb-3">Add New Column</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Stage ID</Label>
+                            <Input
+                              placeholder="e.g. review"
+                              value={newColumnStage}
+                              onChange={(e) => setNewColumnStage(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Display Name</Label>
+                            <Input
+                              placeholder="e.g. In Review"
+                              value={newColumnName}
+                              onChange={(e) => setNewColumnName(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Color</Label>
+                            <Select
                               value={newColumnColor}
-                              onChange={(e) => setNewColumnColor(e.target.value)}
-                              className="h-8 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm text-slate-900 dark:text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              onValueChange={setNewColumnColor}
                             >
-                            {colorKeys.map((key) => (
-                              <option key={key} value={key}>
-                                {key}
-                              </option>
-                            ))}
-                          </select>
-                          <Button size="sm" onClick={handleAddColumn}>
-                            Add
-                          </Button>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {colorKeys.map((key) => (
+                                  <SelectItem key={key} value={key}>
+                                    <div className="flex items-center gap-2">
+                                      <div className={cn("w-3 h-3 rounded-full", stageColors[key]?.bg || "bg-slate-400")} />
+                                      <span className="capitalize">{key}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-end">
+                            <Button onClick={handleAddColumn} className="w-full gap-2">
+                              <Plus className="w-4 h-4" />
+                              Add Column
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                      
-                      <p className="text-xs text-muted-foreground italic">
-                        Visibility changes save immediately. Use Save to persist other edits.
-                      </p>
                     </TabsContent>
 
                     {/* Automation Tab - Signal Automation Settings (Phase 19) */}
