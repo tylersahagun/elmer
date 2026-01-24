@@ -41,6 +41,8 @@ import {
   type SignalClassificationResult,
   type SignalAutomationSettings,
   DEFAULT_SIGNAL_AUTOMATION,
+  type MaintenanceSettings,
+  DEFAULT_MAINTENANCE_SETTINGS,
 } from "./schema";
 import { eq, and, desc, asc, isNull, isNotNull, ne, or, lt, gte, lte, ilike, sql, inArray } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
@@ -2110,4 +2112,76 @@ export async function getWorkspaceAutomationSettings(
     ...DEFAULT_SIGNAL_AUTOMATION,
     ...workspace.settings.signalAutomation,
   };
+}
+
+// ============================================
+// WORKSPACE MAINTENANCE SETTINGS QUERIES (Phase 20)
+// ============================================
+
+/**
+ * Get workspace maintenance settings, merging with defaults.
+ */
+export async function getWorkspaceMaintenanceSettings(
+  workspaceId: string
+): Promise<MaintenanceSettings> {
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.id, workspaceId),
+    columns: {
+      settings: true,
+    },
+  });
+
+  const workspaceSettings = workspace?.settings?.maintenance;
+
+  // Merge with defaults (workspace settings override defaults)
+  return {
+    ...DEFAULT_MAINTENANCE_SETTINGS,
+    ...workspaceSettings,
+  };
+}
+
+/**
+ * Find multiple best matching projects for a signal vector.
+ * Used for cleanup agent suggestions (MAINT-01).
+ *
+ * @param workspaceId - Workspace to search
+ * @param signalVector - Signal embedding vector
+ * @param limit - Number of matches to return (default: 3)
+ * @returns Array of matching projects with similarity scores
+ */
+export async function findBestProjectMatches(
+  workspaceId: string,
+  signalVector: number[],
+  limit = 3
+): Promise<Array<{
+  id: string;
+  name: string;
+  description: string | null;
+  stage: string;
+  similarity: number;
+}>> {
+  const vectorStr = `[${signalVector.join(",")}]`;
+
+  const result = await db.execute(sql`
+    SELECT
+      id,
+      name,
+      description,
+      stage,
+      1 - (embedding_vector <=> ${vectorStr}::vector) AS similarity
+    FROM projects
+    WHERE workspace_id = ${workspaceId}
+      AND embedding_vector IS NOT NULL
+      AND status = 'active'
+    ORDER BY embedding_vector <=> ${vectorStr}::vector
+    LIMIT ${limit}
+  `);
+
+  return result.rows.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    name: row.name as string,
+    description: row.description as string | null,
+    stage: row.stage as string,
+    similarity: row.similarity as number,
+  }));
 }
