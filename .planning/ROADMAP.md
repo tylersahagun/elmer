@@ -36,9 +36,9 @@ Phases 12 and 13 both depend only on Phase 11, enabling parallel execution:
 - [x] **Phase 15: Signal Extraction & Embedding** - LLM extraction and vector embeddings
 - [x] **Phase 16: Classification & Clustering** - Auto-classify and semantic clustering
 - [x] **Phase 17: Smart Association** - AI-suggested links and bulk operations
-- [ ] **Phase 18: Provenance & PRD Citation** - Project integration and evidence tracking
-- [ ] **Phase 18.1: Wire Cluster-to-Project Creation** - Connect orphaned modal to UI
-- [ ] **Phase 19: Workflow Automation** - Auto triggers and notification thresholds
+- [x] **Phase 18: Provenance & PRD Citation** - Project integration and evidence tracking
+- [x] **Phase 18.1: Wire Cluster-to-Project Creation** - Connect orphaned modal to UI
+- [x] **Phase 19: Workflow Automation** - Auto triggers and notification thresholds
 - [ ] **Phase 20: Maintenance Agents** - Cleanup, orphan detection, and archival
 
 ## Phase Details
@@ -294,10 +294,14 @@ Plans:
   2. System detects and flags orphan signals after configurable days
   3. System detects duplicate signals and suggests merges
   4. Signal archival workflow moves old signals to archived status
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 20-01: TBD
+- [ ] 20-01-PLAN.md — MaintenanceSettings schema and defaults
+- [ ] 20-02-PLAN.md — Orphan and duplicate detection modules
+- [ ] 20-03-PLAN.md — Archival and merge workflow modules
+- [ ] 20-04-PLAN.md — Maintenance cron and API endpoints
+- [ ] 20-05-PLAN.md — Maintenance UI components (banner, cards, settings panel)
 
 ---
 
@@ -322,13 +326,13 @@ Phases 12 and 13 can run in parallel after Phase 11 completes.
 | 15. Signal Extraction & Embedding | 3/3 | Complete | 2026-01-23 |
 | 16. Classification & Clustering | 3/3 | Complete | 2026-01-23 |
 | 17. Smart Association | 4/4 | Complete | 2026-01-23 |
-| 18. Provenance & PRD Citation | 3/3 | Gaps found | 2026-01-24 |
+| 18. Provenance & PRD Citation | 3/3 | Complete | 2026-01-24 |
 | 18.1. Wire Cluster-to-Project Creation | 1/1 | Complete | 2026-01-24 |
-| 19. Workflow Automation | 6/6 | Complete | 2026-01-23 |
-| 20. Maintenance Agents | 0/TBD | Not started | - |
+| 19. Workflow Automation | 6/6 | Complete | 2026-01-24 |
+| 20. Maintenance Agents | 0/5 | Planning complete | - |
 
 ---
 *Roadmap created: 2026-01-22*
-*Roadmap revised: 2026-01-24 (Phase 19 complete - 6 plans including gap closure)*
+*Roadmap revised: 2026-01-24 (Phase 20 planned - 5 plans in 3 waves)*
 *Milestone: v1.1 Signals System*
 *Phases: 11-20 (continues from v1.0)*
