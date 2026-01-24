@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProjects, createProject, getWorkspace, createJob } from "@/lib/db/queries";
+import { getProjectsWithCounts, createProject, getWorkspace, createJob } from "@/lib/db/queries";
 import { buildFeatureBranchName } from "@/lib/git/branches";
 import {
   requireWorkspaceAccess,
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Require viewer access to list projects
     await requireWorkspaceAccess(workspaceId, "viewer");
 
-    const projects = await getProjects(workspaceId, { includeArchived });
+    const projects = await getProjectsWithCounts(workspaceId, { includeArchived });
     return NextResponse.json(projects);
   } catch (error) {
     if (error instanceof PermissionError) {
