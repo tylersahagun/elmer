@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-22)
 
 **Core value:** Every product decision traces back to user evidence. No more lost feedback, no more "why did we build this?"
-**Current focus:** Phase 17 - Smart Association (In Progress)
+**Current focus:** Phase 17 - Smart Association (Complete)
 
 ## Current Position
 
 Phase: 17 of 20 (Smart Association)
-Plan: 3 of 4 complete
-Status: In progress
-Last activity: 2026-01-24 - Completed 17-03-PLAN.md (Review UI)
+Plan: 4 of 4 complete
+Status: Phase complete
+Last activity: 2026-01-24 - Completed 17-04-PLAN.md (Bulk Operations UI)
 
-Progress: [███████░░░] 77%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [███████░░░] 77%
 - Phases: 10 (all complete)
 
 **Current Milestone (v1.1 Signals System):**
-- Total plans completed: 30
+- Total plans completed: 31
 - Phases: 10 (Phases 11-20)
 - Phase 11: 1/1 plans complete (verified)
 - Phase 12: 3/3 plans complete (verified)
@@ -35,7 +35,7 @@ Progress: [███████░░░] 77%
 - Phase 14.6: 3/3 plans complete (verified)
 - Phase 15: 3/3 plans complete (verified)
 - Phase 16: 3/3 plans complete (verified)
-- Phase 17: 3/4 plans complete (in progress)
+- Phase 17: 4/4 plans complete (verified)
 
 ## Accumulated Context
 
@@ -162,6 +162,10 @@ Recent decisions affecting current work:
 - v1.1 (17-03): Dismiss All is session-only (not persisted via API)
 - v1.1 (17-03): Confidence color thresholds: green >= 80%, amber >= 60%, gray below
 - v1.1 (17-03): 5-minute staleTime for suggestions query cache
+- v1.1 (17-04): Set<string> for selectedSignals state (O(1) add/remove/check)
+- v1.1 (17-04): Selection clears on data change to prevent stale references
+- v1.1 (17-04): Toolbar only shows when signals selected (progressive disclosure)
+- v1.1 (17-04): Checkbox click stops propagation to prevent row click handler
 
 ### Pending Todos
 
@@ -181,10 +185,10 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 17-03-PLAN.md (Review UI)
+Stopped at: Completed 17-04-PLAN.md (Bulk Operations UI)
 Resume file: None
 Next steps:
-  - Continue Phase 17 with Plan 04 (Suggestions UI - bulk operations)
+  - Begin Phase 18 (PRD Generation)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
   - Run `npx drizzle-kit generate` for suggestion dismiss columns migration
