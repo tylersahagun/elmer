@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-22)
 ## Current Position
 
 Phase: 19 of 20 (Workflow Automation)
-Plan: 2 of 5 complete
+Plan: 3 of 5 complete
 Status: In progress
-Last activity: 2026-01-24 - Completed 19-03-PLAN.md (Notification threshold filtering)
+Last activity: 2026-01-24 - Completed 19-02-PLAN.md (Automation Engine)
 
-Progress: [██████████] 88%
+Progress: [██████████] 89%
 
 ## Performance Metrics
 
@@ -38,7 +38,7 @@ Progress: [██████████] 88%
 - Phase 17: 4/4 plans complete (verified)
 - Phase 18: 3/3 plans complete (gaps found - PROV-05 blocked)
 - Phase 18.1: 1/1 plans complete (gap closure complete)
-- Phase 19: 2/5 plans complete (in progress)
+- Phase 19: 3/5 plans complete (in progress)
 
 ## Accumulated Context
 
@@ -198,6 +198,10 @@ Recent decisions affecting current work:
 - v1.1 (19-03): Severity threshold uses ordered comparison (critical > high > medium > low)
 - v1.1 (19-03): Duplicate suppression checks recent notifications for matching clusterId
 - v1.1 (19-03): Notification priority derived from cluster severity
+- v1.1 (19-02): Cluster evaluation order: already_actioned -> rate_limited -> low_confidence -> severity_filter -> below_threshold
+- v1.1 (19-02): PRD generation only triggers if automationDepth is full_auto AND cluster meets autoPrdThreshold
+- v1.1 (19-02): Auto-created projects have linkedBy=null to distinguish from user-linked signals
+- v1.1 (19-02): Activity logs record automation as actor with userId='automation'
 
 ### Pending Todos
 
@@ -217,11 +221,10 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-24
-Stopped at: Completed 19-03-PLAN.md
+Stopped at: Completed 19-02-PLAN.md
 Resume file: None
 Next steps:
-  - Continue Phase 19: Execute 19-02-PLAN.md (Automation Engine)
-  - Execute 19-04-PLAN.md (Automation Settings UI)
+  - Continue Phase 19: Execute 19-04-PLAN.md (Cron Integration)
   - Execute 19-05-PLAN.md (Integration tests)
   - Run database migration to enable pgvector extension
   - Run vector migration script after deploying schema changes
