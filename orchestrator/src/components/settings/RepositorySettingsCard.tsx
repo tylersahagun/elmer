@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { GitBranch, FolderOpen } from "lucide-react";
 import { GithubRepoSelector } from "./GithubRepoSelector";
+import { BranchSelector } from "./BranchSelector";
+import { PathBrowser } from "./PathBrowser";
 
 interface DetectedPath {
   type: "context" | "prototypes";
@@ -16,6 +18,9 @@ interface RepositorySettingsCardProps {
   setGithubRepo: (value: string) => void;
   baseBranch: string;
   setBaseBranch: (value: string) => void;
+  repoOwner?: string | null;
+  repoName?: string | null;
+  onRepoMetaChange?: (meta: { owner: string; repo: string } | null) => void;
   cursorDeepLinkTemplate: string;
   setCursorDeepLinkTemplate: (value: string) => void;
   prototypesPath: string;
@@ -45,13 +50,24 @@ export function RepositorySettingsCard({
   resolvedPaths,
   onContextPathDetected,
   onPrototypesPathDetected,
+  repoOwner,
+  repoName,
+  onRepoMetaChange,
 }: RepositorySettingsCardProps) {
   // Handle repo selection and auto-configure branch
-  const handleRepoChange = (value: string, repoDetails?: { defaultBranch?: string }) => {
+  const handleRepoChange = (
+    value: string,
+    repoDetails?: { defaultBranch?: string; owner?: { login: string }; name?: string }
+  ) => {
     setGithubRepo(value);
     // Auto-set branch if repo provides default branch
     if (repoDetails?.defaultBranch) {
       setBaseBranch(repoDetails.defaultBranch);
+    }
+    if (repoDetails?.owner?.login && repoDetails?.name) {
+      onRepoMetaChange?.({ owner: repoDetails.owner.login, repo: repoDetails.name });
+    } else {
+      onRepoMetaChange?.(null);
     }
   };
 
@@ -104,12 +120,21 @@ export function RepositorySettingsCard({
           </div>
           <div className="space-y-2">
             <Label htmlFor="baseBranch">Base Branch</Label>
-            <Input
-              id="baseBranch"
-              placeholder="main"
-              value={baseBranch}
-              onChange={(e) => setBaseBranch(e.target.value)}
-            />
+            {repoOwner && repoName ? (
+              <BranchSelector
+                owner={repoOwner}
+                repo={repoName}
+                value={baseBranch}
+                onChange={setBaseBranch}
+              />
+            ) : (
+              <Input
+                id="baseBranch"
+                placeholder="main"
+                value={baseBranch}
+                onChange={(e) => setBaseBranch(e.target.value)}
+              />
+            )}
             <p className="text-xs text-muted-foreground">
               Auto-filled when selecting a repository from GitHub.
             </p>
@@ -133,12 +158,22 @@ export function RepositorySettingsCard({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="prototypesPath">Prototypes Path</Label>
-            <Input
-              id="prototypesPath"
-              placeholder="src/components/prototypes/"
-              value={prototypesPath}
-              onChange={(e) => setPrototypesPath(e.target.value)}
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id="prototypesPath"
+                placeholder="src/components/prototypes/"
+                value={prototypesPath}
+                onChange={(e) => setPrototypesPath(e.target.value)}
+              />
+              <PathBrowser
+                owner={repoOwner || undefined}
+                repo={repoName || undefined}
+                ref={baseBranch || undefined}
+                value={prototypesPath}
+                onSelect={setPrototypesPath}
+                label="Browse"
+              />
+            </div>
             {resolvedPaths?.prototypesPath && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <FolderOpen className="w-3 h-3" />

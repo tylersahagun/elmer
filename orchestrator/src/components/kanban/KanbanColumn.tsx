@@ -278,6 +278,11 @@ export const KanbanColumn = memo(function KanbanColumn({
                     $ auto-runs: {column.autoTriggerJobs.join(", ")}
                   </p>
                 )}
+                {column.agentTriggers && column.agentTriggers.length > 0 && (
+                  <p className="text-[10px] mt-1 text-muted-foreground/70 font-mono">
+                    $ agent-triggers: {column.agentTriggers.length}
+                  </p>
+                )}
               </motion.div>
             </motion.div>
           )}

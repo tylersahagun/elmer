@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PathBrowser } from "./PathBrowser";
 import { 
   FolderOpen, 
   ArrowUp, 
@@ -22,6 +23,9 @@ interface ContextPathsCardProps {
   setContextPaths: React.Dispatch<React.SetStateAction<string[]>>;
   resolvedContextPath?: string | null;
   workspaceId?: string;
+  repoOwner?: string | null;
+  repoName?: string | null;
+  baseBranch?: string;
 }
 
 export function ContextPathsCard({
@@ -29,6 +33,9 @@ export function ContextPathsCard({
   setContextPaths,
   resolvedContextPath,
   workspaceId,
+  repoOwner,
+  repoName,
+  baseBranch,
 }: ContextPathsCardProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{
@@ -161,6 +168,14 @@ export function ContextPathsCard({
                 placeholder="elmer-docs/"
                 value={path}
                 onChange={(e) => updateContextPath(idx, e.target.value)}
+              />
+              <PathBrowser
+                owner={repoOwner || undefined}
+                repo={repoName || undefined}
+                ref={baseBranch || undefined}
+                value={path}
+                onSelect={(value) => updateContextPath(idx, value)}
+                label="Browse"
               />
               <Button
                 type="button"

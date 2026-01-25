@@ -13,6 +13,9 @@ import {
   columnConfigs,
   knowledgebaseEntries,
   knowledgeSources,
+  agentDefinitions,
+  pendingQuestions,
+  agentExecutions,
   prototypeVersions,
   notifications,
   workspaceMembers,
@@ -591,6 +594,67 @@ export async function updateJobRunStatus(
   return db.query.jobRuns.findFirst({ where: eq(jobRuns.id, jobRunId) });
 }
 
+// ============================================
+// PENDING QUESTIONS (Interactive)
+// ============================================
+
+export async function createPendingQuestion(data: {
+  jobId: string;
+  workspaceId: string;
+  projectId?: string;
+  questionType: string;
+  questionText: string;
+  choices?: string[];
+  context?: Record<string, unknown>;
+  toolCallId: string;
+  toolName: string;
+  timeoutAt?: Date;
+  defaultResponse?: Record<string, unknown>;
+}) {
+  const id = uuid();
+  await db.insert(pendingQuestions).values({
+    id,
+    jobId: data.jobId,
+    workspaceId: data.workspaceId,
+    projectId: data.projectId,
+    questionType: data.questionType,
+    questionText: data.questionText,
+    choices: data.choices,
+    context: data.context,
+    toolCallId: data.toolCallId,
+    toolName: data.toolName,
+    timeoutAt: data.timeoutAt,
+    defaultResponse: data.defaultResponse,
+    createdAt: new Date(),
+  });
+  return db.query.pendingQuestions.findFirst({ where: eq(pendingQuestions.id, id) });
+}
+
+export async function listPendingQuestions(workspaceId: string) {
+  return db.query.pendingQuestions.findMany({
+    where: and(
+      eq(pendingQuestions.workspaceId, workspaceId),
+      eq(pendingQuestions.status, "pending")
+    ),
+    orderBy: [desc(pendingQuestions.createdAt)],
+  });
+}
+
+export async function updatePendingQuestion(
+  id: string,
+  data: Partial<{
+    status: string;
+    response: Record<string, unknown>;
+    respondedBy: string;
+    respondedAt: Date;
+  }>
+) {
+  await db.update(pendingQuestions)
+    .set(data)
+    .where(eq(pendingQuestions.id, id));
+  return db.query.pendingQuestions.findFirst({ where: eq(pendingQuestions.id, id) });
+}
+
 export async function cancelProjectJobs(projectId: string) {
   const now = new Date();
   
@@ -785,6 +849,11 @@ export async function createColumnConfig(data: {
   order: number;
   color?: string;
   autoTriggerJobs?: JobType[];
+  agentTriggers?: Array<{
+    agentDefinitionId: string;
+    priority: number;
+    conditions?: Record<string, unknown>;
+  }>;
   requiredDocuments?: DocumentType[];
   requiredApprovals?: number;
   aiIterations?: number;
@@ -801,6 +870,7 @@ export async function createColumnConfig(data: {
     order: data.order,
     color: data.color,
     autoTriggerJobs: data.autoTriggerJobs || [],
+    agentTriggers: data.agentTriggers || [],
     requiredDocuments: data.requiredDocuments || [],
     requiredApprovals: data.requiredApprovals || 0,
     aiIterations: data.aiIterations || 0,
@@ -819,6 +889,11 @@ export async function updateColumnConfig(
     order: number;
     color: string;
     autoTriggerJobs: JobType[];
+    agentTriggers: Array<{
+      agentDefinitionId: string;
+      priority: number;
+      conditions?: Record<string, unknown>;
+    }>;
     requiredDocuments: DocumentType[];
     requiredApprovals: number;
     aiIterations: number;
@@ -846,6 +921,71 @@ export async function reorderColumnConfigs(workspaceId: string, orderedIds: stri
       .where(and(eq(columnConfigs.id, orderedIds[i]), eq(columnConfigs.workspaceId, workspaceId)));
   }
   return getColumnConfigs(workspaceId);
+}
+
+// ============================================
+// AGENT DEFINITIONS
+// ============================================
+
+export async function getAgentDefinitionById(id: string) {
+  return db.query.agentDefinitions.findFirst({
+    where: eq(agentDefinitions.id, id),
+  });
+}
+
+export async function listAgentDefinitions(workspaceId: string) {
+  return db.query.agentDefinitions.findMany({
+    where: eq(agentDefinitions.workspaceId, workspaceId),
+    orderBy: [desc(agentDefinitions.createdAt)],
+  });
+}
+
+export async function listAgentDefinitionsByType(
+  workspaceId: string,
+  type: string
+) {
+  return db.query.agentDefinitions.findMany({
+    where: and(
+      eq(agentDefinitions.workspaceId, workspaceId),
+      eq(agentDefinitions.type, type)
+    ),
+    orderBy: [desc(agentDefinitions.createdAt)],
+  });
+}
+
+export async function createAgentExecution(data: {
+  jobId: string;
+  agentDefinitionId?: string;
+  workspaceId: string;
+  projectId?: string;
+  inputContext?: Record<string, unknown>;
+}) {
+  const id = uuid();
+  await db.insert(agentExecutions).values({
+    id,
+    jobId: data.jobId,
+    agentDefinitionId: data.agentDefinitionId,
+    workspaceId: data.workspaceId,
+    projectId: data.projectId,
+    inputContext: data.inputContext,
+    createdAt: new Date(),
+    startedAt: new Date(),
+  });
+  return db.query.agentExecutions.findFirst({ where: eq(agentExecutions.id, id) });
+}
+
+export async function updateAgentExecution(
+  id: string,
+  data: Partial<{
+    output: Record<string, unknown>;
+    promptUsed: string;
+    tokensUsed: number;
+    durationMs: number;
+    completedAt: Date;
+  }>
+) {
+  await db.update(agentExecutions).set(data).where(eq(agentExecutions.id, id));
+  return db.query.agentExecutions.findFirst({ where: eq(agentExecutions.id, id) });
 }
 
 // ============================================

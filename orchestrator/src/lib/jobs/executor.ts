@@ -27,6 +27,8 @@ import { promisify } from "node:util";
 import { getRepoComponentList } from "@/lib/prototypes/context";
 import { getWorkspaceContext, getProjectContext } from "@/lib/context/resolve";
 import { commitAndPushChanges, createFeatureBranch } from "@/lib/git/branches";
+import { getAgentExecutor } from "@/lib/agent";
+import type { AgentJob } from "@/lib/agent/types";
 
 // Types for job execution
 interface JobContext {
@@ -353,6 +355,30 @@ const validateCreateFeatureBranch: JobExecutor = async (ctx) => {
   };
 };
 
+const validateProcessSignal: JobExecutor = async () => {
+  return {
+    success: true,
+    output: { status: "pending", message: "Signal processing ready" },
+  };
+};
+
+const validateSynthesizeSignals: JobExecutor = async () => {
+  return {
+    success: true,
+    output: { status: "pending", message: "Signal synthesis ready" },
+  };
+};
+
+const validateExecuteAgentDefinition: JobExecutor = async (ctx) => {
+  if (!ctx.input?.agentDefinitionId) {
+    return { success: false, error: "agentDefinitionId is required" };
+  }
+  return {
+    success: true,
+    output: { status: "pending", message: "Agent execution ready" },
+  };
+};
+
 // ============================================
 // VALIDATOR REGISTRY
 // ============================================
@@ -363,6 +389,8 @@ const validators: Record<JobType, JobExecutor> = {
   generate_engineering_spec: validateGenerateEngineeringSpec,
   generate_gtm_brief: validateGenerateGTMBrief,
   analyze_transcript: validateAnalyzeTranscript,
+  process_signal: validateProcessSignal,
+  synthesize_signals: validateSynthesizeSignals,
   run_jury_evaluation: validateRunJuryEvaluation,
   build_prototype: validateBuildPrototype,
   iterate_prototype: validateIteratePrototype,
@@ -371,6 +399,7 @@ const validators: Record<JobType, JobExecutor> = {
   score_stage_alignment: validateScoreStageAlignment,
   deploy_chromatic: validateDeployChromatic,
   create_feature_branch: validateCreateFeatureBranch,
+  execute_agent_definition: validateExecuteAgentDefinition,
 };
 
 // ============================================
@@ -393,6 +422,34 @@ function getRepoRoot(githubRepo?: string) {
   if (!githubRepo) return null;
   if (path.isAbsolute(githubRepo)) return githubRepo;
   return path.join(getWorkspaceRoot(), githubRepo);
+}
+
+async function executeViaAgentExecutor(
+  jobId: string,
+  jobType: JobType,
+  projectId: string,
+  workspaceId: string,
+  input: Record<string, unknown>
+): Promise<ExecutionResult> {
+  const executor = getAgentExecutor();
+  const agentJob: AgentJob = {
+    id: jobId,
+    type: jobType,
+    projectId,
+    workspaceId,
+    input,
+    status: "running",
+    attempts: 0,
+    maxAttempts: 1,
+    createdAt: new Date(),
+  };
+
+  const result = await executor.executeJob(agentJob);
+  if (!result.success) {
+    return { success: false, error: result.error || "Agent execution failed" };
+  }
+
+  return { success: true, output: result.output };
 }
 
 function toComponentName(name: string) {
@@ -711,6 +768,18 @@ export async function executeJob(
     const validationMode = (project.workspace?.settings?.aiValidationMode || "schema") as ValidationMode;
 
     switch (jobType) {
+      case "process_signal":
+      case "synthesize_signals":
+      case "execute_agent_definition": {
+        return await executeViaAgentExecutor(
+          jobId,
+          jobType,
+          projectId,
+          workspaceId,
+          input
+        );
+      }
+
       case "analyze_transcript": {
         const transcript = (input.transcript as string) || "";
         const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({

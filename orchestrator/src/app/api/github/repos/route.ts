@@ -6,10 +6,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
-import { eq, and } from "drizzle-orm";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { accounts } from "@/lib/db/schema";
+import { getGitHubToken } from "@/lib/github/auth";
 
 interface GitHubRepo {
   id: number;
@@ -27,19 +25,7 @@ interface GitHubRepo {
   };
 }
 
-/**
- * Get the GitHub access token for the current user
- */
-async function getGitHubToken(userId: string): Promise<string | null> {
-  const account = await db.query.accounts.findFirst({
-    where: and(
-      eq(accounts.userId, userId),
-      eq(accounts.provider, "github")
-    ),
-  });
-
-  return account?.access_token ?? null;
-}
+import { Octokit } from "@octokit/rest";
 
 /**
  * GET /api/github/repos

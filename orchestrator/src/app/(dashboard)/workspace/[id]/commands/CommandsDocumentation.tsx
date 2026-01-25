@@ -88,6 +88,11 @@ interface ColumnConfig {
   enabled: boolean;
   color: string;
   autoTriggerJobs?: string[];
+  agentTriggers?: Array<{
+    agentDefinitionId: string;
+    priority: number;
+    conditions?: Record<string, unknown>;
+  }>;
   humanInLoop?: boolean;
   requiredDocuments?: string[];
   requiredApprovals?: number;

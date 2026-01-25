@@ -49,6 +49,11 @@ export interface KanbanColumn {
   order: number;
   enabled: boolean;
   autoTriggerJobs?: string[];
+  agentTriggers?: Array<{
+    agentDefinitionId: string;
+    priority: number;
+    conditions?: Record<string, unknown>;
+  }>;
   humanInLoop?: boolean;
   requiredDocuments?: string[];
   requiredApprovals?: number;
@@ -94,6 +99,11 @@ export interface WorkspaceState {
     verificationStrictness?: "strict" | "lenient" | "disabled";
     stateTrackingEnabled?: boolean;
     aiVerificationModel?: string;
+    composio?: {
+      apiKey?: string;
+      enabled?: boolean;
+      connectedServices?: string[];
+    };
     // UI Personalization
     background?: {
       type: "stars" | "bubble" | "gradient" | "gravity-stars" | "hole" | "aurora" | "none";

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { signIn } from "next-auth/react";
 import { Check, ChevronsUpDown, Github, Link2, Loader2, RefreshCw, Search, Unlink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -121,9 +122,12 @@ export function GithubRepoSelector({
     (repo) => repo.fullName === value || repo.name === value || `product-repos/${repo.name}` === value
   );
 
-  // Connect to GitHub
+  // Connect to GitHub - link account while staying logged in
   const handleConnect = () => {
-    window.location.href = "/api/auth/signin/github";
+    signIn("github", { 
+      callbackUrl: window.location.href,
+      redirect: true,
+    });
   };
 
   // Handle repo selection

@@ -51,6 +51,8 @@ const stageColors: Record<string, { bg: string; text: string; glow: string }> = 
 
 const jobTypeOptions: Array<{ value: JobType; label: string; description?: string }> = [
   { value: "analyze_transcript", label: "Analyze Transcript", description: "Extract insights from user research" },
+  { value: "process_signal", label: "Process Signal", description: "Ingest and normalize incoming signals" },
+  { value: "synthesize_signals", label: "Synthesize Signals", description: "Cluster and summarize related signals" },
   { value: "generate_prd", label: "Generate PRD", description: "Create product requirements document" },
   { value: "generate_design_brief", label: "Generate Design Brief", description: "Create design specifications" },
   { value: "generate_engineering_spec", label: "Generate Engineering Spec", description: "Create technical specifications" },
@@ -60,6 +62,7 @@ const jobTypeOptions: Array<{ value: JobType; label: string; description?: strin
   { value: "iterate_prototype", label: "Iterate Prototype", description: "Improve existing prototype" },
   { value: "generate_tickets", label: "Generate Tickets", description: "Create engineering tickets" },
   { value: "validate_tickets", label: "Validate Tickets", description: "Review and validate tickets" },
+  { value: "execute_agent_definition", label: "Execute Agent Definition", description: "Run imported skill/command/subagent" },
   { value: "deploy_chromatic", label: "Deploy to Chromatic", description: "Deploy Storybook to Chromatic" },
   { value: "create_feature_branch", label: "Create Feature Branch", description: "Create a git branch" },
 ];
@@ -82,6 +85,11 @@ export interface KanbanColumn {
   order: number;
   enabled: boolean;
   autoTriggerJobs?: string[];
+  agentTriggers?: Array<{
+    agentDefinitionId: string;
+    priority: number;
+    conditions?: Record<string, unknown>;
+  }>;
   humanInLoop?: boolean;
   requiredDocuments?: string[];
   requiredApprovals?: number;
@@ -181,6 +189,9 @@ export function ColumnsSettingsCard({
       dependencyNotes?: string;
     };
     const payload: Record<string, unknown> = { ...rest };
+    if (updates.agentTriggers !== undefined) {
+      payload.agentTriggers = updates.agentTriggers;
+    }
     if (
       updatedPaths !== undefined ||
       updatedNotes !== undefined ||
@@ -207,6 +218,11 @@ export function ColumnsSettingsCard({
     order: number;
     enabled: boolean;
     autoTriggerJobs?: string[];
+    agentTriggers?: Array<{
+      agentDefinitionId: string;
+      priority: number;
+      conditions?: Record<string, unknown>;
+    }>;
     humanInLoop?: boolean;
     requiredDocuments?: string[];
     requiredApprovals?: number;
@@ -225,6 +241,7 @@ export function ColumnsSettingsCard({
     order: column.order,
     enabled: column.enabled,
     autoTriggerJobs: column.autoTriggerJobs,
+    agentTriggers: column.agentTriggers || [],
     humanInLoop: column.humanInLoop,
     requiredDocuments: column.requiredDocuments,
     requiredApprovals: column.requiredApprovals,
@@ -353,7 +370,7 @@ export function ColumnsSettingsCard({
                   className="w-full p-3 flex items-center justify-between gap-3 text-left"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={cn("w-3 h-3 rounded-full flex-shrink-0", colorConfig.bg)} />
+                    <div className={cn("w-3 h-3 rounded-full shrink-0", colorConfig.bg)} />
                     <div className="min-w-0">
                       <span className="font-medium text-sm block truncate">
                         {displayNameValue || column.id}
@@ -363,7 +380,7 @@ export function ColumnsSettingsCard({
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-3 shrink-0">
                     <div
                       className="flex items-center gap-2"
                       onClick={(e) => e.stopPropagation()}
@@ -568,6 +585,75 @@ export function ColumnsSettingsCard({
                             Documents that must exist before moving to this stage
                           </p>
                         </div>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <Label className="text-sm">Agent Triggers</Label>
+                        {(() => {
+                          const triggers = (getColumnEdit(
+                            column.id,
+                            "agentTriggers",
+                            column.agentTriggers || []
+                          ) as Array<{ agentDefinitionId: string; priority: number }>);
+
+                          return (
+                            <div className="space-y-2">
+                              {triggers.map((trigger, idx) => (
+                                <div key={`agent-trigger-${idx}`} className="flex items-center gap-2">
+                                  <Input
+                                    placeholder="agent_definition_id"
+                                    value={trigger.agentDefinitionId}
+                                    onChange={(e) => {
+                                      const next = [...triggers];
+                                      next[idx] = { ...next[idx], agentDefinitionId: e.target.value };
+                                      updateColumnEdit(column.id, "agentTriggers", next);
+                                    }}
+                                  />
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    className="w-24"
+                                    value={String(trigger.priority ?? 0)}
+                                    onChange={(e) => {
+                                      const next = [...triggers];
+                                      next[idx] = {
+                                        ...next[idx],
+                                        priority: Number(e.target.value || 0),
+                                      };
+                                      updateColumnEdit(column.id, "agentTriggers", next);
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const next = triggers.filter((_, tIdx) => tIdx !== idx);
+                                      updateColumnEdit(column.id, "agentTriggers", next);
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                                onClick={() => {
+                                  const next = [...triggers, { agentDefinitionId: "", priority: 0 }];
+                                  updateColumnEdit(column.id, "agentTriggers", next);
+                                }}
+                              >
+                                <Plus className="w-4 h-4" />
+                                Add Agent Trigger
+                              </Button>
+                            </div>
+                          );
+                        })()}
+                        <p className="text-xs text-muted-foreground">
+                          Agent definitions run automatically when a project enters this stage.
+                        </p>
                       </div>
                     </div>
 

@@ -6,6 +6,7 @@
  */
 
 import type { JobType } from "@/lib/db/schema";
+import { sanitizePromptContent } from "@/lib/agent/security";
 
 // ============================================
 // BASE SYSTEM PROMPT
@@ -26,6 +27,41 @@ Important guidelines:
 // ============================================
 
 export const JOB_PROMPTS: Record<JobType, { system: string; outputFormat: "markdown" | "json" }> = {
+  process_signal: {
+    system: `${BASE_SYSTEM_PROMPT}
+
+You are ingesting a new signal and normalizing it for downstream analysis.
+
+Extract:
+- Summary
+- Source details
+- Key themes
+- Any actionable insights
+
+Return JSON:
+{
+  "summary": "brief summary",
+  "source": "string",
+  "themes": ["..."],
+  "insights": ["..."]
+}`,
+    outputFormat: "json",
+  },
+
+  synthesize_signals: {
+    system: `${BASE_SYSTEM_PROMPT}
+
+You are synthesizing a cluster of related signals into a concise summary.
+
+Return JSON:
+{
+  "clusterSummary": "brief summary",
+  "themes": ["..."],
+  "recommendations": ["..."]
+}`,
+    outputFormat: "json",
+  },
+
   analyze_transcript: {
     system: `${BASE_SYSTEM_PROMPT}
 
@@ -308,6 +344,14 @@ Create a branch following naming conventions:
 Use the create_git_branch tool to create the branch.`,
     outputFormat: "markdown",
   },
+
+  execute_agent_definition: {
+    system: `${BASE_SYSTEM_PROMPT}
+
+You are executing an imported agent definition. Follow the instructions exactly
+and use tools when appropriate. If required inputs are missing, ask for them.`,
+    outputFormat: "markdown",
+  },
 };
 
 // ============================================
@@ -319,15 +363,19 @@ Use the create_git_branch tool to create the branch.`,
  */
 export function buildSystemPrompt(
   jobType: JobType,
-  companyContext: string
+  companyContext: string,
+  extraRules?: string
 ): string {
   const jobPrompt = JOB_PROMPTS[jobType];
+  const sanitizedContext = sanitizePromptContent(companyContext);
   
   return `${jobPrompt.system}
 
 ## Company Context
 
-${companyContext}`;
+${sanitizedContext}
+
+${extraRules ? `\n## Imported Rules\n\n${extraRules}\n` : ""}`;
 }
 
 /**

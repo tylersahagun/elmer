@@ -21,6 +21,10 @@ import { getWorkspaceContext, getProjectContext } from "@/lib/context/resolve";
 import {
   getProject,
   getDocumentByType,
+  getAgentDefinitionById,
+  listAgentDefinitionsByType,
+  createAgentExecution,
+  updateAgentExecution,
 } from "@/lib/db/queries";
 
 // ============================================
@@ -70,9 +74,23 @@ export class AgentExecutor {
       });
     };
 
+    let agentExecutionId: string | undefined;
+
     try {
       log(`Starting job: ${job.type}`);
       onProgress?.({ type: "started", jobId: job.id, jobType: job.type });
+
+      const agentDefinitionId = job.input?.agentDefinitionId as string | undefined;
+      const agentExecution =
+        job.type === "execute_agent_definition"
+          ? await createAgentExecution({
+              jobId: job.id,
+              agentDefinitionId,
+              workspaceId: job.workspaceId,
+              projectId: job.projectId,
+            })
+          : null;
+      agentExecutionId = agentExecution?.id;
 
       // Get cached workspace context (or fetch fresh)
       const companyContext = await this.getCachedContext(job.workspaceId);
@@ -82,8 +100,12 @@ export class AgentExecutor {
       const userPrompt = await this.buildUserPrompt(job);
       log(`Built user prompt for ${job.type}`);
 
-      // Build system prompt with caching
-      const systemPrompt = buildSystemPrompt(job.type, companyContext);
+      // Load imported rules
+      const rules = await listAgentDefinitionsByType(job.workspaceId, "rule");
+      const rulesContent = rules.map((rule) => rule.content).join("\n\n---\n\n");
+
+      // Build system prompt with cached context and rules
+      const systemPrompt = buildSystemPrompt(job.type, companyContext, rulesContent);
 
       // Get tools for this job type
       const tools = this.getToolsForJob(job.type);
@@ -97,6 +119,8 @@ export class AgentExecutor {
       // Run agent loop with tool use
       let iterationCount = 0;
       let finalContent = "";
+      let requiresInput = false;
+      let pendingQuestionId: string | undefined;
 
       while (iterationCount < MAX_TOOL_ITERATIONS) {
         iterationCount++;
@@ -174,7 +198,14 @@ export class AgentExecutor {
           if (block.type === "tool_use") {
             const result = await executeTool(
               block.name,
-              block.input as Record<string, unknown>
+              block.input as Record<string, unknown>,
+              {
+                jobId: job.id,
+                workspaceId: job.workspaceId,
+                projectId: job.projectId,
+                jobType: job.type,
+                toolCallId: block.id,
+              }
             );
 
             log(`Tool result: ${block.name} - ${result.success ? "success" : "failed"}`);
@@ -184,6 +215,17 @@ export class AgentExecutor {
               success: result.success,
               output: result.output,
             });
+
+            if (
+              result.success &&
+              result.output &&
+              typeof result.output === "object" &&
+              "requiresInput" in result.output
+            ) {
+              requiresInput = true;
+              const output = result.output as { questionId?: string };
+              pendingQuestionId = output.questionId;
+            }
 
             toolResults.push({
               type: "tool_result",
@@ -198,6 +240,11 @@ export class AgentExecutor {
 
         // Add tool results
         messages.push({ role: "user", content: toolResults });
+
+        if (requiresInput) {
+          log("Agent paused awaiting user input");
+          break;
+        }
 
         // Check stop reason
         if (response.stop_reason === "end_turn") {
@@ -218,14 +265,29 @@ export class AgentExecutor {
 
       const result: AgentExecutionResult = {
         success: true,
-        output: {
-          content: finalContent,
-          iterations: iterationCount,
-        },
+        output: requiresInput
+          ? {
+              requiresInput: true,
+              questionId: pendingQuestionId,
+            }
+          : {
+              content: finalContent,
+              iterations: iterationCount,
+            },
         logs,
         tokensUsed,
         durationMs,
       };
+
+      if (agentExecutionId) {
+        await updateAgentExecution(agentExecutionId, {
+          promptUsed: systemPrompt,
+          output: result.output,
+          tokensUsed: tokensUsed.input + tokensUsed.output,
+          durationMs,
+          completedAt: new Date(),
+        });
+      }
 
       onProgress?.({ type: "completed", result });
       return result;
@@ -233,6 +295,14 @@ export class AgentExecutor {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       log(`Job failed: ${errorMessage}`);
+
+      if (agentExecutionId) {
+        await updateAgentExecution(agentExecutionId, {
+          output: { error: errorMessage },
+          durationMs: Date.now() - startTime,
+          completedAt: new Date(),
+        });
+      }
 
       const result: AgentExecutionResult = {
         success: false,
@@ -272,6 +342,20 @@ export class AgentExecutor {
     const projectName = project?.name || "Unknown Project";
 
     switch (type) {
+      case "process_signal": {
+        return `Process incoming signal data for "${projectName}".
+
+Normalize the signal, extract key details, and summarize any actionable insights.
+If relevant, save a brief research note using save_document with type "research".`;
+      }
+
+      case "synthesize_signals": {
+        return `Synthesize related signals for "${projectName}".
+
+Cluster the signals, summarize the common theme, and propose next steps.
+Save a synthesis note using save_document with type "research".`;
+      }
+
       case "analyze_transcript": {
         const transcript = (input.transcript as string) || "";
         return `Analyze this transcript for "${projectName}":
@@ -449,6 +533,33 @@ Save a note about needing manual Chromatic deployment.`;
 Note: This job type requires Git CLI execution which is not available in this agent.
 Save a note about needing manual branch creation.`;
 
+      case "execute_agent_definition": {
+        const agentDefinitionId = input.agentDefinitionId as string;
+        if (!agentDefinitionId) {
+          return `No agentDefinitionId provided for ${projectName}.`;
+        }
+
+        const definition = await getAgentDefinitionById(agentDefinitionId);
+        if (!definition) {
+          return `Agent definition not found: ${agentDefinitionId}`;
+        }
+
+        const projectContext = projectId
+          ? await getProjectContext(projectId)
+          : "";
+        const workspaceContext = await getWorkspaceContext(job.workspaceId);
+
+        return `Execute the following agent definition for "${projectName}":
+
+## Agent Definition
+${definition.content}
+
+## Workspace Context
+${workspaceContext}
+
+${projectContext ? `## Project Context\n${projectContext}\n` : ""}`;
+      }
+
       default:
         return `Process job for: ${projectName}\n\nInput: ${JSON.stringify(input)}`;
     }
@@ -465,6 +576,8 @@ Save a note about needing manual branch creation.`;
 
     // Job-specific tools
     const jobTools: Record<JobType, string[]> = {
+      process_signal: [...baseTools],
+      synthesize_signals: [...baseTools],
       analyze_transcript: [...baseTools],
       generate_prd: [...baseTools],
       generate_design_brief: [...baseTools],
@@ -478,6 +591,13 @@ Save a note about needing manual branch creation.`;
       score_stage_alignment: [...baseTools, "update_project_score"],
       deploy_chromatic: [...baseTools],
       create_feature_branch: [...baseTools],
+      execute_agent_definition: [
+        ...baseTools,
+        "save_tickets",
+        "save_jury_evaluation",
+        "update_project_score",
+        "composio_execute",
+      ],
     };
 
     const toolNames = jobTools[jobType] || baseTools;

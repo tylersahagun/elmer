@@ -107,6 +107,41 @@ async function persistStageChange(
         }
       }
     }
+
+    // 3. Trigger agent definitions if configured
+    if (column?.agentTriggers && column.agentTriggers.length > 0 && workspaceId) {
+      const sortedTriggers = [...column.agentTriggers].sort(
+        (a, b) => (a.priority ?? 0) - (b.priority ?? 0)
+      );
+      console.log(
+        `🤖 Triggering agent definitions for ${newStage}:`,
+        sortedTriggers.map((t) => t.agentDefinitionId)
+      );
+
+      for (const trigger of sortedTriggers) {
+        try {
+          const jobRes = await fetch("/api/jobs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workspaceId,
+              projectId,
+              type: "execute_agent_definition",
+              input: { agentDefinitionId: trigger.agentDefinitionId },
+            }),
+          });
+
+          if (jobRes.ok) {
+            const job = await jobRes.json();
+            console.log(`✅ Agent job queued: ${trigger.agentDefinitionId} (${job.id})`);
+          } else {
+            console.error(`Failed to queue agent job: ${trigger.agentDefinitionId}`);
+          }
+        } catch (error) {
+          console.error(`Error queuing agent job ${trigger.agentDefinitionId}:`, error);
+        }
+      }
+    }
   } catch (error) {
     console.error("Error in persistStageChange:", error);
     return false;

@@ -1,6 +1,7 @@
 import { pgTable, text, integer, real, timestamp, boolean, jsonb, unique, primaryKey, customType } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import type { AgentSecuritySettings } from "@/lib/agent/security";
 
 // ============================================
 // CUSTOM TYPES
@@ -90,6 +91,14 @@ export interface WorkspaceSettings {
   verificationStrictness?: "strict" | "lenient" | "disabled"; // How to handle verification failures
   stateTrackingEnabled?: boolean; // Auto-generate state.md documents
   aiVerificationModel?: string; // Model for AI-based verification checks
+  // Agent security settings
+  agentSecurity?: AgentSecuritySettings;
+  // Composio integration
+  composio?: {
+    apiKey?: string;
+    enabled?: boolean;
+    connectedServices?: string[];
+  };
   // Signal Automation Settings (Phase 19)
   signalAutomation?: SignalAutomationSettings;
   // Maintenance Settings (Phase 20)
@@ -440,9 +449,12 @@ export type JobType =
   | "validate_tickets"
   | "score_stage_alignment"
   | "deploy_chromatic"
-  | "create_feature_branch";
+  | "create_feature_branch"
+  | "process_signal"
+  | "synthesize_signals"
+  | "execute_agent_definition";
 
-export type JobStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
+export type JobStatus = "pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled";
 
 export const jobs = pgTable("jobs", {
   id: text("id").primaryKey(),
@@ -627,6 +639,11 @@ export const columnConfigs = pgTable("column_configs", {
   order: integer("order").notNull(),
   color: text("color"),
   autoTriggerJobs: jsonb("auto_trigger_jobs").$type<JobType[]>(),
+  agentTriggers: jsonb("agent_triggers").$type<Array<{
+    agentDefinitionId: string;
+    priority: number;
+    conditions?: Record<string, unknown>;
+  }>>(),
   requiredDocuments: jsonb("required_documents").$type<DocumentType[]>(),
   requiredApprovals: integer("required_approvals").default(0),
   aiIterations: integer("ai_iterations").default(0),
@@ -667,6 +684,96 @@ export const knowledgeSources = pgTable("knowledge_sources", {
   type: text("type").notNull(), // "notion" | "confluence" | "drive"
   config: jsonb("config").$type<Record<string, unknown>>(),
   lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+// ============================================
+// AGENT DEFINITIONS (Imported)
+// ============================================
+
+export type AgentDefinitionType = "agents_md" | "skill" | "command" | "subagent" | "rule";
+
+export const agentDefinitions = pgTable("agent_definitions", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  sourceRepo: text("source_repo").notNull(),
+  sourceRef: text("source_ref").notNull(),
+  sourcePath: text("source_path").notNull(),
+  type: text("type").$type<AgentDefinitionType>().notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  triggers: jsonb("triggers").$type<string[]>(),
+  content: text("content").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  syncedAt: timestamp("synced_at").notNull(),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+// Knowledge/persona sources imported from GitHub repos
+export const agentKnowledgeSources = pgTable("agent_knowledge_sources", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  sourceRepo: text("source_repo").notNull(),
+  sourceRef: text("source_ref").notNull(),
+  sourcePath: text("source_path").notNull(),
+  type: text("type").notNull(), // "knowledge" | "persona" | "research"
+  name: text("name").notNull(),
+  content: text("content"), // cached content (optional)
+  contentHash: text("content_hash"),
+  syncedAt: timestamp("synced_at").notNull(),
+});
+
+// Track imported agent executions
+export const agentExecutions = pgTable("agent_executions", {
+  id: text("id").primaryKey(),
+  jobId: text("job_id").references(() => jobs.id, { onDelete: "cascade" }),
+  agentDefinitionId: text("agent_definition_id").references(() => agentDefinitions.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  inputContext: jsonb("input_context").$type<Record<string, unknown>>(),
+  promptUsed: text("prompt_used"),
+  output: jsonb("output").$type<Record<string, unknown>>(),
+  tokensUsed: integer("tokens_used"),
+  durationMs: integer("duration_ms"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+// Pending questions for interactive agents
+export const pendingQuestions = pgTable("pending_questions", {
+  id: text("id").primaryKey(),
+  jobId: text("job_id").references(() => jobs.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  questionType: text("question_type").notNull(), // "blocking" | "approval" | "choice"
+  questionText: text("question_text").notNull(),
+  choices: jsonb("choices").$type<string[]>(),
+  context: jsonb("context").$type<Record<string, unknown>>(),
+  toolCallId: text("tool_call_id").notNull(),
+  toolName: text("tool_name").notNull(),
+  status: text("status").notNull().default("pending"), // "pending" | "answered" | "timed_out" | "cancelled"
+  response: jsonb("response").$type<Record<string, unknown>>(),
+  respondedBy: text("responded_by"),
+  respondedAt: timestamp("responded_at"),
+  timeoutAt: timestamp("timeout_at"),
+  defaultResponse: jsonb("default_response").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull(),
+});
+
+// GitHub write-back operations
+export const githubWriteOps = pgTable("github_write_ops", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  repoFullName: text("repo_full_name").notNull(),
+  baseBranch: text("base_branch").notNull(),
+  writeBranch: text("write_branch").notNull(),
+  commitSha: text("commit_sha"),
+  prNumber: integer("pr_number"),
+  prUrl: text("pr_url"),
+  status: text("status").notNull(), // "prepared" | "committed" | "pr_open" | "merged" | "closed" | "failed"
+  proposedChanges: jsonb("proposed_changes").$type<Record<string, unknown>>(),
+  createdBy: text("created_by"),
   createdAt: timestamp("created_at").notNull(),
 });
 

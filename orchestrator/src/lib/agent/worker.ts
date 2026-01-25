@@ -350,6 +350,23 @@ export class JobWorker {
       if (result.success) {
         this.processedCount++;
 
+        const requiresInput =
+          result.output &&
+          typeof result.output === "object" &&
+          "requiresInput" in result.output;
+
+        if (requiresInput) {
+          if (jobRun?.id) {
+            await updateJobRunStatus(jobRun.id, "waiting_input");
+          }
+          await updateJobStatus(job.id, "waiting_input", {
+            output: result.output,
+            progress: 0,
+          });
+          console.log(`⏸️ Job ${job.id} waiting for input`);
+          return;
+        }
+
         if (jobRun?.id) {
           await updateJobRunStatus(jobRun.id, "completed");
         }

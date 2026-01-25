@@ -36,12 +36,14 @@ import {
   Workflow,
   Columns3,
   Sparkles,
+  Plug,
 } from "lucide-react";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { InviteModal } from "@/components/invite-modal";
 import { ActivityFeed } from "@/components/activity-feed";
 import {
   RepositorySettingsCard,
+  AgentArchitectureImporter,
   ContextPathsCard,
   GitAutomationCard,
   PipelineSettingsCard,
@@ -49,6 +51,9 @@ import {
   ExecutionSettingsCard,
   SignalAutomationSettingsPanel,
   MaintenanceSettingsPanel,
+  IntegrationsSettingsCard,
+  PendingQuestionsInbox,
+  GitHubWritebackCard,
   type KanbanColumn,
 } from "@/components/settings";
 import type { WorkspaceRole, MaintenanceSettings, SignalAutomationSettings } from "@/lib/db/schema";
@@ -89,6 +94,11 @@ interface ColumnConfig {
   order: number;
   enabled: boolean;
   autoTriggerJobs?: string[];
+  agentTriggers?: Array<{
+    agentDefinitionId: string;
+    priority: number;
+    conditions?: Record<string, unknown>;
+  }>;
   humanInLoop?: boolean;
   requiredDocuments?: string[];
   requiredApprovals?: number;
@@ -129,6 +139,11 @@ interface Workspace {
     atomicCommitsEnabled?: boolean;
     verificationStrictness?: "strict" | "lenient" | "disabled";
     stateTrackingEnabled?: boolean;
+    composio?: {
+      apiKey?: string;
+      enabled?: boolean;
+      connectedServices?: string[];
+    };
     maintenance?: MaintenanceSettings;
     signalAutomation?: SignalAutomationSettings;
   };
@@ -158,6 +173,8 @@ export default function WorkspaceSettingsPage({
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceDescription, setWorkspaceDescription] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
+  const [repoOwner, setRepoOwner] = useState<string | null>(null);
+  const [repoName, setRepoName] = useState<string | null>(null);
   const [baseBranch, setBaseBranch] = useState("main");
   const [cursorDeepLinkTemplate, setCursorDeepLinkTemplate] = useState("");
   const [prototypesPath, setPrototypesPath] = useState("");
@@ -274,6 +291,7 @@ export default function WorkspaceSettingsPage({
         order: col.order,
         enabled: col.enabled,
         autoTriggerJobs: col.autoTriggerJobs,
+        agentTriggers: col.agentTriggers,
         humanInLoop: col.humanInLoop,
         requiredDocuments: col.requiredDocuments,
         requiredApprovals: col.requiredApprovals,
@@ -498,7 +516,7 @@ export default function WorkspaceSettingsPage({
 
           {/* Tabs */}
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
               <TabsTrigger value="general" className="gap-2">
                 <Info className="w-4 h-4" />
                 <span className="hidden sm:inline">General</span>
@@ -514,6 +532,10 @@ export default function WorkspaceSettingsPage({
               <TabsTrigger value="automation" className="gap-2">
                 <Bot className="w-4 h-4" />
                 <span className="hidden sm:inline">Automation</span>
+              </TabsTrigger>
+              <TabsTrigger value="integrations" className="gap-2">
+                <Plug className="w-4 h-4" />
+                <span className="hidden sm:inline">Integrations</span>
               </TabsTrigger>
               <TabsTrigger value="team" className="gap-2">
                 <Users className="w-4 h-4" />
@@ -626,6 +648,12 @@ export default function WorkspaceSettingsPage({
                 setGithubRepo={setGithubRepo}
                 baseBranch={baseBranch}
                 setBaseBranch={setBaseBranch}
+                repoOwner={repoOwner}
+                repoName={repoName}
+                onRepoMetaChange={(meta) => {
+                  setRepoOwner(meta?.owner ?? null);
+                  setRepoName(meta?.repo ?? null);
+                }}
                 cursorDeepLinkTemplate={cursorDeepLinkTemplate}
                 setCursorDeepLinkTemplate={setCursorDeepLinkTemplate}
                 prototypesPath={prototypesPath}
@@ -633,6 +661,12 @@ export default function WorkspaceSettingsPage({
                 storybookPort={storybookPort}
                 setStorybookPort={setStorybookPort}
                 resolvedPaths={workspace?.resolvedPaths}
+                onContextPathDetected={(path) => {
+                  setContextPaths((prev) => {
+                    if (prev.includes(path)) return prev;
+                    return [path, ...prev];
+                  });
+                }}
               />
 
               {/* Context Paths */}
@@ -641,7 +675,33 @@ export default function WorkspaceSettingsPage({
                 setContextPaths={setContextPaths}
                 resolvedContextPath={workspace?.resolvedPaths?.contextPath}
                 workspaceId={workspaceId}
+                repoOwner={repoOwner}
+                repoName={repoName}
+                baseBranch={baseBranch}
               />
+
+              <GitHubWritebackCard
+                owner={repoOwner}
+                repo={repoName}
+                baseBranch={baseBranch}
+              />
+
+              {/* Agent Architecture Import */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Agent Architecture</CardTitle>
+                  <CardDescription>
+                    Detect and select agent definitions to import from GitHub.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AgentArchitectureImporter
+                    owner={repoOwner || undefined}
+                    repo={repoName || undefined}
+                    ref={baseBranch || undefined}
+                  />
+                </CardContent>
+              </Card>
 
               {/* Git Automation */}
               <GitAutomationCard
@@ -730,6 +790,7 @@ export default function WorkspaceSettingsPage({
                 verificationStrictness={verificationStrictness}
                 setVerificationStrictness={setVerificationStrictness}
               />
+              <PendingQuestionsInbox workspaceId={workspaceId} />
 
               {/* Save Button */}
               <div className="flex items-center justify-end gap-3">
@@ -758,6 +819,11 @@ export default function WorkspaceSettingsPage({
                 workspaceId={workspaceId}
                 initialSettings={workspace?.settings?.maintenance}
               />
+            </TabsContent>
+
+            {/* Integrations Tab */}
+            <TabsContent value="integrations" className="space-y-6">
+              <IntegrationsSettingsCard workspaceId={workspaceId} />
             </TabsContent>
 
             {/* Team Tab */}

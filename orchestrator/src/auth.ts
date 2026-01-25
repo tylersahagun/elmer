@@ -20,6 +20,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
+  // Allow linking multiple OAuth accounts (Google + GitHub) to same user
+  // This is "dangerous" because it trusts email verification from providers
+  // but both Google and GitHub verify emails, so this is safe for our use case
+  allowDangerousEmailAccountLinking: true,
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days

@@ -177,6 +177,27 @@ export async function processJob(jobId: string): Promise<ProcessResult> {
     );
 
     if (result.success) {
+      const requiresInput =
+        result.output &&
+        typeof result.output === "object" &&
+        "requiresInput" in result.output;
+
+      if (requiresInput) {
+        if (jobRun?.id) {
+          await updateJobRunStatus(jobRun.id, "waiting_input");
+        }
+        await updateJobStatus(jobId, "waiting_input", {
+          output: result.output,
+          progress: 0,
+        });
+        return {
+          jobId,
+          type: job.type,
+          status: "waiting_input",
+          output: result.output,
+          duration: Date.now() - startTime,
+        };
+      }
       if (jobRun?.id) {
         await updateJobRunStatus(jobRun.id, "completed");
       }

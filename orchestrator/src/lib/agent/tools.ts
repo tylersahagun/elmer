@@ -6,7 +6,7 @@
  */
 
 import type { AgentToolDefinition, AgentToolResult } from "./types";
-import type { DocumentType } from "@/lib/db/schema";
+import type { DocumentType, JobType } from "@/lib/db/schema";
 import {
   createDocument,
   createJuryEvaluation,
@@ -14,8 +14,13 @@ import {
   updateProjectMetadata,
   getProject,
   getDocumentByType,
+  getWorkspace,
+  createPendingQuestion,
+  updateJobStatus,
 } from "@/lib/db/queries";
 import { getWorkspaceContext, getProjectContext } from "@/lib/context/resolve";
+import { isToolAllowed } from "@/lib/agent/security";
+import { composioService } from "@/lib/composio/service";
 
 // ============================================
 // TOOL DEFINITIONS
@@ -135,20 +140,95 @@ export const AGENT_TOOLS: AgentToolDefinition[] = [
       required: ["projectId", "stage", "score", "summary"],
     },
   },
+
+  // Composio tool execution (external services)
+  {
+    name: "composio_execute",
+    description: "Execute a Composio tool by name (e.g., SLACK_SEND_MESSAGE)",
+    input_schema: {
+      type: "object",
+      properties: {
+        toolName: { type: "string", description: "Composio tool name" },
+        arguments: { type: "object", description: "Tool arguments" },
+      },
+      required: ["toolName", "arguments"],
+    },
+  },
+
+  // Interactive tools
+  {
+    name: "ask_question",
+    description: "Ask the user a question and wait for input before continuing",
+    input_schema: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "Question to ask" },
+        type: { type: "string", enum: ["text", "choice"], description: "Question type" },
+        choices: { type: "array", items: { type: "string" }, description: "Choices for choice questions" },
+        context: { type: "string", description: "Extra context for the user" },
+        timeoutMinutes: { type: "number", description: "Timeout in minutes" },
+        defaultResponse: { type: "string", description: "Default response on timeout" },
+      },
+      required: ["question"],
+    },
+  },
+  {
+    name: "request_approval",
+    description: "Request explicit approval from the user before continuing",
+    input_schema: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "Approval question" },
+        context: { type: "string", description: "Extra context for the user" },
+        timeoutMinutes: { type: "number", description: "Timeout in minutes" },
+        defaultResponse: { type: "string", description: "Default response on timeout" },
+      },
+      required: ["question"],
+    },
+  },
 ];
 
 // ============================================
 // TOOL EXECUTION
 // ============================================
 
+export interface AgentToolContext {
+  jobId: string;
+  workspaceId: string;
+  projectId?: string;
+  jobType?: JobType;
+  toolCallId?: string;
+}
+
 /**
  * Execute a tool call and return the result
  */
 export async function executeTool(
   toolName: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  context: AgentToolContext
 ): Promise<AgentToolResult> {
   try {
+    const workspace = await getWorkspace(context.workspaceId);
+    if (!workspace) {
+      return { success: false, error: "Workspace not found" };
+    }
+
+    if (!isToolAllowed(toolName, workspace.settings)) {
+      return {
+        success: false,
+        error: `Tool not allowed: ${toolName}`,
+      };
+    }
+
+    const inputProjectId = input.projectId as string | undefined;
+    if (context.projectId && inputProjectId && context.projectId !== inputProjectId) {
+      return {
+        success: false,
+        error: "Project mismatch for tool call",
+      };
+    }
+
     switch (toolName) {
       case "get_project_context": {
         const projectId = input.projectId as string;
@@ -282,6 +362,60 @@ export async function executeTool(
         return {
           success: true,
           output: { stage, score, summary },
+        };
+      }
+
+      case "composio_execute": {
+        const toolName = input.toolName as string;
+        const args = (input.arguments as Record<string, unknown>) || {};
+        if (!workspace.settings?.composio?.enabled) {
+          return { success: false, error: "Composio is not enabled for this workspace" };
+        }
+        const result = await composioService.executeTool(
+          context.workspaceId,
+          toolName,
+          args
+        );
+        return { success: true, output: result };
+      }
+
+      case "ask_question":
+      case "request_approval": {
+        if (!context.jobId || !context.toolCallId) {
+          return { success: false, error: "Missing job context for interactive tool" };
+        }
+        const questionText = input.question as string;
+        const timeoutMinutes = (input.timeoutMinutes as number) || 30;
+        const timeoutAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
+        const questionType = toolName === "request_approval" ? "approval" : (input.type as string) || "text";
+
+        const question = await createPendingQuestion({
+          jobId: context.jobId,
+          workspaceId: context.workspaceId,
+          projectId: context.projectId,
+          questionType,
+          questionText,
+          choices: (input.choices as string[]) || undefined,
+          context: input.context ? { hint: String(input.context) } : undefined,
+          toolCallId: context.toolCallId,
+          toolName,
+          timeoutAt,
+          defaultResponse: input.defaultResponse
+            ? { value: input.defaultResponse }
+            : undefined,
+        });
+
+        await updateJobStatus(context.jobId, "waiting_input", {
+          progress: 0,
+        });
+
+        return {
+          success: true,
+          output: {
+            requiresInput: true,
+            questionId: question?.id,
+            message: "Waiting for user response",
+          },
         };
       }
 

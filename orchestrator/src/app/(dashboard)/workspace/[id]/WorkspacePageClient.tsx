@@ -128,6 +128,11 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             order: number;
             enabled: boolean;
             autoTriggerJobs?: string[];
+            agentTriggers?: Array<{
+              agentDefinitionId: string;
+              priority: number;
+              conditions?: Record<string, unknown>;
+            }>;
             humanInLoop?: boolean;
             requiredDocuments?: string[];
             requiredApprovals?: number;
@@ -146,6 +151,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             order: c.order,
             enabled: c.enabled,
             autoTriggerJobs: c.autoTriggerJobs,
+            agentTriggers: c.agentTriggers,
             humanInLoop: c.humanInLoop,
             requiredDocuments: c.requiredDocuments,
             requiredApprovals: c.requiredApprovals,
