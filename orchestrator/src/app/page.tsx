@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Window, MiniWindow } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
-import { CommandChip, CommandText, CommandCaret } from "@/components/chrome/CommandChip";
+import {
+  CommandChip,
+  CommandText,
+  CommandCaret,
+} from "@/components/chrome/CommandChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,9 +23,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  Plus, 
-  Sparkles, 
+import {
+  Plus,
+  Sparkles,
   FolderOpen,
   Loader2,
   ArrowRight,
@@ -54,18 +58,41 @@ function HomeContent() {
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
 
+  // Track if session is invalid (401 from API despite "authenticated" status)
+  const [sessionInvalid, setSessionInvalid] = useState(false);
+  // Track the session user ID to detect new logins
+  const [lastSessionUserId, setLastSessionUserId] = useState<string | null>(null);
+
+  // Reset sessionInvalid when a new login happens (session.user.id changes)
+  useEffect(() => {
+    if (session?.user?.id && session.user.id !== lastSessionUserId) {
+      setSessionInvalid(false);
+      setLastSessionUserId(session.user.id);
+    }
+  }, [session?.user?.id, lastSessionUserId]);
+
   // Fetch workspaces (only if authenticated)
   const { data: workspaces, isLoading } = useQuery<WorkspaceWithRole[]>({
     queryKey: ["workspaces"],
     queryFn: async () => {
-      const res = await fetch("/api/workspaces");
+      const res = await fetch("/api/workspaces", {
+        credentials: "include", // Ensure cookies are sent
+      });
       if (!res.ok) {
-        if (res.status === 401) return [];
+        if (res.status === 401) {
+          // Session is invalid - mark it so we show login UI
+          setSessionInvalid(true);
+          return [];
+        }
         throw new Error("Failed to fetch workspaces");
       }
+      // Session is valid - make sure we clear invalid flag
+      setSessionInvalid(false);
       return res.json();
     },
     enabled: status === "authenticated",
+    // Refetch on window focus to pick up new session
+    refetchOnWindowFocus: true,
   });
 
   // Create workspace mutation
@@ -76,7 +103,13 @@ function HomeContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create workspace");
+      if (!res.ok) {
+        if (res.status === 401) {
+          setSessionInvalid(true);
+          throw new Error("Session expired. Please sign in again.");
+        }
+        throw new Error("Failed to create workspace");
+      }
       return res.json();
     },
     onSuccess: (workspace) => {
@@ -84,7 +117,8 @@ function HomeContent() {
       setShowNewWorkspace(false);
       setNewWorkspaceName("");
       setNewWorkspaceDescription("");
-      router.push(`/workspace/${workspace.id}`);
+      // Navigate to onboarding for new workspaces
+      router.push(`/workspace/${workspace.id}/onboarding`);
     },
   });
 
@@ -109,7 +143,8 @@ function HomeContent() {
     }
   };
 
-  const isAuthenticated = status === "authenticated";
+  // Consider user unauthenticated if session is invalid (401 from API)
+  const isAuthenticated = status === "authenticated" && !sessionInvalid;
   const isLoadingAuth = status === "loading";
   const hasWorkspaces = workspaces && workspaces.length > 0;
 
@@ -128,7 +163,12 @@ function HomeContent() {
           <div className="text-center space-y-6">
             {/* Logo */}
             <div className="flex flex-col items-center justify-center">
-              <WaveV4D size={100} palette="aurora" className="drop-shadow-lg" animate={false} />
+              <WaveV4D
+                size={100}
+                palette="aurora"
+                className="drop-shadow-lg"
+                animate={false}
+              />
               <div className="mt-4">
                 <ElmerWordmark width={180} height={50} palette="aurora" />
               </div>
@@ -141,7 +181,7 @@ function HomeContent() {
                 <span>PM Orchestrator</span>
               </h1>
               <p className="font-mono text-muted-foreground">
-                // AI-powered product management workflow
+                {"// AI-powered product management workflow"}
               </p>
             </div>
 
@@ -172,11 +212,13 @@ function HomeContent() {
               </div>
               <div>
                 <p className="text-2xl font-heading text-emerald-500">5</p>
-                <p className="text-xs text-muted-foreground font-mono">active</p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  active
+                </p>
               </div>
             </div>
           </MiniWindow>
-          
+
           <MiniWindow title="documents">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -188,7 +230,7 @@ function HomeContent() {
               </div>
             </div>
           </MiniWindow>
-          
+
           <MiniWindow title="prototypes">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
@@ -200,7 +242,7 @@ function HomeContent() {
               </div>
             </div>
           </MiniWindow>
-          
+
           <MiniWindow title="personas">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
@@ -208,7 +250,9 @@ function HomeContent() {
               </div>
               <div>
                 <p className="text-2xl font-heading text-orange-500">24</p>
-                <p className="text-xs text-muted-foreground font-mono">synthetic</p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  synthetic
+                </p>
               </div>
             </div>
           </MiniWindow>
@@ -216,10 +260,7 @@ function HomeContent() {
 
         {/* Auth Loading State */}
         {isLoadingAuth && (
-          <Window
-            title="auth.ts"
-            className="animate-fade-up stagger-2"
-          >
+          <Window title="auth.ts" className="animate-fade-up stagger-2">
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
@@ -228,17 +269,15 @@ function HomeContent() {
 
         {/* Unauthenticated State */}
         {!isLoadingAuth && !isAuthenticated && (
-          <Window
-            title="auth.ts"
-            className="animate-fade-up stagger-2"
-          >
+          <Window title="auth.ts" className="animate-fade-up stagger-2">
             <div className="text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
                 <Shield className="w-8 h-8 text-purple-500" />
               </div>
               <h3 className="font-semibold text-xl mb-2">Welcome to Elmer</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Sign in to access your workspaces and start building AI-powered product workflows.
+                Sign in to access your workspaces and start building AI-powered
+                product workflows.
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Button asChild variant="outline" className="gap-2">
@@ -260,21 +299,24 @@ function HomeContent() {
 
         {/* Authenticated: First-time User (No Workspaces) */}
         {!isLoadingAuth && isAuthenticated && !isLoading && !hasWorkspaces && (
-          <Window
-            title="onboarding.ts"
-            className="animate-fade-up stagger-2"
-          >
+          <Window title="onboarding.ts" className="animate-fade-up stagger-2">
             <div className="text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
                 <Sparkles className="w-8 h-8 text-emerald-500" />
               </div>
               <h3 className="font-semibold text-xl mb-2">
-                Welcome, {session?.user?.name || session?.user?.email?.split("@")[0]}!
+                Welcome,{" "}
+                {session?.user?.name || session?.user?.email?.split("@")[0]}!
               </h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Create your first workspace to start managing your product workflows with AI assistance.
+                Create your first workspace to start managing your product
+                workflows with AI assistance.
               </p>
-              <Button onClick={() => setShowNewWorkspace(true)} className="gap-2" size="lg">
+              <Button
+                onClick={() => setShowNewWorkspace(true)}
+                className="gap-2"
+                size="lg"
+              >
                 <Sparkles className="w-4 h-4" />
                 Create Your First Workspace
               </Button>
@@ -321,7 +363,10 @@ function HomeContent() {
                           <FolderOpen className="w-5 h-5 text-purple-500 dark:text-purple-400" />
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={getRoleBadgeVariant(workspace.role)} className="text-xs">
+                          <Badge
+                            variant={getRoleBadgeVariant(workspace.role)}
+                            className="text-xs"
+                          >
                             {workspace.role}
                           </Badge>
                           <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -334,7 +379,8 @@ function HomeContent() {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-3 font-mono">
-                        Updated {new Date(workspace.updatedAt).toLocaleDateString()}
+                        Updated{" "}
+                        {new Date(workspace.updatedAt).toLocaleDateString()}
                       </p>
                     </div>
                   ))}
@@ -379,7 +425,9 @@ function HomeContent() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="workspace-description">Description (optional)</Label>
+              <Label htmlFor="workspace-description">
+                Description (optional)
+              </Label>
               <Input
                 id="workspace-description"
                 placeholder="Brief description..."
@@ -425,7 +473,7 @@ function HomeContent() {
 // Wrap with QueryClientProvider for the home page
 export default function Home() {
   const [queryClient] = useState(() => new QueryClient());
-  
+
   return (
     <QueryClientProvider client={queryClient}>
       <HomeContent />

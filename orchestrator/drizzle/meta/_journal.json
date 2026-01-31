@@ -85,6 +85,48 @@
       "when": 1769294341431,
       "tag": "0011_large_masked_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1769298000000,
+      "tag": "0012_agent_architecture_import",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1769401971282,
+      "tag": "0013_clammy_mordo",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1769488371282,
+      "tag": "0014_project_commits",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1769574771282,
+      "tag": "0015_automation_job_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1769661171282,
+      "tag": "0016_add_agent_enabled_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1769741503615,
+      "tag": "0017_add_graduation_columns",
+      "breakpoints": true
     }
   ]
 }

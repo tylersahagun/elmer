@@ -1,5 +1,7 @@
 # Prototype Iteration
 
+**Delegates to:** `iterator` subagent (see `.cursor/agents/iterator.md`)
+
 Iterate on an existing prototype using new feedback (transcripts, notes, or conversations).
 
 ## Auto-Context Loading
@@ -14,6 +16,7 @@ When iterating on a prototype, automatically load context per `context-orchestra
 6. Load latest jury evaluations (if any): `@elmer-docs/initiatives/[name]/jury-evaluations/`
 
 ## Inputs (user may provide any subset)
+
 - Transcript text or file paths
 - Updated goals or constraints
 - Which prototype version to refine (v1/v2/v3 or specific stories)
@@ -25,17 +28,17 @@ When iterating on a prototype, automatically load context per `context-orchestra
    - elmer-docs/initiatives/[project]/prd.md
    - elmer-docs/initiatives/[project]/design-brief.md
    - elmer-docs/initiatives/[project]/prototype-notes.md
-   - elmer-docs/initiatives/[project]/_meta.json
+   - elmer-docs/initiatives/[project]/\_meta.json
 
 2. **Detect prototype type** from `_meta.json`:
-   
-   | `prototype_type` | What to iterate | File structure |
-   |------------------|-----------------|----------------|
-   | `"standalone"` | Isolated component | `[ProjectName]/v2/*.tsx` |
-   | `"context"` | Context-aware component | `[ProjectName]/contexts/v2/*.tsx` |
-   | `"both"` | Both versions | Update both locations |
-   | `undefined` | Infer from files | Check for `contexts/` folder |
-   
+
+   | `prototype_type` | What to iterate         | File structure                    |
+   | ---------------- | ----------------------- | --------------------------------- |
+   | `"standalone"`   | Isolated component      | `[ProjectName]/v2/*.tsx`          |
+   | `"context"`      | Context-aware component | `[ProjectName]/contexts/v2/*.tsx` |
+   | `"both"`         | Both versions           | Update both locations             |
+   | `undefined`      | Infer from files        | Check for `contexts/` folder      |
+
    **Inference fallback** (if `prototype_type` not set):
    - If `contexts/` folder exists → treat as context prototype
    - If `placement-research.md` exists → treat as context prototype
@@ -46,29 +49,29 @@ When iterating on a prototype, automatically load context per `context-orchestra
    - Pull direct quotes when helpful
    - Identify deltas vs existing PRD/design assumptions
 
-3. Update docs:
+4. Update docs:
    - PRD: adjust problem framing, scope, success metrics, open questions
    - Design brief: update flows, states, edge cases, accessibility
    - Prototype notes: add a dated "Iteration" section with rationale
 
-4. Create a new full prototype version **based on prototype type**:
+5. Create a new full prototype version **based on prototype type**:
 
    **For `standalone` prototypes:**
    - Create new version folder: `[ProjectName]/v2/`, `v3/`, etc.
    - Rebuild all component variants and states
    - Story naming: `V2_OptionA`, `V2_Loading`, etc.
-   
+
    **For `context` prototypes:**
    - Create new version folder: `[ProjectName]/contexts/v2/`, `v3/`, etc.
    - Rebuild context wrappers (InPage, InPanel, Navigation)
    - Story naming: `InContext_V2_AsFullPage`, etc.
    - Update `placement-research.md` if integration approach changed
-   
+
    **For `both` prototypes:**
    - Iterate on BOTH standalone and context versions
    - Keep them in sync (same functionality, different contexts)
    - Ask user which to prioritize if feedback is ambiguous
-   
+
    **General rules:**
    - Always create a new version folder with a complete rebuild
    - Do NOT create an "iterations" story/section or partial delta-only story
@@ -76,13 +79,14 @@ When iterating on a prototype, automatically load context per `context-orchestra
    - Preserve prior versions for comparison
    - Keep Storybook stories grouped under the version and cover all required states
 
-5. Publish Storybook to Chromatic (automatic on new versions):
+6. Publish Storybook to Chromatic (automatic on new versions):
    - Ensure Chromatic is installed: `npm install --save-dev chromatic`
    - Run from the prototype package root with the project token set as env:
      - `CHROMATIC_PROJECT_TOKEN="chpt_46b823319a0135f" npm run chromatic`
    - If the repo has multiple packages, run it where `storybook` is configured
 
-6. **Update `_meta.json`**:
+7. **Update `_meta.json`**:
+
    ```json
    {
      "updated_at": "[current timestamp]",
@@ -103,7 +107,7 @@ When iterating on a prototype, automatically load context per `context-orchestra
    }
    ```
 
-7. Summarize outcomes:
+8. Summarize outcomes:
    - What changed and why
    - Open questions
    - Recommended next feedback session
@@ -119,7 +123,6 @@ When iterating on a prototype, automatically load context per `context-orchestra
 
 1. **Check if ready for validation**:
    - If all states implemented and ready for jury, suggest: "Run `/validate [name]`"
-   
 2. **Update roadmap if significant**:
    - Run `/roadmap refresh` if status or progress changed
 

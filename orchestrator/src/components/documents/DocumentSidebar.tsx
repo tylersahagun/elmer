@@ -25,6 +25,7 @@ import {
   Users,
   Sparkles,
   Plus,
+  BarChart3,
 } from "lucide-react";
 import type { DocumentType } from "@/lib/db/schema";
 
@@ -73,6 +74,12 @@ const DOCUMENT_TYPES: Record<
     icon: Sparkles,
     color: "text-pink-500 dark:text-pink-400",
     description: "Prototype specifications",
+  },
+  metrics: {
+    label: "Metrics",
+    icon: BarChart3,
+    color: "text-emerald-500 dark:text-emerald-400",
+    description: "Success metrics and release gates",
   },
   jury_report: {
     label: "Jury Report",
@@ -125,7 +132,7 @@ export function DocumentSidebar({
     if (typeof window === "undefined") return defaultOpen;
     return window.innerWidth >= 1024 ? defaultOpen : false;
   });
-  
+
   const { width, isResizing, handleResizeStart } = useResizablePanel({
     minWidth: 200,
     maxWidth: 500,
@@ -141,7 +148,7 @@ export function DocumentSidebar({
       acc[doc.type].push(doc);
       return acc;
     },
-    {} as Record<DocumentType, Document[]>
+    {} as Record<DocumentType, Document[]>,
   );
 
   // Order of document types
@@ -152,6 +159,7 @@ export function DocumentSidebar({
     "engineering_spec",
     "gtm_brief",
     "prototype_notes",
+    "metrics",
     "jury_report",
   ];
 
@@ -170,7 +178,7 @@ export function DocumentSidebar({
     <div className={cn("relative flex h-full", className)}>
       {/* Collapsed state - vertical sidebar with green button only */}
       {!isOpen && (
-        <div className="flex-shrink-0 h-full flex flex-col items-center py-3 px-2 bg-card rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)]">
+        <div className="shrink-0 h-full flex flex-col items-center py-3 px-2 bg-card rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)]">
           <TrafficLights
             size={10}
             interactive
@@ -190,13 +198,12 @@ export function DocumentSidebar({
           initial={{ opacity: 0, width: 0 }}
           animate={{ opacity: 1, width }}
           exit={{ opacity: 0, width: 0 }}
-          transition={isResizing ? { duration: 0 } : { duration: 0.25, ease: "easeInOut" }}
+          transition={
+            isResizing ? { duration: 0 } : { duration: 0.25, ease: "easeInOut" }
+          }
           className="h-full relative rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] overflow-hidden"
         >
-          <div 
-            className="h-full flex flex-col bg-card"
-            style={{ width }}
-          >
+          <div className="h-full flex flex-col bg-card" style={{ width }}>
             {/* Header with traffic lights */}
             <div className="flex items-center justify-between px-3 py-2.5 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/30">
               <div className="flex items-center gap-3">
@@ -207,7 +214,9 @@ export function DocumentSidebar({
                   onMinimize={handleCollapse}
                   onMaximize={() => {}} // Already maximized
                 />
-                <span className="font-mono text-sm text-muted-foreground">Documents</span>
+                <span className="font-mono text-sm text-muted-foreground">
+                  Documents
+                </span>
               </div>
               {onUpload && (
                 <Button
@@ -226,16 +235,15 @@ export function DocumentSidebar({
               {documents.length === 0 ? (
                 <div className="p-4 text-center">
                   <FileText className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">No documents yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    No documents yet
+                  </p>
                   <p className="text-xs text-muted-foreground/70 mt-1 font-mono">
-                    // Move project to PRD stage to generate
+                    {"// Move project to PRD stage to generate"}
                   </p>
                 </div>
               ) : (
-                <Files
-                  className="bg-transparent"
-                  defaultOpen={typesWithDocs}
-                >
+                <Files className="bg-transparent" defaultOpen={typesWithDocs}>
                   {typeOrder.map((type) => {
                     const docs = grouped[type];
                     if (!docs || docs.length === 0) return null;
@@ -246,7 +254,10 @@ export function DocumentSidebar({
                     return (
                       <FolderItem key={type} value={type}>
                         <FolderTrigger
-                          className={cn("font-medium hover:bg-accent rounded-md transition-colors", typeInfo.color)}
+                          className={cn(
+                            "font-medium hover:bg-accent rounded-md transition-colors",
+                            typeInfo.color,
+                          )}
                         >
                           {typeInfo.label}
                         </FolderTrigger>
@@ -257,7 +268,7 @@ export function DocumentSidebar({
                               onClick={() => onSelect(doc)}
                               className={cn(
                                 "cursor-pointer rounded-md transition-all hover:bg-accent",
-                                selectedId === doc.id && "bg-accent"
+                                selectedId === doc.id && "bg-accent",
                               )}
                             >
                               <FileItem icon={Icon}>

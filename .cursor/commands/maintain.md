@@ -2,22 +2,25 @@
 
 Keep the PM workspace clean, organized, and synchronized.
 
+**Delegates to**: workspace-admin
+
 ## Usage
 
-- `maintain audit` - Full workspace audit, report all issues
-- `maintain fix` - Auto-fix safe issues
-- `maintain sync` - Regenerate all derived files
-- `maintain clean` - Remove orphaned files (with confirmation)
+- `/maintain audit` - Full workspace audit, report all issues
+- `/maintain fix` - Auto-fix safe issues
+- `/maintain sync` - Regenerate all derived files
+- `/maintain clean` - Remove orphaned files (with confirmation)
 
 ## Subcommands
 
-### `maintain audit`
+### `/maintain audit`
 
 Run a comprehensive workspace audit and generate a report.
 
 **Checks performed:**
 
 #### Structure Integrity
+
 - [ ] All required root folders exist
 - [ ] Every initiative has `_meta.json`
 - [ ] Every initiative has `research.md`
@@ -25,6 +28,7 @@ Run a comprehensive workspace audit and generate a report.
 - [ ] No files outside defined structure
 
 #### Data Consistency
+
 - [ ] `_meta.json` phase matches file presence
 - [ ] `_meta.json` schema is valid
 - [ ] Hypothesis index matches hypothesis files
@@ -32,6 +36,7 @@ Run a comprehensive workspace audit and generate a report.
 - [ ] Roadmap reflects current initiative states
 
 #### Health Checks
+
 - [ ] No initiatives stale >14 days
 - [ ] No hypotheses active >30 days without progress
 - [ ] All P0/P1 initiatives have owners
@@ -39,12 +44,13 @@ Run a comprehensive workspace audit and generate a report.
 - [ ] No unlinked committed hypotheses
 
 #### Cleanup Candidates
+
 - [ ] Empty folders
 - [ ] Orphaned files (not in expected locations)
 - [ ] Old snapshots (>30 days)
 - [ ] Duplicate content
 
-**Output:** Save report to `elmer-docs/maintenance/latest-audit.md`
+**Output:** Save report to `pm-workspace-docs/status/maintenance-audit.md`
 
 **Report format:**
 
@@ -56,62 +62,70 @@ Run a comprehensive workspace audit and generate a report.
 
 ## Summary
 
-| Category | Status | Issues |
-|----------|--------|--------|
-| Structure Integrity | ✅/⚠️/❌ | X |
-| Data Consistency | ✅/⚠️/❌ | X |
-| Health Checks | ✅/⚠️/❌ | X |
-| Cleanup Candidates | ✅/⚠️/❌ | X |
+| Category            | Status   | Issues |
+| ------------------- | -------- | ------ |
+| Structure Integrity | ✅/⚠️/❌ | X      |
+| Data Consistency    | ✅/⚠️/❌ | X      |
+| Health Checks       | ✅/⚠️/❌ | X      |
+| Cleanup Candidates  | ✅/⚠️/❌ | X      |
 
 ## Issues Found
 
 ### Critical (must fix)
+
 1. [Issue description] - [location]
 
 ### Warning (should fix)
+
 1. [Issue description] - [location]
 
 ### Info (optional)
+
 1. [Issue description] - [location]
 
 ## Auto-Fixable
 
 These can be fixed with `maintain fix`:
+
 - [ ] [Issue 1]
 - [ ] [Issue 2]
 
 ## Requires Human Decision
 
 These need manual review:
+
 - [ ] [Issue 1] - [why manual]
 - [ ] [Issue 2] - [why manual]
 
 ## Historical Comparison
 
-| Metric | Last Audit | This Audit | Change |
-|--------|------------|------------|--------|
-| Total Issues | X | Y | +/-Z |
-| Initiatives | X | Y | +/-Z |
-| Stale Items | X | Y | +/-Z |
+| Metric       | Last Audit | This Audit | Change |
+| ------------ | ---------- | ---------- | ------ |
+| Total Issues | X          | Y          | +/-Z   |
+| Initiatives  | X          | Y          | +/-Z   |
+| Stale Items  | X          | Y          | +/-Z   |
 ```
 
-### `maintain fix`
+### `/maintain fix`
 
 Automatically fix safe issues identified in audit.
 
 **Safe to auto-fix:**
+
 - Missing `_meta.json` (generate from files)
 - Stale index files (regenerate)
 - Missing `.gitkeep` files
 - Invalid timestamps (set to now)
 
 **Not auto-fixed (require confirmation):**
+
 - File deletions
 - Phase changes
 - Status changes
 - Moving files between folders
 
 **Process:**
+
 1. Run audit to identify issues
 2. Filter to auto-fixable issues
 3. Apply fixes one by one
@@ -119,11 +133,12 @@ Automatically fix safe issues identified in audit.
 5. Re-run audit to verify
 6. Report results
 
-### `maintain sync`
+### `/maintain sync`
 
 Regenerate all derived/computed files.
 
 **Files regenerated:**
+
 1. `roadmap/roadmap.json` - from all `_meta.json`
 2. `roadmap/roadmap.md` - from `roadmap.json`
 3. `roadmap/roadmap-gantt.md` - from `roadmap.json`
@@ -132,22 +147,25 @@ Regenerate all derived/computed files.
 6. `signals/_index.json` - from signal files
 
 **Process:**
+
 1. Run `python scripts/generate-roadmap.py`
 2. Scan and rebuild index files
 3. Save snapshot
 4. Report what changed
 
-### `maintain clean`
+### `/maintain clean`
 
 Remove orphaned and outdated files.
 
 **Candidates for removal:**
+
 - Empty folders (except those with `.gitkeep`)
 - Files not matching expected patterns
 - Old snapshots (>30 days, keep at least 5)
 - Temporary files
 
 **Process:**
+
 1. Identify cleanup candidates
 2. List all files to be removed
 3. **Require explicit confirmation**
@@ -158,6 +176,7 @@ Remove orphaned and outdated files.
 ## Schema Reference
 
 The audit uses `elmer-docs/maintenance/structure-schema.json` to validate:
+
 - Required folders and files
 - Valid phase and status values
 - Stale thresholds
@@ -171,6 +190,7 @@ Previous audits are saved to:
 ## Automation Suggestions
 
 Consider running maintenance:
+
 - Weekly: `maintain audit`
 - After major changes: `maintain sync`
 - Monthly: `maintain clean`
@@ -178,6 +198,7 @@ Consider running maintenance:
 ## Integration
 
 The maintain command integrates with:
+
 - `/roadmap refresh` - calls `maintain sync` internally
 - `/hypothesis commit` - should trigger `maintain sync`
 - `/status` - can flag maintenance issues

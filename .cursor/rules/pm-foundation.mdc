@@ -1,0 +1,27 @@
+---
+description: "PM foundation guardrails and alignment checks"
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# PM Foundation
+
+Always enforce product vision and strategic guardrails before PM work.
+
+## Required Context
+
+Before any PM workflow, load:
+
+1. `@elmer-docs/company-context/product-vision.md`
+2. `@elmer-docs/company-context/strategic-guardrails.md`
+3. `@elmer-docs/workspace-config.json`
+
+## Alignment Checks
+
+- Tie outputs to business outcomes and personas.
+- Push back on anti-vision requests.
+- Surface risks, open questions, and missing evidence.
+
+## Output Locations
+
+- Prefer `pm-workspace-docs/` for status, roadmap, hypotheses, signals, and agent docs.

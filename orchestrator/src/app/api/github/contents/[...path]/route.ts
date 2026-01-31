@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { getGitHubClient } from "@/lib/github/auth";
 
 interface RouteParams {
-  params: { path: string[] };
+  params: Promise<{ path: string[] }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -25,7 +25,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const path = params.path?.join("/") ?? "";
+    const { path: pathSegments } = await params;
+    const path = pathSegments?.join("/") ?? "";
     if (!path) {
       return NextResponse.json(
         { error: "Path is required" },
@@ -51,6 +52,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (Array.isArray(data)) {
       return NextResponse.json(
         { error: "Path is a directory, not a file" },
+        { status: 400 }
+      );
+    }
+
+    // Type guard: only file type has content property
+    if (data.type !== "file") {
+      return NextResponse.json(
+        { error: "Path is not a file" },
         { status: 400 }
       );
     }

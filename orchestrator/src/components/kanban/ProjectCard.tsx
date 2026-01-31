@@ -9,7 +9,11 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { buildCursorDeepLink } from "@/lib/cursor/links";
 import { springPresets } from "@/lib/animations";
-import { useKanbanStore, useUIStore, type ProjectCard as ProjectCardType } from "@/lib/store";
+import {
+  useKanbanStore,
+  useUIStore,
+  type ProjectCard as ProjectCardType,
+} from "@/lib/store";
 import {
   FileText,
   Layers,
@@ -28,6 +32,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { UnlockProjectDialog } from "./UnlockProjectDialog";
+import { AutomationStatusBadge } from "./AutomationStatusBadge";
+import { useProjectAutomationStatus } from "@/hooks/useProjectAutomationStatus";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,8 +55,10 @@ const stageColors: Record<string, string> = {
   prd: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300",
   design: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
   prototype: "bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300",
-  validate: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
-  tickets: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300",
+  validate:
+    "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
+  tickets:
+    "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300",
   build: "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300",
   alpha: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300",
   beta: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300",
@@ -77,13 +85,52 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
   const updateProject = useKanbanStore((s) => s.updateProject);
   const openProjectDetailModal = useUIStore((s) => s.openProjectDetailModal);
   const workspace = useKanbanStore((s) => s.workspace);
+  const openJobLogsDrawer = useUIStore((s) => s.openJobLogsDrawer);
+
+  // Fetch automation status for column automation visibility
+  const { data: automationStatus } = useProjectAutomationStatus(
+    workspace?.id || "",
+    project.id,
+    !!workspace?.id,
+  );
 
   // Check if project is locked (has active/pending jobs)
-  const isLocked = project.isLocked || 
-    project.activeJobStatus === "running" || 
+  const isLocked =
+    project.isLocked ||
+    project.activeJobStatus === "running" ||
     project.activeJobStatus === "pending";
-  
+
   const hasFailed = project.activeJobStatus === "failed";
+  const stageQuality = project.metadata?.stageQuality?.[project.stage];
+  const stageConfidence = project.metadata?.stageConfidence?.[project.stage];
+  const derivedConfidence = React.useMemo(() => {
+    let score = 0.2;
+    if (project.documentCount && project.documentCount > 0) score += 0.25;
+    if (project.prototypeCount && project.prototypeCount > 0) score += 0.25;
+    if (project.signalCount && project.signalCount > 0) score += 0.1;
+    if (project.activeJobStatus === "completed") score += 0.1;
+    if (["alpha", "beta", "ga"].includes(project.stage)) score += 0.1;
+    return Math.min(score, 1);
+  }, [
+    project.documentCount,
+    project.prototypeCount,
+    project.signalCount,
+    project.activeJobStatus,
+    project.stage,
+  ]);
+  const confidenceScore =
+    typeof stageQuality?.score === "number"
+      ? stageQuality.score
+      : typeof stageConfidence?.score === "number"
+        ? stageConfidence.score
+        : derivedConfidence;
+  const confidenceLabel = stageQuality?.summary
+    ? stageQuality.summary
+    : typeof stageQuality?.score === "number"
+      ? "Quality score"
+      : typeof stageConfidence?.score === "number"
+        ? "Confidence"
+        : "Confidence (auto)";
 
   const {
     attributes,
@@ -92,7 +139,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
     transform,
     transition,
     isDragging: isSortableDragging,
-  } = useSortable({ 
+  } = useSortable({
     id: project.id,
     disabled: isLocked, // Disable dragging when locked
   });
@@ -140,14 +187,16 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
     branch: project.metadata?.gitBranch,
   });
 
-
   const handleOpenCursor = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!cursorLink) return;
     window.location.href = cursorLink;
   };
 
-  const handleStatusChange = async (e: React.MouseEvent, newStatus: "active" | "paused" | "archived") => {
+  const handleStatusChange = async (
+    e: React.MouseEvent,
+    newStatus: "active" | "paused" | "archived",
+  ) => {
     e.stopPropagation();
     try {
       const res = await fetch(`/api/projects/${project.id}`, {
@@ -155,7 +204,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
-      
+
       if (res.ok) {
         updateProject(project.id, { status: newStatus });
       }
@@ -174,21 +223,18 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
       {...(isLocked ? {} : listeners)} // Only attach drag listeners if not locked
       onClick={handleClick}
       className={cn(
-        "group relative",
+        "group relative glass-card",
         isLocked ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
         "rounded-lg border",
         // Border color based on state
-        hasFailed 
-          ? "border-red-400/50 dark:border-red-500/30" 
-          : isLocked 
-            ? "border-purple-400/50 dark:border-purple-500/30" 
+        hasFailed
+          ? "border-red-400/50 dark:border-red-500/30"
+          : isLocked
+            ? "border-purple-400/50 dark:border-purple-500/30"
             : "border-slate-200 dark:border-slate-700",
-        "bg-white dark:bg-slate-800",
-        "shadow-sm hover:shadow-md",
         "p-2",
         "text-slate-900 dark:text-slate-100",
         "transition-all duration-200",
-        !isLocked && "hover:bg-slate-50 dark:hover:bg-slate-700/50",
         !isLocked && "hover:scale-[1.01] hover:-translate-y-0.5",
         isBeingDragged && [
           "opacity-50",
@@ -204,7 +250,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
       {isLocked && (
         <div className="absolute inset-0 rounded-xl bg-purple-500/5 pointer-events-none" />
       )}
-      
+
       {/* Failed state overlay */}
       {hasFailed && (
         <div className="absolute inset-0 rounded-xl bg-red-500/5 pointer-events-none" />
@@ -212,26 +258,28 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
       {/* Header - compact with inline title */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className={cn(
-            "text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
-            stageColors[project.stage]
-          )}>
+          <span
+            className={cn(
+              "text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
+              stageColors[project.stage],
+            )}
+          >
             {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
           </span>
           <h4 className="font-medium text-sm truncate">{project.name}</h4>
         </div>
-        
+
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
             <Clock className="w-2.5 h-2.5" />
             {formatRelativeTime(project.updatedAt)}
           </span>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <MoreHorizontal className="w-3 h-3" />
@@ -245,7 +293,9 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
               <DropdownMenuItem onClick={handleQuickView} className="gap-2">
                 <Eye className="w-3.5 h-3.5" />
                 Quick View
-                <span className="ml-auto text-[10px] text-muted-foreground">⇧+Click</span>
+                <span className="ml-auto text-[10px] text-muted-foreground">
+                  ⇧+Click
+                </span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleOpenCursor}
@@ -267,11 +317,11 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {isLocked && (
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowUnlockDialog(true);
-                  }} 
+                  }}
                   className="gap-2 text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400"
                 >
                   <Unlock className="w-3.5 h-3.5" />
@@ -279,18 +329,24 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
                 </DropdownMenuItem>
               )}
               {project.status === "active" ? (
-                <DropdownMenuItem onClick={(e) => handleStatusChange(e, "paused")} className="gap-2">
+                <DropdownMenuItem
+                  onClick={(e) => handleStatusChange(e, "paused")}
+                  className="gap-2"
+                >
                   <Pause className="w-3.5 h-3.5" />
                   Pause
                 </DropdownMenuItem>
               ) : project.status === "paused" ? (
-                <DropdownMenuItem onClick={(e) => handleStatusChange(e, "active")} className="gap-2">
+                <DropdownMenuItem
+                  onClick={(e) => handleStatusChange(e, "active")}
+                  className="gap-2"
+                >
                   <Play className="w-3.5 h-3.5" />
                   Resume
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuItem 
-                onClick={(e) => handleStatusChange(e, "archived")} 
+              <DropdownMenuItem
+                onClick={(e) => handleStatusChange(e, "archived")}
                 className="gap-2 text-destructive focus:text-destructive"
               >
                 <Archive className="w-3.5 h-3.5" />
@@ -310,12 +366,13 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
               {project.documentCount}
             </span>
           )}
-          {project.prototypeCount !== undefined && project.prototypeCount > 0 && (
-            <span className="flex items-center gap-1">
-              <Layers className="w-3 h-3" />
-              {project.prototypeCount}
-            </span>
-          )}
+          {project.prototypeCount !== undefined &&
+            project.prototypeCount > 0 && (
+              <span className="flex items-center gap-1">
+                <Layers className="w-3 h-3" />
+                {project.prototypeCount}
+              </span>
+            )}
           {/* Signal count badge */}
           {project.signalCount !== undefined && project.signalCount > 0 && (
             <span className="flex items-center gap-1" title="Linked signals">
@@ -326,16 +383,33 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Automation Status Badge - Column automation status */}
+          {(automationStatus?.hasActiveAutomation ||
+            automationStatus?.lastRun) && (
+            <AutomationStatusBadge
+              hasActive={automationStatus.hasActiveAutomation}
+              runningCount={automationStatus.runningCount}
+              lastStatus={automationStatus.lastRun?.status}
+              lastAgentName={automationStatus.lastRun?.agentName}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (automationStatus.lastRun?.id) {
+                  openJobLogsDrawer(automationStatus.lastRun.id, project.name);
+                }
+              }}
+            />
+          )}
+
           {/* Job Status Indicator - Clickable to open logs drawer */}
           {project.activeJobType && project.activeJobId && (
-            <JobStatusIndicator 
+            <JobStatusIndicator
               status={project.activeJobStatus}
               jobType={project.activeJobType}
               jobId={project.activeJobId}
               projectName={project.name}
             />
           )}
-          
+
           {/* Lock icon - bottom right */}
           {isLocked && (
             <motion.div
@@ -349,19 +423,32 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         </div>
       </div>
 
-      {/* Progress Bar */}
-      {project.activeJobProgress !== undefined && project.activeJobProgress > 0 && (
-        <Progress 
-          value={project.activeJobProgress * 100}
-          className={cn(
-            "mt-2 h-1",
-            hasFailed 
-              ? "[&>div]:bg-gradient-to-r [&>div]:from-red-500 [&>div]:to-orange-500" 
-              : "[&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-pink-500"
-          )}
+      {/* Confidence Indicator */}
+      <div className="mt-2">
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+          <span>{confidenceLabel}</span>
+          <span>{Math.round(confidenceScore * 100)}%</span>
+        </div>
+        <Progress
+          value={confidenceScore * 100}
+          className="mt-1 h-1 [&>div]:bg-linear-to-r [&>div]:from-emerald-400 [&>div]:to-teal-400"
         />
-      )}
-      
+      </div>
+
+      {/* Progress Bar */}
+      {project.activeJobProgress !== undefined &&
+        project.activeJobProgress > 0 && (
+          <Progress
+            value={project.activeJobProgress * 100}
+            className={cn(
+              "mt-2 h-1",
+              hasFailed
+                ? "[&>div]:bg-linear-to-r [&>div]:from-red-500 [&>div]:to-orange-500"
+                : "[&>div]:bg-linear-to-r [&>div]:from-purple-500 [&>div]:to-pink-500",
+            )}
+          />
+        )}
+
       {/* Error message tooltip */}
       {hasFailed && project.lastJobError && (
         <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -400,13 +487,13 @@ function formatJobType(type: string): string {
 }
 
 // Job Status Indicator Component - Clickable to open logs drawer
-function JobStatusIndicator({ 
-  status, 
+function JobStatusIndicator({
+  status,
   jobType,
   jobId,
   projectName,
-}: { 
-  status?: string; 
+}: {
+  status?: string;
   jobType: string;
   jobId: string;
   projectName: string;
@@ -419,16 +506,17 @@ function JobStatusIndicator({
     openJobLogsDrawer(jobId, projectName);
   };
 
-  const baseClasses = "cursor-pointer hover:scale-105 active:scale-95 transition-transform";
+  const baseClasses =
+    "cursor-pointer hover:scale-105 active:scale-95 transition-transform";
 
   // Pending state - waiting for Cursor AI to process
   if (status === "pending") {
     return (
-      <motion.button 
+      <motion.button
         onClick={handleClick}
         className={cn(
           "flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20",
-          baseClasses
+          baseClasses,
         )}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -442,13 +530,8 @@ function JobStatusIndicator({
         >
           <Clock className="w-3 h-3 text-amber-400" />
         </motion.div>
-        <span className="text-xs text-amber-400 font-medium">
-          Queued
-        </span>
-        <motion.div 
-          className="flex gap-0.5"
-          initial={{ opacity: 0.5 }}
-        >
+        <span className="text-xs text-amber-400 font-medium">Queued</span>
+        <motion.div className="flex gap-0.5" initial={{ opacity: 0.5 }}>
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
@@ -465,26 +548,26 @@ function JobStatusIndicator({
   // Running state - Cursor AI is processing
   if (status === "running") {
     return (
-      <motion.button 
+      <motion.button
         onClick={handleClick}
         className={cn(
           "flex items-center gap-1.5 px-2 py-1 rounded-md bg-purple-500/15 border border-purple-500/30",
-          baseClasses
+          baseClasses,
         )}
         initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ 
-          opacity: 1, 
+        animate={{
+          opacity: 1,
           scale: 1,
           boxShadow: [
             "0 0 0 0 rgba(168, 85, 247, 0)",
             "0 0 0 4px rgba(168, 85, 247, 0.1)",
-            "0 0 0 0 rgba(168, 85, 247, 0)"
-          ]
+            "0 0 0 0 rgba(168, 85, 247, 0)",
+          ],
         }}
-        transition={{ 
+        transition={{
           boxShadow: { duration: 2, repeat: Infinity },
           opacity: { duration: 0.2 },
-          scale: { duration: 0.2 }
+          scale: { duration: 0.2 },
         }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -496,19 +579,15 @@ function JobStatusIndicator({
         >
           <Loader2 className="w-3.5 h-3.5 text-purple-400" />
         </motion.div>
-        <span className="text-xs text-purple-300 font-medium">
-          {jobName}
-        </span>
-        <motion.div 
-          className="flex gap-0.5"
-        >
+        <span className="text-xs text-purple-300 font-medium">{jobName}</span>
+        <motion.div className="flex gap-0.5">
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
               className="w-1 h-1 rounded-full bg-purple-400"
-              animate={{ 
+              animate={{
                 opacity: [0.3, 1, 0.3],
-                scale: [0.8, 1.2, 0.8]
+                scale: [0.8, 1.2, 0.8],
               }}
               transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
             />
@@ -521,11 +600,11 @@ function JobStatusIndicator({
   // Failed state
   if (status === "failed") {
     return (
-      <motion.button 
+      <motion.button
         onClick={handleClick}
         className={cn(
           "flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 border border-red-500/20",
-          baseClasses
+          baseClasses,
         )}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -544,11 +623,11 @@ function JobStatusIndicator({
   // Completed state (briefly shown)
   if (status === "completed") {
     return (
-      <motion.button 
+      <motion.button
         onClick={handleClick}
         className={cn(
           "flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/20",
-          baseClasses
+          baseClasses,
         )}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -572,11 +651,11 @@ function JobStatusIndicator({
 
   // Default/unknown state - treat as processing/initializing
   return (
-    <motion.button 
+    <motion.button
       onClick={handleClick}
       className={cn(
         "flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-500/10 border border-slate-500/20",
-        baseClasses
+        baseClasses,
       )}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -600,19 +679,23 @@ function JobStatusIndicator({
 // Drag overlay version (shown while dragging)
 export function ProjectCardOverlay({ project }: { project: ProjectCardType }) {
   return (
-    <div className={cn(
-      "rounded-lg border border-white/30 dark:border-white/20",
-      "bg-white/80 dark:bg-slate-800/90",
-      "backdrop-blur-xl",
-      "shadow-[0_20px_60px_rgba(0,0,0,0.2)]",
-      "p-2",
-      "rotate-2 scale-105",
-    )}>
+    <div
+      className={cn(
+        "rounded-lg border border-white/30 dark:border-white/20",
+        "bg-white/80 dark:bg-slate-800/90",
+        "backdrop-blur-xl",
+        "shadow-[0_20px_60px_rgba(0,0,0,0.2)]",
+        "p-2",
+        "rotate-2 scale-105",
+      )}
+    >
       <div className="flex items-center gap-2">
-        <span className={cn(
-          "text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
-          stageColors[project.stage]
-        )}>
+        <span
+          className={cn(
+            "text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0",
+            stageColors[project.stage],
+          )}
+        >
           {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
         </span>
         <h4 className="font-medium text-sm truncate">{project.name}</h4>

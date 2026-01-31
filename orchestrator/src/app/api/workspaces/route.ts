@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getWorkspacesForUser, createWorkspace } from "@/lib/db/queries";
 import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
+import { getGitHubClient } from "@/lib/github/auth";
 
 export async function GET() {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -20,7 +21,7 @@ export async function GET() {
     console.error("Failed to get workspaces:", error);
     return NextResponse.json(
       { error: "Failed to get workspaces" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -28,11 +29,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -40,10 +41,7 @@ export async function POST(request: NextRequest) {
     const { name, description, githubRepo, contextPath } = body;
 
     if (!name) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     const workspace = await createWorkspace({
@@ -58,8 +56,11 @@ export async function POST(request: NextRequest) {
     // This populates the initial knowledgebase entries from the context files
     if (workspace?.id) {
       try {
-        const syncResult = await syncKnowledgeBase(workspace.id);
-        console.log(`📚 Knowledge base synced for new workspace: ${syncResult.synced} entries`);
+        const octokit = await getGitHubClient(session.user.id);
+        const syncResult = await syncKnowledgeBase(workspace.id, { octokit: octokit ?? undefined });
+        console.log(
+          `📚 Knowledge base synced for new workspace: ${syncResult.synced} entries`,
+        );
       } catch (syncError) {
         // Don't fail workspace creation if sync fails - user can manually sync later
         console.error("Knowledge base sync failed (non-fatal):", syncError);
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     console.error("Failed to create workspace:", error);
     return NextResponse.json(
       { error: "Failed to create workspace" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

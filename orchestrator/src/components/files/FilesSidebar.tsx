@@ -86,7 +86,11 @@ export function FilesSidebar({
   className,
   defaultOpen = true,
 }: FilesSidebarProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  // Default to collapsed on mobile screens (< 1024px)
+  const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window === "undefined") return defaultOpen;
+    return window.innerWidth >= 1024 ? defaultOpen : false;
+  });
 
   const { width, isResizing, handleResizeStart } = useResizablePanel({
     minWidth: 200,
@@ -117,7 +121,7 @@ export function FilesSidebar({
         onFileSelect(file);
       }
     },
-    [onFileSelect]
+    [onFileSelect],
   );
 
   const handleExpand = useCallback(() => {
@@ -133,7 +137,10 @@ export function FilesSidebar({
       if (node.type === "directory") {
         return (
           <FolderItem key={node.path} value={node.path}>
-            <FolderTrigger gitStatus={node.gitStatus} className="hover:bg-accent rounded-md transition-colors">
+            <FolderTrigger
+              gitStatus={node.gitStatus}
+              className="hover:bg-accent rounded-md transition-colors"
+            >
               {node.name}
             </FolderTrigger>
             <FolderContent>
@@ -152,7 +159,7 @@ export function FilesSidebar({
           onClick={() => handleFileClick(node)}
           className={cn(
             "cursor-pointer rounded-md transition-all hover:bg-accent",
-            isSelected && "bg-accent"
+            isSelected && "bg-accent",
           )}
         >
           <FileItem icon={Icon} gitStatus={node.gitStatus}>
@@ -187,13 +194,12 @@ export function FilesSidebar({
           initial={{ opacity: 0, width: 0 }}
           animate={{ opacity: 1, width }}
           exit={{ opacity: 0, width: 0 }}
-          transition={isResizing ? { duration: 0 } : { duration: 0.25, ease: "easeInOut" }}
+          transition={
+            isResizing ? { duration: 0 } : { duration: 0.25, ease: "easeInOut" }
+          }
           className="h-full relative rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] overflow-hidden"
         >
-          <div
-            className="h-full flex flex-col bg-card"
-            style={{ width }}
-          >
+          <div className="h-full flex flex-col bg-card" style={{ width }}>
             {/* Header with traffic lights */}
             <div className="flex items-center justify-between px-3 py-2.5 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/30">
               <div className="flex items-center gap-3">
@@ -206,7 +212,9 @@ export function FilesSidebar({
                 />
                 <div className="flex items-center gap-2">
                   <FolderGit2 className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-mono text-sm text-muted-foreground">Files</span>
+                  <span className="font-mono text-sm text-muted-foreground">
+                    Files
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-0.5">
@@ -228,7 +236,9 @@ export function FilesSidebar({
                     disabled={isLoading}
                     className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
                   >
-                    <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+                    <RefreshCw
+                      className={cn("w-4 h-4", isLoading && "animate-spin")}
+                    />
                   </Button>
                 )}
               </div>
@@ -255,7 +265,7 @@ export function FilesSidebar({
                   <FolderGit2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                   <p className="text-sm text-muted-foreground">No files yet</p>
                   <p className="text-xs text-muted-foreground/70 mt-1 font-mono">
-                    // Create a file to get started
+                    {"// Create a file to get started"}
                   </p>
                 </div>
               ) : (

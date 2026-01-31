@@ -1,9 +1,27 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { GitBranch, FolderOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { GitBranch, FolderOpen, RefreshCw, AlertTriangle } from "lucide-react";
 import { GithubRepoSelector } from "./GithubRepoSelector";
 import { BranchSelector } from "./BranchSelector";
 import { PathBrowser } from "./PathBrowser";
@@ -34,6 +52,12 @@ interface RepositorySettingsCardProps {
   // Optional callbacks for auto-configuration
   onContextPathDetected?: (path: string) => void;
   onPrototypesPathDetected?: (path: string) => void;
+  // Mode: 'setup' for initial configuration (legacy), 'edit' for post-onboarding adjustments
+  mode?: "setup" | "edit";
+  // Last synced timestamp for edit mode display
+  lastSyncedAt?: string;
+  // Callback for sync action
+  onSync?: () => void;
 }
 
 export function RepositorySettingsCard({
@@ -53,21 +77,51 @@ export function RepositorySettingsCard({
   repoOwner,
   repoName,
   onRepoMetaChange,
+  mode = "edit",
+  lastSyncedAt,
+  onSync,
 }: RepositorySettingsCardProps) {
+  const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
+  const [tempGithubRepo, setTempGithubRepo] = useState(githubRepo);
+  const [tempBaseBranch, setTempBaseBranch] = useState(baseBranch);
+  const [tempRepoOwner, setTempRepoOwner] = useState(repoOwner);
+  const [tempRepoName, setTempRepoName] = useState(repoName);
+
   // Handle repo selection and auto-configure branch
   const handleRepoChange = (
     value: string,
-    repoDetails?: { defaultBranch?: string; owner?: { login: string }; name?: string }
+    repoDetails?: {
+      defaultBranch?: string;
+      owner?: { login: string };
+      name?: string;
+    },
   ) => {
-    setGithubRepo(value);
-    // Auto-set branch if repo provides default branch
-    if (repoDetails?.defaultBranch) {
-      setBaseBranch(repoDetails.defaultBranch);
-    }
-    if (repoDetails?.owner?.login && repoDetails?.name) {
-      onRepoMetaChange?.({ owner: repoDetails.owner.login, repo: repoDetails.name });
+    if (mode === "edit") {
+      setTempGithubRepo(value);
+      if (repoDetails?.defaultBranch) {
+        setTempBaseBranch(repoDetails.defaultBranch);
+      }
+      if (repoDetails?.owner?.login && repoDetails?.name) {
+        setTempRepoOwner(repoDetails.owner.login);
+        setTempRepoName(repoDetails.name);
+      } else {
+        setTempRepoOwner(null);
+        setTempRepoName(null);
+      }
     } else {
-      onRepoMetaChange?.(null);
+      setGithubRepo(value);
+      // Auto-set branch if repo provides default branch
+      if (repoDetails?.defaultBranch) {
+        setBaseBranch(repoDetails.defaultBranch);
+      }
+      if (repoDetails?.owner?.login && repoDetails?.name) {
+        onRepoMetaChange?.({
+          owner: repoDetails.owner.login,
+          repo: repoDetails.name,
+        });
+      } else {
+        onRepoMetaChange?.(null);
+      }
     }
   };
 
@@ -86,6 +140,55 @@ export function RepositorySettingsCard({
     }
   };
 
+  // Apply changes from edit dialog
+  const handleApplyChanges = () => {
+    setGithubRepo(tempGithubRepo);
+    setBaseBranch(tempBaseBranch);
+    if (tempRepoOwner && tempRepoName) {
+      onRepoMetaChange?.({ owner: tempRepoOwner, repo: tempRepoName });
+    } else {
+      onRepoMetaChange?.(null);
+    }
+    setIsChangeDialogOpen(false);
+  };
+
+  // Reset temp state when opening dialog
+  const handleOpenChangeDialog = (open: boolean) => {
+    if (open) {
+      setTempGithubRepo(githubRepo);
+      setTempBaseBranch(baseBranch);
+      setTempRepoOwner(repoOwner ?? null);
+      setTempRepoName(repoName ?? null);
+    }
+    setIsChangeDialogOpen(open);
+  };
+
+  // Format last synced time
+  const formatLastSynced = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+    if (diffHours < 1) {
+      return "just now";
+    } else if (diffHours === 1) {
+      return "1 hour ago";
+    } else if (diffHours < 24) {
+      return `${diffHours} hours ago`;
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    }
+  };
+
+  // Determine display repo name
+  const displayRepoName = repoOwner && repoName
+    ? `${repoOwner}/${repoName}`
+    : githubRepo || "No repository connected";
+
   return (
     <Card>
       <CardHeader>
@@ -94,55 +197,169 @@ export function RepositorySettingsCard({
           Repository & Prototypes
         </CardTitle>
         <CardDescription>
-          Configure your GitHub repository and prototype settings
+          {mode === "edit"
+            ? "Your connected GitHub repository and prototype settings"
+            : "Configure your GitHub repository and prototype settings"
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Repository Settings */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>GitHub Repository</Label>
-            <GithubRepoSelector
-              value={githubRepo}
-              onChange={handleRepoChange}
-              onBranchChange={setBaseBranch}
-              onPathsDetected={handlePathsDetected}
-              placeholder="Select a repository"
-            />
+        {/* Edit Mode: Read-only display with change option */}
+        {mode === "edit" && (
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">
+                  Connected Repository
+                </Label>
+                <p className="font-medium">{displayRepoName}</p>
+                <p className="text-sm text-muted-foreground">
+                  {baseBranch || "main"} branch
+                  {lastSyncedAt && (
+                    <> &middot; Last synced {formatLastSynced(lastSyncedAt)}</>
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Dialog open={isChangeDialogOpen} onOpenChange={handleOpenChangeDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Change Repository
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Change Repository</DialogTitle>
+                      <DialogDescription className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <span>
+                          Changing repository will affect future syncs. Existing projects will not be modified.
+                        </span>
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>GitHub Repository</Label>
+                        <GithubRepoSelector
+                          value={tempGithubRepo}
+                          onChange={handleRepoChange}
+                          onBranchChange={setTempBaseBranch}
+                          onPathsDetected={handlePathsDetected}
+                          onRepoResolved={(repo) => {
+                            setTempRepoOwner(repo.owner.login);
+                            setTempRepoName(repo.name);
+                          }}
+                          placeholder="Select a repository"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Base Branch</Label>
+                        {tempRepoOwner && tempRepoName ? (
+                          <BranchSelector
+                            owner={tempRepoOwner}
+                            repo={tempRepoName}
+                            value={tempBaseBranch}
+                            onChange={setTempBaseBranch}
+                          />
+                        ) : (
+                          <Input
+                            placeholder="main"
+                            value={tempBaseBranch}
+                            onChange={(e) => setTempBaseBranch(e.target.value)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                      </DialogClose>
+                      <Button onClick={handleApplyChanges}>
+                        Apply Changes
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                {onSync && (
+                  <Button variant="outline" size="sm" onClick={onSync} className="gap-1.5">
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Sync Now
+                  </Button>
+                )}
+              </div>
+            </div>
             {resolvedPaths?.repoPath && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <FolderOpen className="w-3 h-3" />
-                <span className="font-mono truncate" title={resolvedPaths.repoPath}>
+                <span
+                  className="font-mono truncate"
+                  title={resolvedPaths.repoPath}
+                >
                   Resolved: {resolvedPaths.repoPath}
                 </span>
               </div>
             )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="baseBranch">Base Branch</Label>
-            {repoOwner && repoName ? (
-              <BranchSelector
-                owner={repoOwner}
-                repo={repoName}
-                value={baseBranch}
-                onChange={setBaseBranch}
+        )}
+
+        {/* Setup Mode: Inline editing (legacy behavior) */}
+        {mode === "setup" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>GitHub Repository</Label>
+              <GithubRepoSelector
+                value={githubRepo}
+                onChange={handleRepoChange}
+                onBranchChange={setBaseBranch}
+                onPathsDetected={handlePathsDetected}
+                onRepoResolved={(repo) => {
+                  onRepoMetaChange?.({
+                    owner: repo.owner.login,
+                    repo: repo.name,
+                  });
+                }}
+                placeholder="Select a repository"
               />
-            ) : (
-              <Input
-                id="baseBranch"
-                placeholder="main"
-                value={baseBranch}
-                onChange={(e) => setBaseBranch(e.target.value)}
-              />
-            )}
-            <p className="text-xs text-muted-foreground">
-              Auto-filled when selecting a repository from GitHub.
-            </p>
+              {resolvedPaths?.repoPath && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
+                  <FolderOpen className="w-3 h-3" />
+                  <span
+                    className="font-mono truncate"
+                    title={resolvedPaths.repoPath}
+                  >
+                    Resolved: {resolvedPaths.repoPath}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="baseBranch">Base Branch</Label>
+              {repoOwner && repoName ? (
+                <BranchSelector
+                  owner={repoOwner}
+                  repo={repoName}
+                  value={baseBranch}
+                  onChange={setBaseBranch}
+                />
+              ) : (
+                <Input
+                  id="baseBranch"
+                  placeholder="main"
+                  value={baseBranch}
+                  onChange={(e) => setBaseBranch(e.target.value)}
+                />
+              )}
+              <p className="text-xs text-muted-foreground">
+                Auto-filled when selecting a repository from GitHub.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-2">
-          <Label htmlFor="cursorDeepLinkTemplate">Cursor Deep Link Template</Label>
+          <Label htmlFor="cursorDeepLinkTemplate">
+            Cursor Deep Link Template
+          </Label>
           <Input
             id="cursorDeepLinkTemplate"
             placeholder="cursor://open?repo={repo}&branch={branch}"
@@ -177,7 +394,10 @@ export function RepositorySettingsCard({
             {resolvedPaths?.prototypesPath && (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <FolderOpen className="w-3 h-3" />
-                <span className="font-mono truncate" title={resolvedPaths.prototypesPath}>
+                <span
+                  className="font-mono truncate"
+                  title={resolvedPaths.prototypesPath}
+                >
                   {resolvedPaths.prototypesPath}
                 </span>
               </div>

@@ -14,29 +14,32 @@ AskElephant is positioning as the "Era Three" Revenue Operating System, claiming
 
 ## Company Snapshot
 
-| Metric | Value |
-|--------|-------|
-| ARR | $2.3M |
-| MoM Growth | 40% |
-| NRR | 113% |
-| Non-Sales Adoption | 60% |
-| Expansion Revenue | 50% |
-| Stage | Raising $20M Series A |
-| Current Investors | Jump Capital, High Alpha, Tandem, SaaS Ventures |
+| Metric             | Value                                           |
+| ------------------ | ----------------------------------------------- |
+| ARR                | $2.3M                                           |
+| MoM Growth         | 40%                                             |
+| NRR                | 113%                                            |
+| Non-Sales Adoption | 60%                                             |
+| Expansion Revenue  | 50%                                             |
+| Stage              | Raising $20M Series A                           |
+| Current Investors  | Jump Capital, High Alpha, Tandem, SaaS Ventures |
 
 ---
 
 ## Their "Era" Framework
 
 ### Era 1: Data Capture
+
 - Tools: Fathom, Gong, Fireflies
 - Problem: Only captures data, doesn't act on it
 
 ### Era 2: Automation (Where competitors are)
+
 - Tools: Momentum, Attention, Sybill
 - Problem: "Tasks automated in silos," agents don't learn, benefits don't compound
 
 ### Era 3: Infrastructure/Orchestration (Their claim)
+
 - AskElephant's positioning
 - "Systems trigger systems autonomously"
 - "Agents learn from manager feedback (ALHF)"
@@ -46,10 +49,10 @@ AskElephant is positioning as the "Era Three" Revenue Operating System, claiming
 
 ## 3-Layer Architecture
 
-| Layer | Description | Status |
-|-------|-------------|--------|
-| Layer 1 | Data Foundation | Built |
-| Layer 2 | Agent Workflows | Built |
+| Layer   | Description          | Status                |
+| ------- | -------------------- | --------------------- |
+| Layer 1 | Data Foundation      | Built                 |
+| Layer 2 | Agent Workflows      | Built                 |
 | Layer 3 | Seamless Integration | Building (Q3-Q4 2026) |
 
 **Layer 3 Vision:** "Like Cursor for engineers" - conducting lead agents that autonomously manage sub-agents.
@@ -59,16 +62,19 @@ AskElephant is positioning as the "Era Three" Revenue Operating System, claiming
 ## Claimed Differentiation (Moats)
 
 ### Moat 1: Cross-Functional Data
+
 - 5x more context (Sales + Onboarding + CS + Product)
 - "Patterns humans can't see"
 - Super-intelligent agents that know YOUR workflows
 
 ### Moat 2: ALHF (Agent Learning from Human Feedback)
+
 - Manager edits ONE agent → All 50 agents learn instantly
 - Gets smarter with YOUR workflows
 - "After 6 months, knows you better than any template"
 
 ### Moat 3: Platform Expansion
+
 - 60% non-sales adoption (vs 5-10% industry avg)
 - 50% expansion revenue
 - Network effects across teams
@@ -78,6 +84,7 @@ AskElephant is positioning as the "Era Three" Revenue Operating System, claiming
 ## Product Vision (Slide 6)
 
 **Agent Types:**
+
 1. **Chief of Staff Agent** - Daily briefing (5 sub-agents: calendar, email, pipeline, CS alerts, tasks)
 2. **Coaching Agent** - Meeting prep (analyzed 47 calls to surface winning patterns)
 3. **Admin Agent** - Post-call (3 sub-agents: CRM update, email draft, CS notification)
@@ -88,13 +95,14 @@ AskElephant is positioning as the "Era Three" Revenue Operating System, claiming
 
 ## Case Study: PestShare
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Admin time/day | 3 hours | 30 minutes |
-| Win rate | 50% | 67% (3 weeks) |
-| Training | Generic | Personalized from call patterns |
+| Metric         | Before  | After                           |
+| -------------- | ------- | ------------------------------- |
+| Admin time/day | 3 hours | 30 minutes                      |
+| Win rate       | 50%     | 67% (3 weeks)                   |
+| Training       | Generic | Personalized from call patterns |
 
 **Expansion Path:**
+
 - Week 1: Sales pilot ($50K)
 - Week 3: Customer Success joins
 - Week 6: Onboarding team added
@@ -106,11 +114,11 @@ AskElephant is positioning as the "Era Three" Revenue Operating System, claiming
 
 ## Market Sizing
 
-| Layer | Current | 2032 Projection |
-|-------|---------|-----------------|
-| CRM Layer (HubSpot, Salesforce) | $8B | - |
-| Data/Integration (Zapier, APIs) | $4B | - |
-| AI Orchestration | $6B by 2026 | $21B by 2032 |
+| Layer                           | Current     | 2032 Projection |
+| ------------------------------- | ----------- | --------------- |
+| CRM Layer (HubSpot, Salesforce) | $8B         | -               |
+| Data/Integration (Zapier, APIs) | $4B         | -               |
+| AI Orchestration                | $6B by 2026 | $21B by 2032    |
 
 ---
 
@@ -128,11 +136,11 @@ AskElephant is positioning as the "Era Three" Revenue Operating System, claiming
 
 ## Roadmap
 
-| Phase | Timeline | Focus |
-|-------|----------|-------|
-| Q1-Q2 2026 | ✅ | Standard Agents |
-| Q3-Q4 2026 | → | Seamless Integration (Layer 3) |
-| 2027 | | Platform Expansion |
+| Phase      | Timeline | Focus                          |
+| ---------- | -------- | ------------------------------ |
+| Q1-Q2 2026 | ✅       | Standard Agents                |
+| Q3-Q4 2026 | →        | Seamless Integration (Layer 3) |
+| 2027       |          | Platform Expansion             |
 
 **Series A Goal:** $20M ARR run rate by end of 2026
 
@@ -142,13 +150,13 @@ AskElephant is positioning as the "Era Three" Revenue Operating System, claiming
 
 ### Different Markets, Some Overlap
 
-| Dimension | AskElephant | elmer |
-|-----------|-------------|-------|
-| **Primary Market** | Revenue teams (Sales, CS, Onboarding) | Product teams (PMs, Engineering) |
-| **Core Problem** | Revenue operations efficiency | Discovery compression, engineering waste |
-| **Agent Focus** | Execution agents (do work) | Orchestration agents (manage workflow) |
-| **Validation** | Manager feedback (ALHF) | Prototype + jury validation |
-| **End Goal** | "AI-native revenue team" | "Validated prototype → engineering" |
+| Dimension          | AskElephant                           | elmer                                    |
+| ------------------ | ------------------------------------- | ---------------------------------------- |
+| **Primary Market** | Revenue teams (Sales, CS, Onboarding) | Product teams (PMs, Engineering)         |
+| **Core Problem**   | Revenue operations efficiency         | Discovery compression, engineering waste |
+| **Agent Focus**    | Execution agents (do work)            | Orchestration agents (manage workflow)   |
+| **Validation**     | Manager feedback (ALHF)               | Prototype + jury validation              |
+| **End Goal**       | "AI-native revenue team"              | "Validated prototype → engineering"      |
 
 ### Interesting Concepts to Monitor
 

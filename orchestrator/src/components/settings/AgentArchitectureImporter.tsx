@@ -5,11 +5,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface AgentArchitectureImporterProps {
   owner?: string;
   repo?: string;
   ref?: string;
+  workspaceId?: string;
   onSelectionChange?: (selection: ArchitectureSelection) => void;
 }
 
@@ -50,23 +52,34 @@ export function AgentArchitectureImporter({
   owner,
   repo,
   ref,
+  workspaceId,
   onSelectionChange,
 }: AgentArchitectureImporterProps) {
-  const [selection, setSelection] = useState<ArchitectureSelection>(DEFAULT_SELECTION);
+  const [selection, setSelection] =
+    useState<ArchitectureSelection>(DEFAULT_SELECTION);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{
+    definitions: number;
+    pipelineCreated: number;
+    pipelineExisting: number;
+  } | null>(null);
 
-  const { data, isLoading } = useQuery<AnalyzeResponse>({
-    queryKey: ["github-analyze", owner, repo, ref],
-    queryFn: async () => {
-      const res = await fetch(`/api/github/${owner}/${repo}/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ref }),
-      });
-      if (!res.ok) throw new Error("Failed to analyze repo");
-      return res.json();
-    },
-    enabled: !!owner && !!repo,
-  });
+  const { data, isLoading, error, refetch, isError } =
+    useQuery<AnalyzeResponse>({
+      queryKey: ["github-analyze", owner, repo, ref],
+      queryFn: async () => {
+        const res = await fetch(`/api/github/${owner}/${repo}/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ref }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Failed to analyze repo");
+        return data;
+      },
+      enabled: !!owner && !!repo,
+    });
 
   useEffect(() => {
     onSelectionChange?.(selection);
@@ -76,13 +89,37 @@ export function AgentArchitectureImporter({
     if (!data) return [];
     return [
       { key: "agentsMd", label: "AGENTS.md", present: data.hasAgentsMd },
-      { key: "skills", label: ".cursor/skills", present: data.cursor.hasSkills },
-      { key: "commands", label: ".cursor/commands", present: data.cursor.hasCommands },
-      { key: "subagents", label: ".cursor/agents", present: data.cursor.hasAgents },
+      {
+        key: "skills",
+        label: ".cursor/skills",
+        present: data.cursor.hasSkills,
+      },
+      {
+        key: "commands",
+        label: ".cursor/commands",
+        present: data.cursor.hasCommands,
+      },
+      {
+        key: "subagents",
+        label: ".cursor/agents",
+        present: data.cursor.hasAgents,
+      },
       { key: "rules", label: ".cursor/rules", present: data.cursor.hasRules },
-      { key: "knowledge", label: "knowledge base", present: data.knowledgePaths.length > 0 },
-      { key: "personas", label: "personas", present: data.personaPaths.length > 0 },
-    ] as Array<{ key: keyof ArchitectureSelection; label: string; present: boolean }>;
+      {
+        key: "knowledge",
+        label: "knowledge base",
+        present: data.knowledgePaths.length > 0,
+      },
+      {
+        key: "personas",
+        label: "personas",
+        present: data.personaPaths.length > 0,
+      },
+    ] as Array<{
+      key: keyof ArchitectureSelection;
+      label: string;
+      present: boolean;
+    }>;
   }, [data]);
 
   if (!owner || !repo) {
@@ -93,17 +130,80 @@ export function AgentArchitectureImporter({
     );
   }
 
+  const handleImport = async () => {
+    if (!workspaceId) {
+      setImportError("Workspace ID is required to import.");
+      return;
+    }
+    setIsImporting(true);
+    setImportError(null);
+    setImportResult(null);
+    try {
+      const res = await fetch("/api/agents/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId,
+          owner,
+          repo,
+          ref,
+          createPipeline: true,
+          selection,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to import agent architecture");
+      }
+      setImportResult({
+        definitions: data.count || 0,
+        pipelineCreated: data.pipeline?.created || 0,
+        pipelineExisting: data.pipeline?.existing || 0,
+      });
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Import failed");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {isLoading && (
-        <div className="text-xs text-muted-foreground">Analyzing repository...</div>
+        <div className="text-xs text-muted-foreground">
+          Analyzing repository...
+        </div>
       )}
 
-      {!isLoading && data && (
+      {isError && (
+        <div className="space-y-2 text-xs text-red-500">
+          <div>
+            Failed to analyze repository:{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+          >
+            Retry analysis
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && !isError && data && (
         <div className="space-y-3">
+          <div className="text-xs text-muted-foreground">
+            Import agent definitions and create default pipeline columns for
+            this workspace.
+          </div>
           <div className="flex flex-wrap gap-2">
             {detected.map((item) => (
-              <Badge key={item.label} variant={item.present ? "secondary" : "outline"}>
+              <Badge
+                key={item.label}
+                variant={item.present ? "secondary" : "outline"}
+              >
                 {item.label}
               </Badge>
             ))}
@@ -135,6 +235,29 @@ export function AgentArchitectureImporter({
               Detected knowledge paths: {data.knowledgePaths.join(", ")}
             </div>
           )}
+
+          {importError && (
+            <div className="text-xs text-red-500">{importError}</div>
+          )}
+          {importResult && (
+            <div className="text-xs text-emerald-500">
+              Imported {importResult.definitions} definitions.{" "}
+              {importResult.pipelineCreated > 0
+                ? `Created ${importResult.pipelineCreated} pipeline columns.`
+                : `Pipeline columns already exist (${importResult.pipelineExisting}).`}
+            </div>
+          )}
+
+          <Button
+            type="button"
+            onClick={handleImport}
+            disabled={isImporting}
+            className="w-full"
+          >
+            {isImporting
+              ? "Importing..."
+              : "Import Architecture + Create Pipeline"}
+          </Button>
         </div>
       )}
     </div>

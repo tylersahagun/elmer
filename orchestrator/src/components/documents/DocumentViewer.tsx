@@ -27,6 +27,7 @@ import {
   Sparkles,
   RefreshCw,
   Upload,
+  BarChart3,
 } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
@@ -39,12 +40,15 @@ import {
 import type { DocumentType } from "@/lib/db/schema";
 
 // Document type metadata
-const DOCUMENT_TYPES: Record<DocumentType, { 
-  label: string; 
-  icon: React.ElementType; 
-  color: string;
-  description: string;
-}> = {
+const DOCUMENT_TYPES: Record<
+  DocumentType,
+  {
+    label: string;
+    icon: React.ElementType;
+    color: string;
+    description: string;
+  }
+> = {
   research: {
     label: "Research",
     icon: FlaskConical,
@@ -80,6 +84,12 @@ const DOCUMENT_TYPES: Record<DocumentType, {
     icon: Sparkles,
     color: "text-pink-400",
     description: "Prototype specifications",
+  },
+  metrics: {
+    label: "Metrics",
+    icon: BarChart3,
+    color: "text-emerald-400",
+    description: "Success metrics and release gates",
   },
   jury_report: {
     label: "Jury Report",
@@ -136,9 +146,10 @@ export function DocumentViewer({
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [publishNotice, setPublishNotice] = useState<{ type: "success" | "error"; message: string } | null>(
-    null
-  );
+  const [publishNotice, setPublishNotice] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const typeInfo = DOCUMENT_TYPES[document.type];
   const Icon = typeInfo.icon;
@@ -168,7 +179,10 @@ export function DocumentViewer({
     setIsPublishing(true);
     try {
       await onPublish();
-      setPublishNotice({ type: "success", message: "Published to knowledge base" });
+      setPublishNotice({
+        type: "success",
+        message: "Published to knowledge base",
+      });
       setTimeout(() => setPublishNotice(null), 3000);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Publish failed";
@@ -189,10 +203,12 @@ export function DocumentViewer({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className={cn(
-            "w-10 h-10 rounded-lg flex items-center justify-center",
-            "bg-gradient-to-br from-white/10 to-white/5"
-          )}>
+          <div
+            className={cn(
+              "w-10 h-10 rounded-lg flex items-center justify-center",
+              "bg-linear-to-br from-white/10 to-white/5",
+            )}
+          >
             <Icon className={cn("w-5 h-5", typeInfo.color)} />
           </div>
           <div>
@@ -217,13 +233,16 @@ export function DocumentViewer({
         <div className="flex items-center gap-2">
           {/* Status badge */}
           {document.metadata?.reviewStatus && (
-            <Badge 
+            <Badge
               variant="outline"
               className={cn(
                 "capitalize",
-                document.metadata.reviewStatus === "approved" && "border-green-500/50 text-green-400",
-                document.metadata.reviewStatus === "reviewed" && "border-blue-500/50 text-blue-400",
-                document.metadata.reviewStatus === "draft" && "border-amber-500/50 text-amber-400"
+                document.metadata.reviewStatus === "approved" &&
+                  "border-green-500/50 text-green-400",
+                document.metadata.reviewStatus === "reviewed" &&
+                  "border-blue-500/50 text-blue-400",
+                document.metadata.reviewStatus === "draft" &&
+                  "border-amber-500/50 text-amber-400",
               )}
             >
               {document.metadata.reviewStatus}
@@ -256,7 +275,11 @@ export function DocumentViewer({
               size="sm"
               onClick={handlePublish}
               disabled={publishDisabled || isPublishing}
-              title={publishDisabled ? "Configure knowledge base mapping in settings" : undefined}
+              title={
+                publishDisabled
+                  ? "Configure knowledge base mapping in settings"
+                  : undefined
+              }
               className="gap-1.5"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -268,7 +291,7 @@ export function DocumentViewer({
             <Button
               variant={isEditing ? "default" : "outline"}
               size="sm"
-              onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+              onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
               disabled={isSaving}
               className="gap-1.5"
             >
@@ -287,11 +310,7 @@ export function DocumentViewer({
           )}
 
           {isEditing && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCancel}
-            >
+            <Button variant="ghost" size="sm" onClick={handleCancel}>
               <X className="w-4 h-4" />
             </Button>
           )}
@@ -305,7 +324,7 @@ export function DocumentViewer({
               "text-xs",
               publishNotice.type === "success"
                 ? "border-green-500/50 text-green-400"
-                : "border-red-500/50 text-red-400"
+                : "border-red-500/50 text-red-400",
             )}
           >
             {publishNotice.message}
@@ -314,11 +333,11 @@ export function DocumentViewer({
       )}
 
       {/* Content - optimized scrolling with will-change and transform */}
-      <div 
+      <div
         className="flex-1 overflow-y-auto overscroll-contain"
-        style={{ 
-          willChange: 'scroll-position',
-          WebkitOverflowScrolling: 'touch',
+        style={{
+          willChange: "scroll-position",
+          WebkitOverflowScrolling: "touch",
         }}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -369,9 +388,7 @@ export function DocumentViewer({
                     ),
                     // Custom list styles
                     ul: ({ children }) => (
-                      <ul className="my-4 space-y-2 list-none">
-                        {children}
-                      </ul>
+                      <ul className="my-4 space-y-2 list-none">{children}</ul>
                     ),
                     li: ({ children }) => (
                       <li className="flex gap-2">
@@ -390,13 +407,22 @@ export function DocumentViewer({
                       const isInline = !className;
                       if (isInline) {
                         return (
-                          <code className="px-1.5 py-0.5 rounded bg-white/10 text-pink-300 text-sm font-mono" {...props}>
+                          <code
+                            className="px-1.5 py-0.5 rounded bg-white/10 text-pink-300 text-sm font-mono"
+                            {...props}
+                          >
                             {children}
                           </code>
                         );
                       }
                       return (
-                        <code className={cn("block p-4 rounded-lg bg-black/30 overflow-x-auto", className)} {...props}>
+                        <code
+                          className={cn(
+                            "block p-4 rounded-lg bg-black/30 overflow-x-auto",
+                            className,
+                          )}
+                          {...props}
+                        >
                           {children}
                         </code>
                       );
@@ -421,7 +447,7 @@ export function DocumentViewer({
                     ),
                     // Custom links
                     a: ({ href, children }) => (
-                      <a 
+                      <a
                         href={href}
                         className="text-purple-400 hover:text-purple-300 underline underline-offset-2"
                         target="_blank"
@@ -431,9 +457,7 @@ export function DocumentViewer({
                       </a>
                     ),
                     // Custom hr
-                    hr: () => (
-                      <hr className="my-8 border-white/10" />
-                    ),
+                    hr: () => <hr className="my-8 border-white/10" />,
                   }}
                 >
                   {document.content}
@@ -491,11 +515,14 @@ export function DocumentList({
   className,
 }: DocumentListProps) {
   // Group documents by type
-  const grouped = documents.reduce((acc, doc) => {
-    if (!acc[doc.type]) acc[doc.type] = [];
-    acc[doc.type].push(doc);
-    return acc;
-  }, {} as Record<DocumentType, Document[]>);
+  const grouped = documents.reduce(
+    (acc, doc) => {
+      if (!acc[doc.type]) acc[doc.type] = [];
+      acc[doc.type].push(doc);
+      return acc;
+    },
+    {} as Record<DocumentType, Document[]>,
+  );
 
   // Order of document types
   const typeOrder: DocumentType[] = [
@@ -505,11 +532,12 @@ export function DocumentList({
     "engineering_spec",
     "gtm_brief",
     "prototype_notes",
+    "metrics",
     "jury_report",
   ];
 
   // Get types that have documents
-  const typesWithDocs = typeOrder.filter(type => grouped[type]?.length > 0);
+  const typesWithDocs = typeOrder.filter((type) => grouped[type]?.length > 0);
 
   if (documents.length === 0) {
     return (
@@ -524,7 +552,10 @@ export function DocumentList({
   }
 
   return (
-    <Files className={cn("bg-transparent", className)} defaultOpen={typesWithDocs}>
+    <Files
+      className={cn("bg-transparent", className)}
+      defaultOpen={typesWithDocs}
+    >
       {typeOrder.map((type) => {
         const docs = grouped[type];
         if (!docs || docs.length === 0) return null;
@@ -544,7 +575,8 @@ export function DocumentList({
                   onClick={() => onSelect(doc)}
                   className={cn(
                     "cursor-pointer rounded-md transition-all",
-                    selectedId === doc.id && "ring-1 ring-purple-500/50 bg-purple-500/10"
+                    selectedId === doc.id &&
+                      "ring-1 ring-purple-500/50 bg-purple-500/10",
                   )}
                 >
                   <FileItem icon={Icon}>
@@ -588,13 +620,16 @@ export function DocumentPanel({
   className,
 }: DocumentPanelProps) {
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(
-    documents.length > 0 ? documents[0] : null
+    documents.length > 0 ? documents[0] : null,
   );
 
-  const handleSave = useCallback(async (content: string) => {
-    if (!selectedDoc || !onSave) return;
-    await onSave(selectedDoc.id, content);
-  }, [selectedDoc, onSave]);
+  const handleSave = useCallback(
+    async (content: string) => {
+      if (!selectedDoc || !onSave) return;
+      await onSave(selectedDoc.id, content);
+    },
+    [selectedDoc, onSave],
+  );
 
   const handleRegenerate = useCallback(async () => {
     if (!selectedDoc || !onRegenerate) return;

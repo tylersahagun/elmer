@@ -1,6 +1,6 @@
 /**
  * Skills API - Manage skills catalog
- * 
+ *
  * GET - List skills (local + imported)
  * POST - Create/import skill
  */
@@ -15,6 +15,11 @@ import {
   syncLocalSkills,
   type CreateSkillInput,
 } from "@/lib/skills";
+import {
+  logSkillCreated,
+  logSkillImported,
+  logSkillsSynced,
+} from "@/lib/activity";
 
 export async function GET(request: Request) {
   try {
@@ -29,7 +34,7 @@ export async function GET(request: Request) {
       if (!query) {
         return NextResponse.json(
           { error: "Query (q) required for SkillsMP search" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       const results = await searchSkillsMP(query, { semantic });
@@ -49,7 +54,7 @@ export async function GET(request: Request) {
     console.error("[API /skills] GET error:", error);
     return NextResponse.json(
       { error: "Failed to fetch skills" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -62,11 +67,12 @@ export async function POST(request: Request) {
     switch (action) {
       case "import": {
         // Import from SkillsMP
-        const { workspaceId, skillsmpId, trustLevel, pinVersion } = body;
+        const { workspaceId, skillsmpId, trustLevel, pinVersion, skillName } =
+          body;
         if (!workspaceId || !skillsmpId) {
           return NextResponse.json(
             { error: "workspaceId and skillsmpId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
         const skillId = await importFromSkillsMP({
@@ -75,7 +81,20 @@ export async function POST(request: Request) {
           trustLevel,
           pinVersion,
         });
-        return NextResponse.json({ skillId, message: "Skill imported successfully" });
+
+        // Log the import activity
+        await logSkillImported(
+          workspaceId,
+          null, // No user context in this endpoint
+          skillId,
+          skillName || skillsmpId,
+          skillsmpId,
+        );
+
+        return NextResponse.json({
+          skillId,
+          message: "Skill imported successfully",
+        });
       }
 
       case "sync": {
@@ -84,11 +103,18 @@ export async function POST(request: Request) {
         if (!workspaceId) {
           return NextResponse.json(
             { error: "workspaceId required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
         const count = await syncLocalSkills(workspaceId, skillsPath);
-        return NextResponse.json({ synced: count, message: `Synced ${count} local skills` });
+
+        // Log the sync activity
+        await logSkillsSynced(workspaceId, null, count, skillsPath);
+
+        return NextResponse.json({
+          synced: count,
+          message: `Synced ${count} local skills`,
+        });
       }
 
       case "create": {
@@ -106,26 +132,32 @@ export async function POST(request: Request) {
           outputSchema: body.outputSchema,
         };
         if (!input.name) {
-          return NextResponse.json(
-            { error: "name required" },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: "name required" }, { status: 400 });
         }
         const skillId = await createSkill(input);
-        return NextResponse.json({ skillId, message: "Skill created successfully" });
+
+        // Log the creation activity
+        if (input.workspaceId) {
+          await logSkillCreated(input.workspaceId, null, skillId, input.name);
+        }
+
+        return NextResponse.json({
+          skillId,
+          message: "Skill created successfully",
+        });
       }
 
       default:
         return NextResponse.json(
           { error: `Unknown action: ${action}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("[API /skills] POST error:", error);
     return NextResponse.json(
       { error: "Failed to process skill action" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

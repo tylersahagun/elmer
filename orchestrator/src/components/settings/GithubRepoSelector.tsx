@@ -1,9 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { signIn } from "next-auth/react";
-import { Check, ChevronsUpDown, Github, Link2, Loader2, RefreshCw, Search, Unlink } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  Github,
+  Link2,
+  Loader2,
+  RefreshCw,
+  Search,
+  Unlink,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +77,7 @@ interface GithubRepoSelectorProps {
   onChange: (value: string, repoDetails?: GitHubRepo) => void;
   onBranchChange?: (branch: string) => void;
   onPathsDetected?: (paths: DetectedPath[]) => void;
+  onRepoResolved?: (repo: GitHubRepo) => void;
   placeholder?: string;
   className?: string;
 }
@@ -77,6 +87,7 @@ export function GithubRepoSelector({
   onChange,
   onBranchChange,
   onPathsDetected,
+  onRepoResolved,
   placeholder = "Select a repository or enter path",
   className,
 }: GithubRepoSelectorProps) {
@@ -84,9 +95,15 @@ export function GithubRepoSelector({
   const [search, setSearch] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
   const [isDetectingPaths, setIsDetectingPaths] = useState(false);
+  const lastResolvedRepoId = useRef<number | null>(null);
+  const lastDetectedRepoId = useRef<number | null>(null);
 
   // Check GitHub connection status
-  const { data: status, isLoading: isLoadingStatus, refetch: refetchStatus } = useQuery<GitHubStatus>({
+  const {
+    data: status,
+    isLoading: isLoadingStatus,
+    refetch: refetchStatus,
+  } = useQuery<GitHubStatus>({
     queryKey: ["github-status"],
     queryFn: async () => {
       const res = await fetch("/api/github/status");
@@ -97,7 +114,11 @@ export function GithubRepoSelector({
   });
 
   // Fetch repos when connected
-  const { data: reposData, isLoading: isLoadingRepos, refetch: refetchRepos } = useQuery<{
+  const {
+    data: reposData,
+    isLoading: isLoadingRepos,
+    refetch: refetchRepos,
+  } = useQuery<{
     repos: GitHubRepo[];
     total: number;
     connected: boolean;
@@ -108,7 +129,7 @@ export function GithubRepoSelector({
       if (search) params.set("search", search);
       params.set("per_page", "50");
       params.set("sort", "pushed");
-      
+
       const res = await fetch(`/api/github/repos?${params}`);
       if (!res.ok) throw new Error("Failed to fetch repos");
       return res.json();
@@ -119,12 +140,55 @@ export function GithubRepoSelector({
 
   // Find selected repo in list
   const selectedRepo = reposData?.repos.find(
-    (repo) => repo.fullName === value || repo.name === value || `product-repos/${repo.name}` === value
+    (repo) =>
+      repo.fullName === value ||
+      repo.name === value ||
+      `product-repos/${repo.name}` === value,
   );
+
+  const detectRepoPaths = async (repo: GitHubRepo) => {
+    if (!onPathsDetected) return;
+    setIsDetectingPaths(true);
+    try {
+      const res = await fetch("/api/github/repos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner: repo.owner.login,
+          repo: repo.name,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.detectedPaths && data.detectedPaths.length > 0) {
+          onPathsDetected(data.detectedPaths);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to detect paths:", error);
+    } finally {
+      setIsDetectingPaths(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedRepo) return;
+    if (lastResolvedRepoId.current === selectedRepo.id) return;
+    lastResolvedRepoId.current = selectedRepo.id;
+    onRepoResolved?.(selectedRepo);
+  }, [selectedRepo, onRepoResolved]);
+
+  useEffect(() => {
+    if (!selectedRepo || !onPathsDetected) return;
+    if (lastDetectedRepoId.current === selectedRepo.id) return;
+    lastDetectedRepoId.current = selectedRepo.id;
+    detectRepoPaths(selectedRepo);
+  }, [selectedRepo, onPathsDetected]);
 
   // Connect to GitHub - link account while staying logged in
   const handleConnect = () => {
-    signIn("github", { 
+    signIn("github", {
       callbackUrl: window.location.href,
       redirect: true,
     });
@@ -135,38 +199,17 @@ export function GithubRepoSelector({
     // Set the path to product-repos/[repo-name]
     const repoPath = `product-repos/${repo.name}`;
     onChange(repoPath, repo);
-    
+
     // Also update the branch if callback provided
     if (onBranchChange) {
       onBranchChange(repo.defaultBranch);
     }
-    
+
     setOpen(false);
 
     // Fetch repo details to detect paths
     if (onPathsDetected) {
-      setIsDetectingPaths(true);
-      try {
-        const res = await fetch("/api/github/repos", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            owner: repo.owner.login,
-            repo: repo.name,
-          }),
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          if (data.detectedPaths && data.detectedPaths.length > 0) {
-            onPathsDetected(data.detectedPaths);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to detect paths:", error);
-      } finally {
-        setIsDetectingPaths(false);
-      }
+      await detectRepoPaths(repo);
     }
   };
 
@@ -176,7 +219,9 @@ export function GithubRepoSelector({
       <div className={cn("space-y-2", className)}>
         <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted/50">
           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Checking GitHub connection...</span>
+          <span className="text-sm text-muted-foreground">
+            Checking GitHub connection...
+          </span>
         </div>
       </div>
     );
@@ -200,7 +245,7 @@ export function GithubRepoSelector({
             to browse your repositories
           </span>
         </div>
-        
+
         {status?.expired && (
           <p className="text-sm text-amber-500">{status.message}</p>
         )}
@@ -290,7 +335,10 @@ export function GithubRepoSelector({
                 {selectedRepo ? (
                   <span className="flex items-center gap-2">
                     {selectedRepo.private && (
-                      <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-1 py-0"
+                      >
                         Private
                       </Badge>
                     )}
@@ -318,7 +366,9 @@ export function GithubRepoSelector({
                   {isLoadingRepos ? (
                     <div className="py-6 text-center">
                       <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
-                      <span className="text-sm text-muted-foreground">Loading repos...</span>
+                      <span className="text-sm text-muted-foreground">
+                        Loading repos...
+                      </span>
                     </div>
                   ) : (
                     <>
@@ -334,14 +384,21 @@ export function GithubRepoSelector({
                             <Check
                               className={cn(
                                 "mt-0.5 h-4 w-4 shrink-0",
-                                selectedRepo?.id === repo.id ? "opacity-100" : "opacity-0"
+                                selectedRepo?.id === repo.id
+                                  ? "opacity-100"
+                                  : "opacity-0",
                               )}
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium truncate">{repo.name}</span>
+                                <span className="font-medium truncate">
+                                  {repo.name}
+                                </span>
                                 {repo.private && (
-                                  <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[10px] px-1 py-0"
+                                  >
                                     Private
                                   </Badge>
                                 )}
@@ -421,7 +478,7 @@ export function GithubConnectionBadge({ className }: { className?: string }) {
       <div
         className={cn(
           "w-2 h-2 rounded-full",
-          status?.connected ? "bg-green-400" : "bg-gray-400"
+          status?.connected ? "bg-green-400" : "bg-gray-400",
         )}
       />
       <span className="text-xs text-muted-foreground">

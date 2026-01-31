@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -47,7 +48,11 @@ export function WorkerHealthIndicator({
   const queryClient = useQueryClient();
 
   // Fetch worker status
-  const { data: status, isLoading, error } = useQuery<WorkerStatus>({
+  const {
+    data: status,
+    isLoading,
+    error,
+  } = useQuery<WorkerStatus>({
     queryKey: ["worker-status"],
     queryFn: async () => {
       const res = await fetch("/api/worker");
@@ -90,17 +95,31 @@ export function WorkerHealthIndicator({
     },
   });
 
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Calculate time since last poll
   const lastPollAge = status?.lastPollAt
-    ? Math.round((Date.now() - new Date(status.lastPollAt).getTime()) / 1000)
+    ? Math.round((now - new Date(status.lastPollAt).getTime()) / 1000)
     : null;
 
-  const isHealthy = status?.isRunning && lastPollAge !== null && lastPollAge < 10;
-  const isStale = status?.isRunning && lastPollAge !== null && lastPollAge >= 10;
+  const isHealthy =
+    status?.isRunning && lastPollAge !== null && lastPollAge < 10;
+  const isStale =
+    status?.isRunning && lastPollAge !== null && lastPollAge >= 10;
 
   if (isLoading) {
     return (
-      <div className={cn("flex items-center gap-2 text-muted-foreground", className)}>
+      <div
+        className={cn(
+          "flex items-center gap-2 text-muted-foreground",
+          className,
+        )}
+      >
         <Loader2 className="w-4 h-4 animate-spin" />
         {!compact && <span className="text-xs">Checking worker...</span>}
       </div>
@@ -127,7 +146,7 @@ export function WorkerHealthIndicator({
                   "w-2 h-2 rounded-full",
                   isHealthy && "bg-green-400 animate-pulse",
                   isStale && "bg-amber-400",
-                  !status?.isRunning && "bg-red-400"
+                  !status?.isRunning && "bg-red-400",
                 )}
               />
               <Server className="w-3.5 h-3.5 text-muted-foreground" />
@@ -143,7 +162,9 @@ export function WorkerHealthIndicator({
                   <div>Active jobs: {status.activeJobs}</div>
                   <div>Processed: {status.processedCount}</div>
                   {status.failedCount > 0 && (
-                    <div className="text-red-400">Failed: {status.failedCount}</div>
+                    <div className="text-red-400">
+                      Failed: {status.failedCount}
+                    </div>
                   )}
                   {lastPollAge !== null && (
                     <div className={isStale ? "text-amber-400" : ""}>
@@ -174,7 +195,7 @@ export function WorkerHealthIndicator({
           isHealthy && "bg-green-500/10 border-green-500/20",
           isStale && "bg-amber-500/10 border-amber-500/20",
           !status?.isRunning && "bg-red-500/10 border-red-500/20",
-          className
+          className,
         )}
       >
         {/* Status icon */}
@@ -209,9 +230,7 @@ export function WorkerHealthIndicator({
           <div className="text-[11px] text-muted-foreground">
             {status?.isRunning ? (
               <>
-                {status.activeJobs > 0
-                  ? `${status.activeJobs} active`
-                  : "Idle"}{" "}
+                {status.activeJobs > 0 ? `${status.activeJobs} active` : "Idle"}{" "}
                 | {status.processedCount} processed
                 {status.failedCount > 0 && ` | ${status.failedCount} failed`}
               </>
@@ -283,13 +302,13 @@ export function WorkerStatusBadge({ className }: { className?: string }) {
         status.isRunning
           ? "bg-green-500/20 text-green-400"
           : "bg-red-500/20 text-red-400",
-        className
+        className,
       )}
     >
       <div
         className={cn(
           "w-1.5 h-1.5 rounded-full",
-          status.isRunning ? "bg-green-400 animate-pulse" : "bg-red-400"
+          status.isRunning ? "bg-green-400 animate-pulse" : "bg-red-400",
         )}
       />
       {status.isRunning ? (

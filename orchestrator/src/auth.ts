@@ -14,16 +14,15 @@ import {
 } from "@/lib/db/schema"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  trustHost: true,
+  basePath: "/api/auth",
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
-  // Allow linking multiple OAuth accounts (Google + GitHub) to same user
-  // This is "dangerous" because it trusts email verification from providers
-  // but both Google and GitHub verify emails, so this is safe for our use case
-  allowDangerousEmailAccountLinking: true,
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -32,6 +31,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Allow linking to existing accounts with same email
+      allowDangerousEmailAccountLinking: true,
     }),
     // GitHub OAuth for repository access
     ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
@@ -39,6 +40,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           GitHub({
             clientId: process.env.GITHUB_CLIENT_ID,
             clientSecret: process.env.GITHUB_CLIENT_SECRET,
+            // Allow linking to existing accounts with same email
+            allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
                 // Request repo scope to list and access repositories
@@ -109,7 +112,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   pages: {
-    signIn: "/login",
     error: "/login",
   },
   debug: process.env.NODE_ENV === "development",

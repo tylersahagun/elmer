@@ -1,10 +1,10 @@
 /**
  * Skills Service
- * 
+ *
  * Manages skills from multiple sources:
  * - Local skills (filesystem)
  * - SkillsMP imported skills (database)
- * 
+ *
  * Provides unified CRUD operations, searching, and trust management.
  */
 
@@ -12,11 +12,11 @@ import { db } from "@/lib/db";
 import { skills, type TrustLevel, type SkillSource } from "@/lib/db/schema";
 import { eq, and, ilike, or, sql, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { 
-  SkillsMPClient, 
+import {
+  SkillsMPClient,
   getSkillsMPClient,
   type SkillsMPSkill,
-  type SearchResult 
+  type SearchResult,
 } from "./skillsmp-client";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -70,7 +70,16 @@ export interface ImportSkillInput {
 // LOCAL SKILLS
 // ============================================
 
-const DEFAULT_SKILLS_PATH = "skills";
+const DEFAULT_SKILLS_PATH = ".cursor/skills";
+
+function getWorkspaceRoot(): string {
+  return path.resolve(process.cwd(), "..");
+}
+
+function resolveSkillsPath(skillsPath: string): string {
+  if (path.isAbsolute(skillsPath)) return skillsPath;
+  return path.join(getWorkspaceRoot(), skillsPath);
+}
 
 interface SkillMetadata {
   name: string;
@@ -126,17 +135,18 @@ function parseSkillMd(content: string): SkillMetadata {
  */
 export async function loadLocalSkills(
   workspaceId: string,
-  skillsPath: string = DEFAULT_SKILLS_PATH
+  skillsPath: string = DEFAULT_SKILLS_PATH,
 ): Promise<Skill[]> {
   const loadedSkills: Skill[] = [];
+  const resolvedSkillsPath = resolveSkillsPath(skillsPath);
 
   try {
-    const dirs = await fs.readdir(skillsPath, { withFileTypes: true });
+    const dirs = await fs.readdir(resolvedSkillsPath, { withFileTypes: true });
 
     for (const dir of dirs) {
       if (!dir.isDirectory()) continue;
 
-      const skillDir = path.join(skillsPath, dir.name);
+      const skillDir = path.join(resolvedSkillsPath, dir.name);
       const skillMdPath = path.join(skillDir, "SKILL.md");
       const promptPath = path.join(skillDir, "prompt.txt");
 
@@ -185,7 +195,7 @@ export async function loadLocalSkills(
  */
 export async function syncLocalSkills(
   workspaceId: string,
-  skillsPath: string = DEFAULT_SKILLS_PATH
+  skillsPath: string = DEFAULT_SKILLS_PATH,
 ): Promise<number> {
   const localSkills = await loadLocalSkills(workspaceId, skillsPath);
   let syncedCount = 0;
@@ -198,8 +208,8 @@ export async function syncLocalSkills(
         and(
           eq(skills.workspaceId, workspaceId),
           eq(skills.source, "local"),
-          eq(skills.entrypoint, skill.entrypoint!)
-        )
+          eq(skills.entrypoint, skill.entrypoint!),
+        ),
       )
       .limit(1);
 
@@ -212,9 +222,11 @@ export async function syncLocalSkills(
           description: skill.description,
           version: skill.version,
           promptTemplate: skill.promptTemplate,
-          inputSchema: skill.inputSchema as typeof skills.$inferInsert["inputSchema"],
-          outputSchema: skill.outputSchema as typeof skills.$inferInsert["outputSchema"],
-          tags: skill.tags as typeof skills.$inferInsert["tags"],
+          inputSchema:
+            skill.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
+          outputSchema:
+            skill.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
+          tags: skill.tags as (typeof skills.$inferInsert)["tags"],
           lastSynced: new Date(),
           updatedAt: new Date(),
         })
@@ -231,9 +243,11 @@ export async function syncLocalSkills(
         entrypoint: skill.entrypoint,
         promptTemplate: skill.promptTemplate,
         trustLevel: "vetted",
-        inputSchema: skill.inputSchema as typeof skills.$inferInsert["inputSchema"],
-        outputSchema: skill.outputSchema as typeof skills.$inferInsert["outputSchema"],
-        tags: skill.tags as typeof skills.$inferInsert["tags"],
+        inputSchema:
+          skill.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
+        outputSchema:
+          skill.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
+        tags: skill.tags as (typeof skills.$inferInsert)["tags"],
         lastSynced: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -258,7 +272,7 @@ export async function searchSkillsMP(
     semantic?: boolean;
     limit?: number;
     sortBy?: "stars" | "recent" | "downloads";
-  } = {}
+  } = {},
 ): Promise<SearchResult> {
   const client = getSkillsMPClient();
 
@@ -277,7 +291,7 @@ export async function searchSkillsMP(
  * Import a skill from SkillsMP
  */
 export async function importFromSkillsMP(
-  input: ImportSkillInput
+  input: ImportSkillInput,
 ): Promise<string> {
   const client = getSkillsMPClient();
   const skillData = await client.getSkill(input.skillsmpId);
@@ -302,10 +316,12 @@ export async function importFromSkillsMP(
       stars: skillData.stars,
       downloads: skillData.downloads,
       pinnedVersion: input.pinVersion ? skillData.version : undefined,
-    } as typeof skills.$inferInsert["remoteMetadata"],
-    inputSchema: skillData.inputSchema as typeof skills.$inferInsert["inputSchema"],
-    outputSchema: skillData.outputSchema as typeof skills.$inferInsert["outputSchema"],
-    tags: skillData.tags as typeof skills.$inferInsert["tags"],
+    } as (typeof skills.$inferInsert)["remoteMetadata"],
+    inputSchema:
+      skillData.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
+    outputSchema:
+      skillData.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
+    tags: skillData.tags as (typeof skills.$inferInsert)["tags"],
     lastSynced: now,
     createdAt: now,
     updatedAt: now,
@@ -350,10 +366,12 @@ export async function resyncSkillsMP(skillId: string): Promise<boolean> {
         ...remoteMetadata,
         stars: skillData.stars,
         downloads: skillData.downloads,
-      } as typeof skills.$inferInsert["remoteMetadata"],
-      inputSchema: skillData.inputSchema as typeof skills.$inferInsert["inputSchema"],
-      outputSchema: skillData.outputSchema as typeof skills.$inferInsert["outputSchema"],
-      tags: skillData.tags as typeof skills.$inferInsert["tags"],
+      } as (typeof skills.$inferInsert)["remoteMetadata"],
+      inputSchema:
+        skillData.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
+      outputSchema:
+        skillData.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
+      tags: skillData.tags as (typeof skills.$inferInsert)["tags"],
       lastSynced: new Date(),
       updatedAt: new Date(),
     })
@@ -368,9 +386,15 @@ export async function resyncSkillsMP(skillId: string): Promise<boolean> {
 
 export async function getSkills(workspaceId?: string): Promise<Skill[]> {
   const query = workspaceId
-    ? db.select().from(skills).where(
-        or(eq(skills.workspaceId, workspaceId), sql`${skills.workspaceId} IS NULL`)
-      )
+    ? db
+        .select()
+        .from(skills)
+        .where(
+          or(
+            eq(skills.workspaceId, workspaceId),
+            sql`${skills.workspaceId} IS NULL`,
+          ),
+        )
     : db.select().from(skills);
 
   const results = await query.orderBy(desc(skills.updatedAt));
@@ -404,23 +428,26 @@ export async function getSkillById(skillId: string): Promise<Skill | null> {
 
 export async function searchSkills(
   query: string,
-  workspaceId?: string
+  workspaceId?: string,
 ): Promise<Skill[]> {
   const searchPattern = `%${query}%`;
 
-  let baseQuery = db
+  const baseQuery = db
     .select()
     .from(skills)
     .where(
       and(
         or(
           ilike(skills.name, searchPattern),
-          ilike(skills.description, searchPattern)
+          ilike(skills.description, searchPattern),
         ),
         workspaceId
-          ? or(eq(skills.workspaceId, workspaceId), sql`${skills.workspaceId} IS NULL`)
-          : undefined
-      )
+          ? or(
+              eq(skills.workspaceId, workspaceId),
+              sql`${skills.workspaceId} IS NULL`,
+            )
+          : undefined,
+      ),
     )
     .orderBy(desc(skills.updatedAt))
     .limit(50);
@@ -450,10 +477,13 @@ export async function createSkill(input: CreateSkillInput): Promise<string> {
     entrypoint: input.entrypoint || null,
     promptTemplate: input.promptTemplate || null,
     trustLevel: input.trustLevel || "community",
-    remoteMetadata: input.remoteMetadata as typeof skills.$inferInsert["remoteMetadata"],
-    inputSchema: input.inputSchema as typeof skills.$inferInsert["inputSchema"],
-    outputSchema: input.outputSchema as typeof skills.$inferInsert["outputSchema"],
-    tags: input.tags as typeof skills.$inferInsert["tags"],
+    remoteMetadata:
+      input.remoteMetadata as (typeof skills.$inferInsert)["remoteMetadata"],
+    inputSchema:
+      input.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
+    outputSchema:
+      input.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
+    tags: input.tags as (typeof skills.$inferInsert)["tags"],
     createdAt: now,
     updatedAt: now,
   });
@@ -463,7 +493,7 @@ export async function createSkill(input: CreateSkillInput): Promise<string> {
 
 export async function updateSkillTrustLevel(
   skillId: string,
-  trustLevel: TrustLevel
+  trustLevel: TrustLevel,
 ): Promise<boolean> {
   const result = await db
     .update(skills)

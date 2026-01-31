@@ -32,7 +32,6 @@ Key sections:
 
 ## Save Location
 
-Mirror the src structure: `.elmer/agents-docs/[path]/AGENTS.md`
+Mirror the src structure: `pm-workspace-docs/agents-docs/[path]/AGENTS.md`
 
-Example: For `web/src/components/integrations/hubspot/`, save to `.elmer/agents-docs/web/components/integrations/hubspot/AGENTS.md`
-
+Example: For `web/src/components/integrations/hubspot/`, save to `pm-workspace-docs/agents-docs/web/components/integrations/hubspot/AGENTS.md`

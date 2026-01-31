@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Folder, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,20 +43,24 @@ export function PathBrowser({
 }: PathBrowserProps) {
   const [open, setOpen] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
+  const normalizePath = (path: string) =>
+    path.replace(/^\/+/, "").replace(/^\.\//, "").replace(/\/+$/, "");
 
-  useEffect(() => {
-    if (open) {
-      setCurrentPath((value || "").replace(/^\/+/, "").replace(/^\.\//, ""));
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (nextOpen) {
+      setCurrentPath(normalizePath(value || ""));
     }
-  }, [open, value]);
+  };
 
   const { data, isLoading } = useQuery<TreeResponse>({
-    queryKey: ["github-tree", owner, repo, currentPath, ref],
+    queryKey: ["github-tree", owner, repo, normalizePath(currentPath), ref],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("owner", owner || "");
       params.set("repo", repo || "");
-      if (currentPath) params.set("path", currentPath);
+      const resolvedPath = normalizePath(currentPath);
+      if (resolvedPath) params.set("path", resolvedPath);
       if (ref) params.set("ref", ref);
 
       const res = await fetch(`/api/github/tree?${params}`);
@@ -87,14 +91,14 @@ export function PathBrowser({
   };
 
   const handleSelectCurrent = () => {
-    const normalized = currentPath ? `${currentPath.replace(/\/+$/, "")}/` : "";
+    const normalized = currentPath ? `${normalizePath(currentPath)}/` : "";
     onSelect(normalized);
     setOpen(false);
   };
 
   return (
     <div className={cn("inline-flex", className)}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" disabled={!owner || !repo}>
             {label}
@@ -124,7 +128,9 @@ export function PathBrowser({
               </div>
             )}
             {!isLoading && items.length === 0 && (
-              <div className="text-xs text-muted-foreground">No folders found</div>
+              <div className="text-xs text-muted-foreground">
+                No folders found
+              </div>
             )}
             {!isLoading &&
               items.map((item) => (

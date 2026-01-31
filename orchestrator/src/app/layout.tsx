@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Geist_Mono } from "next/font/google";
-import { ThemeProvider, SessionProvider } from "@/components/providers";
+import {
+  ThemeProvider,
+  SessionProvider,
+  TourProvider,
+} from "@/components/providers";
 import { GridBackground } from "@/components/backgrounds";
+import { AuroraBackground } from "@/components/aurora/AuroraBackground";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 // Chillax Semibold - Display/Heading font
@@ -19,11 +24,6 @@ const synonym = localFont({
   variable: "--font-synonym",
   display: "swap",
   weight: "400",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -43,14 +43,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${chillax.variable} ${synonym.variable} ${geistMono.variable} antialiased min-h-screen`}
+        className={`${chillax.variable} ${synonym.variable} antialiased min-h-screen`}
       >
         <SessionProvider>
           <ThemeProvider>
-            <GridBackground />
-            <div className="relative z-10 min-h-screen">
-              {children}
-            </div>
+            <TourProvider>
+              <AuroraBackground />
+              <GridBackground />
+              <div className="relative z-10 min-h-screen">{children}</div>
+              <Toaster
+                theme="dark"
+                position="bottom-right"
+                toastOptions={{
+                  className: "bg-card border-border",
+                }}
+              />
+            </TourProvider>
           </ThemeProvider>
         </SessionProvider>
       </body>

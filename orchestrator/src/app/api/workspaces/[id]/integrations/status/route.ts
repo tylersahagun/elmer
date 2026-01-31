@@ -9,7 +9,7 @@ import { composioService } from "@/lib/composio/service";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -24,11 +24,18 @@ export async function GET(
 
     const client = await composioService.getClient(id);
     const userId = composioService.getComposioUserId(id);
+    const listConnectedAccounts = client.connectedAccounts.list as (input: {
+      userIds: string[];
+      toolkits: string[];
+    }) => Promise<{
+      items?: Array<{ status?: string }>;
+      data?: { items?: Array<{ status?: string }> };
+    }>;
 
     const statuses: Record<string, string> = {};
     for (const service of services) {
       try {
-        const result = await (client.connectedAccounts.list as any)({
+        const result = await listConnectedAccounts({
           userIds: [userId],
           toolkits: [service],
         });
@@ -48,7 +55,7 @@ export async function GET(
     console.error("Failed to get integration statuses:", error);
     return NextResponse.json(
       { error: "Failed to get integration statuses" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

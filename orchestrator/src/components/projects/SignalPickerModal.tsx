@@ -57,8 +57,10 @@ export function SignalPickerModal({
   // Reset selection when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setSelected([]);
-      setSearch("");
+      queueMicrotask(() => {
+        setSelected([]);
+        setSearch("");
+      });
     }
   }, [isOpen]);
 
@@ -67,7 +69,7 @@ export function SignalPickerModal({
     queryKey: ["signals", workspaceId, { forPicker: true }],
     queryFn: async () => {
       const res = await fetch(
-        `/api/signals?workspaceId=${workspaceId}&pageSize=100`
+        `/api/signals?workspaceId=${workspaceId}&pageSize=100`,
       );
       if (!res.ok) throw new Error("Failed to load signals");
       return res.json();
@@ -76,18 +78,17 @@ export function SignalPickerModal({
   });
 
   // Filter out already-linked signals and apply search
-  const signals: Signal[] = (signalsData?.signals || [])
-    .filter((s: Signal) => {
-      // Exclude if already linked to this project
-      const isLinked = s.linkedProjects?.some((p) => p.id === projectId);
-      if (isLinked) return false;
+  const signals: Signal[] = (signalsData?.signals || []).filter((s: Signal) => {
+    // Exclude if already linked to this project
+    const isLinked = s.linkedProjects?.some((p) => p.id === projectId);
+    if (isLinked) return false;
 
-      // Apply search filter
-      if (search) {
-        return s.verbatim.toLowerCase().includes(search.toLowerCase());
-      }
-      return true;
-    });
+    // Apply search filter
+    if (search) {
+      return s.verbatim.toLowerCase().includes(search.toLowerCase());
+    }
+    return true;
+  });
 
   // Bulk link mutation
   const linkMutation = useMutation({
@@ -106,7 +107,9 @@ export function SignalPickerModal({
       return { linked: signalIds.length };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-signals", projectId] });
+      queryClient.invalidateQueries({
+        queryKey: ["project-signals", projectId],
+      });
       queryClient.invalidateQueries({ queryKey: ["signals"] });
       onClose();
     },
@@ -116,7 +119,7 @@ export function SignalPickerModal({
     setSelected((prev) =>
       prev.includes(signalId)
         ? prev.filter((id) => id !== signalId)
-        : [...prev, signalId]
+        : [...prev, signalId],
     );
   };
 
@@ -152,7 +155,9 @@ export function SignalPickerModal({
             </div>
           ) : signals.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm">
-              {search ? "No matching signals found" : "No unlinked signals available"}
+              {search
+                ? "No matching signals found"
+                : "No unlinked signals available"}
             </div>
           ) : (
             <div className="p-2 space-y-1">
@@ -163,7 +168,7 @@ export function SignalPickerModal({
                     "flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors",
                     selected.includes(signal.id)
                       ? "bg-primary/10"
-                      : "hover:bg-muted/30"
+                      : "hover:bg-muted/30",
                   )}
                 >
                   <Checkbox
@@ -177,7 +182,7 @@ export function SignalPickerModal({
                       <Badge
                         className={cn(
                           "text-[10px]",
-                          SOURCE_COLORS[signal.source] || SOURCE_COLORS.other
+                          SOURCE_COLORS[signal.source] || SOURCE_COLORS.other,
                         )}
                       >
                         {signal.source}

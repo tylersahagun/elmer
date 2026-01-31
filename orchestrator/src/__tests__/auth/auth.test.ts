@@ -1,6 +1,6 @@
 /**
  * Authentication Flow Tests
- * 
+ *
  * Tests the authentication system:
  * - Password hashing with bcryptjs
  * - Signup validation
@@ -14,6 +14,8 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
+import { NextRequest } from "next/server";
+import { POST as signupHandler } from "@/app/api/auth/signup/route";
 
 // Test fixtures
 const TEST_USER_EMAIL = `test_${nanoid(8)}@example.com`;
@@ -53,7 +55,7 @@ describe("Authentication System Tests", () => {
       const hash2 = await bcrypt.hash(password, 10);
 
       expect(hash1).not.toBe(hash2); // Salt makes them different
-      
+
       // But both should verify
       expect(await bcrypt.compare(password, hash1)).toBe(true);
       expect(await bcrypt.compare(password, hash2)).toBe(true);
@@ -94,95 +96,83 @@ describe("Authentication System Tests", () => {
       });
 
       expect(user?.passwordHash).toBeDefined();
-      const isValid = await bcrypt.compare(TEST_USER_PASSWORD, user!.passwordHash!);
+      const isValid = await bcrypt.compare(
+        TEST_USER_PASSWORD,
+        user!.passwordHash!,
+      );
       expect(isValid).toBe(true);
     });
   });
 
   describe("Signup Validation", () => {
     const SIGNUP_TEST_EMAIL = `signup_${nanoid(8)}@example.com`;
+    const callSignup = async (body: Record<string, unknown>) => {
+      const request = global.testUtils.createMockRequest("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const response = await signupHandler(new NextRequest(request));
+      const data = await response.json();
+      return { response, data };
+    };
 
     afterAll(async () => {
       await db.delete(users).where(eq(users.email, SIGNUP_TEST_EMAIL));
     });
 
     it("should reject signup without email", async () => {
-      const response = await fetch("http://localhost:3000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          password: "ValidPassword123",
-          name: "Test User",
-        }),
+      const { response, data } = await callSignup({
+        password: "ValidPassword123",
+        name: "Test User",
       });
 
       expect(response.status).toBe(400);
-      const data = await response.json();
       expect(data.error).toBeDefined();
     });
 
     it("should reject signup without password", async () => {
-      const response = await fetch("http://localhost:3000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: SIGNUP_TEST_EMAIL,
-          name: "Test User",
-        }),
+      const { response, data } = await callSignup({
+        email: SIGNUP_TEST_EMAIL,
+        name: "Test User",
       });
 
       expect(response.status).toBe(400);
-      const data = await response.json();
       expect(data.error).toBeDefined();
     });
 
     it("should reject signup with short password", async () => {
-      const response = await fetch("http://localhost:3000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: SIGNUP_TEST_EMAIL,
-          password: "short",
-          name: "Test User",
-        }),
+      const { response, data } = await callSignup({
+        email: SIGNUP_TEST_EMAIL,
+        password: "short",
+        name: "Test User",
       });
 
       expect(response.status).toBe(400);
-      const data = await response.json();
       expect(data.error).toContain("8 characters");
     });
 
     it("should accept valid signup", async () => {
-      const response = await fetch("http://localhost:3000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: SIGNUP_TEST_EMAIL,
-          password: "ValidPassword123",
-          name: "Signup Test User",
-        }),
+      const { response, data } = await callSignup({
+        email: SIGNUP_TEST_EMAIL,
+        password: "ValidPassword123",
+        name: "Signup Test User",
       });
 
       expect(response.status).toBe(201);
-      const data = await response.json();
       expect(data.user).toBeDefined();
       expect(data.user.email).toBe(SIGNUP_TEST_EMAIL);
     });
 
     it("should reject duplicate email", async () => {
-      const response = await fetch("http://localhost:3000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: SIGNUP_TEST_EMAIL,
-          password: "AnotherPassword123",
-          name: "Duplicate User",
-        }),
+      const { response, data } = await callSignup({
+        email: SIGNUP_TEST_EMAIL,
+        password: "AnotherPassword123",
+        name: "Duplicate User",
       });
 
       // 409 Conflict is the correct status for duplicate resources
       expect(response.status).toBe(409);
-      const data = await response.json();
       expect(data.error).toContain("already exists");
     });
   });
@@ -214,7 +204,10 @@ describe("Authentication System Tests", () => {
       });
 
       expect(user).toBeDefined();
-      const isValid = await bcrypt.compare(LOGIN_TEST_PASSWORD, user!.passwordHash!);
+      const isValid = await bcrypt.compare(
+        LOGIN_TEST_PASSWORD,
+        user!.passwordHash!,
+      );
       expect(isValid).toBe(true);
     });
 
@@ -224,7 +217,10 @@ describe("Authentication System Tests", () => {
       });
 
       expect(user).toBeDefined();
-      const isValid = await bcrypt.compare("WrongPassword", user!.passwordHash!);
+      const isValid = await bcrypt.compare(
+        "WrongPassword",
+        user!.passwordHash!,
+      );
       expect(isValid).toBe(false);
     });
 

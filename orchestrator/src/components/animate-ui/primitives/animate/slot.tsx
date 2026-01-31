@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { motion, isMotionComponent, type HTMLMotionProps } from 'motion/react';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import { motion, isMotionComponent, type HTMLMotionProps } from "motion/react";
+import { cn } from "@/lib/utils";
 
 type AnyProps = Record<string, unknown>;
 
 type DOMMotionProps<T extends HTMLElement = HTMLElement> = Omit<
   HTMLMotionProps<keyof HTMLElementTagNameMap>,
-  'ref'
+  "ref"
 > & { ref?: React.Ref<T> };
 
 type WithAsChild<Base extends object> =
@@ -26,7 +26,7 @@ function mergeRefs<T>(
   return (node) => {
     refs.forEach((ref) => {
       if (!ref) return;
-      if (typeof ref === 'function') {
+      if (typeof ref === "function") {
         ref(node);
       } else {
         (ref as React.RefObject<T | null>).current = node;
@@ -63,20 +63,28 @@ function Slot<T extends HTMLElement = HTMLElement>({
   ref,
   ...props
 }: SlotProps<T>) {
+  const isValidChild = React.isValidElement(children);
+  const childType = isValidChild ? (children.type as React.ElementType) : null;
   const isAlreadyMotion =
-    typeof children.type === 'object' &&
+    isValidChild &&
+    typeof children.type === "object" &&
     children.type !== null &&
     isMotionComponent(children.type);
 
-  const Base = React.useMemo(
-    () =>
-      isAlreadyMotion
-        ? (children.type as React.ElementType)
-        : motion.create(children.type as React.ElementType),
-    [isAlreadyMotion, children.type],
+  const [Base, setBase] = React.useState<React.ElementType | null>(() =>
+    isAlreadyMotion && childType ? childType : null,
   );
 
-  if (!React.isValidElement(children)) return null;
+  React.useEffect(() => {
+    if (!childType) return;
+    if (isAlreadyMotion) {
+      setBase(childType);
+      return;
+    }
+    setBase(motion.create(childType));
+  }, [childType, isAlreadyMotion]);
+
+  if (!isValidChild || !Base) return null;
 
   const { ref: childRef, ...childProps } = children.props as AnyProps;
 

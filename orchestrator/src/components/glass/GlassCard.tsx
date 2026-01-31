@@ -22,17 +22,14 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
       noPadding = false,
       ...props
     },
-    ref
+    ref,
   ) {
     return (
       <div
         ref={ref}
         className={cn(
-          // Base window styles (SkillsMP style)
-          "rounded-2xl border",
-          "bg-white dark:bg-[#0F1620]",
-          "border-[#B8C0CC] dark:border-white/[0.14]",
-          "shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)]",
+          // Base glass surface
+          "glass-card rounded-2xl",
           // Transitions
           "transition-all duration-200",
           // Padding
@@ -45,14 +42,14 @@ export const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
             "hover:border-[#A0A8B4]",
             "dark:hover:border-white/20",
           ],
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 
 interface GlassPanelProps extends HTMLAttributes<HTMLDivElement> {
@@ -64,14 +61,9 @@ export function GlassPanel({ children, className, ...props }: GlassPanelProps) {
   return (
     <div
       className={cn(
-        // Base window styles (SkillsMP style)
-        "rounded-2xl border",
-        "bg-white dark:bg-[#0F1620]",
-        "border-[#B8C0CC] dark:border-white/[0.14]",
-        "shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)]",
-        // Larger padding for panels
-        "p-6",
-        className
+        // Base glass panel surface
+        "glass-panel rounded-2xl p-6",
+        className,
       )}
       {...props}
     >
@@ -85,14 +77,18 @@ interface GlassOverlayProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-export function GlassOverlay({ children, className, ...props }: GlassOverlayProps) {
+export function GlassOverlay({
+  children,
+  className,
+  ...props
+}: GlassOverlayProps) {
   return (
     <div
       className={cn(
         "fixed inset-0 z-50",
         // Solid dark overlay (no blur)
         "bg-black/40 dark:bg-black/60",
-        className
+        className,
       )}
       {...props}
     >

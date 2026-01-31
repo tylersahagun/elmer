@@ -1,8 +1,11 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { DisplaySettingsProvider, type DisplayMode } from "@/components/display";
+import { useState } from "react";
+import {
+  DisplaySettingsProvider,
+  type DisplayMode,
+} from "@/components/display";
 import { JobLogsDrawer } from "@/components/jobs/JobLogsDrawer";
 
 // Get display mode from localStorage for initial render
@@ -24,21 +27,21 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000, // 1 minute
-        refetchOnWindowFocus: false,
-      },
-    },
-  }));
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1 minute
+            refetchOnWindowFocus: false,
+          },
+        },
+      }),
+  );
 
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("immersive");
-
-  // Load display mode from localStorage on mount
-  useEffect(() => {
-    setDisplayMode(getInitialDisplayMode());
-  }, []);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(() =>
+    getInitialDisplayMode(),
+  );
 
   // Persist display mode to localStorage
   const handleDisplayModeChange = (mode: DisplayMode) => {

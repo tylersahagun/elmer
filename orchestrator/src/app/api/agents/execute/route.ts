@@ -9,7 +9,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { workspaceId, projectId, agentDefinitionId } = body;
+    const { workspaceId, projectId, signalId, agentDefinitionId } = body;
 
     if (!workspaceId || !agentDefinitionId) {
       return NextResponse.json(
@@ -24,7 +24,10 @@ export async function POST(request: NextRequest) {
       workspaceId,
       projectId,
       type: "execute_agent_definition",
-      input: { agentDefinitionId },
+      input: {
+        agentDefinitionId,
+        ...(signalId && { signalId }),
+      },
     });
 
     return NextResponse.json(job);

@@ -36,7 +36,7 @@ export function useResizablePanel({
       if (savedWidth) {
         const parsed = parseInt(savedWidth, 10);
         if (!isNaN(parsed) && parsed >= minWidth && parsed <= maxWidth) {
-          setWidth(parsed);
+          queueMicrotask(() => setWidth(parsed));
         }
       }
     }
@@ -57,7 +57,7 @@ export function useResizablePanel({
       startXRef.current = e.clientX;
       startWidthRef.current = width;
     },
-    [width]
+    [width],
   );
 
   // Handle resize move
@@ -65,10 +65,14 @@ export function useResizablePanel({
     if (!isResizing) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const delta = direction === "right" 
-        ? e.clientX - startXRef.current 
-        : startXRef.current - e.clientX;
-      const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidthRef.current + delta));
+      const delta =
+        direction === "right"
+          ? e.clientX - startXRef.current
+          : startXRef.current - e.clientX;
+      const newWidth = Math.min(
+        maxWidth,
+        Math.max(minWidth, startWidthRef.current + delta),
+      );
       setWidth(newWidth);
     };
 

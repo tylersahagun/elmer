@@ -1,21 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PathBrowser } from "./PathBrowser";
-import { 
-  FolderOpen, 
-  ArrowUp, 
-  ArrowDown, 
-  Plus, 
-  Trash2, 
-  RefreshCw, 
-  CheckCircle2, 
-  XCircle 
+import { GithubRepoSelector } from "./GithubRepoSelector";
+import { BranchSelector } from "./BranchSelector";
+import {
+  FolderOpen,
+  ArrowUp,
+  ArrowDown,
+  Plus,
+  Trash2,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 interface ContextPathsCardProps {
@@ -23,9 +31,14 @@ interface ContextPathsCardProps {
   setContextPaths: React.Dispatch<React.SetStateAction<string[]>>;
   resolvedContextPath?: string | null;
   workspaceId?: string;
+  githubRepo: string;
+  setGithubRepo: (value: string) => void;
+  baseBranch: string;
+  setBaseBranch: (value: string) => void;
   repoOwner?: string | null;
   repoName?: string | null;
-  baseBranch?: string;
+  onRepoMetaChange?: (meta: { owner: string; repo: string } | null) => void;
+  onContextPathDetected?: (path: string) => void;
 }
 
 export function ContextPathsCard({
@@ -33,9 +46,14 @@ export function ContextPathsCard({
   setContextPaths,
   resolvedContextPath,
   workspaceId,
+  githubRepo,
+  setGithubRepo,
+  baseBranch,
+  setBaseBranch,
   repoOwner,
   repoName,
-  baseBranch,
+  onRepoMetaChange,
+  onContextPathDetected,
 }: ContextPathsCardProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{
@@ -46,7 +64,9 @@ export function ContextPathsCard({
   } | null>(null);
 
   const updateContextPath = (index: number, value: string) => {
-    setContextPaths((prev) => prev.map((item, idx) => (idx === index ? value : item)));
+    setContextPaths((prev) =>
+      prev.map((item, idx) => (idx === index ? value : item)),
+    );
   };
 
   const addContextPath = () => {
@@ -74,6 +94,13 @@ export function ContextPathsCard({
     try {
       const res = await fetch(`/api/workspaces/${workspaceId}/syncKnowledge`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repoOwner: repoOwner || undefined,
+          repoName: repoName || undefined,
+          repoRef: baseBranch || undefined,
+          contextPaths,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -99,6 +126,38 @@ export function ContextPathsCard({
     }
   };
 
+  const handleRepoChange = (
+    value: string,
+    repoDetails?: {
+      defaultBranch?: string;
+      owner?: { login: string };
+      name?: string;
+    },
+  ) => {
+    setGithubRepo(value);
+    if (repoDetails?.defaultBranch) {
+      setBaseBranch(repoDetails.defaultBranch);
+    }
+    if (repoDetails?.owner?.login && repoDetails?.name) {
+      onRepoMetaChange?.({
+        owner: repoDetails.owner.login,
+        repo: repoDetails.name,
+      });
+    } else {
+      onRepoMetaChange?.(null);
+    }
+  };
+
+  const handlePathsDetected = (
+    paths: Array<{ type: "context" | "prototypes"; path: string }>,
+  ) => {
+    for (const detected of paths) {
+      if (detected.type === "context" && onContextPathDetected) {
+        onContextPathDetected(detected.path);
+      }
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -121,20 +180,62 @@ export function ContextPathsCard({
               onClick={handleSyncKnowledgeBase}
               disabled={isSyncing}
             >
-              <RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} />
+              <RefreshCw
+                className={cn("w-4 h-4", isSyncing && "animate-spin")}
+              />
               {isSyncing ? "Syncing..." : "Sync Knowledge Base"}
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>GitHub Repository</Label>
+            <GithubRepoSelector
+              value={githubRepo}
+              onChange={handleRepoChange}
+              onBranchChange={setBaseBranch}
+              onPathsDetected={handlePathsDetected}
+              onRepoResolved={(repo) => {
+                onRepoMetaChange?.({
+                  owner: repo.owner.login,
+                  repo: repo.name,
+                });
+              }}
+              placeholder="Select a repository"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contextBaseBranch">Base Branch</Label>
+            {repoOwner && repoName ? (
+              <BranchSelector
+                owner={repoOwner}
+                repo={repoName}
+                value={baseBranch}
+                onChange={setBaseBranch}
+              />
+            ) : (
+              <Input
+                id="contextBaseBranch"
+                placeholder="main"
+                value={baseBranch}
+                onChange={(e) => setBaseBranch(e.target.value)}
+              />
+            )}
+            <p className="text-xs text-muted-foreground">
+              Select a repository to browse folders for context paths.
+            </p>
+          </div>
+        </div>
+
         {syncResult && (
           <div
             className={cn(
               "flex items-center gap-2 p-2 rounded-lg text-xs",
               syncResult.success
                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : "bg-red-500/10 text-red-600 dark:text-red-400"
+                : "bg-red-500/10 text-red-600 dark:text-red-400",
             )}
           >
             {syncResult.success ? (
@@ -163,7 +264,10 @@ export function ContextPathsCard({
 
         <div className="space-y-2">
           {contextPaths.map((path, idx) => (
-            <div key={`context-path-${idx}`} className="flex items-center gap-2">
+            <div
+              key={`context-path-${idx}`}
+              className="flex items-center gap-2"
+            >
               <Input
                 placeholder="elmer-docs/"
                 value={path}

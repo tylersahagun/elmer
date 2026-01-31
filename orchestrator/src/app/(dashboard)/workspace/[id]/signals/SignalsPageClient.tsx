@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { SignalsTable } from "@/components/signals/SignalsTable";
 import { SignalSuggestionsBanner } from "@/components/signals/SignalSuggestionsBanner";
@@ -16,13 +17,30 @@ interface SignalsPageClientProps {
   workspaceId: string;
 }
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
 export function SignalsPageClient({ workspaceId }: SignalsPageClientProps) {
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  const { data: workspace } = useQuery<Workspace>({
+    queryKey: ["workspace", workspaceId],
+    queryFn: async () => {
+      const res = await fetch(`/api/workspaces/${workspaceId}`);
+      if (!res.ok) throw new Error("Failed to load workspace");
+      return res.json();
+    },
+    enabled: !!workspaceId,
+  });
+
   return (
     <>
-      <SimpleNavbar path={`~/workspace/${workspaceId}/signals`} />
+      <SimpleNavbar
+        path={`~/workspace/${workspace?.name ?? workspaceId}/signals`}
+      />
       <div className="container mx-auto py-6 px-4">
         {/* AI Suggestions Banner */}
         <SignalSuggestionsBanner workspaceId={workspaceId} />

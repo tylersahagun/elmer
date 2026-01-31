@@ -4,14 +4,15 @@ Aggregate and analyze signals across sources to identify patterns and generate h
 
 ## Usage
 
-- `synthesize [topic]` - Analyze signals related to a topic
-- `synthesize --all` - Analyze all recent signals
-- `synthesize --persona [persona]` - Filter by persona
-- `synthesize --source [type]` - Filter by source type
+- `/synthesize [topic]` - Analyze signals related to a topic
+- `/synthesize --all` - Analyze all recent signals
+- `/synthesize --persona [persona]` - Filter by persona
+- `/synthesize --source [type]` - Filter by source type
 
 ## Purpose
 
 The synthesize command helps you:
+
 1. Find patterns across multiple signals
 2. Identify emerging themes before they become obvious
 3. Generate hypothesis candidates backed by evidence
@@ -21,11 +22,13 @@ The synthesize command helps you:
 
 ### 1. Load Signals
 
-Read from `elmer-docs/signals/`:
+Read from `pm-workspace-docs/signals/`:
+
 - `_index.json` for signal metadata
 - Individual signal files for content
 
 Filter by:
+
 - Topic keywords (if specified)
 - Persona mentions
 - Source type (transcript, ticket, issue, conversation)
@@ -34,6 +37,7 @@ Filter by:
 ### 2. Extract and Aggregate
 
 For each matching signal, extract:
+
 - Problems mentioned
 - Personas affected
 - Severity indicators
@@ -41,6 +45,7 @@ For each matching signal, extract:
 - Verbatim quotes
 
 Aggregate into themes:
+
 - Group similar problems
 - Count occurrences across signals
 - Track which personas mention each theme
@@ -65,18 +70,20 @@ Output format:
 ## Theme Analysis
 
 ### Theme 1: [Name]
+
 **Strength:** Strong / Moderate / Weak
 **Occurrences:** X signals
 **Sources:** X transcripts, X tickets, X issues
 
-| Dimension | Value |
-|-----------|-------|
-| Severity | High / Medium / Low |
-| Frequency | Common / Occasional / Rare |
-| Personas | [list] |
-| Source Diversity | X unique sources |
+| Dimension        | Value                      |
+| ---------------- | -------------------------- |
+| Severity         | High / Medium / Low        |
+| Frequency        | Common / Occasional / Rare |
+| Personas         | [list]                     |
+| Source Diversity | X unique sources           |
 
 **Evidence:**
+
 > "[Quote 1]" - [source, date]
 > "[Quote 2]" - [source, date]
 
@@ -86,6 +93,7 @@ Output format:
 ---
 
 ### Theme 2: [Name]
+
 ...
 
 ## Hypothesis Candidates
@@ -93,6 +101,7 @@ Output format:
 Based on this synthesis, consider these new hypotheses:
 
 ### Candidate 1: [Suggested Name]
+
 - **Problem:** [synthesized problem statement]
 - **Evidence Count:** X signals
 - **Personas:** [list]
@@ -101,26 +110,27 @@ Based on this synthesis, consider these new hypotheses:
 **Action:** Run `hypothesis new [name]` to create
 
 ### Candidate 2: [Suggested Name]
+
 ...
 
 ## Existing Hypothesis Updates
 
 These existing hypotheses have new supporting evidence:
 
-| Hypothesis | New Evidence | Action |
-|------------|--------------|--------|
+| Hypothesis            | New Evidence  | Action       |
+| --------------------- | ------------- | ------------ |
 | hyp-config-complexity | 3 new signals | Add evidence |
-| hyp-visibility-gap | 1 new signal | Add evidence |
+| hyp-visibility-gap    | 1 new signal  | Add evidence |
 
 ## Signal Quality Assessment
 
-| Metric | Value |
-|--------|-------|
-| Total Signals | X |
-| With Quotes | X% |
-| With Personas | X% |
-| Processed | X% |
-| Unprocessed | X% |
+| Metric        | Value |
+| ------------- | ----- |
+| Total Signals | X     |
+| With Quotes   | X%    |
+| With Personas | X%    |
+| Processed     | X%    |
+| Unprocessed   | X%    |
 
 ## Recommended Actions
 
@@ -132,6 +142,7 @@ These existing hypotheses have new supporting evidence:
 ### 4. Update Hypothesis Links
 
 If synthesis identifies matches to existing hypotheses:
+
 - Suggest adding evidence to hypothesis
 - Update signal index with `hypothesis_matches`
 
@@ -147,18 +158,21 @@ Themes are detected by:
 ## Strength Indicators
 
 **Strong Signal:**
+
 - 5+ occurrences
 - 3+ unique sources
 - Multiple personas affected
 - High severity mentions
 
 **Moderate Signal:**
+
 - 3-4 occurrences
 - 2+ unique sources
 - At least one persona
 - Medium severity mentions
 
 **Weak Signal:**
+
 - 1-2 occurrences
 - Single source type
 - May need more data
@@ -191,5 +205,5 @@ synthesize --all
 
 ## Output Location
 
-Synthesis reports can be saved to:
-`elmer-docs/research/synthesis/YYYY-MM-DD-[topic].md`
+Synthesis reports should be saved to:
+`pm-workspace-docs/signals/synthesis-YYYY-MM-DD-[topic].md`

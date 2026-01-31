@@ -1,13 +1,12 @@
 /**
  * GitHub Repos API
- * 
+ *
  * Lists repositories accessible to the authenticated user via their GitHub OAuth connection.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { Octokit } from "@octokit/rest";
 import { auth } from "@/auth";
-import { getGitHubToken } from "@/lib/github/auth";
+import { getGitHubClient } from "@/lib/github/auth";
 
 interface GitHubRepo {
   id: number;
@@ -25,11 +24,9 @@ interface GitHubRepo {
   };
 }
 
-import { Octokit } from "@octokit/rest";
-
 /**
  * GET /api/github/repos
- * 
+ *
  * Query parameters:
  * - search: Filter repos by name (optional)
  * - sort: Sort by "updated", "pushed", "full_name" (default: "pushed")
@@ -38,33 +35,34 @@ import { Octokit } from "@octokit/rest";
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const token = await getGitHubToken(session.user.id);
-    
-    if (!token) {
+    const octokit = await getGitHubClient(session.user.id);
+
+    if (!octokit) {
       return NextResponse.json(
-        { 
+        {
           error: "GitHub not connected",
           message: "Please connect your GitHub account to access repositories",
-          connectUrl: "/api/auth/signin/github"
+          connectUrl: "/api/auth/signin/github",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
-    const sort = (searchParams.get("sort") || "pushed") as "updated" | "pushed" | "full_name";
-    const perPage = Math.min(parseInt(searchParams.get("per_page") || "30"), 100);
-
-    const octokit = new Octokit({ auth: token });
+    const sort = (searchParams.get("sort") || "pushed") as
+      | "updated"
+      | "pushed"
+      | "full_name";
+    const perPage = Math.min(
+      parseInt(searchParams.get("per_page") || "30"),
+      100,
+    );
 
     // List repositories for the authenticated user
     const { data: repos } = await octokit.repos.listForAuthenticatedUser({
@@ -82,7 +80,7 @@ export async function GET(request: NextRequest) {
         (repo) =>
           repo.name.toLowerCase().includes(searchLower) ||
           repo.full_name.toLowerCase().includes(searchLower) ||
-          repo.description?.toLowerCase().includes(searchLower)
+          repo.description?.toLowerCase().includes(searchLower),
       );
     }
 
@@ -110,22 +108,24 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("GitHub repos error:", error);
-    
+
     // Check for token expiration or invalid token
     if (error instanceof Error && error.message.includes("Bad credentials")) {
       return NextResponse.json(
-        { 
+        {
           error: "GitHub token expired",
           message: "Please reconnect your GitHub account",
-          connectUrl: "/api/auth/signin/github"
+          connectUrl: "/api/auth/signin/github",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch repos" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch repos",
+      },
+      { status: 500 },
     );
   }
 }
@@ -137,20 +137,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const token = await getGitHubToken(session.user.id);
-    
-    if (!token) {
+    const octokit = await getGitHubClient(session.user.id);
+
+    if (!octokit) {
       return NextResponse.json(
         { error: "GitHub not connected" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -159,11 +156,9 @@ export async function POST(request: NextRequest) {
     if (!owner || !repo) {
       return NextResponse.json(
         { error: "Owner and repo are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-
-    const octokit = new Octokit({ auth: token });
 
     // Get repo details
     const { data: repoData } = await octokit.repos.get({
@@ -172,7 +167,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Try to get repository contents to detect context paths
-    let detectedPaths: { type: string; path: string }[] = [];
+    const detectedPaths: { type: string; path: string }[] = [];
     try {
       const { data: contents } = await octokit.repos.getContent({
         owner,
@@ -182,9 +177,19 @@ export async function POST(request: NextRequest) {
 
       if (Array.isArray(contents)) {
         // Look for common context paths
-        const contextDirs = ["elmer-docs", "docs", "documentation", ".planning"];
-        const prototypesDirs = ["prototypes", "src/components/prototypes", "packages/prototypes"];
-        
+        const contextDirs = [
+          "elmer-docs",
+          "docs",
+          "documentation",
+          ".planning",
+          "pm-workspace-docs",
+        ];
+        const prototypesDirs = [
+          "prototypes",
+          "src/components/prototypes",
+          "packages/prototypes",
+        ];
+
         for (const item of contents) {
           if (item.type === "dir") {
             if (contextDirs.includes(item.name.toLowerCase())) {
@@ -206,13 +211,20 @@ export async function POST(request: NextRequest) {
             });
             if (Array.isArray(srcContents)) {
               if (srcContents.some((c) => c.name === "components")) {
-                const { data: componentsContents } = await octokit.repos.getContent({
-                  owner,
-                  repo,
-                  path: "src/components",
-                });
-                if (Array.isArray(componentsContents) && componentsContents.some((c) => c.name === "prototypes")) {
-                  detectedPaths.push({ type: "prototypes", path: "src/components/prototypes/" });
+                const { data: componentsContents } =
+                  await octokit.repos.getContent({
+                    owner,
+                    repo,
+                    path: "src/components",
+                  });
+                if (
+                  Array.isArray(componentsContents) &&
+                  componentsContents.some((c) => c.name === "prototypes")
+                ) {
+                  detectedPaths.push({
+                    type: "prototypes",
+                    path: "src/components/prototypes/",
+                  });
                 }
               }
             }
@@ -246,8 +258,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("GitHub repo details error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch repo" },
-      { status: 500 }
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch repo",
+      },
+      { status: 500 },
     );
   }
 }

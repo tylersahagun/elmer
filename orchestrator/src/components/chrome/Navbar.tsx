@@ -69,7 +69,7 @@ export function Navbar({
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14 gap-4">
           {/* Left section: Logo (back navigation) + Status + Path */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => router.back()}
               className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
@@ -106,7 +106,7 @@ export function Navbar({
           )}
 
           {/* Right section: Theme toggle, Language, Custom */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {rightContent}
 
             {showThemeToggle && (
@@ -144,6 +144,12 @@ interface SimpleNavbarProps {
   rightContent?: ReactNode;
   /** Additional className */
   className?: string;
+  /** Optional dropdown menu items (rendered before navigation) */
+  menuItems?: ReactNode;
+  /** Control dropdown menu open state */
+  menuOpen?: boolean;
+  /** Handle dropdown menu open state changes */
+  onMenuOpenChange?: (open: boolean) => void;
 }
 
 // Simplified navbar for inner pages with hamburger menu
@@ -151,25 +157,60 @@ export function SimpleNavbar({
   path = "~/elmer",
   rightContent,
   className,
+  menuItems,
+  menuOpen,
+  onMenuOpenChange,
 }: SimpleNavbarProps) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  
+
   // Get stored workspace from store (persists across page navigation)
   const storedWorkspace = useKanbanStore((s) => s.workspace);
 
   // Check active state for nav items
-  const isHomeActive = pathname === "/";
   const isKnowledgebaseActive = pathname?.includes("/knowledgebase");
   const isPersonasActive = pathname?.includes("/personas");
   const isSignalsActive = pathname?.includes("/signals");
+  const isAgentsActive = pathname?.includes("/agents");
   const isSettingsActive = pathname?.includes("/settings");
+  const isDashboardActive =
+    pathname === "/" ||
+    (pathname?.startsWith("/workspace/") &&
+      !isKnowledgebaseActive &&
+      !isPersonasActive &&
+      !isSignalsActive &&
+      !isAgentsActive &&
+      !isSettingsActive);
 
   // Extract workspace ID from pathname, or fall back to stored workspace
   const workspaceIdFromPath = pathname?.match(/\/workspace\/([^\/]+)/)?.[1];
   const workspaceId = workspaceIdFromPath || storedWorkspace?.id;
+  const dashboardHref = workspaceId ? `/workspace/${workspaceId}` : "/";
+  const knowledgeHref = workspaceId
+    ? `/workspace/${workspaceId}/knowledgebase`
+    : "/knowledgebase";
+  const personasHref = workspaceId
+    ? `/workspace/${workspaceId}/personas`
+    : "/personas";
+  const navItems = [
+    { label: "Dashboard", href: dashboardHref },
+    { label: "Knowledge", href: knowledgeHref },
+    { label: "Personas", href: personasHref },
+    workspaceId && {
+      label: "Signals",
+      href: `/workspace/${workspaceId}/signals`,
+    },
+    workspaceId && {
+      label: "Agents",
+      href: `/workspace/${workspaceId}/agents`,
+    },
+    workspaceId && {
+      label: "Settings",
+      href: `/workspace/${workspaceId}/settings`,
+    },
+  ].filter(Boolean) as Array<{ label: string; href: string }>;
 
   return (
     <header
@@ -184,7 +225,7 @@ export function SimpleNavbar({
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14 gap-4">
           {/* Left: Logo (back navigation) + Status + path */}
-          <div className="flex items-center gap-3 flex-shrink-0 min-w-0">
+          <div className="flex items-center gap-3 shrink-0 min-w-0">
             <button
               onClick={() => router.back()}
               className="flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
@@ -205,10 +246,10 @@ export function SimpleNavbar({
           </div>
 
           {/* Right: Custom content + Hamburger Menu */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {rightContent}
 
-            <DropdownMenu>
+            <DropdownMenu open={menuOpen} onOpenChange={onMenuOpenChange}>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Menu className="w-4 h-4" />
@@ -218,12 +259,14 @@ export function SimpleNavbar({
                 align="end"
                 className="w-56 rounded-2xl border-border dark:border-[rgba(255,255,255,0.14)]"
               >
+                {menuItems}
+                {menuItems && <DropdownMenuSeparator />}
                 {/* Navigation - Terminal style */}
-                <Link href="/" className="w-full">
+                <Link href={dashboardHref} className="w-full">
                   <DropdownMenuItem
                     className={cn(
                       "gap-2 font-mono text-sm",
-                      isHomeActive && "bg-accent",
+                      isDashboardActive && "bg-accent",
                     )}
                   >
                     <span className="text-emerald-500">$</span>
@@ -232,7 +275,7 @@ export function SimpleNavbar({
                   </DropdownMenuItem>
                 </Link>
 
-                <Link href="/knowledgebase" className="w-full">
+                <Link href={knowledgeHref} className="w-full">
                   <DropdownMenuItem
                     className={cn(
                       "gap-2 font-mono text-sm",
@@ -245,7 +288,7 @@ export function SimpleNavbar({
                   </DropdownMenuItem>
                 </Link>
 
-                <Link href="/personas" className="w-full">
+                <Link href={personasHref} className="w-full">
                   <DropdownMenuItem
                     className={cn(
                       "gap-2 font-mono text-sm",
@@ -273,6 +316,22 @@ export function SimpleNavbar({
                         <span className="text-emerald-500">$</span>
                         <span>cat</span>
                         <span className="text-muted-foreground">signals/</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
+                      href={`/workspace/${workspaceId}/agents`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isAgentsActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>run</span>
+                        <span className="text-muted-foreground">agents</span>
                       </DropdownMenuItem>
                     </Link>
 
@@ -342,6 +401,31 @@ export function SimpleNavbar({
                 ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+        </div>
+        <div className="pb-3">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {navItems.map((item) => {
+              const isActive =
+                (item.href === dashboardHref && isDashboardActive) ||
+                (item.href.includes("knowledgebase") &&
+                  isKnowledgebaseActive) ||
+                (item.href.includes("personas") && isPersonasActive) ||
+                (item.href.includes("signals") && isSignalsActive) ||
+                (item.href.includes("agents") && isAgentsActive) ||
+                (item.href.includes("settings") && isSettingsActive);
+              return (
+                <Link key={item.href} href={item.href} className="shrink-0">
+                  <CommandChip
+                    active={isActive}
+                    variant="outline"
+                    className="h-7 px-3 text-[11px]"
+                  >
+                    <span className="font-mono">{item.label}</span>
+                  </CommandChip>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>

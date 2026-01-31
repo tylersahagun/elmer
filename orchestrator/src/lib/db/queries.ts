@@ -24,10 +24,12 @@ import {
   signals,
   signalProjects,
   signalPersonas,
+  projectCommits,
   type ProjectStage as ProjectStageType,
   type JobType,
   type JobStatus,
   type DocumentType,
+  type AgentDefinitionType,
   type PrototypeType,
   type NotificationType,
   type NotificationPriority,
@@ -46,8 +48,26 @@ import {
   DEFAULT_SIGNAL_AUTOMATION,
   type MaintenanceSettings,
   DEFAULT_MAINTENANCE_SETTINGS,
+  type GraduationCriteria,
+  type OnboardingData,
 } from "./schema";
-import { eq, and, desc, asc, isNull, isNotNull, ne, or, lt, gte, lte, ilike, sql, inArray } from "drizzle-orm";
+import { calculateStageQuality } from "@/lib/graduation/criteria-service";
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  isNull,
+  isNotNull,
+  ne,
+  or,
+  lt,
+  gte,
+  lte,
+  ilike,
+  sql,
+  inArray,
+} from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 
 // ============================================
@@ -120,13 +140,103 @@ export async function getWorkspaceMembers(workspaceId: string) {
 /**
  * Check if a user is a member of a workspace and get their role
  */
-export async function getWorkspaceMembership(workspaceId: string, userId: string) {
+export async function getWorkspaceMembership(
+  workspaceId: string,
+  userId: string,
+) {
   return db.query.workspaceMembers.findFirst({
     where: and(
       eq(workspaceMembers.workspaceId, workspaceId),
-      eq(workspaceMembers.userId, userId)
+      eq(workspaceMembers.userId, userId),
     ),
   });
+}
+
+const defaultColumnStages: Array<{
+  stage: ProjectStageType;
+  name: string;
+  color: string;
+  autoJobs?: JobType[];
+  requiredDocuments?: DocumentType[];
+}> = [
+  { stage: "inbox", name: "Inbox", color: "slate" },
+  {
+    stage: "discovery",
+    name: "Discovery",
+    color: "teal",
+    autoJobs: ["analyze_transcript"],
+  },
+  {
+    stage: "prd",
+    name: "PRD",
+    color: "purple",
+    autoJobs: [
+      "generate_prd",
+      "generate_design_brief",
+      "generate_engineering_spec",
+      "generate_gtm_brief",
+    ],
+    requiredDocuments: ["research"],
+  },
+  {
+    stage: "design",
+    name: "Design",
+    color: "blue",
+    requiredDocuments: ["prd", "design_brief", "engineering_spec"],
+  },
+  {
+    stage: "prototype",
+    name: "Prototype",
+    color: "pink",
+    autoJobs: ["build_prototype", "deploy_chromatic"],
+    requiredDocuments: ["prd"],
+  },
+  {
+    stage: "validate",
+    name: "Validate",
+    color: "amber",
+    autoJobs: ["run_jury_evaluation"],
+    requiredDocuments: ["prototype_notes"],
+  },
+  {
+    stage: "tickets",
+    name: "Tickets",
+    color: "orange",
+    autoJobs: ["generate_tickets", "validate_tickets"],
+    requiredDocuments: ["engineering_spec"],
+  },
+  { stage: "build", name: "Build", color: "green" },
+  { stage: "alpha", name: "Alpha", color: "cyan" },
+  { stage: "beta", name: "Beta", color: "indigo" },
+  { stage: "ga", name: "GA", color: "emerald" },
+];
+
+export async function ensureDefaultColumnConfigs(workspaceId: string) {
+  const existing = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(columnConfigs)
+    .where(eq(columnConfigs.workspaceId, workspaceId));
+  const existingCount = Number(existing[0]?.count || 0);
+  if (existingCount > 0) {
+    return { created: 0, existing: existingCount };
+  }
+
+  for (let i = 0; i < defaultColumnStages.length; i++) {
+    const s = defaultColumnStages[i];
+    await db.insert(columnConfigs).values({
+      id: uuid(),
+      workspaceId,
+      stage: s.stage,
+      displayName: s.name,
+      order: i,
+      color: s.color,
+      autoTriggerJobs: s.autoJobs || [],
+      requiredDocuments: s.requiredDocuments || [],
+      humanInLoop: ["prd", "prototype", "validate"].includes(s.stage),
+    });
+  }
+
+  return { created: defaultColumnStages.length, existing: 0 };
 }
 
 export async function createWorkspace(data: {
@@ -138,7 +248,7 @@ export async function createWorkspace(data: {
 }) {
   const id = uuid();
   const now = new Date();
-  
+
   await db.insert(workspaces).values({
     id,
     name: data.name,
@@ -158,37 +268,7 @@ export async function createWorkspace(data: {
     });
   }
 
-  // Create default column configs
-  // Default column configs for PM workflow
-  // PRD stage generates all 4 documents: PRD, Design Brief, Engineering Spec, GTM Brief
-  const defaultStages: { stage: ProjectStageType; name: string; color: string; autoJobs?: JobType[]; requiredDocuments?: DocumentType[] }[] = [
-    { stage: "inbox", name: "Inbox", color: "slate" },
-    { stage: "discovery", name: "Discovery", color: "teal", autoJobs: ["analyze_transcript"] },
-    { stage: "prd", name: "PRD", color: "purple", autoJobs: ["generate_prd", "generate_design_brief", "generate_engineering_spec", "generate_gtm_brief"], requiredDocuments: ["research"] },
-    { stage: "design", name: "Design", color: "blue", requiredDocuments: ["prd", "design_brief", "engineering_spec"] },
-    { stage: "prototype", name: "Prototype", color: "pink", autoJobs: ["build_prototype", "deploy_chromatic"], requiredDocuments: ["prd"] },
-    { stage: "validate", name: "Validate", color: "amber", autoJobs: ["run_jury_evaluation"], requiredDocuments: ["prototype_notes"] },
-    { stage: "tickets", name: "Tickets", color: "orange", autoJobs: ["generate_tickets", "validate_tickets"], requiredDocuments: ["engineering_spec"] },
-    { stage: "build", name: "Build", color: "green" },
-    { stage: "alpha", name: "Alpha", color: "cyan" },
-    { stage: "beta", name: "Beta", color: "indigo" },
-    { stage: "ga", name: "GA", color: "emerald" },
-  ];
-
-  for (let i = 0; i < defaultStages.length; i++) {
-    const s = defaultStages[i];
-    await db.insert(columnConfigs).values({
-      id: uuid(),
-      workspaceId: id,
-      stage: s.stage,
-      displayName: s.name,
-      order: i,
-      color: s.color,
-      autoTriggerJobs: s.autoJobs || [],
-      requiredDocuments: s.requiredDocuments || [],
-      humanInLoop: ["prd", "prototype", "validate"].includes(s.stage),
-    });
-  }
+  await ensureDefaultColumnConfigs(id);
 
   return getWorkspace(id);
 }
@@ -198,20 +278,29 @@ export async function updateWorkspace(
   data: {
     name?: string;
     description?: string;
-    githubRepo?: string;
+    githubRepo?: string | null;
     contextPath?: string;
     settings?: WorkspaceSettings;
-  }
+    onboardingCompletedAt?: Date;
+    onboardingData?: OnboardingData;
+  },
 ) {
   const now = new Date();
 
-  await db.update(workspaces)
+  await db
+    .update(workspaces)
     .set({
       ...(data.name !== undefined && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
       ...(data.githubRepo !== undefined && { githubRepo: data.githubRepo }),
       ...(data.contextPath !== undefined && { contextPath: data.contextPath }),
       ...(data.settings !== undefined && { settings: data.settings }),
+      ...(data.onboardingCompletedAt !== undefined && {
+        onboardingCompletedAt: data.onboardingCompletedAt,
+      }),
+      ...(data.onboardingData !== undefined && {
+        onboardingData: data.onboardingData,
+      }),
       updatedAt: now,
     })
     .where(eq(workspaces.id, id));
@@ -225,14 +314,14 @@ export async function updateWorkspace(
 
 export async function getProjects(
   workspaceId: string,
-  options: { includeArchived?: boolean } = {}
+  options: { includeArchived?: boolean } = {},
 ) {
   const includeArchived = options.includeArchived === true;
   const whereClause = includeArchived
     ? eq(projects.workspaceId, workspaceId)
     : and(
         eq(projects.workspaceId, workspaceId),
-        ne(projects.status, "archived")
+        ne(projects.status, "archived"),
       );
   return db.query.projects.findMany({
     where: whereClause,
@@ -250,9 +339,14 @@ export async function getProjects(
  */
 export async function getProjectsWithCounts(
   workspaceId: string,
-  options: { includeArchived?: boolean } = {}
+  options: { includeArchived?: boolean } = {},
 ) {
   const projectList = await getProjects(workspaceId, options);
+  if (projectList.length === 0) {
+    return [];
+  }
+
+  const projectIds = projectList.map((project) => project.id);
 
   // Get signal counts for all projects in one query
   const signalCounts = await db
@@ -261,29 +355,69 @@ export async function getProjectsWithCounts(
       count: sql<number>`count(*)::int`,
     })
     .from(signalProjects)
-    .where(
-      inArray(
-        signalProjects.projectId,
-        projectList.map((p) => p.id)
-      )
-    )
+    .where(inArray(signalProjects.projectId, projectIds))
     .groupBy(signalProjects.projectId);
+
+  const juryPassCounts = await db
+    .select({
+      projectId: juryEvaluations.projectId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(juryEvaluations)
+    .where(
+      and(
+        inArray(juryEvaluations.projectId, projectIds),
+        eq(juryEvaluations.verdict, "pass"),
+      ),
+    )
+    .groupBy(juryEvaluations.projectId);
 
   // Create lookup map
   const countMap = new Map(signalCounts.map((c) => [c.projectId, c.count]));
+  const juryPassMap = new Map(
+    juryPassCounts.map((c) => [c.projectId, c.count]),
+  );
 
   // Merge counts into projects
-  return projectList.map((project) => ({
-    ...project,
-    signalCount: countMap.get(project.id) || 0,
-    documentCount: project.documents?.length || 0,
-    prototypeCount: project.prototypes?.length || 0,
-  }));
+  return Promise.all(
+    projectList.map(async (project) => {
+      const documentCount = project.documents?.length || 0;
+      const prototypeCount = project.prototypes?.length || 0;
+      const signalCount = countMap.get(project.id) || 0;
+      const juryPassCount = juryPassMap.get(project.id) || 0;
+      const existingStageQuality = (
+        project.metadata as { stageQuality?: Record<string, unknown> } | null
+      )?.stageQuality;
+      const stageQuality = await calculateStageQuality({
+        projectId: project.id,
+        stage: project.stage,
+        metadata: project.metadata ?? undefined,
+        documentCount,
+        prototypeCount,
+        signalCount,
+        juryPassCount,
+      });
+
+      return {
+        ...project,
+        signalCount,
+        documentCount,
+        prototypeCount,
+        metadata: {
+          ...(project.metadata ?? {}),
+          stageQuality: {
+            ...existingStageQuality,
+            [project.stage]: stageQuality,
+          },
+        },
+      };
+    }),
+  );
 }
 
 export async function getProjectsByStage(workspaceId: string) {
   const allProjects = await getProjects(workspaceId);
-  
+
   const byStage: Record<ProjectStageType, typeof allProjects> = {
     inbox: [],
     discovery: [],
@@ -306,7 +440,7 @@ export async function getProjectsByStage(workspaceId: string) {
 }
 
 export async function getProject(id: string) {
-  return db.query.projects.findFirst({
+  const project = await db.query.projects.findFirst({
     where: eq(projects.id, id),
     with: {
       workspace: true,
@@ -325,6 +459,48 @@ export async function getProject(id: string) {
       },
     },
   });
+
+  if (!project) return null;
+
+  const signalCount =
+    (
+      await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(signalProjects)
+        .where(eq(signalProjects.projectId, id))
+    )[0]?.count ?? 0;
+  const documentCount = project.documents?.length || 0;
+  const prototypeCount = project.prototypes?.length || 0;
+  const juryPassCount =
+    project.juryEvaluations?.filter(
+      (evaluation) => evaluation.verdict === "pass",
+    ).length || 0;
+  const existingStageQuality = (
+    project.metadata as { stageQuality?: Record<string, unknown> } | null
+  )?.stageQuality;
+  const stageQuality = await calculateStageQuality({
+    projectId: project.id,
+    stage: project.stage,
+    metadata: project.metadata ?? undefined,
+    documentCount,
+    prototypeCount,
+    signalCount,
+    juryPassCount,
+  });
+
+  return {
+    ...project,
+    signalCount,
+    documentCount,
+    prototypeCount,
+    metadata: {
+      ...(project.metadata ?? {}),
+      stageQuality: {
+        ...existingStageQuality,
+        [project.stage]: stageQuality,
+      },
+    },
+  };
 }
 
 export async function createProject(data: {
@@ -363,36 +539,39 @@ export async function createProject(data: {
 
 export async function updateProjectMetadata(
   projectId: string,
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown>,
 ) {
   const now = new Date();
-  await db.update(projects)
+  await db
+    .update(projects)
     .set({ metadata, updatedAt: now })
     .where(eq(projects.id, projectId));
   return getProject(projectId);
 }
 
 export async function updateProjectStage(
-  projectId: string, 
+  projectId: string,
   newStage: ProjectStageType,
-  triggeredBy: string = "user"
+  triggeredBy: string = "user",
 ) {
   const now = new Date();
   const project = await getProject(projectId);
-  
+
   if (!project) throw new Error("Project not found");
   if (project.stage === newStage) return project;
 
   // Close current stage
-  const currentStageRecord = project.stages.find(s => !s.exitedAt);
+  const currentStageRecord = project.stages.find((s) => !s.exitedAt);
   if (currentStageRecord) {
-    await db.update(projectStages)
+    await db
+      .update(projectStages)
       .set({ exitedAt: now })
       .where(eq(projectStages.id, currentStageRecord.id));
   }
 
   // Update project
-  await db.update(projects)
+  await db
+    .update(projects)
     .set({ stage: newStage, updatedAt: now })
     .where(eq(projects.id, projectId));
 
@@ -410,11 +589,12 @@ export async function updateProjectStage(
 
 export async function updateProjectStatus(
   projectId: string,
-  newStatus: "active" | "paused" | "completed" | "archived"
+  newStatus: "active" | "paused" | "completed" | "archived",
 ) {
   const now = new Date();
-  
-  await db.update(projects)
+
+  await db
+    .update(projects)
     .set({ status: newStatus, updatedAt: now })
     .where(eq(projects.id, projectId));
 
@@ -424,6 +604,80 @@ export async function updateProjectStatus(
 export async function deleteProject(projectId: string) {
   await db.delete(projects).where(eq(projects.id, projectId));
   return { id: projectId };
+}
+
+/**
+ * Upsert a project - update if exists, create if not.
+ * Uses deterministic ID for idempotent imports (DISC-09, POPUL-06).
+ *
+ * This is used by the discovery population engine to allow re-onboarding
+ * without creating duplicate projects.
+ */
+export interface UpsertProjectInput {
+  id: string; // Deterministic ID from discovery
+  workspaceId: string;
+  name: string;
+  description?: string | null;
+  stage: ProjectStageType;
+  metadata?: Record<string, unknown>;
+}
+
+export async function upsertProject(input: UpsertProjectInput): Promise<{
+  action: "created" | "updated";
+  id: string;
+}> {
+  const { id, workspaceId, name, description, stage, metadata } = input;
+  const now = new Date();
+
+  // Check if project exists
+  const existing = await db.query.projects.findFirst({
+    where: eq(projects.id, id),
+  });
+
+  if (existing) {
+    // Update existing project - preserve existing metadata, merge with new
+    const mergedMetadata = {
+      ...existing.metadata,
+      ...metadata,
+    };
+
+    await db
+      .update(projects)
+      .set({
+        name,
+        description,
+        stage,
+        metadata: mergedMetadata,
+        updatedAt: now,
+      })
+      .where(eq(projects.id, id));
+
+    return { action: "updated", id };
+  } else {
+    // Create new project
+    await db.insert(projects).values({
+      id,
+      workspaceId,
+      name,
+      description,
+      stage,
+      status: "active",
+      metadata,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Record initial stage for new projects
+    await db.insert(projectStages).values({
+      id: uuid(),
+      projectId: id,
+      stage,
+      enteredAt: now,
+      triggeredBy: "import",
+    });
+
+    return { action: "created", id };
+  }
 }
 
 // ============================================
@@ -445,10 +699,7 @@ export async function getDocument(id: string) {
 
 export async function getDocumentByType(projectId: string, type: DocumentType) {
   return db.query.documents.findFirst({
-    where: and(
-      eq(documents.projectId, projectId),
-      eq(documents.type, type)
-    ),
+    where: and(eq(documents.projectId, projectId), eq(documents.type, type)),
     orderBy: [desc(documents.version)],
   });
 }
@@ -491,14 +742,11 @@ export async function createDocument(data: {
 export async function getJobs(workspaceId: string, status?: JobStatus) {
   if (status) {
     return db.query.jobs.findMany({
-      where: and(
-        eq(jobs.workspaceId, workspaceId),
-        eq(jobs.status, status)
-      ),
+      where: and(eq(jobs.workspaceId, workspaceId), eq(jobs.status, status)),
       orderBy: [desc(jobs.createdAt)],
     });
   }
-  
+
   return db.query.jobs.findMany({
     where: eq(jobs.workspaceId, workspaceId),
     orderBy: [desc(jobs.createdAt)],
@@ -524,7 +772,7 @@ export async function createJob(data: {
   await db.insert(jobs).values({
     id,
     workspaceId: data.workspaceId,
-    projectId: data.projectId,
+    projectId: data.projectId || null, // Convert empty string to null for FK constraint
     type: data.type,
     status: "pending",
     input: data.input,
@@ -535,17 +783,24 @@ export async function createJob(data: {
 }
 
 export async function updateJobStatus(
-  jobId: string, 
-  status: JobStatus, 
-  data?: { output?: Record<string, unknown>; error?: string; progress?: number }
+  jobId: string,
+  status: JobStatus,
+  data?: {
+    output?: Record<string, unknown>;
+    error?: string;
+    progress?: number;
+  },
 ) {
   const now = new Date();
-  
-  await db.update(jobs)
+
+  await db
+    .update(jobs)
     .set({
       status,
       ...(status === "running" && { startedAt: now }),
-      ...(["completed", "failed", "cancelled"].includes(status) && { completedAt: now }),
+      ...(["completed", "failed", "cancelled"].includes(status) && {
+        completedAt: now,
+      }),
       ...(data?.output && { output: data.output }),
       ...(data?.error && { error: data.error }),
       ...(data?.progress !== undefined && { progress: data.progress }),
@@ -570,7 +825,9 @@ export async function createJobRun(data: {
     status: data.status,
     attempt: data.attempt,
     startedAt: now,
-    completedAt: ["completed", "failed", "cancelled"].includes(data.status) ? now : null,
+    completedAt: ["completed", "failed", "cancelled"].includes(data.status)
+      ? now
+      : null,
     error: data.error || null,
   });
 
@@ -580,13 +837,16 @@ export async function createJobRun(data: {
 export async function updateJobRunStatus(
   jobRunId: string,
   status: JobStatus,
-  error?: string | null
+  error?: string | null,
 ) {
   const now = new Date();
-  await db.update(jobRuns)
+  await db
+    .update(jobRuns)
     .set({
       status,
-      completedAt: ["completed", "failed", "cancelled"].includes(status) ? now : null,
+      completedAt: ["completed", "failed", "cancelled"].includes(status)
+        ? now
+        : null,
       error: error || null,
     })
     .where(eq(jobRuns.id, jobRunId));
@@ -627,14 +887,16 @@ export async function createPendingQuestion(data: {
     defaultResponse: data.defaultResponse,
     createdAt: new Date(),
   });
-  return db.query.pendingQuestions.findFirst({ where: eq(pendingQuestions.id, id) });
+  return db.query.pendingQuestions.findFirst({
+    where: eq(pendingQuestions.id, id),
+  });
 }
 
 export async function listPendingQuestions(workspaceId: string) {
   return db.query.pendingQuestions.findMany({
     where: and(
       eq(pendingQuestions.workspaceId, workspaceId),
-      eq(pendingQuestions.status, "pending")
+      eq(pendingQuestions.status, "pending"),
     ),
     orderBy: [desc(pendingQuestions.createdAt)],
   });
@@ -647,31 +909,32 @@ export async function updatePendingQuestion(
     response: Record<string, unknown>;
     respondedBy: string;
     respondedAt: Date;
-  }>
+  }>,
 ) {
-  await db.update(pendingQuestions)
+  await db
+    .update(pendingQuestions)
     .set(data)
     .where(eq(pendingQuestions.id, id));
-  return db.query.pendingQuestions.findFirst({ where: eq(pendingQuestions.id, id) });
+  return db.query.pendingQuestions.findFirst({
+    where: eq(pendingQuestions.id, id),
+  });
 }
 
 export async function cancelProjectJobs(projectId: string) {
   const now = new Date();
-  
+
   // Find all pending or running jobs for this project
   const activeJobs = await db.query.jobs.findMany({
     where: and(
       eq(jobs.projectId, projectId),
-      or(
-        eq(jobs.status, "pending"),
-        eq(jobs.status, "running")
-      )
+      or(eq(jobs.status, "pending"), eq(jobs.status, "running")),
     ),
   });
-  
+
   // Cancel each active job
   for (const job of activeJobs) {
-    await db.update(jobs)
+    await db
+      .update(jobs)
       .set({
         status: "cancelled",
         completedAt: now,
@@ -679,7 +942,7 @@ export async function cancelProjectJobs(projectId: string) {
       })
       .where(eq(jobs.id, job.id));
   }
-  
+
   return activeJobs.length;
 }
 
@@ -700,7 +963,7 @@ export async function createPrototype(data: {
   const existing = await db.query.prototypes.findFirst({
     where: and(
       eq(prototypes.projectId, data.projectId),
-      eq(prototypes.type, data.type)
+      eq(prototypes.type, data.type),
     ),
     orderBy: [desc(prototypes.version)],
   });
@@ -730,9 +993,10 @@ export async function updatePrototype(
     chromaticBuildId?: string;
     storybookPath?: string;
     metadata?: Record<string, unknown>;
-  }
+  },
 ) {
-  await db.update(prototypes)
+  await db
+    .update(prototypes)
     .set({
       ...data,
       updatedAt: new Date(),
@@ -740,6 +1004,10 @@ export async function updatePrototype(
     .where(eq(prototypes.id, id));
 
   return db.query.prototypes.findFirst({ where: eq(prototypes.id, id) });
+}
+
+export async function deletePrototype(id: string) {
+  await db.delete(prototypes).where(eq(prototypes.id, id));
 }
 
 export async function createPrototypeVersion(data: {
@@ -760,7 +1028,9 @@ export async function createPrototypeVersion(data: {
     createdAt: now,
   });
 
-  return db.query.prototypeVersions.findFirst({ where: eq(prototypeVersions.id, id) });
+  return db.query.prototypeVersions.findFirst({
+    where: eq(prototypeVersions.id, id),
+  });
 }
 
 // ============================================
@@ -776,12 +1046,15 @@ export async function storeMemory(data: {
   embedding?: Buffer | string;
 }) {
   const id = uuid();
-  
+
   // Convert Buffer to base64 string for Postgres text storage
-  const embeddingStr: string | undefined = data.embedding instanceof Buffer 
-    ? data.embedding.toString("base64") 
-    : (typeof data.embedding === "string" ? data.embedding : undefined);
-  
+  const embeddingStr: string | undefined =
+    data.embedding instanceof Buffer
+      ? data.embedding.toString("base64")
+      : typeof data.embedding === "string"
+        ? data.embedding
+        : undefined;
+
   await db.insert(memoryEntries).values({
     id,
     workspaceId: data.workspaceId,
@@ -821,14 +1094,16 @@ export async function createJuryEvaluation(data: {
   reportPath?: string;
 }) {
   const id = uuid();
-  
+
   await db.insert(juryEvaluations).values({
     id,
     ...data,
     createdAt: new Date(),
   });
 
-  return db.query.juryEvaluations.findFirst({ where: eq(juryEvaluations.id, id) });
+  return db.query.juryEvaluations.findFirst({
+    where: eq(juryEvaluations.id, id),
+  });
 }
 
 // ============================================
@@ -839,6 +1114,12 @@ export async function getColumnConfigs(workspaceId: string) {
   return db.query.columnConfigs.findMany({
     where: eq(columnConfigs.workspaceId, workspaceId),
     orderBy: [asc(columnConfigs.order)],
+  });
+}
+
+export async function getColumnConfigById(id: string) {
+  return db.query.columnConfigs.findFirst({
+    where: eq(columnConfigs.id, id),
   });
 }
 
@@ -900,11 +1181,11 @@ export async function updateColumnConfig(
     rules: Record<string, unknown>;
     humanInLoop: boolean;
     enabled: boolean;
-  }>
+    graduationCriteria: GraduationCriteria;
+    enforceGraduation: boolean;
+  }>,
 ) {
-  await db.update(columnConfigs)
-    .set(data)
-    .where(eq(columnConfigs.id, id));
+  await db.update(columnConfigs).set(data).where(eq(columnConfigs.id, id));
 
   return db.query.columnConfigs.findFirst({ where: eq(columnConfigs.id, id) });
 }
@@ -914,11 +1195,20 @@ export async function deleteColumnConfig(id: string) {
   return true;
 }
 
-export async function reorderColumnConfigs(workspaceId: string, orderedIds: string[]) {
+export async function reorderColumnConfigs(
+  workspaceId: string,
+  orderedIds: string[],
+) {
   for (let i = 0; i < orderedIds.length; i++) {
-    await db.update(columnConfigs)
+    await db
+      .update(columnConfigs)
       .set({ order: i })
-      .where(and(eq(columnConfigs.id, orderedIds[i]), eq(columnConfigs.workspaceId, workspaceId)));
+      .where(
+        and(
+          eq(columnConfigs.id, orderedIds[i]),
+          eq(columnConfigs.workspaceId, workspaceId),
+        ),
+      );
   }
   return getColumnConfigs(workspaceId);
 }
@@ -933,6 +1223,20 @@ export async function getAgentDefinitionById(id: string) {
   });
 }
 
+export async function getAgentDefinitionByName(
+  workspaceId: string,
+  type: AgentDefinitionType,
+  name: string,
+) {
+  return db.query.agentDefinitions.findFirst({
+    where: and(
+      eq(agentDefinitions.workspaceId, workspaceId),
+      eq(agentDefinitions.type, type),
+      eq(agentDefinitions.name, name),
+    ),
+  });
+}
+
 export async function listAgentDefinitions(workspaceId: string) {
   return db.query.agentDefinitions.findMany({
     where: eq(agentDefinitions.workspaceId, workspaceId),
@@ -942,14 +1246,27 @@ export async function listAgentDefinitions(workspaceId: string) {
 
 export async function listAgentDefinitionsByType(
   workspaceId: string,
-  type: string
+  type: AgentDefinitionType,
 ) {
   return db.query.agentDefinitions.findMany({
     where: and(
       eq(agentDefinitions.workspaceId, workspaceId),
-      eq(agentDefinitions.type, type)
+      eq(agentDefinitions.type, type),
     ),
     orderBy: [desc(agentDefinitions.createdAt)],
+  });
+}
+
+export async function updateAgentDefinition(
+  id: string,
+  data: Partial<{ enabled: boolean }>,
+) {
+  await db
+    .update(agentDefinitions)
+    .set(data)
+    .where(eq(agentDefinitions.id, id));
+  return db.query.agentDefinitions.findFirst({
+    where: eq(agentDefinitions.id, id),
   });
 }
 
@@ -964,14 +1281,16 @@ export async function createAgentExecution(data: {
   await db.insert(agentExecutions).values({
     id,
     jobId: data.jobId,
-    agentDefinitionId: data.agentDefinitionId,
+    agentDefinitionId: data.agentDefinitionId || null,
     workspaceId: data.workspaceId,
-    projectId: data.projectId,
+    projectId: data.projectId || null, // Convert empty string to null for FK constraint
     inputContext: data.inputContext,
     createdAt: new Date(),
     startedAt: new Date(),
   });
-  return db.query.agentExecutions.findFirst({ where: eq(agentExecutions.id, id) });
+  return db.query.agentExecutions.findFirst({
+    where: eq(agentExecutions.id, id),
+  });
 }
 
 export async function updateAgentExecution(
@@ -982,10 +1301,12 @@ export async function updateAgentExecution(
     tokensUsed: number;
     durationMs: number;
     completedAt: Date;
-  }>
+  }>,
 ) {
   await db.update(agentExecutions).set(data).where(eq(agentExecutions.id, id));
-  return db.query.agentExecutions.findFirst({ where: eq(agentExecutions.id, id) });
+  return db.query.agentExecutions.findFirst({
+    where: eq(agentExecutions.id, id),
+  });
 }
 
 // ============================================
@@ -999,9 +1320,15 @@ export async function getKnowledgebaseEntries(workspaceId: string) {
   });
 }
 
-export async function getKnowledgebaseEntryByType(workspaceId: string, type: KnowledgebaseType) {
+export async function getKnowledgebaseEntryByType(
+  workspaceId: string,
+  type: KnowledgebaseType,
+) {
   return db.query.knowledgebaseEntries.findFirst({
-    where: and(eq(knowledgebaseEntries.workspaceId, workspaceId), eq(knowledgebaseEntries.type, type)),
+    where: and(
+      eq(knowledgebaseEntries.workspaceId, workspaceId),
+      eq(knowledgebaseEntries.type, type),
+    ),
   });
 }
 
@@ -1012,11 +1339,15 @@ export async function upsertKnowledgebaseEntry(data: {
   content: string;
   filePath?: string;
 }) {
-  const existing = await getKnowledgebaseEntryByType(data.workspaceId, data.type);
+  const existing = await getKnowledgebaseEntryByType(
+    data.workspaceId,
+    data.type,
+  );
   const now = new Date();
 
   if (existing) {
-    await db.update(knowledgebaseEntries)
+    await db
+      .update(knowledgebaseEntries)
       .set({
         title: data.title,
         content: data.content,
@@ -1025,7 +1356,9 @@ export async function upsertKnowledgebaseEntry(data: {
       })
       .where(eq(knowledgebaseEntries.id, existing.id));
 
-    return db.query.knowledgebaseEntries.findFirst({ where: eq(knowledgebaseEntries.id, existing.id) });
+    return db.query.knowledgebaseEntries.findFirst({
+      where: eq(knowledgebaseEntries.id, existing.id),
+    });
   }
 
   const id = uuid();
@@ -1040,7 +1373,78 @@ export async function upsertKnowledgebaseEntry(data: {
     updatedAt: now,
   });
 
-  return db.query.knowledgebaseEntries.findFirst({ where: eq(knowledgebaseEntries.id, id) });
+  return db.query.knowledgebaseEntries.findFirst({
+    where: eq(knowledgebaseEntries.id, id),
+  });
+}
+
+/**
+ * Upsert a knowledgebase entry by file path.
+ * Uses (workspaceId, type, filePath) as the unique key to support multiple files per type.
+ */
+export async function upsertKnowledgebaseEntryByPath(data: {
+  workspaceId: string;
+  type: KnowledgebaseType;
+  title: string;
+  content: string;
+  filePath: string;
+}) {
+  const existing = await db.query.knowledgebaseEntries.findFirst({
+    where: and(
+      eq(knowledgebaseEntries.workspaceId, data.workspaceId),
+      eq(knowledgebaseEntries.type, data.type),
+      eq(knowledgebaseEntries.filePath, data.filePath),
+    ),
+  });
+  const now = new Date();
+
+  if (existing) {
+    await db
+      .update(knowledgebaseEntries)
+      .set({
+        title: data.title,
+        content: data.content,
+        updatedAt: now,
+      })
+      .where(eq(knowledgebaseEntries.id, existing.id));
+
+    return db.query.knowledgebaseEntries.findFirst({
+      where: eq(knowledgebaseEntries.id, existing.id),
+    });
+  }
+
+  const id = uuid();
+  await db.insert(knowledgebaseEntries).values({
+    id,
+    workspaceId: data.workspaceId,
+    type: data.type,
+    title: data.title,
+    content: data.content,
+    filePath: data.filePath,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return db.query.knowledgebaseEntries.findFirst({
+    where: eq(knowledgebaseEntries.id, id),
+  });
+}
+
+/**
+ * Get all knowledgebase entries for a workspace by type.
+ * Returns all entries of the given type (supports multiple files per type).
+ */
+export async function getKnowledgebaseEntriesByType(
+  workspaceId: string,
+  type: KnowledgebaseType,
+) {
+  return db.query.knowledgebaseEntries.findMany({
+    where: and(
+      eq(knowledgebaseEntries.workspaceId, workspaceId),
+      eq(knowledgebaseEntries.type, type),
+    ),
+    orderBy: [asc(knowledgebaseEntries.filePath)],
+  });
 }
 
 // ============================================
@@ -1068,21 +1472,31 @@ export async function createKnowledgeSource(data: {
     config: data.config,
     createdAt: now,
   });
-  return db.query.knowledgeSources.findFirst({ where: eq(knowledgeSources.id, id) });
+  return db.query.knowledgeSources.findFirst({
+    where: eq(knowledgeSources.id, id),
+  });
 }
 
-export async function updateKnowledgeSource(id: string, data: {
-  config?: Record<string, unknown>;
-  lastSyncedAt?: Date | null;
-}) {
-  await db.update(knowledgeSources)
+export async function updateKnowledgeSource(
+  id: string,
+  data: {
+    config?: Record<string, unknown>;
+    lastSyncedAt?: Date | null;
+  },
+) {
+  await db
+    .update(knowledgeSources)
     .set({
       ...(data.config !== undefined && { config: data.config }),
-      ...(data.lastSyncedAt !== undefined && { lastSyncedAt: data.lastSyncedAt }),
+      ...(data.lastSyncedAt !== undefined && {
+        lastSyncedAt: data.lastSyncedAt,
+      }),
     })
     .where(eq(knowledgeSources.id, id));
 
-  return db.query.knowledgeSources.findFirst({ where: eq(knowledgeSources.id, id) });
+  return db.query.knowledgeSources.findFirst({
+    where: eq(knowledgeSources.id, id),
+  });
 }
 
 export async function deleteKnowledgeSource(id: string) {
@@ -1101,13 +1515,16 @@ export async function getTickets(projectId: string) {
   });
 }
 
-export async function createTickets(projectId: string, items: Array<{
-  title: string;
-  description?: string;
-  priority?: number;
-  estimatedPoints?: number;
-  metadata?: Record<string, unknown>;
-}>) {
+export async function createTickets(
+  projectId: string,
+  items: Array<{
+    title: string;
+    description?: string;
+    priority?: number;
+    estimatedPoints?: number;
+    metadata?: Record<string, unknown>;
+  }>,
+) {
   const now = new Date();
   const ticketIds: string[] = [];
 
@@ -1144,39 +1561,36 @@ export async function getNotifications(
     type?: NotificationType | NotificationType[];
     limit?: number;
     includeExpired?: boolean;
-  } = {}
+  } = {},
 ) {
   const { status, type, limit = 50, includeExpired = false } = options;
   const now = new Date();
-  
+
   // Build conditions
   const conditions = [eq(notifications.workspaceId, workspaceId)];
-  
+
   if (status) {
     if (Array.isArray(status)) {
-      conditions.push(or(...status.map(s => eq(notifications.status, s)))!);
+      conditions.push(or(...status.map((s) => eq(notifications.status, s)))!);
     } else {
       conditions.push(eq(notifications.status, status));
     }
   }
-  
+
   if (type) {
     if (Array.isArray(type)) {
-      conditions.push(or(...type.map(t => eq(notifications.type, t)))!);
+      conditions.push(or(...type.map((t) => eq(notifications.type, t)))!);
     } else {
       conditions.push(eq(notifications.type, type));
     }
   }
-  
+
   if (!includeExpired) {
     conditions.push(
-      or(
-        isNull(notifications.expiresAt),
-        gte(notifications.expiresAt, now)
-      )!
+      or(isNull(notifications.expiresAt), gte(notifications.expiresAt, now))!,
     );
   }
-  
+
   const results = await db.query.notifications.findMany({
     where: and(...conditions),
     orderBy: [desc(notifications.createdAt)],
@@ -1186,7 +1600,7 @@ export async function getNotifications(
       job: true,
     },
   });
-  
+
   return results;
 }
 
@@ -1206,10 +1620,7 @@ export async function getUnreadNotificationCount(workspaceId: string) {
     where: and(
       eq(notifications.workspaceId, workspaceId),
       eq(notifications.status, "unread"),
-      or(
-        isNull(notifications.expiresAt),
-        gte(notifications.expiresAt, now)
-      )
+      or(isNull(notifications.expiresAt), gte(notifications.expiresAt, now)),
     ),
   });
   return results.length;
@@ -1232,7 +1643,7 @@ export async function createNotification(data: {
 }) {
   const id = uuid();
   const now = new Date();
-  
+
   await db.insert(notifications).values({
     id,
     workspaceId: data.workspaceId,
@@ -1251,31 +1662,33 @@ export async function createNotification(data: {
     createdAt: now,
     expiresAt: data.expiresAt,
   });
-  
+
   return getNotification(id);
 }
 
 export async function updateNotificationStatus(
   id: string,
-  status: NotificationStatus
+  status: NotificationStatus,
 ) {
   const now = new Date();
-  
-  await db.update(notifications)
+
+  await db
+    .update(notifications)
     .set({
       status,
       ...(status === "read" && { readAt: now }),
       ...(status === "actioned" && { actionedAt: now, readAt: now }),
     })
     .where(eq(notifications.id, id));
-  
+
   return getNotification(id);
 }
 
 export async function markAllNotificationsRead(workspaceId: string) {
   const now = new Date();
-  
-  await db.update(notifications)
+
+  await db
+    .update(notifications)
     .set({
       status: "read",
       readAt: now,
@@ -1283,23 +1696,24 @@ export async function markAllNotificationsRead(workspaceId: string) {
     .where(
       and(
         eq(notifications.workspaceId, workspaceId),
-        eq(notifications.status, "unread")
-      )
+        eq(notifications.status, "unread"),
+      ),
     );
-  
+
   return { success: true };
 }
 
 export async function dismissNotification(id: string) {
   const now = new Date();
-  
-  await db.update(notifications)
+
+  await db
+    .update(notifications)
     .set({
       status: "dismissed",
       readAt: now,
     })
     .where(eq(notifications.id, id));
-  
+
   return { success: true };
 }
 
@@ -1310,14 +1724,16 @@ export async function deleteNotification(id: string) {
 
 export async function cleanupExpiredNotifications(workspaceId: string) {
   const now = new Date();
-  
-  await db.delete(notifications).where(
-    and(
-      eq(notifications.workspaceId, workspaceId),
-      lt(notifications.expiresAt, now)
-    )
-  );
-  
+
+  await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.workspaceId, workspaceId),
+        lt(notifications.expiresAt, now),
+      ),
+    );
+
   return { success: true };
 }
 
@@ -1331,7 +1747,7 @@ export async function createJobNotification(
     status: JobStatus;
     error?: string | null;
   },
-  projectName?: string
+  projectName?: string,
 ) {
   const jobTypeLabels: Record<JobType, string> = {
     generate_prd: "PRD Generation",
@@ -1347,10 +1763,13 @@ export async function createJobNotification(
     score_stage_alignment: "Alignment Scoring",
     deploy_chromatic: "Chromatic Deployment",
     create_feature_branch: "Branch Creation",
+    process_signal: "Signal Processing",
+    synthesize_signals: "Signal Synthesis",
+    execute_agent_definition: "Agent Execution",
   };
-  
+
   const label = jobTypeLabels[job.type] || job.type;
-  
+
   if (job.status === "failed") {
     return createNotification({
       workspaceId: job.workspaceId,
@@ -1359,22 +1778,28 @@ export async function createJobNotification(
       type: "job_failed",
       priority: "high",
       title: `${label} Failed`,
-      message: job.error || `The ${label.toLowerCase()} job failed. Click to view details and retry.`,
+      message:
+        job.error ||
+        `The ${label.toLowerCase()} job failed. Click to view details and retry.`,
       actionType: "retry",
       actionLabel: "Retry Job",
-      actionUrl: job.projectId ? `/workspace/${job.workspaceId}?project=${job.projectId}` : undefined,
+      actionUrl: job.projectId
+        ? `/workspace/${job.workspaceId}?project=${job.projectId}`
+        : undefined,
       actionData: { jobId: job.id, jobType: job.type },
       metadata: {
         errorDetails: job.error || undefined,
-        relatedEntity: projectName ? {
-          type: "document",
-          id: job.projectId || "",
-          name: projectName,
-        } : undefined,
+        relatedEntity: projectName
+          ? {
+              type: "document",
+              id: job.projectId || "",
+              name: projectName,
+            }
+          : undefined,
       },
     });
   }
-  
+
   if (job.status === "completed") {
     return createNotification({
       workspaceId: job.workspaceId,
@@ -1383,16 +1808,18 @@ export async function createJobNotification(
       type: "job_completed",
       priority: "low",
       title: `${label} Complete`,
-      message: projectName 
+      message: projectName
         ? `${label} completed for "${projectName}".`
         : `${label} completed successfully.`,
       actionType: "navigate",
       actionLabel: "View Result",
-      actionUrl: job.projectId ? `/workspace/${job.workspaceId}?project=${job.projectId}` : undefined,
+      actionUrl: job.projectId
+        ? `/workspace/${job.workspaceId}?project=${job.projectId}`
+        : undefined,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Expires in 24 hours
     });
   }
-  
+
   return null;
 }
 
@@ -1419,10 +1846,10 @@ export interface ActivityLogWithUser {
 
 export async function getWorkspaceActivityLogs(
   workspaceId: string,
-  options?: { limit?: number; offset?: number }
+  options?: { limit?: number; offset?: number },
 ): Promise<ActivityLogWithUser[]> {
   const { limit = 50, offset = 0 } = options || {};
-  
+
   const logs = await db
     .select({
       id: activityLogs.id,
@@ -1446,7 +1873,7 @@ export async function getWorkspaceActivityLogs(
     .orderBy(desc(activityLogs.createdAt))
     .limit(limit)
     .offset(offset);
-  
+
   return logs;
 }
 
@@ -1469,7 +1896,7 @@ export interface GetSignalsOptions {
 
 export async function getSignals(
   workspaceId: string,
-  options: GetSignalsOptions = {}
+  options: GetSignalsOptions = {},
 ) {
   const {
     search,
@@ -1491,8 +1918,8 @@ export async function getSignals(
     conditions.push(
       or(
         ilike(signals.verbatim, `%${search}%`),
-        ilike(signals.interpretation, `%${search}%`)
-      )!
+        ilike(signals.interpretation, `%${search}%`),
+      )!,
     );
   }
 
@@ -1574,7 +2001,10 @@ export async function getSignals(
 
 export async function getSignalsCount(
   workspaceId: string,
-  options: Omit<GetSignalsOptions, "page" | "pageSize" | "sortBy" | "sortOrder"> = {}
+  options: Omit<
+    GetSignalsOptions,
+    "page" | "pageSize" | "sortBy" | "sortOrder"
+  > = {},
 ) {
   const { search, status, source, dateFrom, dateTo } = options;
 
@@ -1585,8 +2015,8 @@ export async function getSignalsCount(
     conditions.push(
       or(
         ilike(signals.verbatim, `%${search}%`),
-        ilike(signals.interpretation, `%${search}%`)
-      )!
+        ilike(signals.interpretation, `%${search}%`),
+      )!,
     );
   }
 
@@ -1659,7 +2089,7 @@ export async function updateSignal(
     userSegment: string;
     sourceRef: string;
     sourceMetadata: SignalSourceMetadata;
-  }>
+  }>,
 ) {
   const now = new Date();
 
@@ -1707,7 +2137,7 @@ export async function linkSignalToProject(
   signalId: string,
   projectId: string,
   linkedBy: string,
-  linkReason?: string
+  linkReason?: string,
 ) {
   const id = uuid();
 
@@ -1729,15 +2159,15 @@ export async function linkSignalToProject(
  */
 export async function unlinkSignalFromProject(
   signalId: string,
-  projectId: string
+  projectId: string,
 ) {
   await db
     .delete(signalProjects)
     .where(
       and(
         eq(signalProjects.signalId, signalId),
-        eq(signalProjects.projectId, projectId)
-      )
+        eq(signalProjects.projectId, projectId),
+      ),
     );
 
   return { deleted: true };
@@ -1749,7 +2179,7 @@ export async function unlinkSignalFromProject(
 export async function linkSignalToPersona(
   signalId: string,
   personaId: string,
-  linkedBy: string
+  linkedBy: string,
 ) {
   const id = uuid();
 
@@ -1770,15 +2200,15 @@ export async function linkSignalToPersona(
  */
 export async function unlinkSignalFromPersona(
   signalId: string,
-  personaId: string
+  personaId: string,
 ) {
   await db
     .delete(signalPersonas)
     .where(
       and(
         eq(signalPersonas.signalId, signalId),
-        eq(signalPersonas.personaId, personaId)
-      )
+        eq(signalPersonas.personaId, personaId),
+      ),
     );
 
   return { deleted: true };
@@ -1790,7 +2220,7 @@ export async function unlinkSignalFromPersona(
  */
 export async function getSignalsForProject(
   projectId: string,
-  options?: { limit?: number; offset?: number }
+  options?: { limit?: number; offset?: number },
 ) {
   const { limit = 50, offset = 0 } = options || {};
 
@@ -1810,10 +2240,12 @@ export async function getSignalsForProject(
     linkedAt: link.linkedAt,
     linkReason: link.linkReason,
     confidence: link.confidence,
-    linkedBy: link.linkedByUser ? {
-      id: link.linkedByUser.id,
-      name: link.linkedByUser.name,
-    } : null,
+    linkedBy: link.linkedByUser
+      ? {
+          id: link.linkedByUser.id,
+          name: link.linkedByUser.name,
+        }
+      : null,
   }));
 }
 
@@ -1845,7 +2277,7 @@ export async function updateSignalProcessing(
     interpretation?: string | null;
     embedding?: string | null;
     processedAt?: Date | null;
-  }
+  },
 ) {
   await db
     .update(signals)
@@ -1876,7 +2308,7 @@ export async function findSimilarSignals(
   workspaceId: string,
   targetVector: number[],
   limit = 10,
-  excludeId?: string
+  excludeId?: string,
 ) {
   const vectorStr = `[${targetVector.join(",")}]`;
 
@@ -1923,7 +2355,7 @@ export async function findSimilarSignals(
  */
 export async function findBestProjectMatch(
   workspaceId: string,
-  signalVector: number[]
+  signalVector: number[],
 ) {
   const vectorStr = `[${signalVector.join(",")}]`;
 
@@ -1962,7 +2394,7 @@ export async function findBestProjectMatch(
  */
 export async function updateSignalClassification(
   id: string,
-  classification: SignalClassificationResult
+  classification: SignalClassificationResult,
 ) {
   await db
     .update(signals)
@@ -1980,7 +2412,7 @@ export async function updateSignalClassification(
  */
 export async function updateProjectEmbedding(
   id: string,
-  embeddingVector: number[]
+  embeddingVector: number[],
 ) {
   await db
     .update(projects)
@@ -1999,16 +2431,13 @@ export async function updateProjectEmbedding(
  */
 export async function getUnlinkedSignalsWithEmbeddings(
   workspaceId: string,
-  limit = 100
+  limit = 100,
 ) {
   return db.query.signals.findMany({
     where: and(
       eq(signals.workspaceId, workspaceId),
       isNotNull(signals.embeddingVector),
-      or(
-        eq(signals.status, "new"),
-        eq(signals.status, "reviewed")
-      )
+      or(eq(signals.status, "new"), eq(signals.status, "reviewed")),
     ),
     orderBy: [desc(signals.createdAt)],
     limit,
@@ -2029,7 +2458,7 @@ export async function bulkLinkSignalsToProject(
   signalIds: string[],
   projectId: string,
   userId: string,
-  linkReason?: string
+  linkReason?: string,
 ): Promise<{ linked: number; skipped: number }> {
   if (signalIds.length === 0) {
     return { linked: 0, skipped: 0 };
@@ -2039,7 +2468,7 @@ export async function bulkLinkSignalsToProject(
   const existingLinks = await db.query.signalProjects.findMany({
     where: and(
       inArray(signalProjects.signalId, signalIds),
-      eq(signalProjects.projectId, projectId)
+      eq(signalProjects.projectId, projectId),
     ),
     columns: { signalId: true },
   });
@@ -2059,19 +2488,14 @@ export async function bulkLinkSignalsToProject(
       projectId,
       linkedBy: userId,
       linkReason: linkReason || "Bulk linked",
-    }))
+    })),
   );
 
   // Update status to "linked" for signals that weren't already linked
   await db
     .update(signals)
     .set({ status: "linked", updatedAt: new Date() })
-    .where(
-      and(
-        inArray(signals.id, toLink),
-        ne(signals.status, "linked")
-      )
-    );
+    .where(and(inArray(signals.id, toLink), ne(signals.status, "linked")));
 
   return { linked: toLink.length, skipped: alreadyLinked.size };
 }
@@ -2083,7 +2507,7 @@ export async function bulkLinkSignalsToProject(
  */
 export async function bulkUnlinkSignalsFromProject(
   signalIds: string[],
-  projectId: string
+  projectId: string,
 ): Promise<{ unlinked: number; skipped: number }> {
   if (signalIds.length === 0) {
     return { unlinked: 0, skipped: 0 };
@@ -2093,7 +2517,7 @@ export async function bulkUnlinkSignalsFromProject(
   const existingLinks = await db.query.signalProjects.findMany({
     where: and(
       inArray(signalProjects.signalId, signalIds),
-      eq(signalProjects.projectId, projectId)
+      eq(signalProjects.projectId, projectId),
     ),
     columns: { signalId: true },
   });
@@ -2109,8 +2533,8 @@ export async function bulkUnlinkSignalsFromProject(
     .where(
       and(
         inArray(signalProjects.signalId, linkedSignalIds),
-        eq(signalProjects.projectId, projectId)
-      )
+        eq(signalProjects.projectId, projectId),
+      ),
     );
 
   // For each unlinked signal, check if it has any remaining project links
@@ -2127,12 +2551,7 @@ export async function bulkUnlinkSignalsFromProject(
       await db
         .update(signals)
         .set({ status: "reviewed", updatedAt: new Date() })
-        .where(
-          and(
-            eq(signals.id, signalId),
-            eq(signals.status, "linked")
-          )
-        );
+        .where(and(eq(signals.id, signalId), eq(signals.status, "linked")));
     }
   }
 
@@ -2157,17 +2576,19 @@ export async function bulkUnlinkSignalsFromProject(
  */
 export async function getSignalSuggestions(
   workspaceId: string,
-  limit: number = 20
-): Promise<Array<{
-  signalId: string;
-  verbatim: string;
-  source: string;
-  projectId: string;
-  projectName: string;
-  confidence: number;
-  reason?: string;
-  createdAt: Date;
-}>> {
+  limit: number = 20,
+): Promise<
+  Array<{
+    signalId: string;
+    verbatim: string;
+    source: string;
+    projectId: string;
+    projectName: string;
+    confidence: number;
+    reason?: string;
+    createdAt: Date;
+  }>
+> {
   // Use raw SQL for JSONB query performance
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -2213,7 +2634,7 @@ export async function getSignalSuggestions(
  */
 export async function dismissSignalSuggestion(
   signalId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
   await db
     .update(signals)
@@ -2236,7 +2657,7 @@ export async function dismissSignalSuggestion(
  * Used by automation engine and notification filters.
  */
 export async function getWorkspaceAutomationSettings(
-  workspaceId: string
+  workspaceId: string,
 ): Promise<SignalAutomationSettings> {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(workspaces.id, workspaceId),
@@ -2262,7 +2683,7 @@ export async function getWorkspaceAutomationSettings(
  * Get workspace maintenance settings, merging with defaults.
  */
 export async function getWorkspaceMaintenanceSettings(
-  workspaceId: string
+  workspaceId: string,
 ): Promise<MaintenanceSettings> {
   const workspace = await db.query.workspaces.findFirst({
     where: eq(workspaces.id, workspaceId),
@@ -2292,14 +2713,16 @@ export async function getWorkspaceMaintenanceSettings(
 export async function findBestProjectMatches(
   workspaceId: string,
   signalVector: number[],
-  limit = 3
-): Promise<Array<{
-  id: string;
-  name: string;
-  description: string | null;
-  stage: string;
-  similarity: number;
-}>> {
+  limit = 3,
+): Promise<
+  Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    stage: string;
+    similarity: number;
+  }>
+> {
   const vectorStr = `[${signalVector.join(",")}]`;
 
   const result = await db.execute(sql`
@@ -2324,4 +2747,114 @@ export async function findBestProjectMatches(
     stage: row.stage as string,
     similarity: row.similarity as number,
   }));
+}
+
+// ============================================
+// PROJECT COMMIT HISTORY QUERIES (Phase 5)
+// ============================================
+
+/**
+ * Get commit history for a project, ordered by most recent first.
+ * Used for WRITE-07 (user can see commit history for each project)
+ */
+export async function getProjectCommitHistory(
+  projectId: string,
+  options: { limit?: number; offset?: number } = {},
+) {
+  const { limit = 20, offset = 0 } = options;
+
+  return db.query.projectCommits.findMany({
+    where: eq(projectCommits.projectId, projectId),
+    orderBy: [desc(projectCommits.createdAt)],
+    limit,
+    offset,
+    with: {
+      stageRun: {
+        columns: {
+          id: true,
+          stage: true,
+          status: true,
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Get total commit count for a project.
+ */
+export async function getProjectCommitCount(
+  projectId: string,
+): Promise<number> {
+  const result = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(projectCommits)
+    .where(eq(projectCommits.projectId, projectId));
+
+  return result[0]?.count || 0;
+}
+
+/**
+ * Record a new commit in project history.
+ * Called by writeback service after successful commit.
+ */
+export async function recordProjectCommit(data: {
+  projectId: string;
+  workspaceId: string;
+  commitSha: string;
+  commitUrl: string;
+  message: string;
+  documentType?: string;
+  filesChanged?: string[];
+  triggeredBy?: string;
+  stageRunId?: string;
+  githubWriteOpId?: string;
+}) {
+  const id = `pcom_${uuid()}`;
+
+  await db.insert(projectCommits).values({
+    id,
+    projectId: data.projectId,
+    workspaceId: data.workspaceId,
+    commitSha: data.commitSha,
+    commitUrl: data.commitUrl,
+    message: data.message,
+    documentType: data.documentType,
+    filesChanged: data.filesChanged || [],
+    triggeredBy: data.triggeredBy,
+    stageRunId: data.stageRunId,
+    githubWriteOpId: data.githubWriteOpId,
+  });
+
+  return db.query.projectCommits.findFirst({
+    where: eq(projectCommits.id, id),
+  });
+}
+
+// ============================================
+// AGENT EXECUTION HISTORY QUERIES (Phase 6)
+// ============================================
+
+/**
+ * Get execution history for an agent definition.
+ * Returns recent executions with related job and project info.
+ * Used for AGUI-05 (user can see execution history for each agent).
+ */
+export async function getAgentExecutionHistory(
+  agentDefinitionId: string,
+  limit: number = 20,
+) {
+  return db.query.agentExecutions.findMany({
+    where: eq(agentExecutions.agentDefinitionId, agentDefinitionId),
+    orderBy: [desc(agentExecutions.createdAt)],
+    limit,
+    with: {
+      project: {
+        columns: { id: true, name: true },
+      },
+      job: {
+        columns: { id: true, status: true },
+      },
+    },
+  });
 }

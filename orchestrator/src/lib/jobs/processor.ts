@@ -428,13 +428,16 @@ export async function getJobStatusSummary(workspaceId: string) {
     total: allJobs.length,
     pending: 0,
     running: 0,
+    waiting_input: 0,
     completed: 0,
     failed: 0,
     cancelled: 0,
   };
 
   for (const job of allJobs) {
-    summary[job.status]++;
+    if (job.status in summary) {
+      summary[job.status as keyof typeof summary]++;
+    }
   }
 
   return summary;
