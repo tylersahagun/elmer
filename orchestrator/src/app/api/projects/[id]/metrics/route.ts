@@ -280,31 +280,33 @@ export async function PATCH(
             targetStage,
             "automation:metrics",
           );
-          stageAdvanced = updatedStageProject.stage as ProjectStage;
-          await logProjectStageChanged(
-            project.workspaceId,
-            membership.userId,
-            id,
-            project.name,
-            previousStage,
-            targetStage,
-          );
-          after(async () => {
-            try {
-              const automationTriggeredBy = `automation:metrics`;
-              await triggerColumnAutomation(
-                project.workspaceId,
-                id,
-                targetStage,
-                automationTriggeredBy,
-              );
-            } catch (automationError) {
-              console.error(
-                "[MetricsAutoAdvance] Failed to trigger column automation",
-                automationError,
-              );
-            }
-          });
+          if (updatedStageProject) {
+            stageAdvanced = updatedStageProject.stage as ProjectStage;
+            await logProjectStageChanged(
+              project.workspaceId,
+              membership.userId,
+              id,
+              project.name,
+              previousStage,
+              targetStage,
+            );
+            after(async () => {
+              try {
+                const automationTriggeredBy = `automation:metrics`;
+                await triggerColumnAutomation(
+                  project.workspaceId,
+                  id,
+                  targetStage,
+                  automationTriggeredBy,
+                );
+              } catch (automationError) {
+                console.error(
+                  "[MetricsAutoAdvance] Failed to trigger column automation",
+                  automationError,
+                );
+              }
+            });
+          }
         }
       }
     }

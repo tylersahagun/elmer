@@ -11,7 +11,7 @@
  */
 export interface WritebackConfig {
   workspaceId: string;
-  projectId: string;
+  projectId?: string;
   projectName: string;
   owner: string;
   repo: string;
@@ -44,7 +44,7 @@ export interface WritebackResult {
  * Provides context about what triggered the commit.
  */
 export interface CommitMetadata {
-  projectId: string;
+  projectId?: string;
   projectName: string;
   documentType?: string; // "prd" | "design_brief" | "prototype_notes" | etc.
   triggeredBy?: string; // "automation" | "user" | stage run ID

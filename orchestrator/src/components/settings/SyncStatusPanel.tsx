@@ -27,6 +27,7 @@ interface SyncActivity {
     itemsProcessed?: number;
     duration?: number;
     error?: string;
+    toolkit?: string;
   } | null;
   createdAt: string;
   user: {

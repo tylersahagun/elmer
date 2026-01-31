@@ -25,6 +25,7 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
+  type LucideIcon,
 } from "lucide-react";
 
 interface Message {
@@ -53,8 +54,18 @@ interface CommandDefinition {
   } | null;
 }
 
+type CommandItem = {
+  command: string;
+  label: string;
+  description: string;
+  jobType: string | null;
+  requiresProject: boolean;
+  icon?: LucideIcon;
+  agentDefinitionId?: string;
+};
+
 // Slash commands definition
-const SLASH_COMMANDS = [
+const SLASH_COMMANDS: CommandItem[] = [
   {
     command: "/research",
     label: "Analyze Research",
@@ -467,7 +478,7 @@ export function ChatSidebar() {
     enabled: Boolean(workspace?.id),
   });
 
-  const dynamicCommands = useMemo(() => {
+  const dynamicCommands = useMemo<CommandItem[]>(() => {
     if (!commandDefinitions || commandDefinitions.length === 0) return [];
     const staticSet = new Set(SLASH_COMMANDS.map((cmd) => cmd.command));
     return commandDefinitions
@@ -486,6 +497,7 @@ export function ChatSidebar() {
           description: cmd.description || "Run workspace command",
           jobType: "execute_agent_definition",
           requiresProject: false,
+          icon: Terminal,
           agentDefinitionId: cmd.id,
         };
       })
@@ -666,7 +678,7 @@ export function ChatSidebar() {
     (
       text: string,
     ): {
-      command: (typeof SLASH_COMMANDS)[0] | (typeof dynamicCommands)[0] | null;
+      command: CommandItem | null;
       projectName: string | null;
       args: string;
     } => {
@@ -988,7 +1000,7 @@ export function ChatSidebar() {
     }
   };
 
-  const handleSelectCommand = (command: (typeof SLASH_COMMANDS)[0]) => {
+  const handleSelectCommand = (command: CommandItem) => {
     setInput(command.command + " ");
     setShowCommandPicker(false);
     inputRef.current?.focus();
@@ -1230,7 +1242,7 @@ export function ChatSidebar() {
                 </p>
                 <div className="space-y-1">
                   {filteredCommands.map((cmd, index) => {
-                    const Icon = cmd.icon;
+                    const Icon = cmd.icon ?? Terminal;
                     return (
                       <button
                         key={cmd.command}

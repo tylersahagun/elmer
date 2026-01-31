@@ -68,7 +68,8 @@ export async function POST(
 
     // Build onboarding data - preserve any import counts from discovery step
     // The discovery import endpoint may have already populated these values
-    const existingOnboardingData = workspace.onboardingData || {};
+    const existingOnboardingData = (workspace.onboardingData ??
+      {}) as Partial<OnboardingData>;
     const onboardingData: OnboardingData = {
       ...existingOnboardingData,
       completedAt: new Date().toISOString(),

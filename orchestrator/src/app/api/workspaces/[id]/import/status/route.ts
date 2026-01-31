@@ -37,7 +37,7 @@ export async function GET(
     const { id: workspaceId } = await params;
 
     // Require read access to check status
-    await requireWorkspaceAccess(workspaceId, "read");
+    await requireWorkspaceAccess(workspaceId, "viewer");
 
     // Get project counts
     const [projectStats] = await db

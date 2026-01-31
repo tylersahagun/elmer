@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -28,17 +34,20 @@ interface PipelineSettingsCardProps {
   automationNotifyStage: string;
   setAutomationNotifyStage: (value: string) => void;
   knowledgebaseMapping: Record<string, string>;
-  setKnowledgebaseMapping: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setKnowledgebaseMapping: React.Dispatch<
+    React.SetStateAction<Record<string, string>>
+  >;
   columns: Column[];
 }
 
-const knowledgebaseOptions: Array<{ value: KnowledgebaseType; label: string }> = [
-  { value: "company_context", label: "Company Context" },
-  { value: "strategic_guardrails", label: "Guardrails" },
-  { value: "personas", label: "Personas" },
-  { value: "roadmap", label: "Roadmap" },
-  { value: "rules", label: "Rules" },
-];
+const knowledgebaseOptions: Array<{ value: KnowledgebaseType; label: string }> =
+  [
+    { value: "company_context", label: "Company Context" },
+    { value: "strategic_guardrails", label: "Guardrails" },
+    { value: "personas", label: "Personas" },
+    { value: "roadmap", label: "Roadmap" },
+    { value: "rules", label: "Rules" },
+  ];
 
 const documentTypeLabels: Record<DocumentType, string> = {
   research: "Research",
@@ -48,6 +57,7 @@ const documentTypeLabels: Record<DocumentType, string> = {
   gtm_brief: "GTM Brief",
   prototype_notes: "Prototype Notes",
   jury_report: "Jury Report",
+  metrics: "Metrics",
   state: "State",
 };
 
@@ -64,7 +74,7 @@ export function PipelineSettingsCard({
 }: PipelineSettingsCardProps) {
   const sortedDocumentTypes = useMemo(
     () => (Object.keys(documentTypeLabels) as DocumentType[]).sort(),
-    []
+    [],
   );
 
   const enabledColumns = columns
@@ -92,16 +102,24 @@ export function PipelineSettingsCard({
               <Select
                 value={automationMode}
                 onValueChange={(value) =>
-                  setAutomationMode(value as "manual" | "auto_to_stage" | "auto_all")
+                  setAutomationMode(
+                    value as "manual" | "auto_to_stage" | "auto_all",
+                  )
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manual">Manual - Require approval for each stage</SelectItem>
-                  <SelectItem value="auto_to_stage">Auto until stage - Run automatically then pause</SelectItem>
-                  <SelectItem value="auto_all">Auto all stages - Fully automated pipeline</SelectItem>
+                  <SelectItem value="manual">
+                    Manual - Require approval for each stage
+                  </SelectItem>
+                  <SelectItem value="auto_to_stage">
+                    Auto until stage - Run automatically then pause
+                  </SelectItem>
+                  <SelectItem value="auto_all">
+                    Auto all stages - Fully automated pipeline
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -110,7 +128,9 @@ export function PipelineSettingsCard({
                 <Label>Stop At Stage</Label>
                 <Select
                   value={automationStopStage || "none"}
-                  onValueChange={(value) => setAutomationStopStage(value === "none" ? "" : value)}
+                  onValueChange={(value) =>
+                    setAutomationStopStage(value === "none" ? "" : value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select stage" />
@@ -134,7 +154,9 @@ export function PipelineSettingsCard({
             <Label>Notify At Stage</Label>
             <Select
               value={automationNotifyStage || "always"}
-              onValueChange={(value) => setAutomationNotifyStage(value === "always" ? "" : value)}
+              onValueChange={(value) =>
+                setAutomationNotifyStage(value === "always" ? "" : value)
+              }
             >
               <SelectTrigger className="max-w-md">
                 <SelectValue />
@@ -156,16 +178,15 @@ export function PipelineSettingsCard({
           <div>
             <h4 className="text-sm font-medium">Knowledge Base Publishing</h4>
             <p className="text-xs text-muted-foreground mt-1">
-              When jobs generate documents, they can automatically be copied to your knowledge base.
-              Map each document type to a section, or leave as &quot;None&quot; to keep documents only in the project folder.
+              When jobs generate documents, they can automatically be copied to
+              your knowledge base. Map each document type to a section, or leave
+              as &quot;None&quot; to keep documents only in the project folder.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {sortedDocumentTypes.map((docType) => (
               <div key={docType} className="space-y-1.5">
-                <Label className="text-sm">
-                  {documentTypeLabels[docType]}
-                </Label>
+                <Label className="text-sm">{documentTypeLabels[docType]}</Label>
                 <Select
                   value={knowledgebaseMapping[docType] || "none"}
                   onValueChange={(value) =>

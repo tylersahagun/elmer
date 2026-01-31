@@ -434,7 +434,7 @@ export const projects = pgTable("projects", {
   embeddingUpdatedAt: timestamp("embedding_updated_at", { mode: "string" }),
 });
 
-export interface ProjectMetadata {
+export interface ProjectMetadata extends Record<string, unknown> {
   personas?: string[];
   hypothesis?: string;
   linkedIssues?: string[];
@@ -545,6 +545,12 @@ export interface DocumentMetadata {
   verdict?: string; // For validation/jury documents
   score?: number; // For scored documents
   approvalRate?: number; // For jury/validation approval percentage
+  fallbackApprovalRate?: number;
+  weightedScores?: Array<{
+    persona: string;
+    score: number;
+    weight: number;
+  }>;
 }
 
 // ============================================

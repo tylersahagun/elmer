@@ -12,7 +12,7 @@ import {
   documents,
   juryEvaluations,
   prototypes,
-  signals,
+  signalProjects,
   type GraduationCriteria,
   type DocumentType,
   type ProjectStage,
@@ -196,8 +196,8 @@ export async function checkGraduationCriteria(
   if (criteria.minSignalsProcessed !== undefined) {
     const signalCount = await db
       .select({ count: sqlCount() })
-      .from(signals)
-      .where(eq(signals.projectId, projectId));
+      .from(signalProjects)
+      .where(eq(signalProjects.projectId, projectId));
 
     const count = signalCount[0]?.count ?? 0;
     const passed = count >= criteria.minSignalsProcessed;
@@ -511,8 +511,8 @@ export async function calculateStageQuality(params: {
     (
       await db
         .select({ count: sqlCount() })
-        .from(signals)
-        .where(eq(signals.projectId, params.projectId))
+        .from(signalProjects)
+        .where(eq(signalProjects.projectId, params.projectId))
     )[0]?.count ??
     0;
   const juryPassCount =

@@ -69,10 +69,7 @@ export async function POST(request: NextRequest) {
       : { created: 0, existing: 0 };
 
     // Log the sync activity
-    const totalSynced =
-      (result.agents?.length || 0) +
-      (result.commands?.length || 0) +
-      (result.rules?.length || 0);
+    const totalSynced = result.count ?? 0;
     await logAgentsSynced(
       workspaceId,
       session.user.id,

@@ -278,7 +278,7 @@ export async function updateWorkspace(
   data: {
     name?: string;
     description?: string;
-    githubRepo?: string;
+    githubRepo?: string | null;
     contextPath?: string;
     settings?: WorkspaceSettings;
     onboardingCompletedAt?: Date;
