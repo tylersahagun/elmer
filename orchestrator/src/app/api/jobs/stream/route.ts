@@ -1,9 +1,9 @@
 /**
  * Job Status Stream API (Server-Sent Events)
- * 
+ *
  * Provides real-time job status updates via SSE.
  * Clients connect and receive updates as jobs change status.
- * 
+ *
  * OPTIMIZATION: Uses adaptive polling to minimize database load:
  * - Fast polling (5s) when jobs are actively running
  * - Slow polling (30s) when idle
@@ -12,17 +12,23 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { jobs } from "@/lib/db/schema";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, gt } from "drizzle-orm";
 
 // Polling intervals
-const POLL_INTERVAL_ACTIVE = 5000;  // 5s when jobs are running
-const POLL_INTERVAL_IDLE = 30000;   // 30s when no active jobs
+const POLL_INTERVAL_ACTIVE = 5000; // 5s when jobs are running
+const POLL_INTERVAL_IDLE = 30000; // 30s when no active jobs
 
 // Store for active connections per workspace
-const activeConnections = new Map<string, Set<ReadableStreamDefaultController>>();
+const activeConnections = new Map<
+  string,
+  Set<ReadableStreamDefaultController>
+>();
 
 // Broadcast update to all connections for a workspace
-export function broadcastJobUpdate(workspaceId: string, data: Record<string, unknown>) {
+export function broadcastJobUpdate(
+  workspaceId: string,
+  data: Record<string, unknown>,
+) {
   const connections = activeConnections.get(workspaceId);
   if (!connections) return;
 
@@ -58,7 +64,11 @@ export async function GET(request: NextRequest) {
 
       // Send initial connection message
       const encoder = new TextEncoder();
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "connected", workspaceId })}\n\n`));
+      controller.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({ type: "connected", workspaceId })}\n\n`,
+        ),
+      );
 
       // Send current job status
       (async () => {
@@ -66,17 +76,18 @@ export async function GET(request: NextRequest) {
           const currentJobs = await db.query.jobs.findMany({
             where: and(
               eq(jobs.workspaceId, workspaceId),
-              or(
-                eq(jobs.status, "pending"),
-                eq(jobs.status, "running")
-              )
+              or(eq(jobs.status, "pending"), eq(jobs.status, "running")),
             ),
           });
 
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: "initial", 
-            jobs: currentJobs 
-          })}\n\n`));
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: "initial",
+                jobs: currentJobs,
+              })}\n\n`,
+            ),
+          );
         } catch (error) {
           console.error("Failed to send initial jobs:", error);
         }
@@ -86,39 +97,65 @@ export async function GET(request: NextRequest) {
       // Uses faster polling when jobs are active, slower when idle
       let pollTimeoutId: NodeJS.Timeout | null = null;
       let hasActiveJobsLastPoll = false;
+      let lastCompletedAt = new Date();
 
       const poll = async () => {
         try {
           const activeJobs = await db.query.jobs.findMany({
             where: and(
               eq(jobs.workspaceId, workspaceId),
-              or(
-                eq(jobs.status, "pending"),
-                eq(jobs.status, "running")
-              )
+              or(eq(jobs.status, "pending"), eq(jobs.status, "running")),
             ),
           });
 
           // Get recently completed jobs
           const recentJobs = await db.query.jobs.findMany({
-            where: eq(jobs.workspaceId, workspaceId),
+            where: and(
+              eq(jobs.workspaceId, workspaceId),
+              or(
+                eq(jobs.status, "completed"),
+                eq(jobs.status, "failed"),
+                eq(jobs.status, "cancelled"),
+              ),
+              gt(jobs.completedAt, lastCompletedAt),
+            ),
             orderBy: (jobs, { desc }) => [desc(jobs.completedAt)],
             limit: 5,
           });
 
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: "poll", 
-            activeJobs,
-            summary: {
-              pending: activeJobs.filter(j => j.status === "pending").length,
-              running: activeJobs.filter(j => j.status === "running").length,
-            },
-            recentCompleted: recentJobs.filter(j => j.status === "completed" || j.status === "failed"),
-          })}\n\n`));
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: "poll",
+                activeJobs,
+                summary: {
+                  pending: activeJobs.filter((j) => j.status === "pending")
+                    .length,
+                  running: activeJobs.filter((j) => j.status === "running")
+                    .length,
+                },
+                recentCompleted: recentJobs.filter(
+                  (job) =>
+                    job.status === "completed" ||
+                    job.status === "failed" ||
+                    job.status === "cancelled",
+                ),
+              })}\n\n`,
+            ),
+          );
+
+          if (recentJobs.length > 0) {
+            const newestCompleted = recentJobs[0]?.completedAt;
+            if (newestCompleted) {
+              lastCompletedAt = new Date(newestCompleted);
+            }
+          }
 
           // Determine next poll interval based on active jobs
           hasActiveJobsLastPoll = activeJobs.length > 0;
-          const nextInterval = hasActiveJobsLastPoll ? POLL_INTERVAL_ACTIVE : POLL_INTERVAL_IDLE;
+          const nextInterval = hasActiveJobsLastPoll
+            ? POLL_INTERVAL_ACTIVE
+            : POLL_INTERVAL_IDLE;
           pollTimeoutId = setTimeout(poll, nextInterval);
         } catch {
           // Connection might be closed, try to continue polling
@@ -153,7 +190,7 @@ export async function GET(request: NextRequest) {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
     },
   });
 }

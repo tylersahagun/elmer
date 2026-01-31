@@ -1,28 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard, GlassPanel } from "@/components/glass";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { staggerContainer, staggerItem } from "@/lib/animations";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   TrendingDown,
-  Users,
-  MousePointer,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  ArrowUpRight,
   BarChart3,
   Activity,
+  FileText,
+  Layers,
+  MessageSquare,
   Target,
   Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface MetricCardProps {
   title: string;
@@ -33,21 +30,54 @@ interface MetricCardProps {
   color: string;
 }
 
-function MetricCard({ title, value, change, changeLabel, icon: Icon, color }: MetricCardProps) {
+interface MetricsThreshold {
+  users: number;
+  engagement: number;
+  errors: number;
+  satisfaction: number;
+}
+
+interface MetricsValues {
+  users: number;
+  engagement: number;
+  errors: number;
+  satisfaction: number;
+}
+
+function MetricCard({
+  title,
+  value,
+  change,
+  changeLabel,
+  icon: Icon,
+  color,
+}: MetricCardProps) {
   const isPositive = change && change > 0;
   const isNegative = change && change < 0;
 
   return (
     <GlassCard className="p-4">
       <div className="flex items-start justify-between mb-3">
-        <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center`}>
+        <div
+          className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center`}
+        >
           <Icon className="w-5 h-5 text-white" />
         </div>
         {change !== undefined && (
-          <div className={`flex items-center gap-1 text-xs ${
-            isPositive ? "text-green-400" : isNegative ? "text-red-400" : "text-muted-foreground"
-          }`}>
-            {isPositive ? <TrendingUp className="w-3 h-3" /> : isNegative ? <TrendingDown className="w-3 h-3" /> : null}
+          <div
+            className={`flex items-center gap-1 text-xs ${
+              isPositive
+                ? "text-green-400"
+                : isNegative
+                  ? "text-red-400"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {isPositive ? (
+              <TrendingUp className="w-3 h-3" />
+            ) : isNegative ? (
+              <TrendingDown className="w-3 h-3" />
+            ) : null}
             {Math.abs(change)}%
           </div>
         )}
@@ -55,185 +85,181 @@ function MetricCard({ title, value, change, changeLabel, icon: Icon, color }: Me
       <div className="text-2xl font-heading mb-1">{value}</div>
       <div className="text-xs text-muted-foreground">{title}</div>
       {changeLabel && (
-        <div className="text-[10px] text-muted-foreground mt-1">{changeLabel}</div>
+        <div className="text-[10px] text-muted-foreground mt-1">
+          {changeLabel}
+        </div>
       )}
     </GlassCard>
-  );
-}
-
-interface ReleaseStageProps {
-  stage: "alpha" | "beta" | "ga";
-  metrics: {
-    users: number;
-    engagement: number;
-    errors: number;
-    satisfaction: number;
-  };
-  thresholds: {
-    users: number;
-    engagement: number;
-    errors: number;
-    satisfaction: number;
-  };
-}
-
-function ReleaseStageCard({ stage, metrics, thresholds }: ReleaseStageProps) {
-  const stageConfig = {
-    alpha: { label: "Alpha", color: "bg-cyan-500", description: "Internal testing" },
-    beta: { label: "Beta", color: "bg-indigo-500", description: "Limited users" },
-    ga: { label: "GA", color: "bg-emerald-500", description: "General availability" },
-  };
-
-  const config = stageConfig[stage];
-
-  const checkThreshold = (value: number, threshold: number, inverse = false) => {
-    if (inverse) return value <= threshold;
-    return value >= threshold;
-  };
-
-  const metricsStatus = {
-    users: checkThreshold(metrics.users, thresholds.users),
-    engagement: checkThreshold(metrics.engagement, thresholds.engagement),
-    errors: checkThreshold(metrics.errors, thresholds.errors, true),
-    satisfaction: checkThreshold(metrics.satisfaction, thresholds.satisfaction),
-  };
-
-  const allPassing = Object.values(metricsStatus).every(Boolean);
-
-  return (
-    <GlassCard className="p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-3 h-3 rounded-full ${config.color}`} />
-          <div>
-            <h3 className="font-semibold">{config.label}</h3>
-            <p className="text-xs text-muted-foreground">{config.description}</p>
-          </div>
-        </div>
-        <Badge variant={allPassing ? "default" : "secondary"} className={allPassing ? "bg-green-500/20 text-green-400" : ""}>
-          {allPassing ? "Ready to advance" : "In progress"}
-        </Badge>
-      </div>
-
-      <div className="space-y-3">
-        <MetricRow
-          label="Active Users"
-          value={metrics.users}
-          threshold={thresholds.users}
-          passing={metricsStatus.users}
-          format={(v) => v.toLocaleString()}
-        />
-        <MetricRow
-          label="Engagement Rate"
-          value={metrics.engagement}
-          threshold={thresholds.engagement}
-          passing={metricsStatus.engagement}
-          format={(v) => `${v}%`}
-        />
-        <MetricRow
-          label="Error Rate"
-          value={metrics.errors}
-          threshold={thresholds.errors}
-          passing={metricsStatus.errors}
-          format={(v) => `${v}%`}
-          inverse
-        />
-        <MetricRow
-          label="User Satisfaction"
-          value={metrics.satisfaction}
-          threshold={thresholds.satisfaction}
-          passing={metricsStatus.satisfaction}
-          format={(v) => `${v}/5`}
-        />
-      </div>
-
-      {allPassing && stage !== "ga" && (
-        <Button className="w-full mt-4 gap-2" size="sm">
-          <ArrowUpRight className="w-4 h-4" />
-          Advance to {stage === "alpha" ? "Beta" : "GA"}
-        </Button>
-      )}
-    </GlassCard>
-  );
-}
-
-function MetricRow({
-  label,
-  value,
-  threshold,
-  passing,
-  format,
-  inverse = false,
-}: {
-  label: string;
-  value: number;
-  threshold: number;
-  passing: boolean;
-  format: (v: number) => string;
-  inverse?: boolean;
-}) {
-  const progress = inverse
-    ? Math.max(0, Math.min(100, ((threshold - value) / threshold) * 100 + 100))
-    : Math.min(100, (value / threshold) * 100);
-
-  return (
-    <div>
-      <div className="flex items-center justify-between text-sm mb-1">
-        <span className="text-muted-foreground">{label}</span>
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{format(value)}</span>
-          <span className="text-xs text-muted-foreground">/ {format(threshold)}</span>
-          {passing ? (
-            <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-          ) : (
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-          )}
-        </div>
-      </div>
-      <Progress 
-        value={progress}
-        className={cn(
-          "h-1.5 bg-white/10",
-          passing 
-            ? "[&>div]:bg-green-500" 
-            : "[&>div]:bg-amber-500"
-        )}
-      />
-    </div>
   );
 }
 
 interface MetricsDashboardProps {
   projectName: string;
+  activity?: {
+    documents: number;
+    prototypes: number;
+    signals?: number;
+  };
+  posthogConnected?: boolean;
+  projectId: string;
+  projectStage: "alpha" | "beta" | "ga" | string;
+  releaseMetrics?: {
+    thresholds?: {
+      alpha?: MetricsThreshold;
+      beta?: MetricsThreshold;
+      ga?: MetricsThreshold;
+    };
+    current?: MetricsValues;
+    autoAdvance?: boolean;
+  };
 }
 
-export function MetricsDashboard({ projectName }: MetricsDashboardProps) {
+export function MetricsDashboard({
+  projectName,
+  activity,
+  posthogConnected = false,
+  projectId,
+  projectStage,
+  releaseMetrics,
+}: MetricsDashboardProps) {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Mock data - would come from PostHog API
-  const overviewMetrics = {
-    totalUsers: 1234,
-    activeUsers: 892,
-    engagement: 73,
-    avgSessionTime: "4m 32s",
-    errorRate: 0.8,
-    satisfaction: 4.2,
+  const thresholds = useMemo(
+    () => ({
+      alpha: releaseMetrics?.thresholds?.alpha ?? {
+        users: 25,
+        engagement: 50,
+        errors: 5,
+        satisfaction: 3.5,
+      },
+      beta: releaseMetrics?.thresholds?.beta ?? {
+        users: 100,
+        engagement: 60,
+        errors: 2,
+        satisfaction: 4,
+      },
+      ga: releaseMetrics?.thresholds?.ga ?? {
+        users: 500,
+        engagement: 70,
+        errors: 1,
+        satisfaction: 4,
+      },
+    }),
+    [releaseMetrics],
+  );
+
+  const [currentMetrics, setCurrentMetrics] = useState<MetricsValues>(
+    releaseMetrics?.current ?? {
+      users: 0,
+      engagement: 0,
+      errors: 0,
+      satisfaction: 0,
+    },
+  );
+  const [autoAdvance, setAutoAdvance] = useState(
+    releaseMetrics?.autoAdvance ?? false,
+  );
+
+  const [thresholdState, setThresholdState] =
+    useState<Record<"alpha" | "beta" | "ga", MetricsThreshold>>(thresholds);
+
+  const handleSaveConfig = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/metrics`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          thresholds: thresholdState,
+          current: currentMetrics,
+          autoAdvance,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save metrics config");
+      }
+      toast.success("Metrics configuration saved");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save metrics",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const releaseMetrics = {
-    alpha: {
-      metrics: { users: 50, engagement: 65, errors: 2.1, satisfaction: 3.8 },
-      thresholds: { users: 25, engagement: 50, errors: 5, satisfaction: 3.5 },
-    },
-    beta: {
-      metrics: { users: 180, engagement: 58, errors: 1.2, satisfaction: 4.0 },
-      thresholds: { users: 100, engagement: 60, errors: 2, satisfaction: 4.0 },
-    },
-    ga: {
-      metrics: { users: 892, engagement: 73, errors: 0.8, satisfaction: 4.2 },
-      thresholds: { users: 500, engagement: 70, errors: 1, satisfaction: 4.0 },
-    },
+  const handleGenerateMetricsDoc = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/metrics`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate METRICS.md");
+      }
+      toast.success("Generated METRICS.md");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to generate metrics",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
+
+  const evaluateGate = (stage: "alpha" | "beta") => {
+    const threshold = thresholdState[stage];
+    return (
+      currentMetrics.users >= threshold.users &&
+      currentMetrics.engagement >= threshold.engagement &&
+      currentMetrics.errors <= threshold.errors &&
+      currentMetrics.satisfaction >= threshold.satisfaction
+    );
+  };
+
+  const handleAdvanceStage = async (targetStage: "beta" | "ga") => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: targetStage }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to advance stage");
+      }
+      toast.success(`Advanced to ${targetStage.toUpperCase()}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to advance stage",
+      );
+    }
+  };
+
+  const activityMetrics = [
+    {
+      title: "Documents",
+      value: activity?.documents ?? 0,
+      icon: FileText,
+      color: "bg-purple-500",
+    },
+    {
+      title: "Prototypes",
+      value: activity?.prototypes ?? 0,
+      icon: Layers,
+      color: "bg-pink-500",
+    },
+    {
+      title: "Signals",
+      value: activity?.signals ?? 0,
+      icon: MessageSquare,
+      color: "bg-teal-500",
+    },
+  ];
 
   return (
     <motion.div
@@ -243,199 +269,235 @@ export function MetricsDashboard({ projectName }: MetricsDashboardProps) {
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div variants={staggerItem} className="flex items-center justify-between">
+      <motion.div
+        variants={staggerItem}
+        className="flex items-center justify-between"
+      >
         <div>
           <h2 className="text-xl font-semibold">{projectName} Metrics</h2>
-          <p className="text-sm text-muted-foreground">PostHog analytics and release tracking</p>
+          <p className="text-sm text-muted-foreground">
+            PostHog analytics and release tracking
+          </p>
         </div>
-        <Button variant="outline" className="gap-2 glass-card border-white/20">
-          <Activity className="w-4 h-4" />
-          Open PostHog
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2 glass-card border-white/20"
+            onClick={handleGenerateMetricsDoc}
+            disabled={isGenerating}
+          >
+            <Activity className="w-4 h-4" />
+            {isGenerating ? "Generating..." : "Generate METRICS.md"}
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2 glass-card border-white/20"
+            disabled={!posthogConnected}
+          >
+            <Activity className="w-4 h-4" />
+            Open PostHog
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* Project activity */}
+      <motion.div
+        variants={staggerItem}
+        className="grid grid-cols-2 md:grid-cols-3 gap-4"
+      >
+        {activityMetrics.map((metric) => (
+          <MetricCard
+            key={metric.title}
+            title={metric.title}
+            value={metric.value}
+            icon={metric.icon}
+            color={metric.color}
+          />
+        ))}
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="glass-card border-white/20">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="release">Release Stages</TabsTrigger>
+          <TabsTrigger value="config">Config</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <motion.div
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
-          >
-            <motion.div variants={staggerItem}>
-              <MetricCard
-                title="Total Users"
-                value={overviewMetrics.totalUsers.toLocaleString()}
-                change={12}
-                changeLabel="vs last month"
-                icon={Users}
-                color="bg-purple-500"
-              />
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              <MetricCard
-                title="Active Users"
-                value={overviewMetrics.activeUsers.toLocaleString()}
-                change={8}
-                changeLabel="vs last week"
-                icon={Activity}
-                color="bg-teal-500"
-              />
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              <MetricCard
-                title="Engagement"
-                value={`${overviewMetrics.engagement}%`}
-                change={5}
-                changeLabel="vs last week"
-                icon={MousePointer}
-                color="bg-pink-500"
-              />
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              <MetricCard
-                title="Avg Session"
-                value={overviewMetrics.avgSessionTime}
-                change={15}
-                changeLabel="vs last week"
-                icon={Clock}
-                color="bg-amber-500"
-              />
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              <MetricCard
-                title="Error Rate"
-                value={`${overviewMetrics.errorRate}%`}
-                change={-23}
-                changeLabel="vs last week"
-                icon={AlertTriangle}
-                color="bg-red-500"
-              />
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              <MetricCard
-                title="Satisfaction"
-                value={`${overviewMetrics.satisfaction}/5`}
-                change={3}
-                changeLabel="vs last month"
-                icon={Target}
-                color="bg-green-500"
-              />
-            </motion.div>
-          </motion.div>
-
-          {/* Chart placeholder */}
-          <motion.div variants={staggerItem} className="mt-6">
-            <GlassPanel className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Usage Over Time</h3>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm">7D</Button>
-                  <Button variant="ghost" size="sm">30D</Button>
-                  <Button variant="ghost" size="sm">90D</Button>
-                </div>
+          <GlassPanel className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Usage Over Time</h3>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm">
+                  7D
+                </Button>
+                <Button variant="ghost" size="sm">
+                  30D
+                </Button>
+                <Button variant="ghost" size="sm">
+                  90D
+                </Button>
               </div>
-              <div className="h-64 flex items-center justify-center border border-dashed border-white/20 rounded-xl">
-                <div className="text-center text-muted-foreground">
-                  <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Chart visualization</p>
-                  <p className="text-xs">Connect PostHog to see real data</p>
-                </div>
+            </div>
+            <div className="h-64 flex items-center justify-center border border-dashed border-white/20 rounded-xl">
+              <div className="text-center text-muted-foreground">
+                <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">
+                  {posthogConnected
+                    ? "No PostHog data available yet"
+                    : "Connect PostHog to see metrics"}
+                </p>
+                <p className="text-xs">Metrics will appear once data flows</p>
               </div>
-            </GlassPanel>
-          </motion.div>
+            </div>
+          </GlassPanel>
         </TabsContent>
 
         <TabsContent value="release" className="mt-6">
-          <motion.div
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-          >
-            <motion.div variants={staggerItem}>
-              <ReleaseStageCard stage="alpha" {...releaseMetrics.alpha} />
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              <ReleaseStageCard stage="beta" {...releaseMetrics.beta} />
-            </motion.div>
-            <motion.div variants={staggerItem}>
-              <ReleaseStageCard stage="ga" {...releaseMetrics.ga} />
-            </motion.div>
-          </motion.div>
-
-          <motion.div variants={staggerItem} className="mt-6">
-            <GlassPanel className="p-6">
-              <h3 className="font-semibold mb-4">Automatic Stage Advancement</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Configure thresholds for automatic promotion between release stages.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-amber-400" />
-                    <span className="font-medium text-sm">Alpha → Beta</span>
-                  </div>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• 25+ active users</li>
-                    <li>• 50%+ engagement rate</li>
-                    <li>• &lt;5% error rate</li>
-                    <li>• 3.5+ satisfaction score</li>
-                  </ul>
-                </div>
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-green-400" />
-                    <span className="font-medium text-sm">Beta → GA</span>
-                  </div>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• 100+ active users</li>
-                    <li>• 60%+ engagement rate</li>
-                    <li>• &lt;2% error rate</li>
-                    <li>• 4.0+ satisfaction score</li>
-                  </ul>
-                </div>
+          <GlassPanel className="p-6">
+            <h3 className="font-semibold mb-4">Release Stage Readiness</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {posthogConnected
+                ? "Stage thresholds will appear once metrics are configured."
+                : "Connect PostHog to enable release gating."}
+            </p>
+            <div className="h-40 flex items-center justify-center border border-dashed border-white/20 rounded-xl">
+              <div className="text-center text-muted-foreground">
+                <Zap className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Release gating not configured</p>
               </div>
-            </GlassPanel>
-          </motion.div>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {projectStage === "alpha" && evaluateGate("alpha") && (
+                <Button onClick={() => handleAdvanceStage("beta")}>
+                  Advance to Beta
+                </Button>
+              )}
+              {projectStage === "beta" && evaluateGate("beta") && (
+                <Button onClick={() => handleAdvanceStage("ga")}>
+                  Advance to GA
+                </Button>
+              )}
+            </div>
+          </GlassPanel>
+        </TabsContent>
+
+        <TabsContent value="config" className="mt-6">
+          <GlassPanel className="p-6 space-y-6">
+            <div className="space-y-2">
+              <h3 className="font-semibold">Current Metrics</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {(
+                  ["users", "engagement", "errors", "satisfaction"] as const
+                ).map((key) => (
+                  <div key={key} className="space-y-1">
+                    <label className="text-xs text-muted-foreground capitalize">
+                      {key}
+                    </label>
+                    <Input
+                      type="number"
+                      value={currentMetrics[key]}
+                      onChange={(e) =>
+                        setCurrentMetrics((prev) => ({
+                          ...prev,
+                          [key]: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-semibold">Thresholds</h3>
+              {(["alpha", "beta", "ga"] as const).map((stage) => (
+                <div key={stage} className="space-y-2">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    {stage}
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {(
+                      ["users", "engagement", "errors", "satisfaction"] as const
+                    ).map((key) => (
+                      <div key={key} className="space-y-1">
+                        <label className="text-xs text-muted-foreground capitalize">
+                          {key}
+                        </label>
+                        <Input
+                          type="number"
+                          value={thresholdState[stage][key]}
+                          onChange={(e) =>
+                            setThresholdState((prev) => ({
+                              ...prev,
+                              [stage]: {
+                                ...prev[stage],
+                                [key]: Number(e.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button onClick={handleSaveConfig} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save Metrics Config"}
+              </Button>
+              <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Auto-advance stages</span>
+                <Switch
+                  checked={autoAdvance}
+                  onCheckedChange={setAutoAdvance}
+                />
+              </div>
+            </div>
+          </GlassPanel>
         </TabsContent>
 
         <TabsContent value="events" className="mt-6">
           <GlassPanel className="p-6">
             <h3 className="font-semibold mb-4">Tracked Events</h3>
-            <div className="space-y-3">
-              {[
-                { name: "feature_viewed", count: 2341, change: 12 },
-                { name: "feature_clicked", count: 1892, change: 8 },
-                { name: "feature_completed", count: 1456, change: 15 },
-                { name: "feature_error", count: 23, change: -45 },
-                { name: "feedback_submitted", count: 89, change: 34 },
-              ].map((event) => (
-                <div
-                  key={event.name}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white/5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-purple-400" />
-                    <code className="text-sm">{event.name}</code>
+            <div className="mb-6">
+              <p className="text-sm text-muted-foreground">
+                PostHog surface map (stubbed)
+              </p>
+              <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-muted-foreground">
+                {[
+                  "Dashboards",
+                  "Insights",
+                  "Funnels",
+                  "Paths",
+                  "Retention",
+                  "Cohorts",
+                  "Feature Flags",
+                  "Experiments",
+                  "Session Replay",
+                  "Surveys",
+                  "Notebooks",
+                  "Alerts",
+                  "Data Management",
+                ].map((label) => (
+                  <div
+                    key={label}
+                    className="border border-dashed border-white/20 rounded-lg px-2 py-1"
+                  >
+                    {label}
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">{event.count.toLocaleString()}</span>
-                    <span className={`text-xs flex items-center gap-1 ${
-                      event.change > 0 ? "text-green-400" : "text-red-400"
-                    }`}>
-                      {event.change > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {Math.abs(event.change)}%
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+            <div className="h-48 flex items-center justify-center border border-dashed border-white/20 rounded-xl">
+              <div className="text-center text-muted-foreground">
+                <Target className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No events configured yet</p>
+                <p className="text-xs">Define events after PostHog connects</p>
+              </div>
             </div>
           </GlassPanel>
         </TabsContent>

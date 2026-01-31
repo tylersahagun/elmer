@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,7 @@ import {
   Columns3,
   Sparkles,
   Plug,
+  Terminal,
 } from "lucide-react";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { InviteModal } from "@/components/invite-modal";
@@ -47,6 +49,7 @@ import {
   ContextPathsCard,
   GitAutomationCard,
   PipelineSettingsCard,
+  PipelineWizard,
   ColumnsSettingsCard,
   ExecutionSettingsCard,
   SignalAutomationSettingsPanel,
@@ -54,9 +57,21 @@ import {
   IntegrationsSettingsCard,
   PendingQuestionsInbox,
   GitHubWritebackCard,
+  OnboardingStatusCard,
+  SourceRepoTransformationsCard,
+  ColumnAutomationCard,
+  SkillsManagerCard,
+  SyncStatusPanel,
+  GraduationCriteriaCard,
   type KanbanColumn,
 } from "@/components/settings";
-import type { WorkspaceRole, MaintenanceSettings, SignalAutomationSettings } from "@/lib/db/schema";
+import { AgentsList } from "@/components/agents/AgentsList";
+import type {
+  WorkspaceRole,
+  MaintenanceSettings,
+  SignalAutomationSettings,
+  SourceRepoTransformation,
+} from "@/lib/db/schema";
 
 interface WorkspaceMember {
   id: string;
@@ -118,11 +133,21 @@ interface Workspace {
   githubRepo: string | null;
   contextPath: string | null;
   columnConfigs?: ColumnConfig[];
+  // Onboarding status fields (will be populated by future schema additions)
+  onboardingComplete?: boolean;
+  onboardedAt?: string;
+  onboardingStats?: {
+    projectsImported?: number;
+    personasImported?: number;
+    knowledgeDocsImported?: number;
+  };
   settings?: {
     prototypesPath?: string;
     storybookPort?: number;
     contextPaths?: string[];
     baseBranch?: string;
+    githubRepoOwner?: string;
+    githubRepoName?: string;
     autoCreateFeatureBranch?: boolean;
     autoCommitJobs?: boolean;
     cursorDeepLinkTemplate?: string;
@@ -146,6 +171,7 @@ interface Workspace {
     };
     maintenance?: MaintenanceSettings;
     signalAutomation?: SignalAutomationSettings;
+    sourceRepoTransformations?: SourceRepoTransformation[];
   };
   resolvedPaths?: {
     contextPath: string | null;
@@ -162,13 +188,13 @@ export default function WorkspaceSettingsPage({
   const { id: workspaceId } = use(params);
   const queryClient = useQueryClient();
   const { data: session } = useSession();
-  
+
   // UI state
   const [isEditingName, setIsEditingName] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  
+
   // Form state - General
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceDescription, setWorkspaceDescription] = useState("");
@@ -182,40 +208,56 @@ export default function WorkspaceSettingsPage({
   const [contextPaths, setContextPaths] = useState<string[]>(["elmer-docs/"]);
   const [autoCreateFeatureBranch, setAutoCreateFeatureBranch] = useState(true);
   const [autoCommitJobs, setAutoCommitJobs] = useState(false);
-  
+
   // Form state - Pipeline
-  const [automationMode, setAutomationMode] = useState<"manual" | "auto_to_stage" | "auto_all">("manual");
+  const [automationMode, setAutomationMode] = useState<
+    "manual" | "auto_to_stage" | "auto_all"
+  >("manual");
   const [automationStopStage, setAutomationStopStage] = useState("");
   const [automationNotifyStage, setAutomationNotifyStage] = useState("");
-  const [knowledgebaseMapping, setKnowledgebaseMapping] = useState<Record<string, string>>({});
-  
+  const [knowledgebaseMapping, setKnowledgebaseMapping] = useState<
+    Record<string, string>
+  >({});
+
   // Form state - Execution
   const [workerEnabled, setWorkerEnabled] = useState(true);
   const [workerMaxConcurrency, setWorkerMaxConcurrency] = useState("10");
-  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] =
+    useState(true);
   const [notifyOnJobComplete, setNotifyOnJobComplete] = useState(true);
   const [notifyOnJobFailed, setNotifyOnJobFailed] = useState(true);
-  const [notifyOnApprovalRequired, setNotifyOnApprovalRequired] = useState(true);
+  const [notifyOnApprovalRequired, setNotifyOnApprovalRequired] =
+    useState(true);
   const [atomicCommitsEnabled, setAtomicCommitsEnabled] = useState(false);
   const [stateTrackingEnabled, setStateTrackingEnabled] = useState(false);
-  const [verificationStrictness, setVerificationStrictness] = useState<"strict" | "lenient" | "disabled">("lenient");
-  
+  const [verificationStrictness, setVerificationStrictness] = useState<
+    "strict" | "lenient" | "disabled"
+  >("lenient");
+
   // Columns state
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
 
+  // Source repo transformations state
+  const [sourceRepoTransformations, setSourceRepoTransformations] = useState<
+    SourceRepoTransformation[]
+  >([]);
+
   // Fetch workspace details
-  const { data: workspace, isLoading: isLoadingWorkspace } = useQuery<Workspace>({
-    queryKey: ["workspace", workspaceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/workspaces/${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to fetch workspace");
-      return res.json();
-    },
-    enabled: !!workspaceId,
-  });
+  const { data: workspace, isLoading: isLoadingWorkspace } =
+    useQuery<Workspace>({
+      queryKey: ["workspace", workspaceId],
+      queryFn: async () => {
+        const res = await fetch(`/api/workspaces/${workspaceId}`);
+        if (!res.ok) throw new Error("Failed to fetch workspace");
+        return res.json();
+      },
+      enabled: !!workspaceId,
+    });
 
   // Fetch workspace members
-  const { data: members, isLoading: isLoadingMembers } = useQuery<WorkspaceMember[]>({
+  const { data: members, isLoading: isLoadingMembers } = useQuery<
+    WorkspaceMember[]
+  >({
     queryKey: ["workspace-members", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/workspaces/${workspaceId}/members`);
@@ -229,7 +271,9 @@ export default function WorkspaceSettingsPage({
   });
 
   // Fetch workspace invitations (admin only)
-  const { data: invitations, isLoading: isLoadingInvitations } = useQuery<Invitation[]>({
+  const { data: invitations, isLoading: isLoadingInvitations } = useQuery<
+    Invitation[]
+  >({
     queryKey: ["workspace-invitations", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/workspaces/${workspaceId}/invitations`);
@@ -242,7 +286,6 @@ export default function WorkspaceSettingsPage({
     enabled: !!workspaceId,
   });
 
-
   // Initialize form state from workspace data
   useEffect(() => {
     if (workspace) {
@@ -250,57 +293,94 @@ export default function WorkspaceSettingsPage({
       setWorkspaceDescription(workspace.description || "");
       setGithubRepo(workspace.githubRepo || "");
       setBaseBranch(workspace.settings?.baseBranch || "main");
-      setCursorDeepLinkTemplate(workspace.settings?.cursorDeepLinkTemplate || "");
+      if (
+        workspace.settings?.githubRepoOwner &&
+        workspace.settings?.githubRepoName
+      ) {
+        setRepoOwner(workspace.settings.githubRepoOwner);
+        setRepoName(workspace.settings.githubRepoName);
+      } else {
+        const parsedRepo = parseRepoSlug(workspace.githubRepo);
+        setRepoOwner(parsedRepo?.owner ?? null);
+        setRepoName(parsedRepo?.repo ?? null);
+      }
+      setCursorDeepLinkTemplate(
+        workspace.settings?.cursorDeepLinkTemplate || "",
+      );
       setPrototypesPath(workspace.settings?.prototypesPath || "");
-      setStorybookPort(workspace.settings?.storybookPort ? String(workspace.settings.storybookPort) : "6006");
-      
-      const workspaceContextPaths =
-        workspace.settings?.contextPaths?.length
-          ? workspace.settings.contextPaths
-          : workspace.contextPath
-            ? [workspace.contextPath]
-            : ["elmer-docs/"];
+      setStorybookPort(
+        workspace.settings?.storybookPort
+          ? String(workspace.settings.storybookPort)
+          : "6006",
+      );
+
+      const workspaceContextPaths = workspace.settings?.contextPaths?.length
+        ? workspace.settings.contextPaths
+        : workspace.contextPath
+          ? [workspace.contextPath]
+          : ["elmer-docs/"];
       setContextPaths(workspaceContextPaths);
-      
-      setAutoCreateFeatureBranch(workspace.settings?.autoCreateFeatureBranch ?? true);
+
+      setAutoCreateFeatureBranch(
+        workspace.settings?.autoCreateFeatureBranch ?? true,
+      );
       setAutoCommitJobs(workspace.settings?.autoCommitJobs ?? false);
       setAutomationMode(workspace.settings?.automationMode || "manual");
       setAutomationStopStage(workspace.settings?.automationStopStage || "");
       setAutomationNotifyStage(workspace.settings?.automationNotifyStage || "");
       setKnowledgebaseMapping(workspace.settings?.knowledgebaseMapping || {});
       setWorkerEnabled(workspace.settings?.workerEnabled ?? true);
-      setWorkerMaxConcurrency(workspace.settings?.workerMaxConcurrency ? String(workspace.settings.workerMaxConcurrency) : "10");
-      setBrowserNotificationsEnabled(workspace.settings?.browserNotificationsEnabled ?? true);
+      setWorkerMaxConcurrency(
+        workspace.settings?.workerMaxConcurrency
+          ? String(workspace.settings.workerMaxConcurrency)
+          : "10",
+      );
+      setBrowserNotificationsEnabled(
+        workspace.settings?.browserNotificationsEnabled ?? true,
+      );
       setNotifyOnJobComplete(workspace.settings?.notifyOnJobComplete ?? true);
       setNotifyOnJobFailed(workspace.settings?.notifyOnJobFailed ?? true);
-      setNotifyOnApprovalRequired(workspace.settings?.notifyOnApprovalRequired ?? true);
-      setAtomicCommitsEnabled(workspace.settings?.atomicCommitsEnabled ?? false);
-      setStateTrackingEnabled(workspace.settings?.stateTrackingEnabled ?? false);
-      setVerificationStrictness(workspace.settings?.verificationStrictness ?? "lenient");
+      setNotifyOnApprovalRequired(
+        workspace.settings?.notifyOnApprovalRequired ?? true,
+      );
+      setAtomicCommitsEnabled(
+        workspace.settings?.atomicCommitsEnabled ?? false,
+      );
+      setStateTrackingEnabled(
+        workspace.settings?.stateTrackingEnabled ?? false,
+      );
+      setVerificationStrictness(
+        workspace.settings?.verificationStrictness ?? "lenient",
+      );
+      setSourceRepoTransformations(
+        workspace.settings?.sourceRepoTransformations ?? [],
+      );
     }
   }, [workspace]);
 
   // Initialize columns from workspace data
   useEffect(() => {
     if (workspace?.columnConfigs) {
-      const mappedColumns: KanbanColumn[] = workspace.columnConfigs.map((col) => ({
-        id: col.stage,
-        configId: col.id,
-        displayName: col.displayName,
-        color: col.color,
-        order: col.order,
-        enabled: col.enabled,
-        autoTriggerJobs: col.autoTriggerJobs,
-        agentTriggers: col.agentTriggers,
-        humanInLoop: col.humanInLoop,
-        requiredDocuments: col.requiredDocuments,
-        requiredApprovals: col.requiredApprovals,
-        contextPaths: col.rules?.contextPaths,
-        contextNotes: col.rules?.contextNotes,
-        loopGroupId: col.rules?.loopGroupId,
-        loopTargets: col.rules?.loopTargets,
-        dependencyNotes: col.rules?.dependencyNotes,
-      }));
+      const mappedColumns: KanbanColumn[] = workspace.columnConfigs.map(
+        (col) => ({
+          id: col.stage,
+          configId: col.id,
+          displayName: col.displayName,
+          color: col.color,
+          order: col.order,
+          enabled: col.enabled,
+          autoTriggerJobs: col.autoTriggerJobs,
+          agentTriggers: col.agentTriggers,
+          humanInLoop: col.humanInLoop,
+          requiredDocuments: col.requiredDocuments,
+          requiredApprovals: col.requiredApprovals,
+          contextPaths: col.rules?.contextPaths,
+          contextNotes: col.rules?.contextNotes,
+          loopGroupId: col.rules?.loopGroupId,
+          loopTargets: col.rules?.loopTargets,
+          dependencyNotes: col.rules?.dependencyNotes,
+        }),
+      );
       setColumns(mappedColumns);
     }
   }, [workspace?.columnConfigs]);
@@ -328,7 +408,7 @@ export default function WorkspaceSettingsPage({
     mutationFn: async (invitationId: string) => {
       const res = await fetch(
         `/api/workspaces/${workspaceId}/invitations?invitationId=${invitationId}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
       if (!res.ok) throw new Error("Failed to revoke invitation");
       return res.json();
@@ -342,12 +422,13 @@ export default function WorkspaceSettingsPage({
 
   // Find current user's role
   const currentUserMembership = members?.find(
-    (m) => m.userId === session?.user?.id
+    (m) => m.userId === session?.user?.id,
   );
   const isAdmin = currentUserMembership?.role === "admin";
 
   // Filter invitations by status
-  const pendingInvitations = invitations?.filter((i) => i.status === "pending") || [];
+  const pendingInvitations =
+    invitations?.filter((i) => i.status === "pending") || [];
 
   // Normalize paths
   const normalizePath = (value: string) => {
@@ -361,6 +442,58 @@ export default function WorkspaceSettingsPage({
     return normalized.length ? normalized : ["elmer-docs/"];
   };
 
+  const parseRepoSlug = (value?: string | null) => {
+    if (!value) return null;
+    if (value.startsWith("product-repos/")) return null;
+    const normalized = value
+      .replace(/^https?:\/\/github\.com\//, "")
+      .replace(/\.git$/, "")
+      .trim();
+    const [owner, repo, ...rest] = normalized.split("/");
+    if (!owner || !repo || rest.length > 0) return null;
+    return { owner, repo };
+  };
+
+  const resolvedRepoMeta =
+    repoOwner && repoName
+      ? { owner: repoOwner, repo: repoName }
+      : parseRepoSlug(githubRepo);
+
+  const repoResolutionAttemptedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const repoPath = githubRepo.trim();
+    if (!repoPath || repoOwner || repoName) return;
+    if (!repoPath.startsWith("product-repos/")) return;
+    if (repoResolutionAttemptedRef.current === repoPath) return;
+    repoResolutionAttemptedRef.current = repoPath;
+
+    const repoNameFromPath = repoPath
+      .replace("product-repos/", "")
+      .split("/")[0];
+    if (!repoNameFromPath) return;
+
+    const params = new URLSearchParams();
+    params.set("search", repoNameFromPath);
+    params.set("per_page", "100");
+    params.set("sort", "updated");
+
+    fetch(`/api/github/repos?${params}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const match = data?.repos?.find(
+          (repo: { name: string; owner?: { login: string } }) => {
+            return repo.name === repoNameFromPath && repo.owner?.login;
+          },
+        );
+        if (match?.owner?.login) {
+          setRepoOwner(match.owner.login);
+          setRepoName(match.name);
+        }
+      })
+      .catch(() => null);
+  }, [githubRepo, repoOwner, repoName]);
+
   // Save all settings
   const handleSaveSettings = async () => {
     if (!workspaceId) return;
@@ -369,7 +502,7 @@ export default function WorkspaceSettingsPage({
     try {
       const normalizedContextPaths = normalizePaths(contextPaths);
       const sanitizedMapping = Object.fromEntries(
-        Object.entries(knowledgebaseMapping).filter(([, value]) => value)
+        Object.entries(knowledgebaseMapping).filter(([, value]) => value),
       );
       const res = await fetch(`/api/workspaces/${workspaceId}`, {
         method: "PATCH",
@@ -384,6 +517,8 @@ export default function WorkspaceSettingsPage({
             storybookPort: storybookPort ? Number(storybookPort) : undefined,
             contextPaths: normalizedContextPaths,
             baseBranch: baseBranch.trim() || "main",
+            githubRepoOwner: resolvedRepoMeta?.owner || undefined,
+            githubRepoName: resolvedRepoMeta?.repo || undefined,
             autoCreateFeatureBranch,
             autoCommitJobs,
             cursorDeepLinkTemplate: cursorDeepLinkTemplate.trim() || undefined,
@@ -394,7 +529,9 @@ export default function WorkspaceSettingsPage({
             automationStopStage: automationStopStage || undefined,
             automationNotifyStage: automationNotifyStage || undefined,
             workerEnabled,
-            workerMaxConcurrency: workerMaxConcurrency ? Number(workerMaxConcurrency) : undefined,
+            workerMaxConcurrency: workerMaxConcurrency
+              ? Number(workerMaxConcurrency)
+              : undefined,
             browserNotificationsEnabled,
             notifyOnJobComplete,
             notifyOnJobFailed,
@@ -402,16 +539,23 @@ export default function WorkspaceSettingsPage({
             atomicCommitsEnabled,
             verificationStrictness,
             stateTrackingEnabled,
+            sourceRepoTransformations:
+              sourceRepoTransformations.length > 0
+                ? sourceRepoTransformations
+                : undefined,
           },
         }),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to update workspace (${res.status})`);
+        throw new Error(
+          errorData.error || `Failed to update workspace (${res.status})`,
+        );
       }
       queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to save settings";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save settings";
       console.error("Failed to save settings:", errorMessage);
       setSaveError(errorMessage);
     } finally {
@@ -491,7 +635,9 @@ export default function WorkspaceSettingsPage({
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <SimpleNavbar path={`~/workspace/${workspaceId}/settings`} />
+      <SimpleNavbar
+        path={`~/workspace/${workspace?.name ?? workspaceId}/settings`}
+      />
 
       <main className="flex-1 min-h-0 overflow-auto">
         <div className="max-w-5xl mx-auto px-4 py-8">
@@ -507,7 +653,10 @@ export default function WorkspaceSettingsPage({
               </p>
             </div>
             {isAdmin && (
-              <Button onClick={() => setShowInviteModal(true)} className="gap-2">
+              <Button
+                onClick={() => setShowInviteModal(true)}
+                className="gap-2"
+              >
                 <UserPlus className="w-4 h-4" />
                 Invite Member
               </Button>
@@ -516,7 +665,7 @@ export default function WorkspaceSettingsPage({
 
           {/* Tabs */}
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
+            <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
               <TabsTrigger value="general" className="gap-2">
                 <Info className="w-4 h-4" />
                 <span className="hidden sm:inline">General</span>
@@ -532,6 +681,10 @@ export default function WorkspaceSettingsPage({
               <TabsTrigger value="automation" className="gap-2">
                 <Bot className="w-4 h-4" />
                 <span className="hidden sm:inline">Automation</span>
+              </TabsTrigger>
+              <TabsTrigger value="admin" className="gap-2">
+                <Terminal className="w-4 h-4" />
+                <span className="hidden sm:inline">Admin</span>
               </TabsTrigger>
               <TabsTrigger value="integrations" className="gap-2">
                 <Plug className="w-4 h-4" />
@@ -549,6 +702,19 @@ export default function WorkspaceSettingsPage({
 
             {/* General Tab */}
             <TabsContent value="general" className="space-y-6">
+              {/* Onboarding Status Card - shown when workspace has been onboarded */}
+              {workspace?.onboardingComplete && (
+                <OnboardingStatusCard
+                  workspaceId={workspaceId}
+                  onboardedAt={workspace.onboardedAt}
+                  projectsImported={workspace.onboardingStats?.projectsImported}
+                  personasImported={workspace.onboardingStats?.personasImported}
+                  knowledgeDocsImported={
+                    workspace.onboardingStats?.knowledgeDocsImported
+                  }
+                />
+              )}
+
               {/* Workspace Details Card */}
               <Card>
                 <CardHeader>
@@ -571,7 +737,9 @@ export default function WorkspaceSettingsPage({
                         />
                         <Button
                           onClick={handleSaveName}
-                          disabled={!workspaceName.trim() || updateWorkspace.isPending}
+                          disabled={
+                            !workspaceName.trim() || updateWorkspace.isPending
+                          }
                           size="sm"
                           className="gap-2"
                         >
@@ -594,7 +762,11 @@ export default function WorkspaceSettingsPage({
                       <div className="flex items-center gap-2">
                         <p className="text-lg font-medium">{workspace?.name}</p>
                         {isAdmin && (
-                          <Button variant="ghost" size="sm" onClick={handleStartEdit}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleStartEdit}
+                          >
                             Edit
                           </Button>
                         )}
@@ -604,11 +776,15 @@ export default function WorkspaceSettingsPage({
 
                   {isEditingName && (
                     <div className="space-y-2">
-                      <Label htmlFor="workspace-description">Description (optional)</Label>
+                      <Label htmlFor="workspace-description">
+                        Description (optional)
+                      </Label>
                       <Input
                         id="workspace-description"
                         value={workspaceDescription}
-                        onChange={(e) => setWorkspaceDescription(e.target.value)}
+                        onChange={(e) =>
+                          setWorkspaceDescription(e.target.value)
+                        }
                         placeholder="A brief description of this workspace"
                         className="max-w-md"
                       />
@@ -618,7 +794,9 @@ export default function WorkspaceSettingsPage({
                   {!isEditingName && workspace?.description && (
                     <div className="space-y-2">
                       <Label>Description</Label>
-                      <p className="text-muted-foreground">{workspace.description}</p>
+                      <p className="text-muted-foreground">
+                        {workspace.description}
+                      </p>
                     </div>
                   )}
 
@@ -626,7 +804,9 @@ export default function WorkspaceSettingsPage({
                     <div className="space-y-2">
                       <Label>Your Role</Label>
                       <Badge
-                        variant={getRoleBadgeVariant(currentUserMembership.role)}
+                        variant={getRoleBadgeVariant(
+                          currentUserMembership.role,
+                        )}
                         className="gap-1"
                       >
                         {getRoleIcon(currentUserMembership.role)}
@@ -637,7 +817,9 @@ export default function WorkspaceSettingsPage({
 
                   <div className="space-y-2">
                     <Label>Workspace ID</Label>
-                    <p className="text-xs font-mono text-muted-foreground">{workspace?.id}</p>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      {workspace?.id}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -648,8 +830,8 @@ export default function WorkspaceSettingsPage({
                 setGithubRepo={setGithubRepo}
                 baseBranch={baseBranch}
                 setBaseBranch={setBaseBranch}
-                repoOwner={repoOwner}
-                repoName={repoName}
+                repoOwner={resolvedRepoMeta?.owner ?? null}
+                repoName={resolvedRepoMeta?.repo ?? null}
                 onRepoMetaChange={(meta) => {
                   setRepoOwner(meta?.owner ?? null);
                   setRepoName(meta?.repo ?? null);
@@ -667,6 +849,7 @@ export default function WorkspaceSettingsPage({
                     return [path, ...prev];
                   });
                 }}
+                mode={workspace?.onboardingComplete ? "edit" : "setup"}
               />
 
               {/* Context Paths */}
@@ -675,14 +858,27 @@ export default function WorkspaceSettingsPage({
                 setContextPaths={setContextPaths}
                 resolvedContextPath={workspace?.resolvedPaths?.contextPath}
                 workspaceId={workspaceId}
-                repoOwner={repoOwner}
-                repoName={repoName}
+                githubRepo={githubRepo}
+                setGithubRepo={setGithubRepo}
                 baseBranch={baseBranch}
+                setBaseBranch={setBaseBranch}
+                repoOwner={resolvedRepoMeta?.owner ?? null}
+                repoName={resolvedRepoMeta?.repo ?? null}
+                onRepoMetaChange={(meta) => {
+                  setRepoOwner(meta?.owner ?? null);
+                  setRepoName(meta?.repo ?? null);
+                }}
+                onContextPathDetected={(path) => {
+                  setContextPaths((prev) => {
+                    if (prev.includes(path)) return prev;
+                    return [path, ...prev];
+                  });
+                }}
               />
 
               <GitHubWritebackCard
-                owner={repoOwner}
-                repo={repoName}
+                owner={resolvedRepoMeta?.owner ?? null}
+                repo={resolvedRepoMeta?.repo ?? null}
                 baseBranch={baseBranch}
               />
 
@@ -696,9 +892,10 @@ export default function WorkspaceSettingsPage({
                 </CardHeader>
                 <CardContent>
                   <AgentArchitectureImporter
-                    owner={repoOwner || undefined}
-                    repo={repoName || undefined}
+                    owner={resolvedRepoMeta?.owner ?? undefined}
+                    repo={resolvedRepoMeta?.repo ?? undefined}
                     ref={baseBranch || undefined}
+                    workspaceId={workspaceId}
                   />
                 </CardContent>
               </Card>
@@ -748,7 +945,9 @@ export default function WorkspaceSettingsPage({
                 setColumns={setColumns}
                 workspaceId={workspaceId}
                 onColumnChange={() => {
-                  queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+                  queryClient.invalidateQueries({
+                    queryKey: ["workspace", workspaceId],
+                  });
                 }}
               />
 
@@ -810,6 +1009,33 @@ export default function WorkspaceSettingsPage({
 
             {/* Automation Tab */}
             <TabsContent value="automation" className="space-y-6">
+              {/* Pipeline Setup Wizard - auto-configure from imported agents */}
+              <PipelineWizard workspaceId={workspaceId} />
+
+              {/* Source Repo Transformations - for syncing agents from external repos */}
+              <SourceRepoTransformationsCard
+                transformations={sourceRepoTransformations}
+                onChange={setSourceRepoTransformations}
+                onSync={async (sourceRepo) => {
+                  const [owner, repo] = sourceRepo.split("/");
+                  if (!owner || !repo) return;
+                  await fetch("/api/agents/sync", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      workspaceId,
+                      owner,
+                      repo,
+                      ref: baseBranch,
+                      createPipeline: false,
+                    }),
+                  });
+                  queryClient.invalidateQueries({
+                    queryKey: ["agents", workspaceId],
+                  });
+                }}
+              />
+
               <SignalAutomationSettingsPanel
                 workspaceId={workspaceId}
                 initialSettings={workspace?.settings?.signalAutomation}
@@ -821,9 +1047,46 @@ export default function WorkspaceSettingsPage({
               />
             </TabsContent>
 
+            {/* Admin Tab */}
+            <TabsContent value="admin" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Terminal className="w-5 h-5" />
+                    Admin Command Center
+                  </CardTitle>
+                  <CardDescription>
+                    Review commands, rules, and skills powering workflow
+                    automation.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap items-center gap-3">
+                  <Button asChild variant="outline">
+                    <Link href={`/workspace/${workspaceId}/commands`}>
+                      View command reference
+                    </Link>
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Changes are recorded in the Activity feed.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <ColumnAutomationCard workspaceId={workspaceId} />
+
+              <GraduationCriteriaCard workspaceId={workspaceId} />
+
+              <SkillsManagerCard workspaceId={workspaceId} />
+
+              <AgentArchitectureImporter workspaceId={workspaceId} />
+
+              <AgentsList workspaceId={workspaceId} />
+            </TabsContent>
+
             {/* Integrations Tab */}
             <TabsContent value="integrations" className="space-y-6">
               <IntegrationsSettingsCard workspaceId={workspaceId} />
+              <SyncStatusPanel workspaceId={workspaceId} />
             </TabsContent>
 
             {/* Team Tab */}
@@ -853,16 +1116,24 @@ export default function WorkspaceSettingsPage({
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
-                              <AvatarImage src={member.user.image || undefined} />
+                              <AvatarImage
+                                src={member.user.image || undefined}
+                              />
                               <AvatarFallback>
-                                {getInitials(member.user.name, member.user.email)}
+                                {getInitials(
+                                  member.user.name,
+                                  member.user.email,
+                                )}
                               </AvatarFallback>
                             </Avatar>
                             <div>
                               <p className="font-medium">
-                                {member.user.name || member.user.email.split("@")[0]}
+                                {member.user.name ||
+                                  member.user.email.split("@")[0]}
                                 {member.userId === session?.user?.id && (
-                                  <span className="text-muted-foreground ml-2">(you)</span>
+                                  <span className="text-muted-foreground ml-2">
+                                    (you)
+                                  </span>
                                 )}
                               </p>
                               <p className="text-sm text-muted-foreground">
@@ -917,11 +1188,15 @@ export default function WorkspaceSettingsPage({
                                 <Mail className="w-5 h-5 text-muted-foreground" />
                               </div>
                               <div>
-                                <p className="font-medium">{invitation.email}</p>
+                                <p className="font-medium">
+                                  {invitation.email}
+                                </p>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                   {getStatusIcon(invitation.status)}
                                   Expires{" "}
-                                  {new Date(invitation.expiresAt).toLocaleDateString()}
+                                  {new Date(
+                                    invitation.expiresAt,
+                                  ).toLocaleDateString()}
                                 </p>
                               </div>
                             </div>
@@ -936,7 +1211,9 @@ export default function WorkspaceSettingsPage({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => revokeInvitation.mutate(invitation.id)}
+                                onClick={() =>
+                                  revokeInvitation.mutate(invitation.id)
+                                }
                                 disabled={revokeInvitation.isPending}
                                 className="text-destructive hover:text-destructive"
                               >

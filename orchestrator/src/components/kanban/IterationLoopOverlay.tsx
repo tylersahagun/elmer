@@ -28,8 +28,14 @@ function buildPath(from: ColumnPoint, to: ColumnPoint) {
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 }
 
-export function IterationLoopOverlay({ containerRef, columns, className }: IterationLoopOverlayProps) {
-  const [columnRects, setColumnRects] = useState<Record<string, ColumnPoint>>({});
+export function IterationLoopOverlay({
+  containerRef,
+  columns,
+  className,
+}: IterationLoopOverlayProps) {
+  const [columnRects, setColumnRects] = useState<Record<string, ColumnPoint>>(
+    {},
+  );
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -39,7 +45,9 @@ export function IterationLoopOverlay({ containerRef, columns, className }: Itera
       const containerRect = container.getBoundingClientRect();
       const next: Record<string, ColumnPoint> = {};
       columns.forEach((column) => {
-        const element = container.querySelector(`[data-kanban-column="${column.id}"]`) as HTMLElement | null;
+        const element = container.querySelector(
+          `[data-kanban-column="${column.id}"]`,
+        ) as HTMLElement | null;
         if (!element) return;
         const rect = element.getBoundingClientRect();
         next[column.id] = {
@@ -68,7 +76,11 @@ export function IterationLoopOverlay({ containerRef, columns, className }: Itera
       if (!column.loopTargets || column.loopTargets.length === 0) return;
       column.loopTargets.forEach((target) => {
         if (target === column.id) return;
-        edges.push({ from: column.id, to: target, groupId: column.loopGroupId });
+        edges.push({
+          from: column.id,
+          to: target,
+          groupId: column.loopGroupId,
+        });
       });
     });
     return edges;
@@ -87,6 +99,17 @@ export function IterationLoopOverlay({ containerRef, columns, className }: Itera
             <stop offset="50%" stopColor="#a78bfa" />
             <stop offset="100%" stopColor="#f0abfc" />
           </linearGradient>
+          <marker
+            id="loop-arrow"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa" />
+          </marker>
         </defs>
         {loopEdges.map((edge, index) => {
           const from = columnRects[edge.from];
@@ -101,6 +124,7 @@ export function IterationLoopOverlay({ containerRef, columns, className }: Itera
                 stroke="url(#loop-wave)"
                 strokeWidth={2}
                 strokeDasharray="6 8"
+                markerEnd="url(#loop-arrow)"
                 initial={{ strokeDashoffset: 0, opacity: 0.5 }}
                 animate={{ strokeDashoffset: -24, opacity: [0.3, 0.8, 0.3] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "linear" }}

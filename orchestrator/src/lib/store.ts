@@ -1,5 +1,8 @@
 import { create } from "zustand";
-import type { ProjectStage as ProjectStageType, SignalAutomationSettings } from "./db/schema";
+import type {
+  ProjectStage as ProjectStageType,
+  SignalAutomationSettings,
+} from "./db/schema";
 
 // ============================================
 // TYPES
@@ -21,6 +24,17 @@ export interface ProjectCard {
   metadata?: {
     gitBranch?: string;
     baseBranch?: string;
+    stageQuality?: Record<
+      string,
+      {
+        score: number;
+        summary?: string;
+        strengths?: string[];
+        gaps?: string[];
+        updatedAt: string;
+        source?: "criteria" | "heuristic";
+      }
+    >;
     stageConfidence?: Record<
       string,
       {
@@ -36,7 +50,13 @@ export interface ProjectCard {
   activeJobId?: string; // Track the actual job ID for logs drawer
   activeJobType?: string;
   activeJobProgress?: number;
-  activeJobStatus?: "pending" | "running" | "completed" | "failed" | "cancelled";
+  activeJobStatus?:
+    | "pending"
+    | "running"
+    | "waiting_input"
+    | "completed"
+    | "failed"
+    | "cancelled";
   lastJobError?: string;
   isLocked?: boolean; // True when jobs are running - prevents dragging
 }
@@ -106,7 +126,14 @@ export interface WorkspaceState {
     };
     // UI Personalization
     background?: {
-      type: "stars" | "bubble" | "gradient" | "gravity-stars" | "hole" | "aurora" | "none";
+      type:
+        | "stars"
+        | "bubble"
+        | "gradient"
+        | "gravity-stars"
+        | "hole"
+        | "aurora"
+        | "none";
       primaryColor?: string;
       secondaryColor?: string;
       speed?: number;
@@ -130,12 +157,12 @@ interface KanbanState {
   workspace: WorkspaceState | null;
   columns: KanbanColumn[];
   projects: ProjectCard[];
-  
+
   // UI State
   activeProjectId: string | null;
   draggedProjectId: string | null;
   isLoading: boolean;
-  
+
   // Actions
   setWorkspace: (workspace: WorkspaceState) => void;
   updateWorkspace: (updates: Partial<WorkspaceState>) => void;
@@ -161,42 +188,51 @@ export const useKanbanStore = create<KanbanState>((set) => ({
   // Actions
   setWorkspace: (workspace) => set({ workspace }),
 
-  updateWorkspace: (updates) => set((state) => ({
-    workspace: state.workspace ? { ...state.workspace, ...updates } : state.workspace,
-  })),
-  
+  updateWorkspace: (updates) =>
+    set((state) => ({
+      workspace: state.workspace
+        ? { ...state.workspace, ...updates }
+        : state.workspace,
+    })),
+
   setColumns: (columns) => set({ columns }),
-  
+
   setProjects: (projects) => set({ projects }),
-  
-  addProject: (project) => set((state) => ({
-    projects: [...state.projects, project],
-  })),
-  
-  updateProject: (id, updates) => set((state) => {
-    if (updates.status === "archived") {
+
+  addProject: (project) =>
+    set((state) => ({
+      projects: [...state.projects, project],
+    })),
+
+  updateProject: (id, updates) =>
+    set((state) => {
+      if (updates.status === "archived") {
+        return {
+          projects: state.projects.filter((p) => p.id !== id),
+          activeProjectId:
+            state.activeProjectId === id ? null : state.activeProjectId,
+        };
+      }
       return {
-        projects: state.projects.filter((p) => p.id !== id),
-        activeProjectId: state.activeProjectId === id ? null : state.activeProjectId,
+        projects: state.projects.map((p) =>
+          p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p,
+        ),
       };
-    }
-    return {
+    }),
+
+  moveProject: (projectId, toStage) =>
+    set((state) => ({
       projects: state.projects.map((p) =>
-        p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p
+        p.id === projectId
+          ? { ...p, stage: toStage, updatedAt: new Date() }
+          : p,
       ),
-    };
-  }),
-  
-  moveProject: (projectId, toStage) => set((state) => ({
-    projects: state.projects.map((p) =>
-      p.id === projectId ? { ...p, stage: toStage, updatedAt: new Date() } : p
-    ),
-  })),
-  
+    })),
+
   setActiveProject: (id) => set({ activeProjectId: id }),
-  
+
   setDraggedProject: (id) => set({ draggedProjectId: id }),
-  
+
   setLoading: (loading) => set({ isLoading: loading }),
 }));
 
@@ -208,17 +244,17 @@ interface UIState {
   // Sidebar
   sidebarOpen: boolean;
   sidebarTab: "chat" | "details" | "jobs";
-  
+
   // Modals
   newProjectModalOpen: boolean;
   projectDetailModalOpen: boolean;
   archivedProjectsModalOpen: boolean;
-  
+
   // Job Logs Drawer
   jobLogsDrawerOpen: boolean;
   jobLogsDrawerJobId: string | null;
   jobLogsDrawerProjectName: string | null;
-  
+
   // Actions
   toggleSidebar: () => void;
   setSidebarTab: (tab: "chat" | "details" | "jobs") => void;
@@ -252,24 +288,27 @@ export const useUIStore = create<UIState>((set) => ({
   closeProjectDetailModal: () => set({ projectDetailModalOpen: false }),
   openArchivedProjectsModal: () => set({ archivedProjectsModalOpen: true }),
   closeArchivedProjectsModal: () => set({ archivedProjectsModalOpen: false }),
-  openJobLogsDrawer: (jobId, projectName) => set({ 
-    jobLogsDrawerOpen: true, 
-    jobLogsDrawerJobId: jobId,
-    jobLogsDrawerProjectName: projectName || null,
-  }),
-  closeJobLogsDrawer: () => set({ 
-    jobLogsDrawerOpen: false, 
-    jobLogsDrawerJobId: null,
-    jobLogsDrawerProjectName: null,
-  }),
+  openJobLogsDrawer: (jobId, projectName) =>
+    set({
+      jobLogsDrawerOpen: true,
+      jobLogsDrawerJobId: jobId,
+      jobLogsDrawerProjectName: projectName || null,
+    }),
+  closeJobLogsDrawer: () =>
+    set({
+      jobLogsDrawerOpen: false,
+      jobLogsDrawerJobId: null,
+      jobLogsDrawerProjectName: null,
+    }),
 }));
 
 // ============================================
 // SELECTORS
 // ============================================
 
-export const selectProjectsByStage = (stage: ProjectStageType) => (state: KanbanState) =>
-  state.projects.filter((p) => p.stage === stage);
+export const selectProjectsByStage =
+  (stage: ProjectStageType) => (state: KanbanState) =>
+    state.projects.filter((p) => p.stage === stage);
 
 export const selectActiveProject = (state: KanbanState) =>
   state.projects.find((p) => p.id === state.activeProjectId);
@@ -278,7 +317,9 @@ export const selectEnabledColumns = (state: KanbanState) =>
   state.columns.filter((c) => c.enabled).sort((a, b) => a.order - b.order);
 
 // Stable selector for project IDs only (for drag operations) - avoids re-renders on project updates
-export const selectProjectStageMap = (state: KanbanState): Record<string, ProjectStageType> => {
+export const selectProjectStageMap = (
+  state: KanbanState,
+): Record<string, ProjectStageType> => {
   const map: Record<string, ProjectStageType> = {};
   for (const p of state.projects) {
     map[p.id] = p.stage;

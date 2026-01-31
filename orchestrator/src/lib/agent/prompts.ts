@@ -1,6 +1,6 @@
 /**
  * Agent Prompts - System prompts for each job type
- * 
+ *
  * These prompts are cached using Anthropic's prompt caching feature
  * for 90% cost reduction on repeated context.
  */
@@ -20,13 +20,18 @@ Important guidelines:
 2. Use evidence and quotes when available
 3. Follow the output format exactly as specified
 4. If you're unsure about something, note it as an open question
-5. Maintain consistency with existing project context`;
+5. Maintain consistency with existing project context
+6. Enforce strategic alignment: check product vision, guardrails, and personas
+7. If a request is misaligned or unclear, ask clarifying questions before proceeding`;
 
 // ============================================
 // JOB-SPECIFIC PROMPTS
 // ============================================
 
-export const JOB_PROMPTS: Record<JobType, { system: string; outputFormat: "markdown" | "json" }> = {
+export const JOB_PROMPTS: Record<
+  JobType,
+  { system: string; outputFormat: "markdown" | "json" }
+> = {
   process_signal: {
     system: `${BASE_SYSTEM_PROMPT}
 
@@ -364,11 +369,11 @@ and use tools when appropriate. If required inputs are missing, ask for them.`,
 export function buildSystemPrompt(
   jobType: JobType,
   companyContext: string,
-  extraRules?: string
+  extraRules?: string,
 ): string {
   const jobPrompt = JOB_PROMPTS[jobType];
   const sanitizedContext = sanitizePromptContent(companyContext);
-  
+
   return `${jobPrompt.system}
 
 ## Company Context

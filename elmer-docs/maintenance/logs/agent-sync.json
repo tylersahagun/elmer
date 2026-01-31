@@ -1,0 +1,146 @@
+{
+  "source": {
+    "repository": "tylersahagun/pm-workspace",
+    "branch": "main",
+    "base_url": "https://raw.githubusercontent.com/tylersahagun/pm-workspace/main"
+  },
+  "last_full_sync": "2026-01-28T00:00:00Z",
+  "path_adaptations": {
+    "pm-workspace-docs/": "elmer-docs/",
+    "@pm-workspace-docs/": "@elmer-docs/",
+    "elephant-ai/web/src/components/prototypes/": "prototypes/src/components/",
+    "elephant-ai/web/src/components/": "prototypes/src/components/",
+    "cd elephant-ai && npm run build-storybook -w web": "cd prototypes && npm run build-storybook",
+    "cd elephant-ai && npm run chromatic -w web": "cd prototypes && npm run chromatic",
+    "tylersahagun/pm-workspace": "tylersahagun/elmer"
+  },
+  "chromatic_config": {
+    "token": "chpt_46b823319a0135f",
+    "app_id": "696c2c54e35ea5bca2a772d8",
+    "production_url": "https://main--696c2c54e35ea5bca2a772d8.chromatic.com"
+  },
+  "agents": {
+    "proto-builder": {
+      "local_path": ".cursor/agents/proto-builder.md",
+      "remote_path": ".cursor/agents/proto-builder.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "validator": {
+      "local_path": ".cursor/agents/validator.md",
+      "remote_path": ".cursor/agents/validator.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "iterator": {
+      "local_path": ".cursor/agents/iterator.md",
+      "remote_path": ".cursor/agents/iterator.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "research-analyzer": {
+      "local_path": ".cursor/agents/research-analyzer.md",
+      "remote_path": ".cursor/agents/research-analyzer.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "signals-processor": {
+      "local_path": ".cursor/agents/signals-processor.md",
+      "remote_path": ".cursor/agents/signals-processor.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "context-proto-builder": {
+      "local_path": ".cursor/agents/context-proto-builder.md",
+      "remote_path": ".cursor/agents/context-proto-builder.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "docs-generator": {
+      "local_path": ".cursor/agents/docs-generator.md",
+      "remote_path": ".cursor/agents/docs-generator.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "hypothesis-manager": {
+      "local_path": ".cursor/agents/hypothesis-manager.md",
+      "remote_path": ".cursor/agents/hypothesis-manager.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "workspace-admin": {
+      "local_path": ".cursor/agents/workspace-admin.md",
+      "remote_path": ".cursor/agents/workspace-admin.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "figjam-generator": {
+      "local_path": ".cursor/agents/figjam-generator.md",
+      "remote_path": ".cursor/agents/figjam-generator.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "figma-sync": {
+      "local_path": ".cursor/agents/figma-sync.md",
+      "remote_path": ".cursor/agents/figma-sync.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "hubspot-activity": {
+      "local_path": ".cursor/agents/hubspot-activity.md",
+      "remote_path": ".cursor/agents/hubspot-activity.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "notion-admin": {
+      "local_path": ".cursor/agents/notion-admin.md",
+      "remote_path": ".cursor/agents/notion-admin.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "posthog-analyst": {
+      "local_path": ".cursor/agents/posthog-analyst.md",
+      "remote_path": ".cursor/agents/posthog-analyst.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "slack-monitor": {
+      "local_path": ".cursor/agents/slack-monitor.md",
+      "remote_path": ".cursor/agents/slack-monitor.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    }
+  },
+  "skills": {
+    "prototype-notification": {
+      "local_path": ".cursor/skills/prototype-notification/SKILL.md",
+      "remote_path": ".cursor/skills/prototype-notification/SKILL.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "prototype-builder": {
+      "local_path": ".cursor/skills/prototype-builder/SKILL.md",
+      "remote_path": ".cursor/skills/prototype-builder/SKILL.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "jury-system": {
+      "local_path": ".cursor/skills/jury-system/SKILL.md",
+      "remote_path": ".cursor/skills/jury-system/SKILL.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "initiative-status": {
+      "local_path": ".cursor/skills/initiative-status/SKILL.md",
+      "remote_path": ".cursor/skills/initiative-status/SKILL.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    },
+    "slack-block-kit": {
+      "local_path": ".cursor/skills/slack-block-kit/SKILL.md",
+      "remote_path": ".cursor/skills/slack-block-kit/SKILL.md",
+      "last_synced": "2026-01-28T00:00:00Z",
+      "status": "synced"
+    }
+  }
+}

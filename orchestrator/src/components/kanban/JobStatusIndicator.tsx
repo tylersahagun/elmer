@@ -41,7 +41,14 @@ export function JobStatusIndicator({
   workspaceId,
   className,
 }: JobStatusIndicatorProps) {
-  const { summary, isConnected, error, reconnect, activeJobs, triggerProcessing } = useRealtimeJobs({
+  const {
+    summary,
+    isConnected,
+    error,
+    reconnect,
+    activeJobs,
+    triggerProcessing,
+  } = useRealtimeJobs({
     workspaceId,
     enabled: !!workspaceId,
   });
@@ -50,7 +57,8 @@ export function JobStatusIndicator({
   const executionMode = workspace?.settings?.aiExecutionMode || "server";
   const validationMode = workspace?.settings?.aiValidationMode || "schema";
   const workerEnabled = workspace?.settings?.workerEnabled ?? true;
-  const fallbackAfterMinutes = workspace?.settings?.aiFallbackAfterMinutes ?? 30;
+  const fallbackAfterMinutes =
+    workspace?.settings?.aiFallbackAfterMinutes ?? 30;
   const [now, setNow] = useState(() => Date.now());
 
   // Fetch worker status to show health
@@ -67,9 +75,10 @@ export function JobStatusIndicator({
 
   const isWorkerRunning = workerStatus?.isRunning ?? false;
   const workerLastPollAge = workerStatus?.lastPollAt
-    ? Math.round((Date.now() - new Date(workerStatus.lastPollAt).getTime()) / 1000)
+    ? Math.round((now - new Date(workerStatus.lastPollAt).getTime()) / 1000)
     : null;
-  const isWorkerHealthy = isWorkerRunning && workerLastPollAge !== null && workerLastPollAge < 10;
+  const isWorkerHealthy =
+    isWorkerRunning && workerLastPollAge !== null && workerLastPollAge < 10;
 
   useEffect(() => {
     if (summary.pending === 0) return;
@@ -82,11 +91,20 @@ export function JobStatusIndicator({
   const hasActivity = summary.pending > 0 || summary.running > 0;
   const oldestPending = activeJobs
     .filter((job) => job.status === "pending")
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    )[0];
   const pendingAgeMinutes = oldestPending
-    ? Math.max(0, Math.round((now - new Date(oldestPending.createdAt).getTime()) / 60000))
+    ? Math.max(
+        0,
+        Math.round((now - new Date(oldestPending.createdAt).getTime()) / 60000),
+      )
     : 0;
-  const fallbackInMinutes = Math.max(0, fallbackAfterMinutes - pendingAgeMinutes);
+  const fallbackInMinutes = Math.max(
+    0,
+    fallbackAfterMinutes - pendingAgeMinutes,
+  );
 
   return (
     <AnimatePresence>
@@ -197,7 +215,9 @@ export function JobStatusIndicator({
             >
               <GlassCard className="p-2 flex items-center gap-2 bg-amber-500/10 border-amber-500/20">
                 <Server className="w-4 h-4 text-amber-400" />
-                <span className="text-xs text-amber-300">Worker not running</span>
+                <span className="text-xs text-amber-300">
+                  Worker not running
+                </span>
               </GlassCard>
             </motion.div>
           )}
@@ -211,7 +231,9 @@ export function JobStatusIndicator({
             >
               <GlassCard className="p-2 flex items-center gap-2 bg-amber-500/10 border-amber-500/20">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <span className="text-xs text-amber-300">Auto-execution disabled</span>
+                <span className="text-xs text-amber-300">
+                  Auto-execution disabled
+                </span>
                 <Link
                   href={`/workspace/${workspaceId}/settings`}
                   className="ml-auto text-xs text-purple-300 hover:text-purple-200 flex items-center gap-1"
@@ -224,24 +246,26 @@ export function JobStatusIndicator({
           )}
 
           {/* Run server now button */}
-          {summary.pending > 0 && workerEnabled && (executionMode === "server" || executionMode === "hybrid") && (
-            <div className="mt-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {isWorkerHealthy && (
-                  <span className="text-[10px] text-green-400 flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    Worker ready
-                  </span>
-                )}
+          {summary.pending > 0 &&
+            workerEnabled &&
+            (executionMode === "server" || executionMode === "hybrid") && (
+              <div className="mt-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isWorkerHealthy && (
+                    <span className="text-[10px] text-green-400 flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                      Worker ready
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={triggerProcessing}
+                  className="text-xs text-purple-300 hover:text-purple-200 transition-colors"
+                >
+                  Run now
+                </button>
               </div>
-              <button
-                onClick={triggerProcessing}
-                className="text-xs text-purple-300 hover:text-purple-200 transition-colors"
-              >
-                Run now
-              </button>
-            </div>
-          )}
+            )}
 
           {/* Settings info */}
           {summary.pending > 0 && (

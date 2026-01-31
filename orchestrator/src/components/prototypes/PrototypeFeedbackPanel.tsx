@@ -52,10 +52,12 @@ export function PrototypeFeedbackPanel({
 }: PrototypeFeedbackPanelProps) {
   const queryClient = useQueryClient();
   const openJobLogsDrawer = useUIStore((s) => s.openJobLogsDrawer);
-  
+
   const [isOpen, setIsOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackType, setFeedbackType] = useState<"notes" | "transcript">("notes");
+  const [feedbackType, setFeedbackType] = useState<"notes" | "transcript">(
+    "notes",
+  );
 
   // Create iteration job mutation
   const iterateMutation = useMutation({
@@ -86,10 +88,10 @@ export function PrototypeFeedbackPanel({
       // Clear form
       setFeedbackText("");
       setIsOpen(false);
-      
+
       // Open job logs drawer
       openJobLogsDrawer(job.id, projectName);
-      
+
       // Refresh project data
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
     },
@@ -115,7 +117,7 @@ export function PrototypeFeedbackPanel({
             <div>
               <p className="text-sm font-medium">Prototype Feedback</p>
               <p className="text-[10px] text-muted-foreground font-mono">
-                // Add feedback to trigger iteration
+                {"// Add feedback to trigger iteration"}
               </p>
             </div>
           </div>
@@ -134,7 +136,10 @@ export function PrototypeFeedbackPanel({
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <form onSubmit={handleSubmit} className="mt-4 pt-4 border-t border-border space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                className="mt-4 pt-4 border-t border-border space-y-4"
+              >
                 {/* Feedback Type Selector */}
                 <div className="flex gap-2">
                   <Button
@@ -149,7 +154,9 @@ export function PrototypeFeedbackPanel({
                   </Button>
                   <Button
                     type="button"
-                    variant={feedbackType === "transcript" ? "default" : "outline"}
+                    variant={
+                      feedbackType === "transcript" ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => setFeedbackType("transcript")}
                     className="gap-1.5"
@@ -174,7 +181,8 @@ export function PrototypeFeedbackPanel({
 
                 {/* Hint */}
                 <p className="text-[10px] text-muted-foreground">
-                  This will create a new prototype version based on your feedback. The PRD and design brief will also be updated.
+                  This will create a new prototype version based on your
+                  feedback. The PRD and design brief will also be updated.
                 </p>
 
                 {/* Actions */}
@@ -229,7 +237,8 @@ export function PrototypeFeedbackPanel({
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4 text-muted-foreground" />
               <p className="text-xs font-medium text-muted-foreground">
-                {iterationHistory.length} iteration{iterationHistory.length > 1 ? "s" : ""}
+                {iterationHistory.length} iteration
+                {iterationHistory.length > 1 ? "s" : ""}
               </p>
             </div>
             <ScrollArea className="max-h-[200px]">

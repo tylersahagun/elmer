@@ -54,12 +54,14 @@ export function RichTextEditor({
         },
         codeBlock: {
           HTMLAttributes: {
-            class: "bg-black/40 rounded-lg p-4 font-mono text-sm overflow-x-auto my-4",
+            class:
+              "bg-black/40 rounded-lg p-4 font-mono text-sm overflow-x-auto my-4",
           },
         },
         blockquote: {
           HTMLAttributes: {
-            class: "border-l-4 border-purple-500/50 pl-4 my-4 italic text-white/70 bg-white/5 py-3 pr-4 rounded-r-lg",
+            class:
+              "border-l-4 border-purple-500/50 pl-4 my-4 italic text-white/70 bg-white/5 py-3 pr-4 rounded-r-lg",
           },
         },
         bulletList: {
@@ -84,7 +86,8 @@ export function RichTextEditor({
         },
         code: {
           HTMLAttributes: {
-            class: "bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded text-sm font-mono",
+            class:
+              "bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded text-sm font-mono",
           },
         },
       }),
@@ -96,7 +99,8 @@ export function RichTextEditor({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "text-purple-400 hover:text-purple-300 underline underline-offset-2 cursor-pointer",
+          class:
+            "text-purple-400 hover:text-purple-300 underline underline-offset-2 cursor-pointer",
         },
       }),
       Highlight.configure({
@@ -118,6 +122,7 @@ export function RichTextEditor({
     ],
     content: convertMarkdownToHtml(content),
     editable,
+    immediatelyRender: false, // Prevent SSR hydration mismatch
     onUpdate: ({ editor }) => {
       // Convert HTML back to markdown-like format for storage
       const html = editor.getHTML();
@@ -136,7 +141,7 @@ export function RichTextEditor({
           // Strong/em styles
           "prose-strong:font-semibold prose-strong:text-white",
           "prose-em:italic",
-          className
+          className,
         ),
       },
     },
@@ -159,19 +164,25 @@ export function RichTextEditor({
       {editable && (
         <div className="flex flex-wrap items-center gap-1 p-2 mb-4 rounded-lg bg-white/5 border border-white/10 sticky top-0 z-10 backdrop-blur-sm">
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 1 }).run()
+            }
             isActive={editor.isActive("heading", { level: 1 })}
             icon={Heading1}
             title="Heading 1"
           />
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 2 }).run()
+            }
             isActive={editor.isActive("heading", { level: 2 })}
             icon={Heading2}
             title="Heading 2"
           />
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 3 }).run()
+            }
             isActive={editor.isActive("heading", { level: 3 })}
             icon={Heading3}
             title="Heading 3"
@@ -182,9 +193,9 @@ export function RichTextEditor({
             icon={Pilcrow}
             title="Paragraph"
           />
-          
+
           <div className="w-px h-5 bg-white/20 mx-1" />
-          
+
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             isActive={editor.isActive("bold")}
@@ -215,9 +226,9 @@ export function RichTextEditor({
             icon={Highlighter}
             title="Highlight"
           />
-          
+
           <div className="w-px h-5 bg-white/20 mx-1" />
-          
+
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             isActive={editor.isActive("bulletList")}
@@ -236,9 +247,9 @@ export function RichTextEditor({
             icon={CheckSquare}
             title="Task List"
           />
-          
+
           <div className="w-px h-5 bg-white/20 mx-1" />
-          
+
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             isActive={editor.isActive("blockquote")}
@@ -267,9 +278,9 @@ export function RichTextEditor({
             icon={Link2}
             title="Link"
           />
-          
+
           <div className="flex-1" />
-          
+
           <ToolbarButton
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editor.can().undo()}
@@ -293,7 +304,7 @@ export function RichTextEditor({
         .ProseMirror {
           outline: none;
         }
-        
+
         .ProseMirror p.is-editor-empty:first-child::before {
           color: rgba(255, 255, 255, 0.3);
           content: attr(data-placeholder);
@@ -301,34 +312,38 @@ export function RichTextEditor({
           height: 0;
           pointer-events: none;
         }
-        
+
         .ProseMirror ul[data-type="taskList"] {
           list-style: none;
           padding: 0;
         }
-        
+
         .ProseMirror ul[data-type="taskList"] li {
           display: flex;
           align-items: flex-start;
           gap: 0.5rem;
         }
-        
+
         .ProseMirror ul[data-type="taskList"] li > label {
           flex: 0 0 auto;
           margin-top: 0.25rem;
         }
-        
-        .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+
+        .ProseMirror
+          ul[data-type="taskList"]
+          li
+          > label
+          input[type="checkbox"] {
           width: 1rem;
           height: 1rem;
           cursor: pointer;
           accent-color: rgb(168, 85, 247);
         }
-        
+
         .ProseMirror ul[data-type="taskList"] li > div {
           flex: 1 1 auto;
         }
-        
+
         .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
           text-decoration: line-through;
           opacity: 0.6;
@@ -347,7 +362,13 @@ interface ToolbarButtonProps {
   title: string;
 }
 
-function ToolbarButton({ onClick, isActive, disabled, icon: Icon, title }: ToolbarButtonProps) {
+function ToolbarButton({
+  onClick,
+  isActive,
+  disabled,
+  icon: Icon,
+  title,
+}: ToolbarButtonProps) {
   return (
     <Button
       type="button"
@@ -359,7 +380,7 @@ function ToolbarButton({ onClick, isActive, disabled, icon: Icon, title }: Toolb
       className={cn(
         "h-7 w-7 text-white/70 hover:text-white hover:bg-white/10",
         isActive && "bg-purple-500/30 text-purple-300",
-        disabled && "opacity-40 cursor-not-allowed"
+        disabled && "opacity-40 cursor-not-allowed",
       )}
     >
       <Icon className="h-4 w-4" />
@@ -370,7 +391,7 @@ function ToolbarButton({ onClick, isActive, disabled, icon: Icon, title }: Toolb
 // Simple markdown to HTML converter
 function convertMarkdownToHtml(markdown: string): string {
   if (!markdown) return "";
-  
+
   let html = markdown
     // Headers
     .replace(/^### (.*$)/gm, "<h3>$1</h3>")
@@ -395,8 +416,14 @@ function convertMarkdownToHtml(markdown: string): string {
     // Ordered lists
     .replace(/^\d+\. (.*$)/gm, "<li>$1</li>")
     // Task lists
-    .replace(/^- \[x\] (.*$)/gm, '<li data-type="taskItem" data-checked="true">$1</li>')
-    .replace(/^- \[ \] (.*$)/gm, '<li data-type="taskItem" data-checked="false">$1</li>')
+    .replace(
+      /^- \[x\] (.*$)/gm,
+      '<li data-type="taskItem" data-checked="true">$1</li>',
+    )
+    .replace(
+      /^- \[ \] (.*$)/gm,
+      '<li data-type="taskItem" data-checked="false">$1</li>',
+    )
     // Horizontal rules
     .replace(/^---$/gm, "<hr>")
     // Code blocks
@@ -405,12 +432,19 @@ function convertMarkdownToHtml(markdown: string): string {
     .replace(/\n\n/g, "</p><p>")
     // Single newlines within paragraphs
     .replace(/\n/g, "<br>");
-  
+
   // Wrap in paragraph if not already wrapped
-  if (!html.startsWith("<h") && !html.startsWith("<p") && !html.startsWith("<ul") && !html.startsWith("<ol") && !html.startsWith("<blockquote") && !html.startsWith("<pre")) {
+  if (
+    !html.startsWith("<h") &&
+    !html.startsWith("<p") &&
+    !html.startsWith("<ul") &&
+    !html.startsWith("<ol") &&
+    !html.startsWith("<blockquote") &&
+    !html.startsWith("<pre")
+  ) {
     html = `<p>${html}</p>`;
   }
-  
+
   // Wrap consecutive li elements in ul
   html = html.replace(/(<li>[\s\S]*?<\/li>)+/g, (match) => {
     if (match.includes('data-type="taskItem"')) {
@@ -418,15 +452,15 @@ function convertMarkdownToHtml(markdown: string): string {
     }
     return `<ul>${match}</ul>`;
   });
-  
+
   return html;
 }
 
 // Simple HTML to markdown converter
 function convertHtmlToMarkdown(html: string): string {
   if (!html) return "";
-  
-  let markdown = html
+
+  const markdown = html
     // Remove extra whitespace
     .replace(/>\s+</g, "><")
     // Headers
@@ -450,8 +484,14 @@ function convertHtmlToMarkdown(html: string): string {
     .replace(/<blockquote><p>(.*?)<\/p><\/blockquote>/g, "> $1\n\n")
     .replace(/<blockquote>(.*?)<\/blockquote>/g, "> $1\n\n")
     // Task lists
-    .replace(/<li data-type="taskItem" data-checked="true">(.*?)<\/li>/g, "- [x] $1\n")
-    .replace(/<li data-type="taskItem" data-checked="false">(.*?)<\/li>/g, "- [ ] $1\n")
+    .replace(
+      /<li data-type="taskItem" data-checked="true">(.*?)<\/li>/g,
+      "- [x] $1\n",
+    )
+    .replace(
+      /<li data-type="taskItem" data-checked="false">(.*?)<\/li>/g,
+      "- [ ] $1\n",
+    )
     // Lists
     .replace(/<li>(.*?)<\/li>/g, "- $1\n")
     .replace(/<ul[^>]*>([\s\S]*?)<\/ul>/g, "$1\n")
@@ -469,6 +509,6 @@ function convertHtmlToMarkdown(html: string): string {
     // Clean up multiple newlines
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-  
+
   return markdown;
 }

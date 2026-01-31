@@ -7,7 +7,7 @@
  * - Hybrid (Cursor first, server fallback after a threshold)
  */
 
-import { 
+import {
   getProject,
   getDocumentByType,
   createDocument,
@@ -46,7 +46,10 @@ interface ExecutionResult {
   shouldRetryWithoutPenalty?: boolean;
 }
 
-type JobExecutor = (ctx: JobContext, updateProgress: (progress: number) => Promise<void>) => Promise<ExecutionResult>;
+type JobExecutor = (
+  ctx: JobContext,
+  updateProgress: (progress: number) => Promise<void>,
+) => Promise<ExecutionResult>;
 
 type ValidationMode = "none" | "light" | "schema";
 
@@ -67,13 +70,13 @@ const validateGeneratePRD: JobExecutor = async (ctx) => {
 
   // PRD can be generated with or without research
   // Just validate project exists
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       projectName: project.name,
-    } 
+    },
   };
 };
 
@@ -84,20 +87,20 @@ const validateGenerateDesignBrief: JobExecutor = async (ctx) => {
   // Design brief requires PRD
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: "PRD not found - waiting for PRD generation to complete",
       shouldRetryWithoutPenalty: true, // Don't count this as a real failure
     };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       hasPRD: true,
-    } 
+    },
   };
 };
 
@@ -107,20 +110,20 @@ const validateGenerateEngineeringSpec: JobExecutor = async (ctx) => {
 
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: "PRD not found - waiting for PRD generation to complete",
       shouldRetryWithoutPenalty: true,
     };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       hasPRD: true,
-    } 
+    },
   };
 };
 
@@ -130,20 +133,20 @@ const validateGenerateGTMBrief: JobExecutor = async (ctx) => {
 
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: "PRD not found - waiting for PRD generation to complete",
       shouldRetryWithoutPenalty: true,
     };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       hasPRD: true,
-    } 
+    },
   };
 };
 
@@ -153,17 +156,21 @@ const validateAnalyzeTranscript: JobExecutor = async (ctx) => {
 
   const transcript = ctx.input.transcript as string;
   if (!transcript) {
-    return { success: false, error: "No transcript provided - add transcript input when moving to Discovery" };
+    return {
+      success: false,
+      error:
+        "No transcript provided - add transcript input when moving to Discovery",
+    };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       hasTranscript: true,
       transcriptLength: transcript.length,
-    } 
+    },
   };
 };
 
@@ -176,34 +183,37 @@ const validateRunJuryEvaluation: JobExecutor = async (ctx) => {
   // Check content exists for the phase
   if (phase === "research") {
     const doc = await getDocumentByType(ctx.projectId, "research");
-    if (!doc) return { 
-      success: false, 
-      error: "No research document found - waiting for research to complete",
-      shouldRetryWithoutPenalty: true,
-    };
+    if (!doc)
+      return {
+        success: false,
+        error: "No research document found - waiting for research to complete",
+        shouldRetryWithoutPenalty: true,
+      };
   } else if (phase === "prd") {
     const doc = await getDocumentByType(ctx.projectId, "prd");
-    if (!doc) return { 
-      success: false, 
-      error: "No PRD found - waiting for PRD generation to complete",
-      shouldRetryWithoutPenalty: true,
-    };
+    if (!doc)
+      return {
+        success: false,
+        error: "No PRD found - waiting for PRD generation to complete",
+        shouldRetryWithoutPenalty: true,
+      };
   } else {
     const doc = await getDocumentByType(ctx.projectId, "prototype_notes");
-    if (!doc) return { 
-      success: false, 
-      error: "No prototype notes found - waiting for prototype to be built",
-      shouldRetryWithoutPenalty: true,
-    };
+    if (!doc)
+      return {
+        success: false,
+        error: "No prototype notes found - waiting for prototype to be built",
+        shouldRetryWithoutPenalty: true,
+      };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       phase,
-    } 
+    },
   };
 };
 
@@ -213,21 +223,21 @@ const validateBuildPrototype: JobExecutor = async (ctx) => {
 
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: "PRD not found - waiting for PRD generation to complete",
       shouldRetryWithoutPenalty: true,
     };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       hasPRD: true,
       prototypeType: ctx.input.type || "standalone",
-    } 
+    },
   };
 };
 
@@ -237,13 +247,13 @@ const validateIteratePrototype: JobExecutor = async (ctx) => {
     return { success: false, error: "No feedback provided" };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       hasFeedback: true,
-    } 
+    },
   };
 };
 
@@ -253,20 +263,21 @@ const validateGenerateTickets: JobExecutor = async (ctx) => {
 
   const engSpec = await getDocumentByType(ctx.projectId, "engineering_spec");
   if (!engSpec) {
-    return { 
-      success: false, 
-      error: "Engineering spec not found - waiting for engineering spec generation",
+    return {
+      success: false,
+      error:
+        "Engineering spec not found - waiting for engineering spec generation",
       shouldRetryWithoutPenalty: true,
     };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       hasEngSpec: true,
-    } 
+    },
   };
 };
 
@@ -278,8 +289,8 @@ const validateValidateTickets: JobExecutor = async (ctx) => {
   const { getTickets } = await import("@/lib/db/queries");
   const existingTickets = await getTickets(ctx.projectId);
   if (!existingTickets || existingTickets.length === 0) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: "No tickets to validate - waiting for tickets to be generated",
       shouldRetryWithoutPenalty: true,
     };
@@ -287,20 +298,20 @@ const validateValidateTickets: JobExecutor = async (ctx) => {
 
   const prd = await getDocumentByType(ctx.projectId, "prd");
   if (!prd) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: "PRD not found - waiting for PRD generation to complete",
       shouldRetryWithoutPenalty: true,
     };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Job ready for processing by Cursor AI",
       ticketCount: existingTickets.length,
-    } 
+    },
   };
 };
 
@@ -321,21 +332,25 @@ const validateDeployChromatic: JobExecutor = async (ctx) => {
   if (!project) return { success: false, error: "Project not found" };
 
   // Chromatic deployment requires prototype to be built first
-  const prototypeNotes = await getDocumentByType(ctx.projectId, "prototype_notes");
+  const prototypeNotes = await getDocumentByType(
+    ctx.projectId,
+    "prototype_notes",
+  );
   if (!prototypeNotes) {
-    return { 
-      success: false, 
-      error: "Prototype not built yet - waiting for build_prototype to complete",
+    return {
+      success: false,
+      error:
+        "Prototype not built yet - waiting for build_prototype to complete",
       shouldRetryWithoutPenalty: true,
     };
   }
 
-  return { 
-    success: true, 
-    output: { 
+  return {
+    success: true,
+    output: {
       status: "pending",
       message: "Chromatic deployment queued - requires CHROMATIC_PROJECT_TOKEN",
-    } 
+    },
   };
 };
 
@@ -344,7 +359,10 @@ const validateCreateFeatureBranch: JobExecutor = async (ctx) => {
   if (!project) return { success: false, error: "Project not found" };
   const repoRoot = getRepoRoot(project.workspace?.githubRepo ?? undefined);
   if (!repoRoot) {
-    return { success: false, error: "Workspace GitHub repo path not configured" };
+    return {
+      success: false,
+      error: "Workspace GitHub repo path not configured",
+    };
   }
   return {
     success: true,
@@ -429,7 +447,7 @@ async function executeViaAgentExecutor(
   jobType: JobType,
   projectId: string,
   workspaceId: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ): Promise<ExecutionResult> {
   const executor = getAgentExecutor();
   const agentJob: AgentJob = {
@@ -453,13 +471,19 @@ async function executeViaAgentExecutor(
 }
 
 function toComponentName(name: string) {
-  return name.replace(/[^a-zA-Z0-9 ]/g, " ").split(" ").filter(Boolean).map((part) =>
-    part.charAt(0).toUpperCase() + part.slice(1)
-  ).join("");
+  return name
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
 }
 
 function toStoryId(title: string) {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 async function callAiGenerate(tool: string, input: Record<string, unknown>) {
@@ -521,7 +545,9 @@ function formatResearchMarkdown(data: {
   if (data.userProblems?.length) {
     lines.push(`## User Problems`);
     data.userProblems.forEach((p) => {
-      lines.push(`- ${p.problem}${p.severity ? ` (severity: ${p.severity})` : ""}`);
+      lines.push(
+        `- ${p.problem}${p.severity ? ` (severity: ${p.severity})` : ""}`,
+      );
       if (p.quote) lines.push(`  - Quote: "${p.quote}"`);
     });
     lines.push("");
@@ -537,7 +563,11 @@ function formatResearchMarkdown(data: {
     lines.push(`## Pain Points`, ...data.painPoints.map((p) => `- ${p}`), "");
   }
   if (data.positives?.length) {
-    lines.push(`## Positive Feedback`, ...data.positives.map((p) => `- ${p}`), "");
+    lines.push(
+      `## Positive Feedback`,
+      ...data.positives.map((p) => `- ${p}`),
+      "",
+    );
   }
   if (data.actionItems?.length) {
     lines.push(`## Action Items`, ...data.actionItems.map((a) => `- ${a}`), "");
@@ -546,7 +576,10 @@ function formatResearchMarkdown(data: {
 }
 
 function normalizeHeading(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function validateMarkdownSections(content: string, requiredSections: string[]) {
@@ -555,7 +588,7 @@ function validateMarkdownSections(content: string, requiredSections: string[]) {
     .filter((line) => line.trim().startsWith("#"))
     .map((line) => normalizeHeading(line.replace(/^#+\s*/, "")));
   const missing = requiredSections.filter(
-    (section) => !headings.includes(normalizeHeading(section))
+    (section) => !headings.includes(normalizeHeading(section)),
   );
   return missing;
 }
@@ -723,12 +756,12 @@ const markdownRequirements: Partial<Record<JobType, string[]>> = {
 
 /**
  * Validate a job before leaving it in pending state
- * 
+ *
  * This function:
  * 1. Checks prerequisites (required documents, input)
  * 2. Returns success if job is ready for Cursor AI to process
  * 3. Returns error if prerequisites are missing
- * 
+ *
  * Jobs are NOT executed here - they stay in "pending" status
  * and are processed by Cursor AI via MCP tools.
  */
@@ -737,10 +770,10 @@ export async function executeJob(
   jobType: JobType,
   projectId: string,
   workspaceId: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
 ): Promise<ExecutionResult> {
   const validator = validators[jobType];
-  
+
   if (!validator) {
     return { success: false, error: `Unknown job type: ${jobType}` };
   }
@@ -765,7 +798,8 @@ export async function executeJob(
     if (!project) {
       return { success: false, error: "Project not found" };
     }
-    const validationMode = (project.workspace?.settings?.aiValidationMode || "schema") as ValidationMode;
+    const validationMode = (project.workspace?.settings?.aiValidationMode ||
+      "schema") as ValidationMode;
 
     switch (jobType) {
       case "process_signal":
@@ -776,13 +810,15 @@ export async function executeJob(
           jobType,
           projectId,
           workspaceId,
-          input
+          input,
         );
       }
 
       case "analyze_transcript": {
         const transcript = (input.transcript as string) || "";
-        const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({
+        const { raw, parsed } = await generateWithValidation<
+          Record<string, unknown>
+        >({
           tool: "analyze-transcript",
           input: { transcript },
           validationMode,
@@ -798,7 +834,9 @@ export async function executeJob(
           },
         });
         const content = parsed
-          ? formatResearchMarkdown(parsed as Parameters<typeof formatResearchMarkdown>[0])
+          ? formatResearchMarkdown(
+              parsed as Parameters<typeof formatResearchMarkdown>[0],
+            )
           : `# Research Summary\n\n\`\`\`json\n${raw}\n\`\`\``;
         await createDocument({
           projectId,
@@ -807,7 +845,10 @@ export async function executeJob(
           content,
           metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
         });
-        return { success: true, output: { summary: "Research insights generated" } };
+        return {
+          success: true,
+          output: { summary: "Research insights generated" },
+        };
       }
 
       case "generate_prd": {
@@ -880,7 +921,8 @@ export async function executeJob(
           },
           validationMode,
           validate: (value) => {
-            const required = markdownRequirements.generate_engineering_spec || [];
+            const required =
+              markdownRequirements.generate_engineering_spec || [];
             const missing = validateMarkdownSections(value, required);
             return missing.length
               ? { ok: false, error: `Missing sections: ${missing.join(", ")}` }
@@ -894,7 +936,10 @@ export async function executeJob(
           content: raw,
           metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
         });
-        return { success: true, output: { summary: "Engineering spec generated" } };
+        return {
+          success: true,
+          output: { summary: "Engineering spec generated" },
+        };
       }
 
       case "generate_gtm_brief": {
@@ -925,14 +970,17 @@ export async function executeJob(
       }
 
       case "run_jury_evaluation": {
-        const phase = (input.phase as "research" | "prd" | "prototype") || "prd";
+        const phase =
+          (input.phase as "research" | "prd" | "prototype") || "prd";
         const contentDoc =
           phase === "research"
             ? await getDocumentByType(projectId, "research")
             : phase === "prototype"
-            ? await getDocumentByType(projectId, "prototype_notes")
-            : await getDocumentByType(projectId, "prd");
-        const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({
+              ? await getDocumentByType(projectId, "prototype_notes")
+              : await getDocumentByType(projectId, "prd");
+        const { raw, parsed } = await generateWithValidation<
+          Record<string, unknown>
+        >({
           tool: "run-jury-evaluation",
           input: {
             phase,
@@ -952,32 +1000,76 @@ export async function executeJob(
           },
         });
         if (parsed) {
+          const personaWeights: Record<string, number> = {
+            "product manager": 0.25,
+            "software engineer": 0.2,
+            "ux designer": 0.2,
+            "end user": 0.25,
+            "executive stakeholder": 0.1,
+          };
+
+          const evaluations = Array.isArray(parsed.evaluations)
+            ? (parsed.evaluations as Array<Record<string, unknown>>)
+            : [];
+          let weightedTotal = 0;
+          let weightSum = 0;
+          for (const evaluation of evaluations) {
+            const persona = String(evaluation.persona || "").toLowerCase();
+            const vote = String(evaluation.vote || "").toLowerCase();
+            const weight =
+              Object.entries(personaWeights).find(([key]) =>
+                persona.includes(key),
+              )?.[1] ?? 0.1;
+            const score =
+              vote === "approve" ? 1 : vote === "conditional" ? 0.5 : 0;
+            weightedTotal += score * weight;
+            weightSum += weight;
+          }
+          const weightedApprovalRate =
+            weightSum > 0 ? Math.min(weightedTotal / weightSum, 1) : undefined;
+
+          const approvalRate = Number(
+            weightedApprovalRate ?? parsed.approvalRate ?? 0,
+          );
           await createJuryEvaluation({
             projectId,
             phase,
             jurySize: Number(parsed.jurySize || input.jurySize || 12),
-            approvalRate: Number(parsed.approvalRate || 0),
+            approvalRate,
             conditionalRate: Number(parsed.conditionalRate || 0),
             rejectionRate: Number(parsed.rejectionRate || 0),
-            verdict: (parsed.verdict as "pass" | "fail" | "conditional") || "conditional",
+            verdict:
+              (parsed.verdict as "pass" | "fail" | "conditional") ||
+              "conditional",
             topConcerns: (parsed.topConcerns as string[]) || [],
             topSuggestions: (parsed.topSuggestions as string[]) || [],
-            rawResults: parsed,
+            rawResults: {
+              ...parsed,
+              weightedApprovalRate: weightedApprovalRate ?? parsed.approvalRate,
+              weights: personaWeights,
+            },
           });
         }
         await createDocument({
           projectId,
           type: "jury_report",
           title: `Jury Report - ${phase.toUpperCase()}`,
-          content: parsed ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`` : raw,
+          content: parsed
+            ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``
+            : raw,
           metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
         });
-        return { success: true, output: { summary: "Jury evaluation complete" } };
+        return {
+          success: true,
+          output: { summary: "Jury evaluation complete" },
+        };
       }
 
       case "generate_tickets": {
         const engSpec = await getDocumentByType(projectId, "engineering_spec");
-        const { parsed } = await generateWithValidation<Array<Record<string, unknown>>>({
+        const { parsed } = await generateWithValidation<
+          Array<Record<string, unknown>>
+        >({
           tool: "generate-tickets",
           input: {
             engineeringSpec: engSpec?.content || "",
@@ -985,7 +1077,8 @@ export async function executeJob(
           },
           validationMode,
           validate: (value) => {
-            const parsedValue = safeJsonParse<Array<Record<string, unknown>>>(value);
+            const parsedValue =
+              safeJsonParse<Array<Record<string, unknown>>>(value);
             if (!parsedValue) {
               return { ok: false, error: "Invalid JSON array" };
             }
@@ -996,20 +1089,28 @@ export async function executeJob(
           },
         });
         if (parsed && parsed.length > 0) {
-          await createTickets(projectId, parsed.map((t) => ({
-            title: String(t.title || "Untitled"),
-            description: String(t.description || ""),
-            estimatedPoints: Number(t.estimatedPoints || 0),
-            metadata: t,
-          })));
+          await createTickets(
+            projectId,
+            parsed.map((t) => ({
+              title: String(t.title || "Untitled"),
+              description: String(t.description || ""),
+              estimatedPoints: Number(t.estimatedPoints || 0),
+              metadata: t,
+            })),
+          );
         }
-        return { success: true, output: { summary: "Tickets generated", count: parsed?.length || 0 } };
+        return {
+          success: true,
+          output: { summary: "Tickets generated", count: parsed?.length || 0 },
+        };
       }
 
       case "validate_tickets": {
         const prd = await getDocumentByType(projectId, "prd");
         const currentTickets = await getTickets(projectId);
-        const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({
+        const { raw, parsed } = await generateWithValidation<
+          Record<string, unknown>
+        >({
           tool: "validate-tickets",
           input: {
             prd: prd?.content || "",
@@ -1031,7 +1132,9 @@ export async function executeJob(
           projectId,
           type: "jury_report",
           title: "Ticket Validation",
-          content: parsed ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`` : raw,
+          content: parsed
+            ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``
+            : raw,
           metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
         });
         return { success: true, output: { summary: "Tickets validated" } };
@@ -1039,7 +1142,10 @@ export async function executeJob(
 
       case "score_stage_alignment": {
         const stage = (input.stage as string) || project.stage;
-        const docTypeMap: Record<string, Parameters<typeof getDocumentByType>[1]> = {
+        const docTypeMap: Record<
+          string,
+          Parameters<typeof getDocumentByType>[1]
+        > = {
           discovery: "research",
           prd: "prd",
           design: "design_brief",
@@ -1053,7 +1159,9 @@ export async function executeJob(
           return { success: false, error: `No document found for ${stage}` };
         }
         const workspaceContext = await getWorkspaceContext(project.workspaceId);
-        const { raw, parsed } = await generateWithValidation<Record<string, unknown>>({
+        const { raw, parsed } = await generateWithValidation<
+          Record<string, unknown>
+        >({
           tool: "score-stage-alignment",
           input: {
             stage,
@@ -1093,24 +1201,39 @@ export async function executeJob(
           projectId,
           type: "jury_report",
           title: `Alignment Score - ${stage.toUpperCase()}`,
-          content: parsed ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`` : raw,
+          content: parsed
+            ? `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``
+            : raw,
           metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
         });
-        return { success: true, output: { summary: "Alignment score generated" } };
+        return {
+          success: true,
+          output: { summary: "Alignment score generated" },
+        };
       }
 
       case "build_prototype": {
-        const repoRoot = getRepoRoot(project.workspace?.githubRepo ?? undefined);
-        const prototypesPath = project.workspace?.settings?.prototypesPath || "src/components/prototypes";
+        const repoRoot = getRepoRoot(
+          project.workspace?.githubRepo ?? undefined,
+        );
+        const prototypesPath =
+          project.workspace?.settings?.prototypesPath ||
+          "src/components/prototypes";
         if (!repoRoot) {
-          return { success: false, error: "Workspace GitHub repo path not configured" };
+          return {
+            success: false,
+            error: "Workspace GitHub repo path not configured",
+          };
         }
 
         const componentName = toComponentName(project.name) || "Prototype";
         const folderName = toStoryId(project.name) || "prototype";
         const componentDir = path.join(repoRoot, prototypesPath, componentName);
         const componentFile = path.join(componentDir, `${componentName}.tsx`);
-        const storyFile = path.join(componentDir, `${componentName}.stories.tsx`);
+        const storyFile = path.join(
+          componentDir,
+          `${componentName}.stories.tsx`,
+        );
 
         await mkdir(componentDir, { recursive: true });
 
@@ -1168,9 +1291,10 @@ export const Default: Story = {};
           storybookPath: `${toStoryId(storyTitle)}--default`,
         });
 
-        const contextComponents = (input.type === "context" && repoRoot)
-          ? await getRepoComponentList(repoRoot)
-          : [];
+        const contextComponents =
+          input.type === "context" && repoRoot
+            ? await getRepoComponentList(repoRoot)
+            : [];
 
         if (prototype?.id) {
           await updatePrototype(prototype.id, {
@@ -1203,7 +1327,10 @@ export const Default: Story = {};
           metadata: { generatedBy: "ai", model: "claude-sonnet-4" },
         });
 
-        return { success: true, output: { summary: "Prototype built", componentName } };
+        return {
+          success: true,
+          output: { summary: "Prototype built", componentName },
+        };
       }
 
       case "iterate_prototype": {
@@ -1215,39 +1342,58 @@ export const Default: Story = {};
           content: `# Iteration Feedback\n\n${feedback}`,
           metadata: { generatedBy: "user", reviewStatus: "draft" },
         });
-        return { success: true, output: { summary: "Prototype iteration noted" } };
+        return {
+          success: true,
+          output: { summary: "Prototype iteration noted" },
+        };
       }
 
       case "deploy_chromatic": {
-        const repoRoot = getRepoRoot(project.workspace?.githubRepo ?? undefined);
+        const repoRoot = getRepoRoot(
+          project.workspace?.githubRepo ?? undefined,
+        );
         if (!repoRoot) {
-          return { success: false, error: "Workspace GitHub repo path not configured" };
+          return {
+            success: false,
+            error: "Workspace GitHub repo path not configured",
+          };
         }
         const chromaticToken = process.env.CHROMATIC_PROJECT_TOKEN;
         if (!chromaticToken) {
-          return { success: false, error: "CHROMATIC_PROJECT_TOKEN is not set" };
+          return {
+            success: false,
+            error: "CHROMATIC_PROJECT_TOKEN is not set",
+          };
         }
 
         const { stdout, stderr } = await exec(
           `npx chromatic --project-token=${chromaticToken} --exit-once-uploaded`,
-          { cwd: repoRoot }
+          { cwd: repoRoot },
         );
         const output = `${stdout}\n${stderr}`;
-        
+
         // Extract Chromatic dashboard URL (www.chromatic.com/build?...)
-        const dashboardUrlMatch = output.match(/https:\/\/www\.chromatic\.com\/[^\s]*/i);
-        const chromaticUrl = dashboardUrlMatch ? dashboardUrlMatch[0] : undefined;
-        
+        const dashboardUrlMatch = output.match(
+          /https:\/\/www\.chromatic\.com\/[^\s]*/i,
+        );
+        const chromaticUrl = dashboardUrlMatch
+          ? dashboardUrlMatch[0]
+          : undefined;
+
         // Extract Storybook URL for embedding (branch--appId.chromatic.com)
         // This URL is used with /iframe.html?id=story-id&viewMode=story for embedding
-        const storybookUrlMatch = output.match(/https:\/\/[a-zA-Z0-9-]+--[a-zA-Z0-9]+\.chromatic\.com/i);
-        const chromaticStorybookUrl = storybookUrlMatch ? storybookUrlMatch[0] : undefined;
+        const storybookUrlMatch = output.match(
+          /https:\/\/[a-zA-Z0-9-]+--[a-zA-Z0-9]+\.chromatic\.com/i,
+        );
+        const chromaticStorybookUrl = storybookUrlMatch
+          ? storybookUrlMatch[0]
+          : undefined;
 
         if (chromaticStorybookUrl || chromaticUrl) {
-          const embedInfo = chromaticStorybookUrl 
-            ? `\n\n**Embed URL**: ${chromaticStorybookUrl}/iframe.html?id=STORY_ID&viewMode=story` 
-            : '';
-          
+          const embedInfo = chromaticStorybookUrl
+            ? `\n\n**Embed URL**: ${chromaticStorybookUrl}/iframe.html?id=STORY_ID&viewMode=story`
+            : "";
+
           await createDocument({
             projectId,
             type: "prototype_notes",
@@ -1273,15 +1419,29 @@ export const Default: Story = {};
           }
         }
 
-        return { success: true, output: { summary: "Chromatic deployed", chromaticUrl, chromaticStorybookUrl } };
+        return {
+          success: true,
+          output: {
+            summary: "Chromatic deployed",
+            chromaticUrl,
+            chromaticStorybookUrl,
+          },
+        };
       }
 
       case "create_feature_branch": {
-        const repoRoot = getRepoRoot(project.workspace?.githubRepo ?? undefined);
+        const repoRoot = getRepoRoot(
+          project.workspace?.githubRepo ?? undefined,
+        );
         if (!repoRoot) {
-          return { success: false, error: "Workspace GitHub repo path not configured" };
+          return {
+            success: false,
+            error: "Workspace GitHub repo path not configured",
+          };
         }
-        const baseBranch = String(input.baseBranch || project.workspace?.settings?.baseBranch || "main");
+        const baseBranch = String(
+          input.baseBranch || project.workspace?.settings?.baseBranch || "main",
+        );
         const preferredBranch = String(input.preferredBranch || "");
         if (!preferredBranch) {
           return { success: false, error: "Preferred branch name is required" };
@@ -1306,7 +1466,8 @@ export const Default: Story = {};
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown validation error",
+      error:
+        error instanceof Error ? error.message : "Unknown validation error",
     };
   }
 }

@@ -12,35 +12,42 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const owner = searchParams.get("owner");
     const repo = searchParams.get("repo");
-    const path = searchParams.get("path") || "";
+    const rawPath = searchParams.get("path") || "";
+    const normalizedPath = rawPath
+      .replace(/^\/+/, "")
+      .replace(/^\.\//, "")
+      .replace(/\/+$/, "");
     const ref = searchParams.get("ref") || undefined;
 
     if (!owner || !repo) {
       return NextResponse.json(
         { error: "Owner and repo are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const octokit = await getGitHubClient(session.user.id);
     if (!octokit) {
       return NextResponse.json(
-        { error: "GitHub not connected", connectUrl: "/api/auth/signin/github" },
-        { status: 403 }
+        {
+          error: "GitHub not connected",
+          connectUrl: "/api/auth/signin/github",
+        },
+        { status: 403 },
       );
     }
 
     const { data } = await octokit.repos.getContent({
       owner,
       repo,
-      path,
+      path: normalizedPath,
       ref,
     });
 
     if (Array.isArray(data)) {
       return NextResponse.json({
         type: "dir",
-        path,
+        path: normalizedPath,
         items: data.map((item) => ({
           name: item.name,
           path: item.path,
@@ -64,9 +71,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("GitHub tree error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch tree" },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch tree";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -137,7 +137,7 @@ export function ProjectFilesView({
         onFileSelect?.(file);
       }
     },
-    [onFileSelect]
+    [onFileSelect],
   );
 
   const handleSave = useCallback(async () => {
@@ -173,7 +173,10 @@ export function ProjectFilesView({
       if (node.type === "directory") {
         return (
           <FolderItem key={node.path} value={node.path}>
-            <FolderTrigger gitStatus={node.gitStatus} className="hover:bg-accent rounded-md transition-colors">
+            <FolderTrigger
+              gitStatus={node.gitStatus}
+              className="hover:bg-accent rounded-md transition-colors"
+            >
               {node.name}
             </FolderTrigger>
             <FolderContent>
@@ -192,7 +195,7 @@ export function ProjectFilesView({
           onClick={() => handleFileClick(node)}
           className={cn(
             "cursor-pointer rounded-md transition-all hover:bg-accent",
-            isSelected && "bg-accent"
+            isSelected && "bg-accent",
           )}
         >
           <FileItem icon={Icon} gitStatus={node.gitStatus}>
@@ -210,7 +213,9 @@ export function ProjectFilesView({
         <motion.div
           initial={false}
           animate={{ width, opacity: 1 }}
-          transition={isResizing ? { duration: 0 } : { duration: 0.2, ease: "easeInOut" }}
+          transition={
+            isResizing ? { duration: 0 } : { duration: 0.2, ease: "easeInOut" }
+          }
           className="flex-shrink-0 border-r border-border dark:border-[rgba(255,255,255,0.14)] relative"
           style={{ width }}
         >
@@ -227,7 +232,9 @@ export function ProjectFilesView({
                 />
                 <div className="flex items-center gap-2">
                   <FolderGit2 className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-mono text-sm text-muted-foreground">Files</span>
+                  <span className="font-mono text-sm text-muted-foreground">
+                    Files
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-0.5">
@@ -249,7 +256,9 @@ export function ProjectFilesView({
                     disabled={isLoading}
                     className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent"
                   >
-                    <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+                    <RefreshCw
+                      className={cn("w-4 h-4", isLoading && "animate-spin")}
+                    />
                   </Button>
                 )}
               </div>
@@ -276,7 +285,7 @@ export function ProjectFilesView({
                   <FolderGit2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                   <p className="text-sm text-muted-foreground">No files yet</p>
                   <p className="text-xs text-muted-foreground/70 mt-1 font-mono">
-                    // Create a file to get started
+                    {"// Create a file to get started"}
                   </p>
                 </div>
               ) : (
@@ -334,10 +343,14 @@ export function ProjectFilesView({
                       selectedFile.gitStatus === "modified" &&
                         "border-amber-500/50 text-amber-600 dark:text-amber-400",
                       selectedFile.gitStatus === "deleted" &&
-                        "border-red-500/50 text-red-600 dark:text-red-400"
+                        "border-red-500/50 text-red-600 dark:text-red-400",
                     )}
                   >
-                    {selectedFile.gitStatus === "untracked" ? "U" : selectedFile.gitStatus === "modified" ? "M" : "D"}
+                    {selectedFile.gitStatus === "untracked"
+                      ? "U"
+                      : selectedFile.gitStatus === "modified"
+                        ? "M"
+                        : "D"}
                   </Badge>
                 )}
               </div>
@@ -430,7 +443,9 @@ export function ProjectFilesView({
             <div className="px-4 py-2.5 border-t border-border dark:border-[rgba(255,255,255,0.14)] flex items-center justify-between text-xs text-muted-foreground font-mono bg-muted/30">
               <span className="flex items-center gap-1.5">
                 {isEditing ? (
-                  <span className="text-amber-600 dark:text-amber-400">Editing mode</span>
+                  <span className="text-amber-600 dark:text-amber-400">
+                    Editing mode
+                  </span>
                 ) : (
                   <span className="flex items-center gap-1.5">
                     <Eye className="w-3 h-3" />
@@ -446,7 +461,9 @@ export function ProjectFilesView({
           <div className="flex items-center justify-center h-full">
             <div className="text-center p-8">
               <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p className="text-muted-foreground font-mono text-sm">Select a file to view</p>
+              <p className="text-muted-foreground font-mono text-sm">
+                Select a file to view
+              </p>
             </div>
           </div>
         )}
@@ -486,7 +503,7 @@ export function ProjectFilesView({
                     autoFocus
                   />
                   <p className="text-xs text-muted-foreground mt-1 font-mono">
-                    // Use .md for markdown files
+                    {"// Use .md for markdown files"}
                   </p>
                 </div>
                 <div className="flex justify-end gap-2">

@@ -1,4 +1,15 @@
-import { pgTable, text, integer, real, timestamp, boolean, jsonb, unique, primaryKey, customType } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  integer,
+  real,
+  timestamp,
+  boolean,
+  jsonb,
+  unique,
+  primaryKey,
+  customType,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { AgentSecuritySettings } from "@/lib/agent/security";
@@ -41,10 +52,33 @@ export const workspaces = pgTable("workspaces", {
   settings: jsonb("settings").$type<WorkspaceSettings>(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
+  // Onboarding tracking (Phase 1)
+  onboardingCompletedAt: timestamp("onboarding_completed_at"),
+  onboardingData: jsonb("onboarding_data").$type<OnboardingData>(),
 });
 
+/**
+ * Onboarding data stored when workspace onboarding completes.
+ * Will be expanded in Phase 2 with discovery data.
+ */
+export interface OnboardingData {
+  completedAt: string;
+  selectedBranch: string;
+  importedProjects?: number;
+  importedPersonas?: number;
+  importedKnowledge?: number;
+  // Phase 2 will add: discoveredItems, importSelections, etc.
+}
+
 export interface BackgroundSettings {
-  type: "stars" | "bubble" | "gradient" | "gravity-stars" | "hole" | "aurora" | "none";
+  type:
+    | "stars"
+    | "bubble"
+    | "gradient"
+    | "gravity-stars"
+    | "hole"
+    | "aurora"
+    | "none";
   primaryColor?: string;
   secondaryColor?: string;
   speed?: number;
@@ -99,42 +133,80 @@ export interface WorkspaceSettings {
     enabled?: boolean;
     connectedServices?: string[];
   };
+  // Chromatic integration settings
+  chromatic?: {
+    appId?: string; // Chromatic project/app ID for URL construction
+    defaultBranch?: string; // Default branch for prototype URLs (fallback to baseBranch)
+  };
   // Signal Automation Settings (Phase 19)
   signalAutomation?: SignalAutomationSettings;
   // Maintenance Settings (Phase 20)
   maintenance?: MaintenanceSettings;
+  // Source Repository Transformations (for syncing agents from external repos)
+  sourceRepoTransformations?: SourceRepoTransformation[];
+}
+
+// ============================================
+// SOURCE REPOSITORY TRANSFORMATIONS
+// ============================================
+
+export interface PathMapping {
+  from: string; // Pattern to match (e.g., "pm-workspace-docs/")
+  to: string; // Replacement (e.g., "elmer-docs/")
+}
+
+export interface SourceRepoTransformation {
+  // Source repository identifier (e.g., "tylersahagun/pm-workspace")
+  sourceRepo: string;
+  // Human-readable name
+  name: string;
+  // Whether this transformation is enabled
+  enabled: boolean;
+  // Path mappings to apply when syncing content
+  pathMappings: PathMapping[];
+  // Chromatic configuration to preserve/override
+  chromaticConfig?: {
+    token?: string;
+    appId?: string;
+    productionUrl?: string;
+  };
+  // Last sync timestamp
+  lastSynced?: string;
 }
 
 // ============================================
 // SIGNAL AUTOMATION SETTINGS (Phase 19)
 // ============================================
 
-export type AutomationActionType = "initiative_created" | "prd_triggered" | "notification_sent";
+export type AutomationActionType =
+  | "initiative_created"
+  | "prd_triggered"
+  | "notification_sent";
 
 export interface SignalAutomationSettings {
   // Automation depth: how much the system does automatically
   automationDepth: "manual" | "suggest" | "auto_create" | "full_auto";
 
   // Threshold for auto-PRD trigger (number of signals in cluster)
-  autoPrdThreshold: number;  // Default: 5
+  autoPrdThreshold: number; // Default: 5
 
   // Threshold for auto-initiative creation (cluster size)
-  autoInitiativeThreshold: number;  // Default: 3
+  autoInitiativeThreshold: number; // Default: 3
 
   // Minimum cluster confidence for automation (0-1)
-  minClusterConfidence: number;  // Default: 0.7
+  minClusterConfidence: number; // Default: 0.7
 
   // Severity filter: only auto-act on signals at or above this severity
-  minSeverityForAuto: SignalSeverity | null;  // Default: null (any)
+  minSeverityForAuto: SignalSeverity | null; // Default: null (any)
 
   // Notification thresholds
-  notifyOnClusterSize: number | null;  // Only notify when cluster >= N signals
-  notifyOnSeverity: SignalSeverity | null;  // Only notify when severity >= X
-  suppressDuplicateNotifications: boolean;  // Don't notify for same cluster twice
+  notifyOnClusterSize: number | null; // Only notify when cluster >= N signals
+  notifyOnSeverity: SignalSeverity | null; // Only notify when severity >= X
+  suppressDuplicateNotifications: boolean; // Don't notify for same cluster twice
 
   // Rate limiting
-  maxAutoActionsPerDay: number;  // Default: 10
-  cooldownMinutes: number;  // Minutes between auto-actions on same cluster
+  maxAutoActionsPerDay: number; // Default: 10
+  cooldownMinutes: number; // Minutes between auto-actions on same cluster
 }
 
 export const DEFAULT_SIGNAL_AUTOMATION: SignalAutomationSettings = {
@@ -156,25 +228,25 @@ export const DEFAULT_SIGNAL_AUTOMATION: SignalAutomationSettings = {
 
 export interface MaintenanceSettings {
   // Orphan detection
-  orphanThresholdDays: number;           // Days before unlinked signal is flagged (default: 14)
-  flagOrphansEnabled: boolean;           // Whether to detect orphans (default: true)
+  orphanThresholdDays: number; // Days before unlinked signal is flagged (default: 14)
+  flagOrphansEnabled: boolean; // Whether to detect orphans (default: true)
 
   // Duplicate detection
-  duplicateDetectionEnabled: boolean;    // Whether to detect duplicates (default: true)
-  duplicateSimilarityThreshold: number;  // Cosine similarity threshold 0-1 (default: 0.9)
+  duplicateDetectionEnabled: boolean; // Whether to detect duplicates (default: true)
+  duplicateSimilarityThreshold: number; // Cosine similarity threshold 0-1 (default: 0.9)
 
   // Auto-archival
-  autoArchiveEnabled: boolean;           // Whether to auto-archive (default: false - conservative)
-  autoArchiveLinkedAfterDays: number;    // Archive linked signals after N days (default: 90)
-  autoArchiveReviewedAfterDays: number;  // Archive reviewed signals after N days (default: 30)
+  autoArchiveEnabled: boolean; // Whether to auto-archive (default: false - conservative)
+  autoArchiveLinkedAfterDays: number; // Archive linked signals after N days (default: 90)
+  autoArchiveReviewedAfterDays: number; // Archive reviewed signals after N days (default: 30)
 
   // Cleanup suggestions
-  suggestAssociationsEnabled: boolean;   // Whether to suggest links (default: true)
-  minSuggestionConfidence: number;       // Min confidence for suggestions (default: 0.6)
+  suggestAssociationsEnabled: boolean; // Whether to suggest links (default: true)
+  minSuggestionConfidence: number; // Min confidence for suggestions (default: 0.6)
 
   // Notifications
   notifyOnOrphanThreshold: number | null; // Notify when orphan count >= N (default: 10)
-  notifyOnDuplicates: boolean;           // Notify when duplicates found (default: false)
+  notifyOnDuplicates: boolean; // Notify when duplicates found (default: false)
 }
 
 export const DEFAULT_MAINTENANCE_SETTINGS: MaintenanceSettings = {
@@ -196,7 +268,9 @@ export const DEFAULT_MAINTENANCE_SETTINGS: MaintenanceSettings = {
 // ============================================
 
 export const users = pgTable("users", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
   email: text("email").notNull().unique(),
   name: text("name"),
   image: text("image"),
@@ -212,34 +286,48 @@ export const users = pgTable("users", {
 
 export const sessions = pgTable("sessions", {
   sessionToken: text("session_token").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   expires: timestamp("expires").notNull(),
 });
 
-export const accounts = pgTable("accounts", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type").notNull(),
-  provider: text("provider").notNull(),
-  providerAccountId: text("provider_account_id").notNull(),
-  refresh_token: text("refresh_token"),
-  access_token: text("access_token"),
-  expires_at: integer("expires_at"),
-  token_type: text("token_type"),
-  scope: text("scope"),
-  id_token: text("id_token"),
-  session_state: text("session_state"),
-}, (table) => ({
-  providerUnique: unique().on(table.provider, table.providerAccountId),
-}));
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    session_state: text("session_state"),
+  },
+  (table) => ({
+    providerUnique: unique().on(table.provider, table.providerAccountId),
+  }),
+);
 
-export const verificationTokens = pgTable("verification_tokens", {
-  identifier: text("identifier").notNull(),
-  token: text("token").notNull(),
-  expires: timestamp("expires").notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.identifier, table.token] }),
-}));
+export const verificationTokens = pgTable(
+  "verification_tokens",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.identifier, table.token] }),
+  }),
+);
 
 // ============================================
 // WORKSPACE MEMBERS (Collaboration)
@@ -247,27 +335,43 @@ export const verificationTokens = pgTable("verification_tokens", {
 
 export type WorkspaceRole = "admin" | "member" | "viewer";
 
-export const workspaceMembers = pgTable("workspace_members", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  role: text("role").$type<WorkspaceRole>().notNull().default("member"),
-  joinedAt: timestamp("joined_at").defaultNow().notNull(),
-}, (table) => ({
-  uniqueMembership: unique().on(table.workspaceId, table.userId),
-}));
+export const workspaceMembers = pgTable(
+  "workspace_members",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").$type<WorkspaceRole>().notNull().default("member"),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueMembership: unique().on(table.workspaceId, table.userId),
+  }),
+);
 
 // ============================================
 // INVITATIONS
 // ============================================
 
 export const invitations = pgTable("invitations", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
   role: text("role").$type<WorkspaceRole>().notNull().default("member"),
   token: text("token").notNull().unique(),
-  invitedBy: text("invited_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  invitedBy: text("invited_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at").notNull(),
   acceptedAt: timestamp("accepted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -278,8 +382,12 @@ export const invitations = pgTable("invitations", {
 // ============================================
 
 export const activityLogs = pgTable("activity_logs", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
   action: text("action").notNull(), // e.g., 'project.created', 'member.invited'
   targetType: text("target_type"), // 'project', 'workspace', 'member'
@@ -292,7 +400,7 @@ export const activityLogs = pgTable("activity_logs", {
 // PROJECTS
 // ============================================
 
-export type ProjectStage = 
+export type ProjectStage =
   | "inbox"
   | "discovery"
   | "prd"
@@ -309,7 +417,9 @@ export type ProjectStatus = "active" | "paused" | "completed" | "archived";
 
 export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   stage: text("stage").$type<ProjectStage>().notNull().default("inbox"),
@@ -331,6 +441,13 @@ export interface ProjectMetadata {
   tags?: string[];
   gitBranch?: string;
   baseBranch?: string;
+  sourcePath?: string;
+  sourceFolder?: string;
+  originalStatus?: string | null;
+  statusConfidence?: number;
+  isStatusAmbiguous?: boolean;
+  docsRoot?: string;
+  importedAt?: string;
   stageConfidence?: Record<
     string,
     {
@@ -341,10 +458,34 @@ export interface ProjectMetadata {
       updatedAt: string;
     }
   >;
+  releaseMetrics?: {
+    thresholds?: {
+      alpha?: ReleaseMetricsThreshold;
+      beta?: ReleaseMetricsThreshold;
+      ga?: ReleaseMetricsThreshold;
+    };
+    current?: ReleaseMetricsValues;
+    autoAdvance?: boolean;
+    lastEvaluatedAt?: string;
+  };
   // Automation tracking (Phase 19)
   autoCreated?: boolean;
   sourceClusterId?: string;
   clusterConfidence?: number;
+}
+
+export interface ReleaseMetricsThreshold {
+  users: number;
+  engagement: number;
+  errors: number;
+  satisfaction: number;
+}
+
+export interface ReleaseMetricsValues {
+  users: number;
+  engagement: number;
+  errors: number;
+  satisfaction: number;
 }
 
 // ============================================
@@ -353,7 +494,9 @@ export interface ProjectMetadata {
 
 export const projectStages = pgTable("project_stages", {
   id: text("id").primaryKey(),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
   stage: text("stage").$type<ProjectStage>().notNull(),
   enteredAt: timestamp("entered_at").notNull(),
   exitedAt: timestamp("exited_at"),
@@ -365,7 +508,7 @@ export const projectStages = pgTable("project_stages", {
 // DOCUMENTS
 // ============================================
 
-export type DocumentType = 
+export type DocumentType =
   | "research"
   | "prd"
   | "design_brief"
@@ -373,11 +516,14 @@ export type DocumentType =
   | "gtm_brief"
   | "prototype_notes"
   | "jury_report"
+  | "metrics"
   | "state";
 
 export const documents = pgTable("documents", {
   id: text("id").primaryKey(),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
   type: text("type").$type<DocumentType>().notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(), // Markdown content
@@ -409,7 +555,9 @@ export type PrototypeType = "standalone" | "context";
 
 export const prototypes = pgTable("prototypes", {
   id: text("id").primaryKey(),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
   type: text("type").$type<PrototypeType>().notNull(),
   name: text("name").notNull(),
   storybookPath: text("storybook_path"), // e.g., "prototypes-testproject--default"
@@ -417,7 +565,9 @@ export const prototypes = pgTable("prototypes", {
   chromaticStorybookUrl: text("chromatic_storybook_url"), // Embeddable URL: https://branch--appId.chromatic.com
   chromaticBuildId: text("chromatic_build_id"),
   version: integer("version").notNull().default(1),
-  status: text("status").$type<"building" | "ready" | "failed">().default("building"),
+  status: text("status")
+    .$type<"building" | "ready" | "failed">()
+    .default("building"),
   metadata: jsonb("metadata").$type<PrototypeMetadata>(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
@@ -436,7 +586,7 @@ export interface PrototypeMetadata {
 // JOBS (Background Tasks)
 // ============================================
 
-export type JobType = 
+export type JobType =
   | "generate_prd"
   | "generate_design_brief"
   | "generate_engineering_spec"
@@ -454,12 +604,22 @@ export type JobType =
   | "synthesize_signals"
   | "execute_agent_definition";
 
-export type JobStatus = "pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled";
+export type JobStatus =
+  | "pending"
+  | "running"
+  | "waiting_input"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 export const jobs = pgTable("jobs", {
   id: text("id").primaryKey(),
-  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   type: text("type").$type<JobType>().notNull(),
   status: text("status").$type<JobStatus>().notNull().default("pending"),
   attempts: integer("attempts").notNull().default(0),
@@ -476,7 +636,9 @@ export const jobs = pgTable("jobs", {
 
 export const jobRuns = pgTable("job_runs", {
   id: text("id").primaryKey(),
-  jobId: text("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  jobId: text("job_id")
+    .notNull()
+    .references(() => jobs.id, { onDelete: "cascade" }),
   status: text("status").$type<JobStatus>().notNull(),
   attempt: integer("attempt").notNull(),
   startedAt: timestamp("started_at").notNull(),
@@ -488,42 +650,52 @@ export const jobRuns = pgTable("job_runs", {
 // NOTIFICATIONS (Human-in-the-Loop Inbox)
 // ============================================
 
-export type NotificationType = 
-  | "job_failed"           // A background job failed and needs attention
-  | "job_completed"        // A job completed successfully (info)
-  | "missing_transcript"   // Project needs a transcript to proceed
-  | "missing_document"     // Project needs a document to proceed
-  | "approval_required"    // Stage transition needs human approval
-  | "jury_failed"          // Jury evaluation didn't pass
-  | "integration_error"    // External integration failed (Linear, Notion, etc.)
-  | "stage_blocked"        // Project is blocked from progressing
-  | "action_required";     // Generic action needed
+export type NotificationType =
+  | "job_failed" // A background job failed and needs attention
+  | "job_completed" // A job completed successfully (info)
+  | "missing_transcript" // Project needs a transcript to proceed
+  | "missing_document" // Project needs a document to proceed
+  | "approval_required" // Stage transition needs human approval
+  | "jury_failed" // Jury evaluation didn't pass
+  | "integration_error" // External integration failed (Linear, Notion, etc.)
+  | "stage_blocked" // Project is blocked from progressing
+  | "action_required"; // Generic action needed
 
 export type NotificationPriority = "low" | "medium" | "high" | "urgent";
 export type NotificationStatus = "unread" | "read" | "actioned" | "dismissed";
 
 export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
   jobId: text("job_id").references(() => jobs.id, { onDelete: "set null" }),
-  
+
   type: text("type").$type<NotificationType>().notNull(),
-  priority: text("priority").$type<NotificationPriority>().notNull().default("medium"),
-  status: text("status").$type<NotificationStatus>().notNull().default("unread"),
-  
+  priority: text("priority")
+    .$type<NotificationPriority>()
+    .notNull()
+    .default("medium"),
+  status: text("status")
+    .$type<NotificationStatus>()
+    .notNull()
+    .default("unread"),
+
   title: text("title").notNull(),
   message: text("message").notNull(),
-  
+
   // Action configuration
   actionType: text("action_type"), // "navigate" | "approve" | "retry" | "provide_input" | "dismiss"
   actionLabel: text("action_label"), // Button text
   actionUrl: text("action_url"), // Where to navigate or what to do
   actionData: jsonb("action_data").$type<Record<string, unknown>>(), // Additional action context
-  
+
   // Metadata
   metadata: jsonb("metadata").$type<NotificationMetadata>(),
-  
+
   readAt: timestamp("read_at"),
   actionedAt: timestamp("actioned_at"),
   createdAt: timestamp("created_at").notNull(),
@@ -552,11 +724,17 @@ export interface NotificationMetadata {
 // ============================================
 
 export const automationActions = pgTable("automation_actions", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   clusterId: text("cluster_id").notNull(),
   actionType: text("action_type").$type<AutomationActionType>().notNull(),
-  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  projectId: text("project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
   triggeredAt: timestamp("triggered_at").defaultNow().notNull(),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
 });
@@ -565,12 +743,21 @@ export const automationActions = pgTable("automation_actions", {
 // MEMORY ENTRIES
 // ============================================
 
-export type MemoryType = "decision" | "feedback" | "context" | "artifact" | "conversation";
+export type MemoryType =
+  | "decision"
+  | "feedback"
+  | "context"
+  | "artifact"
+  | "conversation";
 
 export const memoryEntries = pgTable("memory_entries", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
   type: text("type").$type<MemoryType>().notNull(),
   content: text("content").notNull(),
   embedding: text("embedding"), // Vector embedding for semantic search (base64 encoded)
@@ -584,7 +771,9 @@ export const memoryEntries = pgTable("memory_entries", {
 
 export const linearMappings = pgTable("linear_mappings", {
   id: text("id").primaryKey(),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
   linearProjectId: text("linear_project_id").notNull(),
   linearTeamId: text("linear_team_id").notNull(),
   syncedAt: timestamp("synced_at"),
@@ -593,7 +782,9 @@ export const linearMappings = pgTable("linear_mappings", {
 
 export const tickets = pgTable("tickets", {
   id: text("id").primaryKey(),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
   linearId: text("linear_id"),
   linearIdentifier: text("linear_identifier"), // e.g., "ENG-123"
   title: text("title").notNull(),
@@ -613,7 +804,9 @@ export const tickets = pgTable("tickets", {
 
 export const juryEvaluations = pgTable("jury_evaluations", {
   id: text("id").primaryKey(),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
   phase: text("phase").$type<"research" | "prd" | "prototype">().notNull(),
   jurySize: integer("jury_size").notNull(),
   approvalRate: real("approval_rate"),
@@ -631,25 +824,56 @@ export const juryEvaluations = pgTable("jury_evaluations", {
 // COLUMN CONFIGURATIONS (Kanban)
 // ============================================
 
+/**
+ * Graduation criteria for moving projects between stages.
+ * Defines what requirements must be met before a project can advance.
+ */
+export interface GraduationCriteria {
+  /** Required document types that must exist for the project */
+  requiredDocuments?: DocumentType[];
+  /** Minimum approval rate from jury evaluation (0-1) */
+  minApprovalRate?: number;
+  /** Minimum number of jury evaluations required */
+  minJuryEvaluations?: number;
+  /** Require at least one linked prototype */
+  requirePrototype?: boolean;
+  /** Minimum number of signals/feedback items processed */
+  minSignalsProcessed?: number;
+  /** Require specific metrics thresholds to be met */
+  requireMetricsGate?: boolean;
+  /** Allow override with human approval */
+  allowManualOverride?: boolean;
+  /** Custom rules (for future extensibility) */
+  customRules?: Record<string, unknown>;
+}
+
 export const columnConfigs = pgTable("column_configs", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   stage: text("stage").$type<ProjectStage>().notNull(),
   displayName: text("display_name").notNull(),
   order: integer("order").notNull(),
   color: text("color"),
   autoTriggerJobs: jsonb("auto_trigger_jobs").$type<JobType[]>(),
-  agentTriggers: jsonb("agent_triggers").$type<Array<{
-    agentDefinitionId: string;
-    priority: number;
-    conditions?: Record<string, unknown>;
-  }>>(),
+  agentTriggers: jsonb("agent_triggers").$type<
+    Array<{
+      agentDefinitionId: string;
+      priority: number;
+      conditions?: Record<string, unknown>;
+    }>
+  >(),
   requiredDocuments: jsonb("required_documents").$type<DocumentType[]>(),
   requiredApprovals: integer("required_approvals").default(0),
   aiIterations: integer("ai_iterations").default(0),
   rules: jsonb("rules").$type<Record<string, unknown>>(),
   humanInLoop: boolean("human_in_loop").default(false),
   enabled: boolean("enabled").default(true),
+  /** Graduation criteria - requirements to EXIT this stage */
+  graduationCriteria: jsonb("graduation_criteria").$type<GraduationCriteria>(),
+  /** Whether to enforce graduation criteria (soft vs hard enforcement) */
+  enforceGraduation: boolean("enforce_graduation").default(false),
 });
 
 // ============================================
@@ -665,7 +889,9 @@ export type KnowledgebaseType =
 
 export const knowledgebaseEntries = pgTable("knowledgebase_entries", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   type: text("type").$type<KnowledgebaseType>().notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),
@@ -680,7 +906,9 @@ export const knowledgebaseEntries = pgTable("knowledgebase_entries", {
 
 export const knowledgeSources = pgTable("knowledge_sources", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // "notion" | "confluence" | "drive"
   config: jsonb("config").$type<Record<string, unknown>>(),
   lastSyncedAt: timestamp("last_synced_at"),
@@ -691,11 +919,18 @@ export const knowledgeSources = pgTable("knowledge_sources", {
 // AGENT DEFINITIONS (Imported)
 // ============================================
 
-export type AgentDefinitionType = "agents_md" | "skill" | "command" | "subagent" | "rule";
+export type AgentDefinitionType =
+  | "agents_md"
+  | "skill"
+  | "command"
+  | "subagent"
+  | "rule";
 
 export const agentDefinitions = pgTable("agent_definitions", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   sourceRepo: text("source_repo").notNull(),
   sourceRef: text("source_ref").notNull(),
   sourcePath: text("source_path").notNull(),
@@ -705,6 +940,7 @@ export const agentDefinitions = pgTable("agent_definitions", {
   triggers: jsonb("triggers").$type<string[]>(),
   content: text("content").notNull(),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  enabled: boolean("enabled").default(true),
   syncedAt: timestamp("synced_at").notNull(),
   createdAt: timestamp("created_at").notNull(),
 });
@@ -712,7 +948,9 @@ export const agentDefinitions = pgTable("agent_definitions", {
 // Knowledge/persona sources imported from GitHub repos
 export const agentKnowledgeSources = pgTable("agent_knowledge_sources", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   sourceRepo: text("source_repo").notNull(),
   sourceRef: text("source_ref").notNull(),
   sourcePath: text("source_path").notNull(),
@@ -727,9 +965,16 @@ export const agentKnowledgeSources = pgTable("agent_knowledge_sources", {
 export const agentExecutions = pgTable("agent_executions", {
   id: text("id").primaryKey(),
   jobId: text("job_id").references(() => jobs.id, { onDelete: "cascade" }),
-  agentDefinitionId: text("agent_definition_id").references(() => agentDefinitions.id, { onDelete: "cascade" }),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  agentDefinitionId: text("agent_definition_id").references(
+    () => agentDefinitions.id,
+    { onDelete: "cascade" },
+  ),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
   inputContext: jsonb("input_context").$type<Record<string, unknown>>(),
   promptUsed: text("prompt_used"),
   output: jsonb("output").$type<Record<string, unknown>>(),
@@ -744,8 +989,12 @@ export const agentExecutions = pgTable("agent_executions", {
 export const pendingQuestions = pgTable("pending_questions", {
   id: text("id").primaryKey(),
   jobId: text("job_id").references(() => jobs.id, { onDelete: "cascade" }),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
   questionType: text("question_type").notNull(), // "blocking" | "approval" | "choice"
   questionText: text("question_text").notNull(),
   choices: jsonb("choices").$type<string[]>(),
@@ -764,7 +1013,9 @@ export const pendingQuestions = pgTable("pending_questions", {
 // GitHub write-back operations
 export const githubWriteOps = pgTable("github_write_ops", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   repoFullName: text("repo_full_name").notNull(),
   baseBranch: text("base_branch").notNull(),
   writeBranch: text("write_branch").notNull(),
@@ -778,12 +1029,44 @@ export const githubWriteOps = pgTable("github_write_ops", {
 });
 
 // ============================================
+// PROJECT COMMITS (GitHub Writeback Tracking - Phase 5)
+// ============================================
+
+export const projectCommits = pgTable("project_commits", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  commitSha: text("commit_sha").notNull(),
+  commitUrl: text("commit_url").notNull(),
+  message: text("message").notNull(),
+  documentType: text("document_type"), // "prd" | "design_brief" | "prototype_notes" | etc.
+  filesChanged: jsonb("files_changed").$type<string[]>().default([]),
+  triggeredBy: text("triggered_by"), // "automation" | "user" | stage run ID
+  stageRunId: text("stage_run_id").references(() => stageRuns.id, {
+    onDelete: "set null",
+  }),
+  githubWriteOpId: text("github_write_op_id").references(
+    () => githubWriteOps.id,
+    { onDelete: "set null" },
+  ),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ============================================
 // PROTOTYPE VERSIONS
 // ============================================
 
 export const prototypeVersions = pgTable("prototype_versions", {
   id: text("id").primaryKey(),
-  prototypeId: text("prototype_id").notNull().references(() => prototypes.id, { onDelete: "cascade" }),
+  prototypeId: text("prototype_id")
+    .notNull()
+    .references(() => prototypes.id, { onDelete: "cascade" }),
   storybookPath: text("storybook_path"),
   chromaticUrl: text("chromatic_url"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
@@ -794,17 +1077,33 @@ export const prototypeVersions = pgTable("prototype_versions", {
 // STAGE RUNS (Execution Tracking)
 // ============================================
 
-export type StageRunStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
-export type AutomationLevel = "fully_auto" | "auto_notify" | "human_approval" | "manual";
+export type StageRunStatus =
+  | "queued"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "cancelled";
+export type AutomationLevel =
+  | "fully_auto"
+  | "auto_notify"
+  | "human_approval"
+  | "manual";
 export type ExecutionProvider = "anthropic" | "openai" | "cli" | "cursor";
 
 export const stageRuns = pgTable("stage_runs", {
   id: text("id").primaryKey(),
-  cardId: text("card_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  cardId: text("card_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   stage: text("stage").$type<ProjectStage>().notNull(),
   status: text("status").$type<StageRunStatus>().notNull().default("queued"),
-  automationLevel: text("automation_level").$type<AutomationLevel>().notNull().default("human_approval"),
+  automationLevel: text("automation_level")
+    .$type<AutomationLevel>()
+    .notNull()
+    .default("human_approval"),
   provider: text("provider").$type<ExecutionProvider>(),
   attempt: integer("attempt").notNull().default(1),
   idempotencyKey: text("idempotency_key").unique(),
@@ -848,7 +1147,9 @@ export type RunLogLevel = "info" | "warn" | "error" | "debug";
 
 export const runLogs = pgTable("run_logs", {
   id: text("id").primaryKey(),
-  runId: text("run_id").notNull().references(() => stageRuns.id, { onDelete: "cascade" }),
+  runId: text("run_id")
+    .notNull()
+    .references(() => stageRuns.id, { onDelete: "cascade" }),
   timestamp: timestamp("timestamp").notNull(),
   level: text("level").$type<RunLogLevel>().notNull().default("info"),
   message: text("message").notNull(),
@@ -860,13 +1161,25 @@ export const runLogs = pgTable("run_logs", {
 // ARTIFACTS (Produced Outputs)
 // ============================================
 
-export type ArtifactType = "file" | "url" | "pr" | "ticket" | "metric" | "chromatic";
+export type ArtifactType =
+  | "file"
+  | "url"
+  | "pr"
+  | "ticket"
+  | "metric"
+  | "chromatic";
 
 export const artifacts = pgTable("artifacts", {
   id: text("id").primaryKey(),
-  runId: text("run_id").references(() => stageRuns.id, { onDelete: "set null" }),
-  cardId: text("card_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  runId: text("run_id").references(() => stageRuns.id, {
+    onDelete: "set null",
+  }),
+  cardId: text("card_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   stage: text("stage").$type<ProjectStage>().notNull(),
   artifactType: text("artifact_type").$type<ArtifactType>().notNull(),
   label: text("label").notNull(),
@@ -899,14 +1212,19 @@ export interface SkillMetadata {
 
 export const skills = pgTable("skills", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").references(() => workspaces.id, {
+    onDelete: "cascade",
+  }),
   source: text("source").$type<SkillSource>().notNull().default("local"),
   name: text("name").notNull(),
   description: text("description"),
   version: text("version"),
   entrypoint: text("entrypoint"), // file path for local skills
   promptTemplate: text("prompt_template"), // system prompt content
-  trustLevel: text("trust_level").$type<TrustLevel>().notNull().default("community"),
+  trustLevel: text("trust_level")
+    .$type<TrustLevel>()
+    .notNull()
+    .default("community"),
   remoteMetadata: jsonb("remote_metadata").$type<SkillRemoteMetadata>(),
   metadata: jsonb("metadata").$type<SkillMetadata>(), // General metadata including AI summaries
   inputSchema: jsonb("input_schema").$type<Record<string, unknown>>(),
@@ -932,12 +1250,22 @@ export interface SkillRemoteMetadata {
 
 export const stageRecipes = pgTable("stage_recipes", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   stage: text("stage").$type<ProjectStage>().notNull(),
-  automationLevel: text("automation_level").$type<AutomationLevel>().notNull().default("human_approval"),
-  recipeSteps: jsonb("recipe_steps").$type<RecipeStep[]>().notNull().default([]),
+  automationLevel: text("automation_level")
+    .$type<AutomationLevel>()
+    .notNull()
+    .default("human_approval"),
+  recipeSteps: jsonb("recipe_steps")
+    .$type<RecipeStep[]>()
+    .notNull()
+    .default([]),
   gates: jsonb("gates").$type<GateDefinition[]>().default([]),
-  onFailBehavior: text("on_fail_behavior").$type<"stay" | "revert" | "create_questions" | "review_required">().default("stay"),
+  onFailBehavior: text("on_fail_behavior")
+    .$type<"stay" | "revert" | "create_questions" | "review_required">()
+    .default("stay"),
   provider: text("provider").$type<ExecutionProvider>().default("anthropic"),
   enabled: boolean("enabled").default(true),
   createdAt: timestamp("created_at").notNull(),
@@ -965,7 +1293,14 @@ export interface RecipeStep {
 export interface GateDefinition {
   id: string;
   name?: string;
-  type: "file_exists" | "sections_exist" | "jury_score" | "custom" | "content_check" | "artifact_exists" | "metric_threshold";
+  type:
+    | "file_exists"
+    | "sections_exist"
+    | "jury_score"
+    | "custom"
+    | "content_check"
+    | "artifact_exists"
+    | "metric_threshold";
   config: Record<string, unknown>;
   required: boolean;
   message?: string; // failure message
@@ -980,7 +1315,9 @@ export type WorkerHealthStatus = "idle" | "processing" | "stale";
 
 export const workerHeartbeats = pgTable("worker_heartbeats", {
   workerId: text("worker_id").primaryKey(),
-  workspaceId: text("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").references(() => workspaces.id, {
+    onDelete: "cascade",
+  }),
   lastHeartbeat: timestamp("last_heartbeat").notNull(),
   status: text("status").$type<WorkerHealthStatus>().notNull().default("idle"),
   activeRunId: text("active_run_id"),
@@ -1003,13 +1340,20 @@ export interface WorkerMetadata {
 
 export const stageTransitionEvents = pgTable("stage_transition_events", {
   id: text("id").primaryKey(),
-  cardId: text("card_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  cardId: text("card_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   fromStage: text("from_stage").$type<ProjectStage>(),
   toStage: text("to_stage").$type<ProjectStage>().notNull(),
   actor: text("actor").notNull(), // "user:{id}" | "automation" | "worker:{id}"
   reason: text("reason"),
-  runId: text("run_id").references(() => stageRuns.id, { onDelete: "set null" }),
+  runId: text("run_id").references(() => stageRuns.id, {
+    onDelete: "set null",
+  }),
+  automationJobIds: jsonb("automation_job_ids").$type<string[]>(),
   timestamp: timestamp("timestamp").notNull(),
 });
 
@@ -1065,16 +1409,19 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
   }),
 }));
 
-export const workspaceMembersRelations = relations(workspaceMembers, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [workspaceMembers.workspaceId],
-    references: [workspaces.id],
+export const workspaceMembersRelations = relations(
+  workspaceMembers,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [workspaceMembers.workspaceId],
+      references: [workspaces.id],
+    }),
+    user: one(users, {
+      fields: [workspaceMembers.userId],
+      references: [users.id],
+    }),
   }),
-  user: one(users, {
-    fields: [workspaceMembers.userId],
-    references: [users.id],
-  }),
-}));
+);
 
 export const invitationsRelations = relations(invitations, ({ one }) => ({
   workspace: one(workspaces, {
@@ -1112,6 +1459,8 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   notifications: many(notifications),
   // Signals (Phase 11+)
   signalProjects: many(signalProjects),
+  // GitHub commits (Phase 5)
+  commits: many(projectCommits),
 }));
 
 export const projectStagesRelations = relations(projectStages, ({ one }) => ({
@@ -1135,12 +1484,15 @@ export const prototypesRelations = relations(prototypes, ({ one }) => ({
   }),
 }));
 
-export const prototypeVersionsRelations = relations(prototypeVersions, ({ one }) => ({
-  prototype: one(prototypes, {
-    fields: [prototypeVersions.prototypeId],
-    references: [prototypes.id],
+export const prototypeVersionsRelations = relations(
+  prototypeVersions,
+  ({ one }) => ({
+    prototype: one(prototypes, {
+      fields: [prototypeVersions.prototypeId],
+      references: [prototypes.id],
+    }),
   }),
-}));
+);
 
 export const jobsRelations = relations(jobs, ({ one }) => ({
   project: one(projects, {
@@ -1200,12 +1552,15 @@ export const ticketsRelations = relations(tickets, ({ one }) => ({
   }),
 }));
 
-export const juryEvaluationsRelations = relations(juryEvaluations, ({ one }) => ({
-  project: one(projects, {
-    fields: [juryEvaluations.projectId],
-    references: [projects.id],
+export const juryEvaluationsRelations = relations(
+  juryEvaluations,
+  ({ one }) => ({
+    project: one(projects, {
+      fields: [juryEvaluations.projectId],
+      references: [projects.id],
+    }),
   }),
-}));
+);
 
 export const columnConfigsRelations = relations(columnConfigs, ({ one }) => ({
   workspace: one(workspaces, {
@@ -1214,19 +1569,25 @@ export const columnConfigsRelations = relations(columnConfigs, ({ one }) => ({
   }),
 }));
 
-export const knowledgebaseEntriesRelations = relations(knowledgebaseEntries, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [knowledgebaseEntries.workspaceId],
-    references: [workspaces.id],
+export const knowledgebaseEntriesRelations = relations(
+  knowledgebaseEntries,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [knowledgebaseEntries.workspaceId],
+      references: [workspaces.id],
+    }),
   }),
-}));
+);
 
-export const knowledgeSourcesRelations = relations(knowledgeSources, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [knowledgeSources.workspaceId],
-    references: [workspaces.id],
+export const knowledgeSourcesRelations = relations(
+  knowledgeSources,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [knowledgeSources.workspaceId],
+      references: [workspaces.id],
+    }),
   }),
-}));
+);
 
 // New execution system relations
 
@@ -1280,25 +1641,54 @@ export const stageRecipesRelations = relations(stageRecipes, ({ one }) => ({
   }),
 }));
 
-export const workerHeartbeatsRelations = relations(workerHeartbeats, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [workerHeartbeats.workspaceId],
-    references: [workspaces.id],
+export const workerHeartbeatsRelations = relations(
+  workerHeartbeats,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [workerHeartbeats.workspaceId],
+      references: [workspaces.id],
+    }),
   }),
-}));
+);
 
-export const stageTransitionEventsRelations = relations(stageTransitionEvents, ({ one }) => ({
-  card: one(projects, {
-    fields: [stageTransitionEvents.cardId],
+export const stageTransitionEventsRelations = relations(
+  stageTransitionEvents,
+  ({ one }) => ({
+    card: one(projects, {
+      fields: [stageTransitionEvents.cardId],
+      references: [projects.id],
+    }),
+    workspace: one(workspaces, {
+      fields: [stageTransitionEvents.workspaceId],
+      references: [workspaces.id],
+    }),
+    run: one(stageRuns, {
+      fields: [stageTransitionEvents.runId],
+      references: [stageRuns.id],
+    }),
+  }),
+);
+
+// ============================================
+// PROJECT COMMITS RELATIONS (Phase 5)
+// ============================================
+
+export const projectCommitsRelations = relations(projectCommits, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectCommits.projectId],
     references: [projects.id],
   }),
   workspace: one(workspaces, {
-    fields: [stageTransitionEvents.workspaceId],
+    fields: [projectCommits.workspaceId],
     references: [workspaces.id],
   }),
-  run: one(stageRuns, {
-    fields: [stageTransitionEvents.runId],
+  stageRun: one(stageRuns, {
+    fields: [projectCommits.stageRunId],
     references: [stageRuns.id],
+  }),
+  githubWriteOp: one(githubWriteOps, {
+    fields: [projectCommits.githubWriteOpId],
+    references: [githubWriteOps.id],
   }),
 }));
 
@@ -1308,7 +1698,11 @@ export const stageTransitionEventsRelations = relations(stageTransitionEvents, (
 
 export type InboxItemType = "transcript" | "document" | "signal" | "feedback";
 export type InboxItemSource = "webhook" | "upload" | "email" | "api" | "sync";
-export type InboxItemStatus = "pending" | "processing" | "assigned" | "dismissed";
+export type InboxItemStatus =
+  | "pending"
+  | "processing"
+  | "assigned"
+  | "dismissed";
 
 export interface ExtractedProblem {
   problem: string;
@@ -1351,7 +1745,9 @@ export interface InboxItemMetadata {
 
 export const inboxItems = pgTable("inbox_items", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   type: text("type").$type<InboxItemType>().notNull(),
   source: text("source").$type<InboxItemSource>().notNull(),
   sourceRef: text("source_ref"), // External reference ID
@@ -1359,7 +1755,9 @@ export const inboxItems = pgTable("inbox_items", {
   rawContent: text("raw_content").notNull(),
   processedContent: text("processed_content"), // AI-summarized version
   status: text("status").$type<InboxItemStatus>().notNull().default("pending"),
-  assignedProjectId: text("assigned_project_id").references(() => projects.id, { onDelete: "set null" }),
+  assignedProjectId: text("assigned_project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
   assignedPersonaId: text("assigned_persona_id"), // Persona archetype ID
   assignedAction: text("assigned_action"), // What to do with it (e.g., "research", "feedback", "persona")
   aiSummary: text("ai_summary"), // AI-generated TL;DR
@@ -1388,7 +1786,17 @@ export const inboxItemsRelations = relations(inboxItems, ({ one }) => ({
 
 // Union types (not PostgreSQL enums - extensible without migrations)
 export type SignalStatus = "new" | "reviewed" | "linked" | "archived";
-export type SignalSource = "webhook" | "upload" | "paste" | "video" | "slack" | "pylon" | "email" | "interview" | "other";
+export type SignalSource =
+  | "webhook"
+  | "upload"
+  | "paste"
+  | "video"
+  | "slack"
+  | "hubspot"
+  | "pylon"
+  | "email"
+  | "interview"
+  | "other";
 export type SignalSeverity = "critical" | "high" | "medium" | "low";
 export type SignalFrequency = "common" | "occasional" | "rare";
 
@@ -1454,29 +1862,33 @@ export interface SignalClassificationResult {
 }
 
 export const signals = pgTable("signals", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
 
   // Core content
-  verbatim: text("verbatim").notNull(),           // Original user quote/feedback
-  interpretation: text("interpretation"),          // PM's "what this really means"
+  verbatim: text("verbatim").notNull(), // Original user quote/feedback
+  interpretation: text("interpretation"), // PM's "what this really means"
 
   // Structured extraction (populated by AI in Phase 15)
   severity: text("severity").$type<SignalSeverity>(),
   frequency: text("frequency").$type<SignalFrequency>(),
-  userSegment: text("user_segment"),              // e.g., "enterprise", "SMB", "prosumer"
+  userSegment: text("user_segment"), // e.g., "enterprise", "SMB", "prosumer"
 
   // Source attribution (SGNL-07)
   source: text("source").$type<SignalSource>().notNull(),
-  sourceRef: text("source_ref"),                  // External reference (URL, ticket ID, etc.)
-  sourceUrl: text("source_url"),                  // URL to original source (if applicable)
+  sourceRef: text("source_ref"), // External reference (URL, ticket ID, etc.)
+  sourceUrl: text("source_url"), // URL to original source (if applicable)
   sourceMetadata: jsonb("source_metadata").$type<SignalSourceMetadata>(),
 
   // Status tracking (SGNL-08)
   status: text("status").$type<SignalStatus>().notNull().default("new"),
 
   // AI processing fields (populated in Phase 15-16)
-  embedding: text("embedding"),                   // Vector embedding (base64) - deprecated, use embeddingVector
+  embedding: text("embedding"), // Vector embedding (base64) - deprecated, use embeddingVector
   aiClassification: jsonb("ai_classification").$type<SignalClassification>(),
 
   // Native pgvector column (Phase 16 - for similarity search)
@@ -1486,51 +1898,80 @@ export const signals = pgTable("signals", {
   classification: jsonb("classification").$type<SignalClassificationResult>(),
 
   // Provenance (for Phase 18)
-  inboxItemId: text("inbox_item_id").references(() => inboxItems.id, { onDelete: "set null" }),
+  inboxItemId: text("inbox_item_id").references(() => inboxItems.id, {
+    onDelete: "set null",
+  }),
 
   // Interview/research metadata (for webhook signals)
-  interviewDate: timestamp("interview_date"),     // When the interview/research occurred
-  interviewee: text("interviewee"),               // Who was interviewed
-  tags: jsonb("tags").$type<string[]>().default([]),  // Free-form tags
+  interviewDate: timestamp("interview_date"), // When the interview/research occurred
+  interviewee: text("interviewee"), // Who was interviewed
+  tags: jsonb("tags").$type<string[]>().default([]), // Free-form tags
 
   // Webhook tracking
-  webhookKeyId: text("webhook_key_id").references(() => webhookKeys.id, { onDelete: "set null" }),
+  webhookKeyId: text("webhook_key_id").references(() => webhookKeys.id, {
+    onDelete: "set null",
+  }),
 
   // Timestamps
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  processedAt: timestamp("processed_at"),         // When AI extraction completed
+  processedAt: timestamp("processed_at"), // When AI extraction completed
 
   // Suggestion dismissal tracking (Phase 17)
   suggestionDismissedAt: timestamp("suggestion_dismissed_at"),
-  suggestionDismissedBy: text("suggestion_dismissed_by").references(() => users.id, { onDelete: "set null" }),
+  suggestionDismissedBy: text("suggestion_dismissed_by").references(
+    () => users.id,
+    { onDelete: "set null" },
+  ),
 });
 
 // ============================================
 // SIGNAL ASSOCIATIONS (Junction Tables)
 // ============================================
 
-export const signalProjects = pgTable("signal_projects", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  signalId: text("signal_id").notNull().references(() => signals.id, { onDelete: "cascade" }),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
-  linkedAt: timestamp("linked_at").defaultNow().notNull(),
-  linkedBy: text("linked_by").references(() => users.id, { onDelete: "set null" }),
-  linkReason: text("link_reason"),    // Why this signal relates to this project
-  confidence: real("confidence"),      // AI confidence score (0-1) if auto-linked
-}, (table) => ({
-  uniqueSignalProject: unique().on(table.signalId, table.projectId),
-}));
+export const signalProjects = pgTable(
+  "signal_projects",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    signalId: text("signal_id")
+      .notNull()
+      .references(() => signals.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    linkedAt: timestamp("linked_at").defaultNow().notNull(),
+    linkedBy: text("linked_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    linkReason: text("link_reason"), // Why this signal relates to this project
+    confidence: real("confidence"), // AI confidence score (0-1) if auto-linked
+  },
+  (table) => ({
+    uniqueSignalProject: unique().on(table.signalId, table.projectId),
+  }),
+);
 
-export const signalPersonas = pgTable("signal_personas", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  signalId: text("signal_id").notNull().references(() => signals.id, { onDelete: "cascade" }),
-  personaId: text("persona_id").notNull(),  // References persona archetype name (not FK)
-  linkedAt: timestamp("linked_at").defaultNow().notNull(),
-  linkedBy: text("linked_by").references(() => users.id, { onDelete: "set null" }),
-}, (table) => ({
-  uniqueSignalPersona: unique().on(table.signalId, table.personaId),
-}));
+export const signalPersonas = pgTable(
+  "signal_personas",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    signalId: text("signal_id")
+      .notNull()
+      .references(() => signals.id, { onDelete: "cascade" }),
+    personaId: text("persona_id").notNull(), // References persona archetype name (not FK)
+    linkedAt: timestamp("linked_at").defaultNow().notNull(),
+    linkedBy: text("linked_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => ({
+    uniqueSignalPersona: unique().on(table.signalId, table.personaId),
+  }),
+);
 
 // ============================================
 // SIGNAL RELATIONS
@@ -1584,15 +2025,21 @@ export const signalPersonasRelations = relations(signalPersonas, ({ one }) => ({
 // ============================================
 
 export const webhookKeys = pgTable("webhook_keys", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),                    // "Ask Elephant", "Zapier", etc.
-  apiKey: text("api_key").notNull().unique(),      // For simple X-API-Key auth
-  secret: text("secret").notNull(),                // For HMAC signature verification
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // "Ask Elephant", "Zapier", etc.
+  apiKey: text("api_key").notNull().unique(), // For simple X-API-Key auth
+  secret: text("secret").notNull(), // For HMAC signature verification
   isActive: boolean("is_active").default(true),
   lastUsedAt: timestamp("last_used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdBy: text("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
 });
 
 // Relations
@@ -1621,26 +2068,30 @@ export interface IntegrationConfig {
 }
 
 export const integrations = pgTable("integrations", {
-  id: text("id").primaryKey().$defaultFn(() => nanoid()),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => nanoid()),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
 
   // Integration identification
   platform: text("platform").$type<IntegrationPlatform>().notNull(),
-  name: text("name").notNull(),                    // User-friendly name like "Support Channel"
+  name: text("name").notNull(), // User-friendly name like "Support Channel"
 
   // Credential fields
-  webhookSecret: text("webhook_secret"),           // Pylon webhook secret, Slack signing secret
-  accessToken: text("access_token"),               // Slack xoxb-* bot token, null for Pylon
-  refreshToken: text("refresh_token"),             // Slack token rotation, null for Pylon
-  tokenExpiresAt: timestamp("token_expires_at"),   // Slack token expiry
+  webhookSecret: text("webhook_secret"), // Pylon webhook secret, Slack signing secret
+  accessToken: text("access_token"), // Slack xoxb-* bot token, null for Pylon
+  refreshToken: text("refresh_token"), // Slack token rotation, null for Pylon
+  tokenExpiresAt: timestamp("token_expires_at"), // Slack token expiry
 
   // Slack-specific fields
-  slackTeamId: text("slack_team_id"),              // Slack workspace ID for team_id lookup
-  slackTeamName: text("slack_team_name"),          // Display name
-  slackBotUserId: text("slack_bot_user_id"),       // For filtering bot messages
+  slackTeamId: text("slack_team_id"), // Slack workspace ID for team_id lookup
+  slackTeamName: text("slack_team_name"), // Display name
+  slackBotUserId: text("slack_bot_user_id"), // For filtering bot messages
 
   // Pylon-specific fields
-  pylonAccountId: text("pylon_account_id"),        // Pylon account identifier
+  pylonAccountId: text("pylon_account_id"), // Pylon account identifier
 
   // Configuration
   isActive: boolean("is_active").default(true),
@@ -1649,7 +2100,9 @@ export const integrations = pgTable("integrations", {
   // Metadata
   lastUsedAt: timestamp("last_used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdBy: text("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
 });
 
 // Integrations Relations
@@ -1665,16 +2118,45 @@ export const integrationsRelations = relations(integrations, ({ one }) => ({
 }));
 
 // ============================================
+// AGENT EXECUTIONS RELATIONS (Phase 6)
+// ============================================
+
+export const agentExecutionsRelations = relations(
+  agentExecutions,
+  ({ one }) => ({
+    job: one(jobs, {
+      fields: [agentExecutions.jobId],
+      references: [jobs.id],
+    }),
+    agentDefinition: one(agentDefinitions, {
+      fields: [agentExecutions.agentDefinitionId],
+      references: [agentDefinitions.id],
+    }),
+    workspace: one(workspaces, {
+      fields: [agentExecutions.workspaceId],
+      references: [workspaces.id],
+    }),
+    project: one(projects, {
+      fields: [agentExecutions.projectId],
+      references: [projects.id],
+    }),
+  }),
+);
+
+// ============================================
 // AUTOMATION ACTIONS RELATIONS (Phase 19)
 // ============================================
 
-export const automationActionsRelations = relations(automationActions, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [automationActions.workspaceId],
-    references: [workspaces.id],
+export const automationActionsRelations = relations(
+  automationActions,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [automationActions.workspaceId],
+      references: [workspaces.id],
+    }),
+    project: one(projects, {
+      fields: [automationActions.projectId],
+      references: [projects.id],
+    }),
   }),
-  project: one(projects, {
-    fields: [automationActions.projectId],
-    references: [projects.id],
-  }),
-}));
+);

@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, ChevronUp, ChevronDown, Loader2, AlertCircle } from "lucide-react";
+import {
+  Plus,
+  ChevronUp,
+  ChevronDown,
+  Loader2,
+  AlertCircle,
+  FolderSync,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +18,7 @@ import { SignalRow } from "./SignalRow";
 import { BulkOperationsToolbar } from "./BulkOperationsToolbar";
 import { BulkLinkModal } from "./BulkLinkModal";
 import { BulkUnlinkModal } from "./BulkUnlinkModal";
+import { toast } from "sonner";
 
 interface Signal {
   id: string;
@@ -32,6 +40,12 @@ interface SignalsResponse {
   totalPages: number;
 }
 
+interface SyncResult {
+  synced: number;
+  skipped: number;
+  errors: string[];
+}
+
 interface SignalsTableProps {
   workspaceId: string;
   onViewSignal: (signal: Signal) => void;
@@ -40,6 +54,23 @@ interface SignalsTableProps {
 
 type SortField = "createdAt" | "status" | "source" | "severity" | "verbatim";
 type SortOrder = "asc" | "desc";
+
+function SortIndicator({
+  field,
+  sortBy,
+  sortOrder,
+}: {
+  field: SortField;
+  sortBy: SortField;
+  sortOrder: SortOrder;
+}) {
+  if (sortBy !== field) return null;
+  return sortOrder === "asc" ? (
+    <ChevronUp className="inline w-4 h-4 ml-1" />
+  ) : (
+    <ChevronDown className="inline w-4 h-4 ml-1" />
+  );
+}
 
 export function SignalsTable({
   workspaceId,
@@ -65,7 +96,9 @@ export function SignalsTable({
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   // Selection state
-  const [selectedSignals, setSelectedSignals] = useState<Set<string>>(new Set());
+  const [selectedSignals, setSelectedSignals] = useState<Set<string>>(
+    new Set(),
+  );
   const [showBulkLinkModal, setShowBulkLinkModal] = useState(false);
   const [showBulkUnlinkModal, setShowBulkUnlinkModal] = useState(false);
 
@@ -77,7 +110,8 @@ export function SignalsTable({
 
   // Reset page when filters change
   useEffect(() => {
-    setPage(1);
+    if (page === 1) return;
+    queueMicrotask(() => setPage(1));
   }, [debouncedSearch, status, source, dateFrom, dateTo]);
 
   // Fetch signals
@@ -115,7 +149,7 @@ export function SignalsTable({
 
   // Reset selection when signals change (page change, filter change, etc.)
   useEffect(() => {
-    setSelectedSignals(new Set());
+    queueMicrotask(() => setSelectedSignals(new Set()));
   }, [data?.signals]);
 
   // Delete mutation
@@ -127,6 +161,44 @@ export function SignalsTable({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["signals", workspaceId] });
+    },
+  });
+
+  // Sync signals mutation
+  const syncMutation = useMutation({
+    mutationFn: async (): Promise<SyncResult> => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/syncSignals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to sync signals");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["signals", workspaceId] });
+      if (data.synced > 0) {
+        toast.success(`Synced ${data.synced} signals from workspace`, {
+          description:
+            data.skipped > 0 ? `${data.skipped} already existed` : undefined,
+        });
+      } else if (data.skipped > 0) {
+        toast.info("All signals already synced", {
+          description: `${data.skipped} signals were already in the database`,
+        });
+      } else {
+        toast.info("No signals found to sync", {
+          description: "Check that your signals folder contains markdown files",
+        });
+      }
+    },
+    onError: (error) => {
+      toast.error("Failed to sync signals", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
     },
   });
 
@@ -165,16 +237,6 @@ export function SignalsTable({
     setSelectedSignals(new Set());
   };
 
-  // Sort indicator component
-  const SortIndicator = ({ field }: { field: SortField }) => {
-    if (sortBy !== field) return null;
-    return sortOrder === "asc" ? (
-      <ChevronUp className="inline w-4 h-4 ml-1" />
-    ) : (
-      <ChevronDown className="inline w-4 h-4 ml-1" />
-    );
-  };
-
   const signals = data?.signals || [];
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
@@ -200,14 +262,26 @@ export function SignalsTable({
             {total}
           </Badge>
         </div>
-        <Button
-          onClick={onCreateSignal}
-          size="sm"
-          className="gap-1.5 self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Signal
-        </Button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            onClick={() => syncMutation.mutate()}
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={syncMutation.isPending}
+          >
+            {syncMutation.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <FolderSync className="w-3.5 h-3.5" />
+            )}
+            {syncMutation.isPending ? "Syncing..." : "Sync from Workspace"}
+          </Button>
+          <Button onClick={onCreateSignal} size="sm" className="gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
+            Add Signal
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -262,14 +336,17 @@ export function SignalsTable({
       )}
 
       {/* Bulk Operations Toolbar */}
-      {!isLoading && !isError && signals.length > 0 && selectedSignals.size > 0 && (
-        <BulkOperationsToolbar
-          selectedCount={selectedSignals.size}
-          onBulkLink={() => setShowBulkLinkModal(true)}
-          onBulkUnlink={() => setShowBulkUnlinkModal(true)}
-          onClearSelection={clearSelection}
-        />
-      )}
+      {!isLoading &&
+        !isError &&
+        signals.length > 0 &&
+        selectedSignals.size > 0 && (
+          <BulkOperationsToolbar
+            selectedCount={selectedSignals.size}
+            onBulkLink={() => setShowBulkLinkModal(true)}
+            onBulkUnlink={() => setShowBulkUnlinkModal(true)}
+            onClearSelection={clearSelection}
+          />
+        )}
 
       {/* Table */}
       {!isLoading && !isError && signals.length > 0 && (
@@ -280,7 +357,10 @@ export function SignalsTable({
                 <tr>
                   <th className="py-3 px-2 w-10">
                     <Checkbox
-                      checked={selectedSignals.size === signals.length && signals.length > 0}
+                      checked={
+                        selectedSignals.size === signals.length &&
+                        signals.length > 0
+                      }
                       onCheckedChange={toggleAllSelection}
                     />
                   </th>
@@ -289,21 +369,33 @@ export function SignalsTable({
                     onClick={() => handleSort("verbatim")}
                   >
                     Verbatim
-                    <SortIndicator field="verbatim" />
+                    <SortIndicator
+                      field="verbatim"
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                    />
                   </th>
                   <th
                     className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("status")}
                   >
                     Status
-                    <SortIndicator field="status" />
+                    <SortIndicator
+                      field="status"
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                    />
                   </th>
                   <th
                     className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("source")}
                   >
                     Source
-                    <SortIndicator field="source" />
+                    <SortIndicator
+                      field="source"
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                    />
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                     Projects
@@ -316,14 +408,22 @@ export function SignalsTable({
                     onClick={() => handleSort("severity")}
                   >
                     Severity
-                    <SortIndicator field="severity" />
+                    <SortIndicator
+                      field="severity"
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                    />
                   </th>
                   <th
                     className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("createdAt")}
                   >
                     Created
-                    <SortIndicator field="createdAt" />
+                    <SortIndicator
+                      field="createdAt"
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                    />
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                     Actions

@@ -17,11 +17,15 @@
  */
 
 import { db } from "@/lib/db";
-import { documents, prototypes, type DocumentType, type PrototypeType } from "@/lib/db/schema";
+import { documents, prototypes, workspaces, type DocumentType, type PrototypeType } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDefaultProvider, type StreamCallback } from "../providers";
 import type { StageContext, StageExecutionResult } from "./index";
+import { commitToGitHub, getWritebackConfig } from "@/lib/github/writeback-service";
+import { resolveDocumentPath, parsePrototypePath } from "@/lib/github/path-resolver";
+import { recordProjectCommit } from "@/lib/db/queries";
+import type { WritebackFile, CommitMetadata } from "@/lib/github/types";
 
 const PROTOTYPE_SYSTEM_PROMPT = `You are a senior frontend engineer specializing in React and Storybook prototypes. Your task is to create a prototype component specification based on the PRD and design requirements.
 
@@ -158,6 +162,90 @@ Generate a complete prototype specification with React components and Storybook 
     createdAt: now,
     updatedAt: now,
   });
+
+  // Commit prototype notes to GitHub (WRITE-02, WRITE-05)
+  const writebackConfig = await getWritebackConfig(run.workspaceId, project.id);
+
+  if (writebackConfig) {
+    // Get workspace settings for prototype path
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, run.workspaceId),
+    });
+    const settings = workspace?.settings || {};
+    const prototypesPath = settings.prototypesPath;
+
+    // Determine paths for prototype notes
+    // 1. Prototype notes go to initiatives/{project}/prototype-notes.md
+    const notesPath = resolveDocumentPath({
+      projectName: project.name,
+      documentType: "prototype_notes",
+      basePath: writebackConfig.basePath,
+    });
+
+    // 2. If there's a prototypesPath, we may also want to note it
+    //    (actual component generation is separate - this just commits the spec)
+    const { submodulePath } = prototypesPath
+      ? parsePrototypePath(prototypesPath)
+      : { submodulePath: null };
+
+    const files: WritebackFile[] = [
+      {
+        path: notesPath,
+        content: result.output || "",
+      },
+    ];
+
+    const commitMetadata: CommitMetadata = {
+      projectId: project.id,
+      projectName: project.name,
+      documentType: "prototype_notes",
+      triggeredBy: "automation",
+      stageRunId: run.id,
+    };
+
+    callbacks.onLog(
+      "info",
+      `Committing prototype notes to GitHub: ${notesPath}${submodulePath ? ` (prototype path: ${prototypesPath})` : ""}`,
+      "prototype"
+    );
+
+    const writebackResult = await commitToGitHub(
+      writebackConfig,
+      files,
+      commitMetadata,
+      "add"
+    );
+
+    if (writebackResult.success) {
+      callbacks.onLog("info", `Committed to GitHub: ${writebackResult.commitSha}`, "prototype");
+
+      // Record in project commit history (WRITE-06)
+      await recordProjectCommit({
+        projectId: project.id,
+        workspaceId: run.workspaceId,
+        commitSha: writebackResult.commitSha!,
+        commitUrl: writebackResult.commitUrl!,
+        message: `docs(${project.name.toLowerCase().replace(/\s+/g, "-")}): add prototype-notes`,
+        documentType: "prototype_notes",
+        filesChanged: writebackResult.filesWritten,
+        triggeredBy: "automation",
+        stageRunId: run.id,
+      });
+
+      // Log submodule info if configured
+      if (submodulePath) {
+        callbacks.onLog(
+          "info",
+          `Prototype generation will use submodule path: ${prototypesPath}`,
+          "prototype"
+        );
+      }
+    } else {
+      callbacks.onLog("warn", `GitHub writeback failed: ${writebackResult.error}`, "prototype");
+    }
+  } else {
+    callbacks.onLog("info", "GitHub writeback not configured for this workspace", "prototype");
+  }
 
   // Create prototype record
   const componentName = project.name.replace(/\s+/g, "");

@@ -1,6 +1,6 @@
 /**
  * Agent Executor - Anthropic SDK agent with prompt caching and tool use
- * 
+ *
  * This executor processes jobs using Claude with:
  * - Prompt caching for 90% cost reduction on repeated context
  * - Tool use for interacting with the orchestrator
@@ -22,9 +22,11 @@ import {
   getProject,
   getDocumentByType,
   getAgentDefinitionById,
+  getAgentDefinitionByName,
   listAgentDefinitionsByType,
   createAgentExecution,
   updateAgentExecution,
+  getSignal,
 } from "@/lib/db/queries";
 
 // ============================================
@@ -41,7 +43,8 @@ const MAX_TOOL_ITERATIONS = 10;
 
 export class AgentExecutor {
   private client: Anthropic;
-  private contextCache: Map<string, { content: string; timestamp: number }> = new Map();
+  private contextCache: Map<string, { content: string; timestamp: number }> =
+    new Map();
   private readonly CACHE_TTL_MS = 4 * 60 * 1000; // 4 minutes (cache lasts 5 min)
 
   constructor() {
@@ -53,7 +56,7 @@ export class AgentExecutor {
    */
   async executeJob(
     job: AgentJob,
-    onProgress?: AgentProgressCallback
+    onProgress?: AgentProgressCallback,
   ): Promise<AgentExecutionResult> {
     const startTime = Date.now();
     const logs: string[] = [];
@@ -80,7 +83,21 @@ export class AgentExecutor {
       log(`Starting job: ${job.type}`);
       onProgress?.({ type: "started", jobId: job.id, jobType: job.type });
 
-      const agentDefinitionId = job.input?.agentDefinitionId as string | undefined;
+      const agentDefinitionId = job.input?.agentDefinitionId as
+        | string
+        | undefined;
+
+      // Validate agent definition exists before creating execution record
+      // This prevents FK constraint violations if the definition was deleted
+      if (job.type === "execute_agent_definition" && agentDefinitionId) {
+        const definition = await getAgentDefinitionById(agentDefinitionId);
+        if (!definition) {
+          throw new Error(
+            `Agent definition not found: ${agentDefinitionId}. It may have been deleted or not synced.`,
+          );
+        }
+      }
+
       const agentExecution =
         job.type === "execute_agent_definition"
           ? await createAgentExecution({
@@ -102,17 +119,23 @@ export class AgentExecutor {
 
       // Load imported rules
       const rules = await listAgentDefinitionsByType(job.workspaceId, "rule");
-      const rulesContent = rules.map((rule) => rule.content).join("\n\n---\n\n");
+      const rulesContent = rules
+        .map((rule) => rule.content)
+        .join("\n\n---\n\n");
 
       // Build system prompt with cached context and rules
-      const systemPrompt = buildSystemPrompt(job.type, companyContext, rulesContent);
+      const systemPrompt = buildSystemPrompt(
+        job.type,
+        companyContext,
+        rulesContent,
+      );
 
       // Get tools for this job type
       const tools = this.getToolsForJob(job.type);
       log(`Using ${tools.length} tools`);
 
       // Create initial message with cached system prompt
-      let messages: Anthropic.MessageParam[] = [
+      const messages: Anthropic.MessageParam[] = [
         { role: "user", content: userPrompt },
       ];
 
@@ -145,10 +168,14 @@ export class AgentExecutor {
         tokensUsed.input += response.usage.input_tokens;
         tokensUsed.output += response.usage.output_tokens;
         if ("cache_read_input_tokens" in response.usage) {
-          tokensUsed.cacheRead += (response.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens || 0;
+          tokensUsed.cacheRead +=
+            (response.usage as { cache_read_input_tokens?: number })
+              .cache_read_input_tokens || 0;
         }
         if ("cache_creation_input_tokens" in response.usage) {
-          tokensUsed.cacheCreation += (response.usage as { cache_creation_input_tokens?: number }).cache_creation_input_tokens || 0;
+          tokensUsed.cacheCreation +=
+            (response.usage as { cache_creation_input_tokens?: number })
+              .cache_creation_input_tokens || 0;
         }
 
         // Process response content
@@ -205,10 +232,12 @@ export class AgentExecutor {
                 projectId: job.projectId,
                 jobType: job.type,
                 toolCallId: block.id,
-              }
+              },
             );
 
-            log(`Tool result: ${block.name} - ${result.success ? "success" : "failed"}`);
+            log(
+              `Tool result: ${block.name} - ${result.success ? "success" : "failed"}`,
+            );
             onProgress?.({
               type: "tool_result",
               toolName: block.name,
@@ -291,9 +320,9 @@ export class AgentExecutor {
 
       onProgress?.({ type: "completed", result });
       return result;
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       log(`Job failed: ${errorMessage}`);
 
       if (agentExecutionId) {
@@ -510,7 +539,17 @@ Analyze ticket coverage and save validation results.`;
         };
         const docType = docTypeMap[stage] || "prd";
         const doc = projectId
-          ? await getDocumentByType(projectId, docType as "research" | "prd" | "design_brief" | "engineering_spec" | "gtm_brief" | "prototype_notes" | "jury_report")
+          ? await getDocumentByType(
+              projectId,
+              docType as
+                | "research"
+                | "prd"
+                | "design_brief"
+                | "engineering_spec"
+                | "gtm_brief"
+                | "prototype_notes"
+                | "jury_report",
+            )
           : null;
 
         return `Score alignment for ${projectName} at ${stage} stage.
@@ -544,20 +583,74 @@ Save a note about needing manual branch creation.`;
           return `Agent definition not found: ${agentDefinitionId}`;
         }
 
+        const delegatesTo = (
+          definition.metadata as {
+            delegatesTo?: { type?: string; name?: string };
+          } | null
+        )?.delegatesTo;
+        let delegateSection = "";
+        if (delegatesTo?.type === "skill" && delegatesTo.name) {
+          const skillDefinition = await getAgentDefinitionByName(
+            job.workspaceId,
+            "skill",
+            delegatesTo.name,
+          );
+          delegateSection = `## Skill Context (${delegatesTo.name})
+${skillDefinition?.content || "Skill definition not found."}`;
+        }
+        if (delegatesTo?.type === "subagent" && delegatesTo.name) {
+          const subagentDefinition = await getAgentDefinitionByName(
+            job.workspaceId,
+            "subagent",
+            delegatesTo.name,
+          );
+          delegateSection = `## Subagent Context (${delegatesTo.name})
+${subagentDefinition?.content || "Subagent definition not found."}`;
+        }
+
         const projectContext = projectId
           ? await getProjectContext(projectId)
           : "";
         const workspaceContext = await getWorkspaceContext(job.workspaceId);
+        const commandInput = input.command as string | undefined;
+        const commandArgs = input.args as string | undefined;
+        const rawInput = input.raw as string | undefined;
+
+        // Build signal context if signalId is provided
+        const signalId = input.signalId as string | undefined;
+        let signalContext = "";
+        if (signalId) {
+          const signal = await getSignal(signalId);
+          if (signal) {
+            signalContext = `## Signal Context
+**Source**: ${signal.source || "unknown"}
+**Status**: ${signal.status || "new"}
+**Severity**: ${signal.severity || "not assessed"}
+**Frequency**: ${signal.frequency || "not assessed"}
+**User Segment**: ${signal.userSegment || "not identified"}
+
+### Verbatim
+${signal.verbatim}
+
+${signal.interpretation ? `### Interpretation\n${signal.interpretation}\n` : ""}`;
+          }
+        }
 
         return `Execute the following agent definition for "${projectName}":
 
 ## Agent Definition
 ${definition.content}
 
+${delegateSection ? `${delegateSection}\n` : ""}${
+          commandInput ? `## Command\n${commandInput}\n` : ""
+        }${commandArgs ? `## Args\n${commandArgs}\n` : ""}${
+          rawInput ? `## Raw Input\n${rawInput}\n` : ""
+        }
+
 ## Workspace Context
 ${workspaceContext}
 
-${projectContext ? `## Project Context\n${projectContext}\n` : ""}`;
+${signalContext ? `${signalContext}\n` : ""}${projectContext ? `## Project Context\n${projectContext}\n` : ""}`;
       }
 
       default:
@@ -572,7 +665,11 @@ ${projectContext ? `## Project Context\n${projectContext}\n` : ""}`;
     const allTools = getAnthropicTools();
 
     // Most jobs need these tools
-    const baseTools = ["get_project_context", "get_workspace_context", "save_document"];
+    const baseTools = [
+      "get_project_context",
+      "get_workspace_context",
+      "save_document",
+    ];
 
     // Job-specific tools
     const jobTools: Record<JobType, string[]> = {
@@ -593,9 +690,11 @@ ${projectContext ? `## Project Context\n${projectContext}\n` : ""}`;
       create_feature_branch: [...baseTools],
       execute_agent_definition: [
         ...baseTools,
+        "get_signal_context",
         "save_tickets",
         "save_jury_evaluation",
         "update_project_score",
+        "write_repo_files",
         "composio_execute",
       ],
     };

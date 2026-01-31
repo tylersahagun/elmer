@@ -23,8 +23,18 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DEFAULT_SIGNAL_AUTOMATION, type SignalAutomationSettings, type SignalSeverity } from "@/lib/db/schema";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DEFAULT_SIGNAL_AUTOMATION,
+  type SignalAutomationSettings,
+  type SignalSeverity,
+} from "@/lib/db/schema";
 import { Zap, Bell, Shield, Clock, Save, RotateCcw } from "lucide-react";
 
 // Controlled mode props (for modals with external save)
@@ -47,11 +57,14 @@ type Props = ControlledProps | SelfContainedProps;
 
 export function SignalAutomationSettingsPanel(props: Props) {
   const isControlled = "settings" in props && props.settings !== undefined;
-  
+
   // For self-contained mode
-  const [internalSettings, setInternalSettings] = useState<SignalAutomationSettings>(
-    isControlled ? DEFAULT_SIGNAL_AUTOMATION : (props.initialSettings || DEFAULT_SIGNAL_AUTOMATION)
-  );
+  const [internalSettings, setInternalSettings] =
+    useState<SignalAutomationSettings>(
+      isControlled
+        ? DEFAULT_SIGNAL_AUTOMATION
+        : props.initialSettings || DEFAULT_SIGNAL_AUTOMATION,
+    );
   const [isDirty, setIsDirty] = useState(false);
   const queryClient = useQueryClient();
 
@@ -60,9 +73,10 @@ export function SignalAutomationSettingsPanel(props: Props) {
 
   useEffect(() => {
     if (!isControlled && props.initialSettings) {
-      setInternalSettings({ ...DEFAULT_SIGNAL_AUTOMATION, ...props.initialSettings });
+      const merged = { ...DEFAULT_SIGNAL_AUTOMATION, ...props.initialSettings };
+      queueMicrotask(() => setInternalSettings(merged));
     }
-  }, [isControlled, props]);
+  }, [isControlled, props.initialSettings]);
 
   const updateMutation = useMutation({
     mutationFn: async (newSettings: SignalAutomationSettings) => {
@@ -77,7 +91,9 @@ export function SignalAutomationSettingsPanel(props: Props) {
     },
     onSuccess: () => {
       if (!isControlled) {
-        queryClient.invalidateQueries({ queryKey: ["workspace", props.workspaceId] });
+        queryClient.invalidateQueries({
+          queryKey: ["workspace", props.workspaceId],
+        });
       }
       setIsDirty(false);
     },
@@ -85,7 +101,7 @@ export function SignalAutomationSettingsPanel(props: Props) {
 
   const update = <K extends keyof SignalAutomationSettings>(
     key: K,
-    value: SignalAutomationSettings[K]
+    value: SignalAutomationSettings[K],
   ) => {
     if (isControlled) {
       props.onChange({ ...props.settings, [key]: value });
@@ -102,12 +118,17 @@ export function SignalAutomationSettingsPanel(props: Props) {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-amber-500" />
-          <Label className="text-sm font-medium text-white/90">Automation Depth</Label>
+          <Label className="text-sm font-medium text-white/90">
+            Automation Depth
+          </Label>
         </div>
         <Select
           value={settings.automationDepth}
           onValueChange={(v) =>
-            update("automationDepth", v as SignalAutomationSettings["automationDepth"])
+            update(
+              "automationDepth",
+              v as SignalAutomationSettings["automationDepth"],
+            )
           }
         >
           <SelectTrigger className="bg-white/5 border-white/10 text-white">
@@ -117,25 +138,33 @@ export function SignalAutomationSettingsPanel(props: Props) {
             <SelectItem value="manual">
               <span className="flex flex-col">
                 <span>Manual</span>
-                <span className="text-xs text-muted-foreground">No automatic actions</span>
+                <span className="text-xs text-muted-foreground">
+                  No automatic actions
+                </span>
               </span>
             </SelectItem>
             <SelectItem value="suggest">
               <span className="flex flex-col">
                 <span>Suggest</span>
-                <span className="text-xs text-muted-foreground">Show recommendations only</span>
+                <span className="text-xs text-muted-foreground">
+                  Show recommendations only
+                </span>
               </span>
             </SelectItem>
             <SelectItem value="auto_create">
               <span className="flex flex-col">
                 <span>Auto-Create</span>
-                <span className="text-xs text-muted-foreground">Create initiatives automatically</span>
+                <span className="text-xs text-muted-foreground">
+                  Create initiatives automatically
+                </span>
               </span>
             </SelectItem>
             <SelectItem value="full_auto">
               <span className="flex flex-col">
                 <span>Full Auto</span>
-                <span className="text-xs text-muted-foreground">Create initiatives + trigger PRD</span>
+                <span className="text-xs text-muted-foreground">
+                  Create initiatives + trigger PRD
+                </span>
               </span>
             </SelectItem>
           </SelectContent>
@@ -149,19 +178,25 @@ export function SignalAutomationSettingsPanel(props: Props) {
       <div className="space-y-4 pt-4 border-t border-white/10">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-blue-500" />
-          <h4 className="text-sm font-medium text-white/90">Action Thresholds</h4>
+          <h4 className="text-sm font-medium text-white/90">
+            Action Thresholds
+          </h4>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs text-white/70">Auto-Initiative (signals)</Label>
+            <Label className="text-xs text-white/70">
+              Auto-Initiative (signals)
+            </Label>
             <Input
               type="number"
               min={2}
               max={20}
               className="bg-white/5 border-white/10 text-white"
               value={settings.autoInitiativeThreshold}
-              onChange={(e) => update("autoInitiativeThreshold", Number(e.target.value))}
+              onChange={(e) =>
+                update("autoInitiativeThreshold", Number(e.target.value))
+              }
             />
             <p className="text-xs text-white/50">
               Min signals to create initiative
@@ -176,18 +211,20 @@ export function SignalAutomationSettingsPanel(props: Props) {
               max={30}
               className="bg-white/5 border-white/10 text-white"
               value={settings.autoPrdThreshold}
-              onChange={(e) => update("autoPrdThreshold", Number(e.target.value))}
+              onChange={(e) =>
+                update("autoPrdThreshold", Number(e.target.value))
+              }
             />
-            <p className="text-xs text-white/50">
-              Min signals to trigger PRD
-            </p>
+            <p className="text-xs text-white/50">Min signals to trigger PRD</p>
           </div>
         </div>
 
         {/* Confidence Threshold */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs text-white/70">Min Cluster Confidence</Label>
+            <Label className="text-xs text-white/70">
+              Min Cluster Confidence
+            </Label>
             <span className="text-xs text-white/50">
               {Math.round(settings.minClusterConfidence * 100)}%
             </span>
@@ -201,17 +238,22 @@ export function SignalAutomationSettingsPanel(props: Props) {
             className="w-full"
           />
           <p className="text-xs text-white/50">
-            Clusters below this similarity won't trigger automation
+            {"Clusters below this similarity won't trigger automation"}
           </p>
         </div>
 
         {/* Severity Filter */}
         <div className="space-y-2">
-          <Label className="text-xs text-white/70">Min Severity for Auto-Actions</Label>
+          <Label className="text-xs text-white/70">
+            Min Severity for Auto-Actions
+          </Label>
           <Select
             value={settings.minSeverityForAuto ?? "any"}
             onValueChange={(v) =>
-              update("minSeverityForAuto", v === "any" ? null : (v as SignalSeverity))
+              update(
+                "minSeverityForAuto",
+                v === "any" ? null : (v as SignalSeverity),
+              )
             }
           >
             <SelectTrigger className="bg-white/5 border-white/10 text-white">
@@ -232,12 +274,16 @@ export function SignalAutomationSettingsPanel(props: Props) {
       <div className="space-y-4 pt-4 border-t border-white/10">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-purple-500" />
-          <h4 className="text-sm font-medium text-white/90">Notification Thresholds</h4>
+          <h4 className="text-sm font-medium text-white/90">
+            Notification Thresholds
+          </h4>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs text-white/70">Notify on Cluster Size</Label>
+            <Label className="text-xs text-white/70">
+              Notify on Cluster Size
+            </Label>
             <Input
               type="number"
               min={1}
@@ -246,7 +292,10 @@ export function SignalAutomationSettingsPanel(props: Props) {
               value={settings.notifyOnClusterSize ?? ""}
               placeholder="Any size"
               onChange={(e) =>
-                update("notifyOnClusterSize", e.target.value ? Number(e.target.value) : null)
+                update(
+                  "notifyOnClusterSize",
+                  e.target.value ? Number(e.target.value) : null,
+                )
               }
             />
           </div>
@@ -256,7 +305,10 @@ export function SignalAutomationSettingsPanel(props: Props) {
             <Select
               value={settings.notifyOnSeverity ?? "any"}
               onValueChange={(v) =>
-                update("notifyOnSeverity", v === "any" ? null : (v as SignalSeverity))
+                update(
+                  "notifyOnSeverity",
+                  v === "any" ? null : (v as SignalSeverity),
+                )
               }
             >
               <SelectTrigger className="bg-white/5 border-white/10 text-white">
@@ -275,9 +327,11 @@ export function SignalAutomationSettingsPanel(props: Props) {
 
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <Label className="text-sm text-white/70">Suppress Duplicate Notifications</Label>
+            <Label className="text-sm text-white/70">
+              Suppress Duplicate Notifications
+            </Label>
             <p className="text-xs text-white/50">
-              Don't notify for same cluster within cooldown
+              {"Don't notify for same cluster within cooldown"}
             </p>
           </div>
           <Switch
@@ -304,7 +358,9 @@ export function SignalAutomationSettingsPanel(props: Props) {
               max={100}
               className="bg-white/5 border-white/10 text-white"
               value={settings.maxAutoActionsPerDay}
-              onChange={(e) => update("maxAutoActionsPerDay", Number(e.target.value))}
+              onChange={(e) =>
+                update("maxAutoActionsPerDay", Number(e.target.value))
+              }
             />
           </div>
 
@@ -316,7 +372,9 @@ export function SignalAutomationSettingsPanel(props: Props) {
               max={1440}
               className="bg-white/5 border-white/10 text-white"
               value={settings.cooldownMinutes}
-              onChange={(e) => update("cooldownMinutes", Number(e.target.value))}
+              onChange={(e) =>
+                update("cooldownMinutes", Number(e.target.value))
+              }
             />
           </div>
         </div>
@@ -324,7 +382,6 @@ export function SignalAutomationSettingsPanel(props: Props) {
           Safety limits to prevent runaway automation
         </p>
       </div>
-
     </>
   );
 
@@ -339,8 +396,9 @@ export function SignalAutomationSettingsPanel(props: Props) {
       <CardHeader>
         <CardTitle className="text-white">Signal Automation</CardTitle>
         <CardDescription className="text-white/60">
-          Configure how the system automatically processes and acts on incoming signals.
-          Signals are user feedback, feature requests, and issues collected from various sources.
+          Configure how the system automatically processes and acts on incoming
+          signals. Signals are user feedback, feature requests, and issues
+          collected from various sources.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -360,7 +418,9 @@ export function SignalAutomationSettingsPanel(props: Props) {
             <Button
               variant="ghost"
               onClick={() => {
-                setInternalSettings(props.initialSettings || DEFAULT_SIGNAL_AUTOMATION);
+                setInternalSettings(
+                  props.initialSettings || DEFAULT_SIGNAL_AUTOMATION,
+                );
                 setIsDirty(false);
               }}
             >

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   CheckCircle,
   Archive,
+  Play,
 } from "lucide-react";
 import {
   Dialog,
@@ -19,6 +20,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useUIStore } from "@/lib/store";
 
 // Signal type matching API response
 interface Signal {
@@ -74,6 +82,14 @@ interface LinkedPersona {
 interface PersonaArchetype {
   archetype_id: string;
   name: string;
+}
+
+// Agent definition type
+interface AgentDefinition {
+  id: string;
+  name: string;
+  type: "agents_md" | "skill" | "command" | "subagent" | "rule";
+  description?: string | null;
 }
 
 // Status color mapping
@@ -131,17 +147,21 @@ export function SignalDetailModal({
   // Sync edited values when signal changes or edit mode is entered
   useEffect(() => {
     if (signal && isEditing) {
-      setEditedVerbatim(signal.verbatim);
-      setEditedInterpretation(signal.interpretation || "");
-      setEditedStatus(signal.status);
+      queueMicrotask(() => {
+        setEditedVerbatim(signal.verbatim);
+        setEditedInterpretation(signal.interpretation || "");
+        setEditedStatus(signal.status);
+      });
     }
   }, [signal, isEditing]);
 
   // Reset edit mode when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setIsEditing(false);
-      setShowMetadata(false);
+      queueMicrotask(() => {
+        setIsEditing(false);
+        setShowMetadata(false);
+      });
     }
   }, [isOpen]);
 
@@ -168,7 +188,9 @@ export function SignalDetailModal({
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!signal) throw new Error("No signal to delete");
-      const res = await fetch(`/api/signals/${signal.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/signals/${signal.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete signal");
       return res.json();
     },
@@ -190,8 +212,12 @@ export function SignalDetailModal({
         fetch(`/api/signals/${signal.id}/personas`),
       ]);
 
-      const projects = projectsRes.ok ? (await projectsRes.json()).projects as LinkedProject[] : [];
-      const personas = personasRes.ok ? (await personasRes.json()).personas as LinkedPersona[] : [];
+      const projects = projectsRes.ok
+        ? ((await projectsRes.json()).projects as LinkedProject[])
+        : [];
+      const personas = personasRes.ok
+        ? ((await personasRes.json()).personas as LinkedPersona[])
+        : [];
 
       return { projects, personas };
     },
@@ -210,8 +236,56 @@ export function SignalDetailModal({
 
   // Map persona IDs to names
   const personaNameMap = new Map(
-    (personasData?.personas || []).map((p) => [p.archetype_id, p.name])
+    (personasData?.personas || []).map((p) => [p.archetype_id, p.name]),
   );
+
+  // Get the job logs drawer opener from store
+  const openJobLogsDrawer = useUIStore((state) => state.openJobLogsDrawer);
+
+  // Fetch available agents for this workspace
+  const { data: agentsData } = useQuery({
+    queryKey: ["agents", signal?.workspaceId],
+    queryFn: async () => {
+      if (!signal?.workspaceId) return { agents: [] };
+      const res = await fetch(`/api/agents?workspaceId=${signal.workspaceId}`);
+      if (!res.ok) return { agents: [] };
+      return res.json() as Promise<{ agents: AgentDefinition[] }>;
+    },
+    enabled: !!signal?.workspaceId && isOpen,
+  });
+
+  // Filter to executable agent types (commands and skills)
+  const executableAgents = (agentsData?.agents || []).filter(
+    (agent) => agent.type === "command" || agent.type === "skill",
+  );
+
+  // Execute agent mutation
+  const executeAgentMutation = useMutation({
+    mutationFn: async (agentDefinitionId: string) => {
+      if (!signal) throw new Error("No signal selected");
+      const res = await fetch("/api/agents/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: signal.workspaceId,
+          agentDefinitionId,
+          signalId: signal.id,
+        }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to execute agent");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Open job logs drawer to show execution progress
+      const jobId = data.id || data.jobId;
+      if (jobId) {
+        openJobLogsDrawer(jobId, signal?.verbatim.slice(0, 50) || "Signal");
+      }
+    },
+  });
 
   // Link/unlink project mutations
   const linkProjectMutation = useMutation({
@@ -303,7 +377,10 @@ export function SignalDetailModal({
   if (!signal) return null;
 
   return (
-    <Dialog open={isOpen && !!signal} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={isOpen && !!signal}
+      onOpenChange={(open) => !open && onClose()}
+    >
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -380,11 +457,21 @@ export function SignalDetailModal({
 
             {/* Metadata row */}
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className={cn("text-xs", SOURCE_COLORS[signal.source] || SOURCE_COLORS.other)}>
+              <Badge
+                className={cn(
+                  "text-xs",
+                  SOURCE_COLORS[signal.source] || SOURCE_COLORS.other,
+                )}
+              >
                 {signal.source}
               </Badge>
               {signal.severity && (
-                <Badge className={cn("text-xs", SEVERITY_COLORS[signal.severity] || SEVERITY_COLORS.low)}>
+                <Badge
+                  className={cn(
+                    "text-xs",
+                    SEVERITY_COLORS[signal.severity] || SEVERITY_COLORS.low,
+                  )}
+                >
                   {signal.severity}
                 </Badge>
               )}
@@ -406,7 +493,9 @@ export function SignalDetailModal({
             {/* Quick status actions */}
             {signal.status !== "archived" && (
               <div className="flex items-center gap-2 pt-2 border-t border-border">
-                <span className="text-xs text-muted-foreground">Quick actions:</span>
+                <span className="text-xs text-muted-foreground">
+                  Quick actions:
+                </span>
                 {signal.status === "new" && (
                   <Button
                     variant="outline"
@@ -429,12 +518,47 @@ export function SignalDetailModal({
                   <Archive className="w-3 h-3" />
                   Archive
                 </Button>
+                {executableAgents.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        disabled={executeAgentMutation.isPending}
+                      >
+                        {executeAgentMutation.isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Play className="w-3 h-3" />
+                        )}
+                        Run Agent
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {executableAgents.map((agent) => (
+                        <DropdownMenuItem
+                          key={agent.id}
+                          onClick={() => executeAgentMutation.mutate(agent.id)}
+                        >
+                          <span className="capitalize text-xs text-muted-foreground mr-2">
+                            [{agent.type}]
+                          </span>
+                          {agent.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             )}
 
             {/* Linked Projects */}
             <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="text-xs text-muted-foreground">Linked Projects</Label>
+              <Label className="text-xs text-muted-foreground">
+                Linked Projects
+              </Label>
               <div className="flex flex-wrap items-center gap-2">
                 {(linkedData?.projects || []).map((project) => (
                   <LinkedTag
@@ -447,8 +571,12 @@ export function SignalDetailModal({
                 ))}
                 <ProjectLinkCombobox
                   workspaceId={signal.workspaceId}
-                  excludeProjectIds={(linkedData?.projects || []).map((p) => p.id)}
-                  onSelect={(projectId) => linkProjectMutation.mutate(projectId)}
+                  excludeProjectIds={(linkedData?.projects || []).map(
+                    (p) => p.id,
+                  )}
+                  onSelect={(projectId) =>
+                    linkProjectMutation.mutate(projectId)
+                  }
                   isLoading={linkProjectMutation.isPending}
                 />
               </div>
@@ -456,20 +584,30 @@ export function SignalDetailModal({
 
             {/* Linked Personas */}
             <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="text-xs text-muted-foreground">Linked Personas</Label>
+              <Label className="text-xs text-muted-foreground">
+                Linked Personas
+              </Label>
               <div className="flex flex-wrap items-center gap-2">
                 {(linkedData?.personas || []).map((persona) => (
                   <LinkedTag
                     key={persona.personaId}
-                    label={personaNameMap.get(persona.personaId) || persona.personaId}
+                    label={
+                      personaNameMap.get(persona.personaId) || persona.personaId
+                    }
                     variant="persona"
-                    onRemove={() => unlinkPersonaMutation.mutate(persona.personaId)}
+                    onRemove={() =>
+                      unlinkPersonaMutation.mutate(persona.personaId)
+                    }
                     isLoading={unlinkPersonaMutation.isPending}
                   />
                 ))}
                 <PersonaLinkCombobox
-                  excludePersonaIds={(linkedData?.personas || []).map((p) => p.personaId)}
-                  onSelect={(personaId) => linkPersonaMutation.mutate(personaId)}
+                  excludePersonaIds={(linkedData?.personas || []).map(
+                    (p) => p.personaId,
+                  )}
+                  onSelect={(personaId) =>
+                    linkPersonaMutation.mutate(personaId)
+                  }
                   isLoading={linkPersonaMutation.isPending}
                 />
               </div>
@@ -502,17 +640,22 @@ export function SignalDetailModal({
                   {signal.sourceRef && (
                     <div className="grid grid-cols-[120px_1fr] gap-2">
                       <span className="text-muted-foreground">Source Ref:</span>
-                      <span className="font-mono break-all">{signal.sourceRef}</span>
+                      <span className="font-mono break-all">
+                        {signal.sourceRef}
+                      </span>
                     </div>
                   )}
-                  {signal.sourceMetadata && Object.keys(signal.sourceMetadata).length > 0 && (
-                    <div className="grid grid-cols-[120px_1fr] gap-2">
-                      <span className="text-muted-foreground">Source Metadata:</span>
-                      <pre className="font-mono text-[10px] bg-muted/50 p-2 rounded overflow-x-auto">
-                        {JSON.stringify(signal.sourceMetadata, null, 2)}
-                      </pre>
-                    </div>
-                  )}
+                  {signal.sourceMetadata &&
+                    Object.keys(signal.sourceMetadata).length > 0 && (
+                      <div className="grid grid-cols-[120px_1fr] gap-2">
+                        <span className="text-muted-foreground">
+                          Source Metadata:
+                        </span>
+                        <pre className="font-mono text-[10px] bg-muted/50 p-2 rounded overflow-x-auto">
+                          {JSON.stringify(signal.sourceMetadata, null, 2)}
+                        </pre>
+                      </div>
+                    )}
                   <div className="grid grid-cols-[120px_1fr] gap-2">
                     <span className="text-muted-foreground">Created At:</span>
                     <span>{new Date(signal.createdAt).toLocaleString()}</span>
@@ -523,8 +666,12 @@ export function SignalDetailModal({
                   </div>
                   {signal.processedAt && (
                     <div className="grid grid-cols-[120px_1fr] gap-2">
-                      <span className="text-muted-foreground">Processed At:</span>
-                      <span>{new Date(signal.processedAt).toLocaleString()}</span>
+                      <span className="text-muted-foreground">
+                        Processed At:
+                      </span>
+                      <span>
+                        {new Date(signal.processedAt).toLocaleString()}
+                      </span>
                     </div>
                   )}
                 </div>

@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -35,14 +41,15 @@ export function MaintenanceSettingsPanel({
   initialSettings,
 }: MaintenanceSettingsPanelProps) {
   const [settings, setSettings] = useState<MaintenanceSettings>(
-    initialSettings || DEFAULT_SETTINGS
+    initialSettings || DEFAULT_SETTINGS,
   );
   const [isDirty, setIsDirty] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (initialSettings) {
-      setSettings({ ...DEFAULT_SETTINGS, ...initialSettings });
+      const merged = { ...DEFAULT_SETTINGS, ...initialSettings };
+      queueMicrotask(() => setSettings(merged));
     }
   }, [initialSettings]);
 
@@ -64,7 +71,7 @@ export function MaintenanceSettingsPanel({
 
   const updateField = <K extends keyof MaintenanceSettings>(
     field: K,
-    value: MaintenanceSettings[K]
+    value: MaintenanceSettings[K],
   ) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
@@ -81,7 +88,9 @@ export function MaintenanceSettingsPanel({
       <CardContent className="space-y-6">
         {/* Orphan Detection */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-white/90">Orphan Detection</h3>
+          <h3 className="text-sm font-medium text-white/90">
+            Orphan Detection
+          </h3>
           <div className="flex items-center justify-between">
             <Label htmlFor="flagOrphans" className="text-white/70">
               Flag orphan signals
@@ -115,7 +124,7 @@ export function MaintenanceSettingsPanel({
               onChange={(e) =>
                 updateField(
                   "notifyOnOrphanThreshold",
-                  e.target.value ? parseInt(e.target.value) : null
+                  e.target.value ? parseInt(e.target.value) : null,
                 )
               }
               placeholder="10"
@@ -127,7 +136,9 @@ export function MaintenanceSettingsPanel({
 
         {/* Association Suggestions (MAINT-01) */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-white/90">Association Suggestions</h3>
+          <h3 className="text-sm font-medium text-white/90">
+            Association Suggestions
+          </h3>
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="suggestAssociations" className="text-white/70">
@@ -140,19 +151,24 @@ export function MaintenanceSettingsPanel({
             <Switch
               id="suggestAssociations"
               checked={settings.suggestAssociationsEnabled}
-              onCheckedChange={(v) => updateField("suggestAssociationsEnabled", v)}
+              onCheckedChange={(v) =>
+                updateField("suggestAssociationsEnabled", v)
+              }
             />
           </div>
           <div className="space-y-2">
             <Label className="text-white/70">
-              Minimum confidence: {Math.round(settings.minSuggestionConfidence * 100)}%
+              Minimum confidence:{" "}
+              {Math.round(settings.minSuggestionConfidence * 100)}%
             </Label>
             <Slider
               value={[settings.minSuggestionConfidence * 100]}
               min={50}
               max={90}
               step={5}
-              onValueChange={([v]) => updateField("minSuggestionConfidence", v / 100)}
+              onValueChange={([v]) =>
+                updateField("minSuggestionConfidence", v / 100)
+              }
               disabled={!settings.suggestAssociationsEnabled}
             />
           </div>
@@ -160,7 +176,9 @@ export function MaintenanceSettingsPanel({
 
         {/* Duplicate Detection */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-white/90">Duplicate Detection</h3>
+          <h3 className="text-sm font-medium text-white/90">
+            Duplicate Detection
+          </h3>
           <div className="flex items-center justify-between">
             <Label htmlFor="duplicates" className="text-white/70">
               Detect duplicate signals
@@ -168,19 +186,24 @@ export function MaintenanceSettingsPanel({
             <Switch
               id="duplicates"
               checked={settings.duplicateDetectionEnabled}
-              onCheckedChange={(v) => updateField("duplicateDetectionEnabled", v)}
+              onCheckedChange={(v) =>
+                updateField("duplicateDetectionEnabled", v)
+              }
             />
           </div>
           <div className="space-y-2">
             <Label className="text-white/70">
-              Similarity threshold: {Math.round(settings.duplicateSimilarityThreshold * 100)}%
+              Similarity threshold:{" "}
+              {Math.round(settings.duplicateSimilarityThreshold * 100)}%
             </Label>
             <Slider
               value={[settings.duplicateSimilarityThreshold * 100]}
               min={80}
               max={99}
               step={1}
-              onValueChange={([v]) => updateField("duplicateSimilarityThreshold", v / 100)}
+              onValueChange={([v]) =>
+                updateField("duplicateSimilarityThreshold", v / 100)
+              }
               disabled={!settings.duplicateDetectionEnabled}
             />
           </div>
@@ -224,7 +247,10 @@ export function MaintenanceSettingsPanel({
                 type="number"
                 value={settings.autoArchiveLinkedAfterDays}
                 onChange={(e) =>
-                  updateField("autoArchiveLinkedAfterDays", parseInt(e.target.value) || 90)
+                  updateField(
+                    "autoArchiveLinkedAfterDays",
+                    parseInt(e.target.value) || 90,
+                  )
                 }
                 className="bg-white/5 border-white/10 text-white"
                 disabled={!settings.autoArchiveEnabled}
@@ -238,7 +264,10 @@ export function MaintenanceSettingsPanel({
                 type="number"
                 value={settings.autoArchiveReviewedAfterDays}
                 onChange={(e) =>
-                  updateField("autoArchiveReviewedAfterDays", parseInt(e.target.value) || 30)
+                  updateField(
+                    "autoArchiveReviewedAfterDays",
+                    parseInt(e.target.value) || 30,
+                  )
                 }
                 className="bg-white/5 border-white/10 text-white"
                 disabled={!settings.autoArchiveEnabled}

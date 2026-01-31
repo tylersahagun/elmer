@@ -128,23 +128,42 @@ interface StageRecipe {
   enabled: boolean;
 }
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
 interface CommandsDocumentationProps {
   workspaceId: string;
 }
 
-export function CommandsDocumentation({ workspaceId }: CommandsDocumentationProps) {
+export function CommandsDocumentation({
+  workspaceId,
+}: CommandsDocumentationProps) {
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // Fetch column configs
-  const { data: columns, isLoading: columnsLoading } = useQuery<ColumnConfig[]>({
-    queryKey: ["columns", workspaceId],
+  const { data: workspace } = useQuery<Workspace>({
+    queryKey: ["workspace", workspaceId],
     queryFn: async () => {
-      const res = await fetch(`/api/columns?workspaceId=${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to load columns");
+      const res = await fetch(`/api/workspaces/${workspaceId}`);
+      if (!res.ok) throw new Error("Failed to load workspace");
       return res.json();
     },
+    enabled: !!workspaceId,
   });
+
+  // Fetch column configs
+  const { data: columns, isLoading: columnsLoading } = useQuery<ColumnConfig[]>(
+    {
+      queryKey: ["columns", workspaceId],
+      queryFn: async () => {
+        const res = await fetch(`/api/columns?workspaceId=${workspaceId}`);
+        if (!res.ok) throw new Error("Failed to load columns");
+        return res.json();
+      },
+    },
+  );
 
   // Fetch stage recipes
   const { data: recipes, isLoading: recipesLoading } = useQuery<StageRecipe[]>({
@@ -158,12 +177,16 @@ export function CommandsDocumentation({ workspaceId }: CommandsDocumentationProp
 
   // Collect all unique skill IDs
   const allSkillIds = [
-    ...(columns || []).flatMap(c => c.autoTriggerJobs || []),
-    ...((recipes || []) as StageRecipe[]).flatMap(r => (r.recipeSteps || []).map(s => s.skillId)),
+    ...(columns || []).flatMap((c) => c.autoTriggerJobs || []),
+    ...((recipes || []) as StageRecipe[]).flatMap((r) =>
+      (r.recipeSteps || []).map((s) => s.skillId),
+    ),
   ].filter((id, i, arr) => arr.indexOf(id) === i);
 
   // Fetch skill summaries
-  const { data: summariesData } = useQuery<{ summaries: Record<string, string> }>({
+  const { data: summariesData } = useQuery<{
+    summaries: Record<string, string>;
+  }>({
     queryKey: ["skill-summaries", allSkillIds.join(",")],
     queryFn: async () => {
       if (allSkillIds.length === 0) return { summaries: {} };
@@ -205,7 +228,9 @@ export function CommandsDocumentation({ workspaceId }: CommandsDocumentationProp
 
   return (
     <div className="min-h-screen">
-      <SimpleNavbar path="~/workspace/commands" />
+      <SimpleNavbar
+        path={`~/workspace/${workspace?.name ?? workspaceId}/commands`}
+      />
 
       <main className="p-4 sm:p-8 space-y-6 max-w-5xl mx-auto">
         {/* Header */}
@@ -220,17 +245,19 @@ export function CommandsDocumentation({ workspaceId }: CommandsDocumentationProp
                   <Terminal className="w-6 h-6 text-purple-400" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-heading">Commands & Automation</h1>
+                  <h1 className="text-2xl font-heading">
+                    Commands & Automation
+                  </h1>
                   <p className="text-sm text-muted-foreground font-mono">
-                    // Stage recipes and column automations
+                    {"// Stage recipes and column automations"}
                   </p>
                 </div>
               </div>
 
               <p className="text-sm text-muted-foreground">
-                This page shows what happens automatically when projects move through
-                stages. Each stage can have auto-triggered jobs, required documents,
-                and approval gates.
+                This page shows what happens automatically when projects move
+                through stages. Each stage can have auto-triggered jobs,
+                required documents, and approval gates.
               </p>
             </div>
           </Window>
@@ -299,7 +326,8 @@ export function CommandsDocumentation({ workspaceId }: CommandsDocumentationProp
                     </li>
                     <li className="flex items-center gap-2">
                       <Unlock className="w-3 h-3 text-blue-400" />
-                      <code>human_trigger</code> - Manual trigger, auto execution
+                      <code>human_trigger</code> - Manual trigger, auto
+                      execution
                     </li>
                     <li className="flex items-center gap-2">
                       <Terminal className="w-3 h-3 text-slate-400" />
@@ -389,7 +417,7 @@ function StageCard({
               <Badge className={cn("font-mono", stageColor)}>
                 {column.displayName}
               </Badge>
-              
+
               {recipe?.automationLevel && (
                 <Badge variant="outline" className="font-mono text-[10px]">
                   {recipe.automationLevel === "full_auto" && (
@@ -401,8 +429,12 @@ function StageCard({
                   {recipe.automationLevel === "human_trigger" && (
                     <Unlock className="w-3 h-3 mr-1 text-blue-400" />
                   )}
-                  <span className="hidden sm:inline">{recipe.automationLevel}</span>
-                  <span className="sm:hidden">{recipe.automationLevel.split("_")[0]}</span>
+                  <span className="hidden sm:inline">
+                    {recipe.automationLevel}
+                  </span>
+                  <span className="sm:hidden">
+                    {recipe.automationLevel.split("_")[0]}
+                  </span>
                 </Badge>
               )}
 
@@ -418,7 +450,8 @@ function StageCard({
               {autoJobs.length > 0
                 ? `// ${autoJobs.length} auto-triggered job${autoJobs.length > 1 ? "s" : ""}`
                 : "// No auto-triggered jobs"}
-              {gates.length > 0 && ` • ${gates.length} gate${gates.length > 1 ? "s" : ""}`}
+              {gates.length > 0 &&
+                ` • ${gates.length} gate${gates.length > 1 ? "s" : ""}`}
             </p>
           </div>
         </button>
@@ -481,13 +514,11 @@ function StageCard({
                     .sort((a, b) => a.order - b.order)
                     .map((step, i) => {
                       const Icon = JOB_ICONS[step.skillId] || Terminal;
-                      const label = step.name || JOB_LABELS[step.skillId] || step.skillId;
+                      const label =
+                        step.name || JOB_LABELS[step.skillId] || step.skillId;
                       const summary = skillSummaries[step.skillId];
                       return (
-                        <div
-                          key={i}
-                          className="p-3 rounded-lg bg-muted/30"
-                        >
+                        <div key={i} className="p-3 rounded-lg bg-muted/30">
                           <div className="flex items-start gap-3">
                             <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center text-[10px] font-mono text-purple-400 flex-shrink-0">
                               {step.order}
@@ -495,18 +526,22 @@ function StageCard({
                             <div className="flex-1 space-y-1">
                               <div className="flex items-center gap-2">
                                 <Icon className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium">{label}</span>
+                                <span className="text-sm font-medium">
+                                  {label}
+                                </span>
                               </div>
                               {summary && (
                                 <p className="text-xs text-muted-foreground">
                                   {summary}
                                 </p>
                               )}
-                              {step.verificationCriteria && step.verificationCriteria.length > 0 && (
-                                <p className="text-[10px] text-muted-foreground font-mono">
-                                  Verify: {step.verificationCriteria.join(", ")}
-                                </p>
-                              )}
+                              {step.verificationCriteria &&
+                                step.verificationCriteria.length > 0 && (
+                                  <p className="text-[10px] text-muted-foreground font-mono">
+                                    Verify:{" "}
+                                    {step.verificationCriteria.join(", ")}
+                                  </p>
+                                )}
                             </div>
                           </div>
                         </div>
@@ -531,7 +566,9 @@ function StageCard({
                     >
                       <CheckCircle className="w-4 h-4 text-amber-400" />
                       <div className="flex-1">
-                        <span className="text-sm">{gate.description || gate.type}</span>
+                        <span className="text-sm">
+                          {gate.description || gate.type}
+                        </span>
                         {gate.condition && (
                           <code className="text-[10px] text-muted-foreground ml-2 font-mono">
                             {gate.condition}
@@ -545,27 +582,33 @@ function StageCard({
             )}
 
             {/* Required Documents */}
-            {column.requiredDocuments && column.requiredDocuments.length > 0 && (
-              <div>
-                <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                  <FileText className="w-3 h-3" />
-                  Required Documents
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {column.requiredDocuments.map((doc, i) => (
-                    <Badge key={i} variant="outline" className="font-mono text-[10px]">
-                      {doc}
-                    </Badge>
-                  ))}
+            {column.requiredDocuments &&
+              column.requiredDocuments.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                    <FileText className="w-3 h-3" />
+                    Required Documents
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {column.requiredDocuments.map((doc, i) => (
+                      <Badge
+                        key={i}
+                        variant="outline"
+                        className="font-mono text-[10px]"
+                      >
+                        {doc}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Context Notes */}
             {column.contextNotes && (
               <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
                 <p className="text-xs text-blue-300 font-mono">
-                  // {column.contextNotes}
+                  {"// "}
+                  {column.contextNotes}
                 </p>
               </div>
             )}
@@ -576,7 +619,7 @@ function StageCard({
               gates.length === 0 &&
               !column.requiredDocuments?.length && (
                 <p className="text-sm text-muted-foreground font-mono">
-                  // No automation configured for this stage
+                  {"// No automation configured for this stage"}
                 </p>
               )}
           </motion.div>

@@ -50,9 +50,18 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check authentication for protected routes
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  
+  // Auth.js v5 uses different cookie names than next-auth v4
+  // Try the secure cookie first (production), then fall back to non-secure (development)
   const token = await getToken({
     req: request,
-    secret: process.env.AUTH_SECRET,
+    secret,
+    cookieName: "__Secure-authjs.session-token",
+  }) || await getToken({
+    req: request,
+    secret,
+    cookieName: "authjs.session-token",
   });
 
   // If not authenticated and trying to access protected route

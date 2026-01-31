@@ -1,6 +1,6 @@
 /**
  * Agent Tools - Tool definitions that bridge to existing executor functions
- * 
+ *
  * These tools allow the AI agent to interact with the orchestrator database
  * and filesystem, matching the existing MCP server functionality.
  */
@@ -15,12 +15,15 @@ import {
   getProject,
   getDocumentByType,
   getWorkspace,
+  getWorkspaceMembers,
   createPendingQuestion,
   updateJobStatus,
+  getSignal,
 } from "@/lib/db/queries";
 import { getWorkspaceContext, getProjectContext } from "@/lib/context/resolve";
 import { isToolAllowed } from "@/lib/agent/security";
 import { composioService } from "@/lib/composio/service";
+import { commitToGitHub } from "@/lib/github/writeback-service";
 
 // ============================================
 // TOOL DEFINITIONS
@@ -30,15 +33,17 @@ export const AGENT_TOOLS: AgentToolDefinition[] = [
   // Document management
   {
     name: "get_project_context",
-    description: "Get existing documents and context for a project including PRD, research, design brief, etc.",
+    description:
+      "Get existing documents and context for a project including PRD, research, design brief, etc.",
     input_schema: {
       type: "object",
       properties: {
         projectId: { type: "string", description: "The project ID" },
-        includeDocuments: { 
-          type: "array", 
+        includeDocuments: {
+          type: "array",
           items: { type: "string" },
-          description: "Document types to include: research, prd, design_brief, engineering_spec, gtm_brief, prototype_notes, jury_report"
+          description:
+            "Document types to include: research, prd, design_brief, engineering_spec, gtm_brief, prototype_notes, jury_report",
         },
       },
       required: ["projectId"],
@@ -46,7 +51,8 @@ export const AGENT_TOOLS: AgentToolDefinition[] = [
   },
   {
     name: "get_workspace_context",
-    description: "Get company context including product vision, guardrails, and personas for a workspace",
+    description:
+      "Get company context including product vision, guardrails, and personas for a workspace",
     input_schema: {
       type: "object",
       properties: {
@@ -56,21 +62,74 @@ export const AGENT_TOOLS: AgentToolDefinition[] = [
     },
   },
   {
+    name: "get_signal_context",
+    description:
+      "Get the full context of a signal including verbatim feedback, interpretation, and metadata",
+    input_schema: {
+      type: "object",
+      properties: {
+        signalId: { type: "string", description: "The signal ID" },
+      },
+      required: ["signalId"],
+    },
+  },
+  {
     name: "save_document",
-    description: "Save generated content as a project document (PRD, research, design brief, etc.)",
+    description:
+      "Save generated content as a project document (PRD, research, design brief, etc.)",
     input_schema: {
       type: "object",
       properties: {
         projectId: { type: "string", description: "The project ID" },
-        type: { 
-          type: "string", 
-          enum: ["research", "prd", "design_brief", "engineering_spec", "gtm_brief", "prototype_notes", "jury_report"],
-          description: "Document type" 
+        type: {
+          type: "string",
+          enum: [
+            "research",
+            "prd",
+            "design_brief",
+            "engineering_spec",
+            "gtm_brief",
+            "prototype_notes",
+            "jury_report",
+          ],
+          description: "Document type",
         },
         title: { type: "string", description: "Document title" },
-        content: { type: "string", description: "Document content in markdown" },
+        content: {
+          type: "string",
+          description: "Document content in markdown",
+        },
       },
       required: ["projectId", "type", "title", "content"],
+    },
+  },
+  {
+    name: "write_repo_files",
+    description:
+      "Commit files to the workspace GitHub repo (for status, reports, or artifacts)",
+    input_schema: {
+      type: "object",
+      properties: {
+        workspaceId: { type: "string", description: "Workspace ID" },
+        projectId: { type: "string", description: "Optional project ID" },
+        documentType: { type: "string", description: "Document type label" },
+        triggeredBy: {
+          type: "string",
+          description: "Trigger label for metadata",
+        },
+        files: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              path: { type: "string", description: "Repo-relative file path" },
+              content: { type: "string", description: "File content" },
+            },
+            required: ["path", "content"],
+          },
+        },
+      },
+      required: ["files"],
     },
   },
 
@@ -82,17 +141,44 @@ export const AGENT_TOOLS: AgentToolDefinition[] = [
       type: "object",
       properties: {
         projectId: { type: "string", description: "The project ID" },
-        phase: { type: "string", enum: ["research", "prd", "prototype"], description: "Evaluation phase" },
+        phase: {
+          type: "string",
+          enum: ["research", "prd", "prototype"],
+          description: "Evaluation phase",
+        },
         jurySize: { type: "number", description: "Number of jury members" },
         approvalRate: { type: "number", description: "Approval rate 0-1" },
-        conditionalRate: { type: "number", description: "Conditional approval rate 0-1" },
+        conditionalRate: {
+          type: "number",
+          description: "Conditional approval rate 0-1",
+        },
         rejectionRate: { type: "number", description: "Rejection rate 0-1" },
-        verdict: { type: "string", enum: ["pass", "fail", "conditional"], description: "Final verdict" },
-        topConcerns: { type: "array", items: { type: "string" }, description: "Top concerns raised" },
-        topSuggestions: { type: "array", items: { type: "string" }, description: "Top suggestions" },
+        verdict: {
+          type: "string",
+          enum: ["pass", "fail", "conditional"],
+          description: "Final verdict",
+        },
+        topConcerns: {
+          type: "array",
+          items: { type: "string" },
+          description: "Top concerns raised",
+        },
+        topSuggestions: {
+          type: "array",
+          items: { type: "string" },
+          description: "Top suggestions",
+        },
         rawResults: { type: "object", description: "Full evaluation results" },
       },
-      required: ["projectId", "phase", "jurySize", "approvalRate", "conditionalRate", "rejectionRate", "verdict"],
+      required: [
+        "projectId",
+        "phase",
+        "jurySize",
+        "approvalRate",
+        "conditionalRate",
+        "rejectionRate",
+        "verdict",
+      ],
     },
   },
 
@@ -134,8 +220,16 @@ export const AGENT_TOOLS: AgentToolDefinition[] = [
         stage: { type: "string", description: "The stage being scored" },
         score: { type: "number", description: "Score 0-1" },
         summary: { type: "string", description: "Brief assessment" },
-        strengths: { type: "array", items: { type: "string" }, description: "Strengths identified" },
-        gaps: { type: "array", items: { type: "string" }, description: "Gaps identified" },
+        strengths: {
+          type: "array",
+          items: { type: "string" },
+          description: "Strengths identified",
+        },
+        gaps: {
+          type: "array",
+          items: { type: "string" },
+          description: "Gaps identified",
+        },
       },
       required: ["projectId", "stage", "score", "summary"],
     },
@@ -163,11 +257,22 @@ export const AGENT_TOOLS: AgentToolDefinition[] = [
       type: "object",
       properties: {
         question: { type: "string", description: "Question to ask" },
-        type: { type: "string", enum: ["text", "choice"], description: "Question type" },
-        choices: { type: "array", items: { type: "string" }, description: "Choices for choice questions" },
+        type: {
+          type: "string",
+          enum: ["text", "choice"],
+          description: "Question type",
+        },
+        choices: {
+          type: "array",
+          items: { type: "string" },
+          description: "Choices for choice questions",
+        },
         context: { type: "string", description: "Extra context for the user" },
         timeoutMinutes: { type: "number", description: "Timeout in minutes" },
-        defaultResponse: { type: "string", description: "Default response on timeout" },
+        defaultResponse: {
+          type: "string",
+          description: "Default response on timeout",
+        },
       },
       required: ["question"],
     },
@@ -181,7 +286,10 @@ export const AGENT_TOOLS: AgentToolDefinition[] = [
         question: { type: "string", description: "Approval question" },
         context: { type: "string", description: "Extra context for the user" },
         timeoutMinutes: { type: "number", description: "Timeout in minutes" },
-        defaultResponse: { type: "string", description: "Default response on timeout" },
+        defaultResponse: {
+          type: "string",
+          description: "Default response on timeout",
+        },
       },
       required: ["question"],
     },
@@ -206,7 +314,7 @@ export interface AgentToolContext {
 export async function executeTool(
   toolName: string,
   input: Record<string, unknown>,
-  context: AgentToolContext
+  context: AgentToolContext,
 ): Promise<AgentToolResult> {
   try {
     const workspace = await getWorkspace(context.workspaceId);
@@ -214,7 +322,7 @@ export async function executeTool(
       return { success: false, error: "Workspace not found" };
     }
 
-    if (!isToolAllowed(toolName, workspace.settings)) {
+    if (!isToolAllowed(toolName, workspace.settings ?? undefined)) {
       return {
         success: false,
         error: `Tool not allowed: ${toolName}`,
@@ -222,7 +330,11 @@ export async function executeTool(
     }
 
     const inputProjectId = input.projectId as string | undefined;
-    if (context.projectId && inputProjectId && context.projectId !== inputProjectId) {
+    if (
+      context.projectId &&
+      inputProjectId &&
+      context.projectId !== inputProjectId
+    ) {
       return {
         success: false,
         error: "Project mismatch for tool call",
@@ -233,9 +345,14 @@ export async function executeTool(
       case "get_project_context": {
         const projectId = input.projectId as string;
         const includeDocuments = (input.includeDocuments as string[]) || [
-          "research", "prd", "design_brief", "engineering_spec", "gtm_brief", "prototype_notes"
+          "research",
+          "prd",
+          "design_brief",
+          "engineering_spec",
+          "gtm_brief",
+          "prototype_notes",
         ];
-        
+
         const project = await getProject(projectId);
         if (!project) {
           return { success: false, error: "Project not found" };
@@ -243,7 +360,10 @@ export async function executeTool(
 
         const documents: Record<string, string> = {};
         for (const docType of includeDocuments) {
-          const doc = await getDocumentByType(projectId, docType as DocumentType);
+          const doc = await getDocumentByType(
+            projectId,
+            docType as DocumentType,
+          );
           if (doc) {
             documents[docType] = doc.content;
           }
@@ -269,8 +389,35 @@ export async function executeTool(
 
       case "get_workspace_context": {
         const workspaceId = input.workspaceId as string;
-        const context = await getWorkspaceContext(workspaceId);
-        return { success: true, output: { context } };
+        const workspaceContext = await getWorkspaceContext(workspaceId);
+        return { success: true, output: { context: workspaceContext } };
+      }
+
+      case "get_signal_context": {
+        const signalId = input.signalId as string;
+        const signal = await getSignal(signalId);
+        if (!signal) {
+          return { success: false, error: "Signal not found" };
+        }
+
+        return {
+          success: true,
+          output: {
+            signal: {
+              id: signal.id,
+              source: signal.source,
+              sourceRef: signal.sourceRef,
+              status: signal.status,
+              severity: signal.severity,
+              frequency: signal.frequency,
+              userSegment: signal.userSegment,
+              verbatim: signal.verbatim,
+              interpretation: signal.interpretation,
+              createdAt: signal.createdAt,
+              processedAt: signal.processedAt,
+            },
+          },
+        };
       }
 
       case "save_document": {
@@ -290,6 +437,86 @@ export async function executeTool(
         return {
           success: true,
           output: { documentId: doc?.id, type, title },
+        };
+      }
+
+      case "write_repo_files": {
+        const workspaceId =
+          (input.workspaceId as string) || context.workspaceId;
+        const projectId = (input.projectId as string) || context.projectId;
+        const files =
+          (input.files as Array<{ path: string; content: string }>) || [];
+        const documentType = (input.documentType as string) || "artifact";
+        const triggeredBy = (input.triggeredBy as string) || "command";
+
+        if (!workspaceId) {
+          return { success: false, error: "Workspace ID is required" };
+        }
+
+        if (!files.length) {
+          return { success: false, error: "No files provided for writeback" };
+        }
+
+        const workspace = await getWorkspace(workspaceId);
+        if (!workspace || !workspace.githubRepo) {
+          return {
+            success: false,
+            error: "Workspace GitHub repo not configured",
+          };
+        }
+
+        const [owner, repo] = workspace.githubRepo.split("/");
+        if (!owner || !repo) {
+          return {
+            success: false,
+            error: "Invalid GitHub repo format. Expected owner/repo.",
+          };
+        }
+
+        const project = projectId ? await getProject(projectId) : null;
+        const projectName = project?.name || workspace.name;
+        const branch = workspace.settings?.baseBranch || "main";
+
+        const members = await getWorkspaceMembers(workspaceId);
+        const adminUser = members.find((m) => m.role === "admin") || members[0];
+        if (!adminUser?.userId) {
+          return {
+            success: false,
+            error: "No workspace member available for GitHub writeback",
+          };
+        }
+
+        const result = await commitToGitHub(
+          {
+            workspaceId,
+            projectId: project?.id || undefined,
+            projectName,
+            owner,
+            repo,
+            branch,
+          },
+          files,
+          {
+            projectId: project?.id,
+            projectName,
+            documentType,
+            triggeredBy,
+          },
+          adminUser.userId,
+          "add",
+        );
+
+        if (!result.success) {
+          return { success: false, error: result.error || "Writeback failed" };
+        }
+
+        return {
+          success: true,
+          output: {
+            commitSha: result.commitSha,
+            commitUrl: result.commitUrl,
+            filesWritten: files.map((f) => f.path),
+          },
         };
       }
 
@@ -369,12 +596,15 @@ export async function executeTool(
         const toolName = input.toolName as string;
         const args = (input.arguments as Record<string, unknown>) || {};
         if (!workspace.settings?.composio?.enabled) {
-          return { success: false, error: "Composio is not enabled for this workspace" };
+          return {
+            success: false,
+            error: "Composio is not enabled for this workspace",
+          };
         }
         const result = await composioService.executeTool(
           context.workspaceId,
           toolName,
-          args
+          args,
         );
         return { success: true, output: result };
       }
@@ -382,12 +612,18 @@ export async function executeTool(
       case "ask_question":
       case "request_approval": {
         if (!context.jobId || !context.toolCallId) {
-          return { success: false, error: "Missing job context for interactive tool" };
+          return {
+            success: false,
+            error: "Missing job context for interactive tool",
+          };
         }
         const questionText = input.question as string;
         const timeoutMinutes = (input.timeoutMinutes as number) || 30;
         const timeoutAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
-        const questionType = toolName === "request_approval" ? "approval" : (input.type as string) || "text";
+        const questionType =
+          toolName === "request_approval"
+            ? "approval"
+            : (input.type as string) || "text";
 
         const question = await createPendingQuestion({
           jobId: context.jobId,

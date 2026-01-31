@@ -3,6 +3,7 @@
  * Supports both API key and HMAC signature verification
  */
 import crypto from "crypto";
+import { nanoid } from "nanoid";
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { webhookKeys } from "@/lib/db/schema";
@@ -21,7 +22,7 @@ export interface AuthResult {
 export function verifyHmacSignature(
   rawBody: string,
   signature: string,
-  secret: string
+  secret: string,
 ): boolean {
   const expectedSignature = crypto
     .createHmac("sha256", secret)
@@ -36,7 +37,7 @@ export function verifyHmacSignature(
   try {
     return crypto.timingSafeEqual(
       Buffer.from(normalizedSignature, "hex"),
-      Buffer.from(expectedSignature, "hex")
+      Buffer.from(expectedSignature, "hex"),
     );
   } catch {
     // Buffer lengths don't match - invalid signature format
@@ -53,7 +54,7 @@ export function verifyHmacSignature(
  */
 export async function verifyWebhookAuth(
   request: NextRequest,
-  rawBody: string
+  rawBody: string,
 ): Promise<AuthResult> {
   // Option 1: HMAC Signature (preferred for security)
   const signature = request.headers.get("x-webhook-signature");
@@ -63,7 +64,7 @@ export async function verifyWebhookAuth(
     const webhookKey = await db.query.webhookKeys.findFirst({
       where: and(
         eq(webhookKeys.workspaceId, workspaceIdHeader),
-        eq(webhookKeys.isActive, true)
+        eq(webhookKeys.isActive, true),
       ),
     });
 
@@ -89,7 +90,7 @@ export async function verifyWebhookAuth(
     const webhookKey = await db.query.webhookKeys.findFirst({
       where: and(
         eq(webhookKeys.apiKey, apiKey),
-        eq(webhookKeys.isActive, true)
+        eq(webhookKeys.isActive, true),
       ),
     });
 
@@ -111,8 +112,10 @@ export async function verifyWebhookAuth(
  * Generate new webhook credentials
  * Returns prefixed API key and hex-encoded HMAC secret
  */
-export function generateWebhookCredentials(): { apiKey: string; secret: string } {
-  const { nanoid } = require("nanoid");
+export function generateWebhookCredentials(): {
+  apiKey: string;
+  secret: string;
+} {
   return {
     apiKey: `wk_${nanoid(32)}`,
     secret: crypto.randomBytes(32).toString("hex"),

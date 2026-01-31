@@ -87,7 +87,8 @@ export function WorkspaceSwitcher({
       if (onWorkspaceChange) {
         onWorkspaceChange(workspace.id);
       } else {
-        router.push(`/workspace/${workspace.id}`);
+        // Redirect to onboarding for new workspaces
+        router.push(`/workspace/${workspace.id}/onboarding`);
       }
     },
   });

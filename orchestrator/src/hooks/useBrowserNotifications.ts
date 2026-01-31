@@ -12,14 +12,17 @@ export interface BrowserNotificationOptions {
 }
 
 export function useBrowserNotifications() {
-  const [permission, setPermission] = useState<NotificationPermission>("default");
+  const [permission, setPermission] =
+    useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(false);
 
   useEffect(() => {
     // Check if browser supports notifications
     if (typeof window !== "undefined" && "Notification" in window) {
-      setIsSupported(true);
-      setPermission(Notification.permission);
+      queueMicrotask(() => {
+        setIsSupported(true);
+        setPermission(Notification.permission);
+      });
     }
   }, []);
 
@@ -79,7 +82,7 @@ export function useBrowserNotifications() {
         return null;
       }
     },
-    [isSupported, permission, requestPermission]
+    [isSupported, permission, requestPermission],
   );
 
   const showJobNotification = useCallback(
@@ -87,10 +90,10 @@ export function useBrowserNotifications() {
       type: "completed" | "failed" | "requires_attention",
       jobType: string,
       projectName?: string,
-      onClick?: () => void
+      onClick?: () => void,
     ) => {
       const formattedJobType = jobType.replace(/_/g, " ");
-      
+
       const titles: Record<typeof type, string> = {
         completed: `✅ Job Completed`,
         failed: `❌ Job Failed`,
@@ -111,7 +114,7 @@ export function useBrowserNotifications() {
         onClick,
       });
     },
-    [showNotification]
+    [showNotification],
   );
 
   return {

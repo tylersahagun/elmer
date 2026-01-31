@@ -1,6 +1,6 @@
 /**
  * Contract Tests: Skills System
- * 
+ *
  * Tests the skills catalog functionality:
  * - Local skill management
  * - SkillsMP integration
@@ -100,7 +100,9 @@ describe("Skills System Contract Tests", () => {
       const skill = await getSkillById(skillId);
 
       expect(skill?.inputSchema).toBeDefined();
-      expect((skill?.inputSchema as Record<string, unknown>)?.properties).toHaveProperty("research");
+      expect(
+        (skill?.inputSchema as Record<string, unknown>)?.properties,
+      ).toHaveProperty("research");
       expect(skill?.outputSchema).toBeDefined();
 
       // Cleanup
@@ -171,7 +173,7 @@ describe("Skills System Contract Tests", () => {
   });
 
   describe("Skill Search", () => {
-    let skillIds: string[] = [];
+    const skillIds: string[] = [];
 
     beforeAll(async () => {
       // Create several skills for search testing

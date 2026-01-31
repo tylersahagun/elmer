@@ -15,12 +15,18 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspaceId");
-    const status = searchParams.get("status") as "pending" | "running" | "completed" | "failed" | "cancelled" | null;
+    const status = searchParams.get("status") as
+      | "pending"
+      | "running"
+      | "completed"
+      | "failed"
+      | "cancelled"
+      | null;
 
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspaceId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,10 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: message }, { status });
     }
     console.error("Failed to get jobs:", error);
-    return NextResponse.json(
-      { error: "Failed to get jobs" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to get jobs" }, { status: 500 });
   }
 }
 
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
     if (!workspaceId || !type) {
       return NextResponse.json(
         { error: "workspaceId and type are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,12 +74,16 @@ export async function POST(request: NextRequest) {
       "validate_tickets",
       "score_stage_alignment",
       "deploy_chromatic",
+      "create_feature_branch",
+      "process_signal",
+      "synthesize_signals",
+      "execute_agent_definition",
     ];
 
     if (!validJobTypes.includes(type)) {
       return NextResponse.json(
         { error: `Invalid job type: ${type}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -96,7 +103,13 @@ export async function POST(request: NextRequest) {
 
     // Log activity
     if (job) {
-      await logJobTriggered(workspaceId, membership.userId, job.id, type, projectName);
+      await logJobTriggered(
+        workspaceId,
+        membership.userId,
+        job.id,
+        type,
+        projectName,
+      );
     }
 
     console.log(`📋 Job created: ${type} for project ${projectId}`);
@@ -110,14 +123,14 @@ export async function POST(request: NextRequest) {
     console.error("Failed to create job:", error);
     return NextResponse.json(
       { error: "Failed to create job" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 /**
  * PATCH /api/jobs - Retry all failed jobs for a workspace/project
- * 
+ *
  * Body:
  *   - workspaceId: required
  *   - projectId: optional, filter by project
@@ -131,7 +144,7 @@ export async function PATCH(request: NextRequest) {
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspaceId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -141,19 +154,21 @@ export async function PATCH(request: NextRequest) {
     if (action !== "retry_failed" && action !== "reset_pending") {
       return NextResponse.json(
         { error: "action must be 'retry_failed' or 'reset_pending'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Build the where conditions
     const whereConditions = [eq(jobs.workspaceId, workspaceId)];
-    
+
     if (action === "retry_failed") {
       whereConditions.push(eq(jobs.status, "failed"));
     } else {
       // reset_pending - also reset jobs that are stuck in running
       whereConditions.push(
-        or(eq(jobs.status, "failed"), eq(jobs.status, "running")) as ReturnType<typeof eq>
+        or(eq(jobs.status, "failed"), eq(jobs.status, "running")) as ReturnType<
+          typeof eq
+        >,
       );
     }
 
@@ -162,7 +177,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Reset jobs to pending
-    const result = await db.update(jobs)
+    const result = await db
+      .update(jobs)
       .set({
         status: "pending",
         error: null,
@@ -174,12 +190,14 @@ export async function PATCH(request: NextRequest) {
       .where(and(...whereConditions))
       .returning();
 
-    console.log(`🔄 Reset ${result.length} jobs to pending for workspace ${workspaceId}`);
+    console.log(
+      `🔄 Reset ${result.length} jobs to pending for workspace ${workspaceId}`,
+    );
 
     return NextResponse.json({
       success: true,
       reset: result.length,
-      jobs: result.map(j => ({ id: j.id, type: j.type })),
+      jobs: result.map((j) => ({ id: j.id, type: j.type })),
     });
   } catch (error) {
     if (error instanceof PermissionError) {
@@ -189,14 +207,14 @@ export async function PATCH(request: NextRequest) {
     console.error("Failed to retry jobs:", error);
     return NextResponse.json(
       { error: "Failed to retry jobs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 /**
  * DELETE /api/jobs - Clear failed/cancelled jobs for a workspace
- * 
+ *
  * Query params:
  *   - workspaceId: required
  *   - status: "failed" | "cancelled" | "all_terminal" (defaults to "failed")
@@ -212,7 +230,7 @@ export async function DELETE(request: NextRequest) {
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspaceId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -224,32 +242,32 @@ export async function DELETE(request: NextRequest) {
     if (status === "all_terminal") {
       statusFilter = or(
         eq(jobs.status, "failed"),
-        eq(jobs.status, "cancelled")
+        eq(jobs.status, "cancelled"),
       );
     } else if (status === "failed" || status === "cancelled") {
       statusFilter = eq(jobs.status, status as JobStatus);
     } else {
       return NextResponse.json(
         { error: "status must be 'failed', 'cancelled', or 'all_terminal'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Build the full where clause
-    const whereConditions = [
-      eq(jobs.workspaceId, workspaceId),
-      statusFilter,
-    ];
+    const whereConditions = [eq(jobs.workspaceId, workspaceId), statusFilter];
 
     if (projectId) {
       whereConditions.push(eq(jobs.projectId, projectId));
     }
 
-    const result = await db.delete(jobs)
+    const result = await db
+      .delete(jobs)
       .where(and(...whereConditions))
       .returning();
 
-    console.log(`🗑️ Cleared ${result.length} ${status} jobs for workspace ${workspaceId}`);
+    console.log(
+      `🗑️ Cleared ${result.length} ${status} jobs for workspace ${workspaceId}`,
+    );
 
     return NextResponse.json({
       success: true,
@@ -264,7 +282,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Failed to clear jobs:", error);
     return NextResponse.json(
       { error: "Failed to clear jobs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

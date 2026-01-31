@@ -1,6 +1,6 @@
 /**
  * PRD Stage Executor
- * 
+ *
  * Inputs: Research.md + product context
  * Automation:
  *   - Generate prd.md with required sections
@@ -15,12 +15,21 @@
  */
 
 import { db } from "@/lib/db";
-import { documents, signalProjects, signals as signalsTable, type DocumentType } from "@/lib/db/schema";
+import {
+  documents,
+  signalProjects,
+  signals as signalsTable,
+  type DocumentType,
+} from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDefaultProvider, type StreamCallback } from "../providers";
 import type { StageContext, StageExecutionResult } from "./index";
 import { getWorkspaceContext } from "@/lib/context/resolve";
+import { commitToGitHub, getWritebackConfig, getWorkspaceUserId } from "@/lib/github/writeback-service";
+import { resolveDocumentPath } from "@/lib/github/path-resolver";
+import { recordProjectCommit } from "@/lib/db/queries";
+import type { WritebackFile, CommitMetadata } from "@/lib/github/types";
 
 const PRD_SYSTEM_PROMPT = `You are a senior product manager creating a PRD (Product Requirements Document) for a specific company/product.
 
@@ -138,20 +147,24 @@ Format as clean markdown.
 
 export async function executePRD(
   context: StageContext,
-  callbacks: StreamCallback
+  callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
   const { run, project, documents: existingDocs } = context;
-  
+
   callbacks.onLog("info", "Starting PRD generation", "prd");
   callbacks.onProgress(0.05, "Loading company context...");
 
   // Load company context (product vision, personas, guardrails)
   const companyContext = await getWorkspaceContext(run.workspaceId);
   if (!companyContext) {
-    callbacks.onLog("warn", "No company context found - PRD may be generic", "prd");
+    callbacks.onLog(
+      "warn",
+      "No company context found - PRD may be generic",
+      "prd",
+    );
   }
 
-  callbacks.onProgress(0.10, "Loading research context...");
+  callbacks.onProgress(0.1, "Loading research context...");
 
   // Get research document
   const researchDoc = existingDocs.find((doc) => doc.type === "research");
@@ -181,15 +194,23 @@ export async function executePRD(
     .limit(10); // Top 10 signals to prevent context bloat
 
   if (linkedSignals.length > 0) {
-    callbacks.onLog("info", `Found ${linkedSignals.length} signal(s) to cite as evidence`, "prd");
+    callbacks.onLog(
+      "info",
+      `Found ${linkedSignals.length} signal(s) to cite as evidence`,
+      "prd",
+    );
   } else {
-    callbacks.onLog("info", "No linked signals found - PRD will be generated without user evidence", "prd");
+    callbacks.onLog(
+      "info",
+      "No linked signals found - PRD will be generated without user evidence",
+      "prd",
+    );
   }
 
   const provider = getDefaultProvider();
   const now = new Date();
   const createdDocs: string[] = [];
-  let totalTokens = { input: 0, output: 0 };
+  const totalTokens = { input: 0, output: 0 };
 
   // Helper to create/update document
   async function createDoc(
@@ -197,10 +218,10 @@ export async function executePRD(
     title: string,
     systemPrompt: string,
     userPrompt: string,
-    progress: number
+    progress: number,
   ): Promise<boolean> {
     callbacks.onProgress(progress, `Generating ${title}...`);
-    
+
     const result = await provider.execute(
       systemPrompt,
       userPrompt,
@@ -210,11 +231,15 @@ export async function executePRD(
         cardId: run.cardId,
         stage: run.stage,
       },
-      callbacks
+      callbacks,
     );
 
     if (!result.success) {
-      callbacks.onLog("error", `Failed to generate ${title}: ${result.error}`, "prd");
+      callbacks.onLog(
+        "error",
+        `Failed to generate ${title}: ${result.error}`,
+        "prd",
+      );
       return false;
     }
 
@@ -255,21 +280,79 @@ export async function executePRD(
       });
     }
 
+    // Commit to GitHub (WRITE-01, WRITE-03, WRITE-05)
+    const writebackConfig = await getWritebackConfig(run.workspaceId, project.id);
+    const userId = await getWorkspaceUserId(run.workspaceId);
+
+    if (writebackConfig && userId) {
+      const filePath = resolveDocumentPath({
+        projectName: project.name,
+        documentType: type,
+        basePath: writebackConfig.basePath,
+      });
+
+      const writebackFile: WritebackFile = {
+        path: filePath,
+        content: result.output || "",
+      };
+
+      const commitMetadata: CommitMetadata = {
+        projectId: project.id,
+        projectName: project.name,
+        documentType: type,
+        triggeredBy: "automation",
+        stageRunId: run.id,
+      };
+
+      callbacks.onLog("info", `Committing ${type} to GitHub: ${filePath}`, "prd");
+
+      const writebackResult = await commitToGitHub(
+        writebackConfig,
+        [writebackFile],
+        commitMetadata,
+        userId,
+        existing ? "update" : "add"
+      );
+
+      if (writebackResult.success) {
+        callbacks.onLog("info", `Committed to GitHub: ${writebackResult.commitSha}`, "prd");
+
+        // Record in project commit history (WRITE-06)
+        await recordProjectCommit({
+          projectId: project.id,
+          workspaceId: run.workspaceId,
+          commitSha: writebackResult.commitSha!,
+          commitUrl: writebackResult.commitUrl!,
+          message: `docs(${project.name.toLowerCase().replace(/\s+/g, "-")}): ${existing ? "update" : "add"} ${type.replace(/_/g, "-")}`,
+          documentType: type,
+          filesChanged: writebackResult.filesWritten,
+          triggeredBy: "automation",
+          stageRunId: run.id,
+        });
+      } else {
+        callbacks.onLog("warn", `GitHub writeback failed: ${writebackResult.error}`, "prd");
+        // Don't fail the entire operation - document is saved locally
+      }
+    } else {
+      callbacks.onLog("info", "GitHub writeback not configured or no user context", "prd");
+    }
+
     createdDocs.push(type);
-    await callbacks.onArtifact("file", title, `documents/${docId}`, { documentType: type });
+    await callbacks.onArtifact("file", title, `documents/${docId}`, {
+      documentType: type,
+    });
     return true;
   }
 
   // Format signals for PRD evidence section
   function formatSignalsForPRD(signals: typeof linkedSignals): string {
-    if (signals.length === 0) return '';
+    if (signals.length === 0) return "";
 
     const citations = signals.map((s, i) => {
       const source = s.source.charAt(0).toUpperCase() + s.source.slice(1);
-      const severity = s.severity ? ` (${s.severity})` : '';
-      const quote = s.verbatim.length > 200
-        ? s.verbatim.slice(0, 197) + '...'
-        : s.verbatim;
+      const severity = s.severity ? ` (${s.severity})` : "";
+      const quote =
+        s.verbatim.length > 200 ? s.verbatim.slice(0, 197) + "..." : s.verbatim;
 
       return `[Signal ${i + 1}] **${source}${severity}**: "${quote}"`;
     });
@@ -277,9 +360,9 @@ export async function executePRD(
     return `
 ## Supporting User Evidence
 
-This PRD is informed by ${signals.length} user feedback signal${signals.length === 1 ? '' : 's'}:
+This PRD is informed by ${signals.length} user feedback signal${signals.length === 1 ? "" : "s"}:
 
-${citations.join('\n\n')}
+${citations.join("\n\n")}
 
 ---
 `;
@@ -289,7 +372,11 @@ ${citations.join('\n\n')}
   const evidenceSection = formatSignalsForPRD(linkedSignals);
 
   if (linkedSignals.length > 0) {
-    callbacks.onLog("info", `Including ${linkedSignals.length} signal(s) as evidence`, "prd");
+    callbacks.onLog(
+      "info",
+      `Including ${linkedSignals.length} signal(s) as evidence`,
+      "prd",
+    );
   }
 
   // Generate all documents
@@ -309,7 +396,7 @@ ${researchDoc.content}`;
     `PRD - ${project.name}`,
     PRD_SYSTEM_PROMPT,
     `Create a PRD based on this research:\n\n${basePrompt}`,
-    0.25
+    0.25,
   );
 
   if (!prdSuccess) {
@@ -326,7 +413,7 @@ ${researchDoc.content}`;
     `Design Brief - ${project.name}`,
     DESIGN_BRIEF_SYSTEM_PROMPT,
     `Create a design brief based on this PRD and research:\n\n${basePrompt}`,
-    0.5
+    0.5,
   );
 
   // 3. Generate Engineering Spec
@@ -335,7 +422,7 @@ ${researchDoc.content}`;
     `Engineering Spec - ${project.name}`,
     ENGINEERING_SPEC_SYSTEM_PROMPT,
     `Create an engineering spec based on this PRD and research:\n\n${basePrompt}`,
-    0.75
+    0.75,
   );
 
   // 4. Generate GTM Brief
@@ -344,26 +431,39 @@ ${researchDoc.content}`;
     `GTM Brief - ${project.name}`,
     GTM_BRIEF_SYSTEM_PROMPT,
     `Create a GTM brief based on this PRD and research:\n\n${basePrompt}`,
-    0.9
+    0.9,
   );
 
-  callbacks.onLog("info", `PRD generation complete. Created: ${createdDocs.join(", ")}`, "prd");
+  callbacks.onLog(
+    "info",
+    `PRD generation complete. Created: ${createdDocs.join(", ")}`,
+    "prd",
+  );
   callbacks.onProgress(1.0, "PRD generation complete");
 
   return {
     success: true,
     tokensUsed: totalTokens,
-    skillsExecuted: ["generate_prd", "generate_design_brief", "generate_engineering_spec", "generate_gtm_brief"],
+    skillsExecuted: [
+      "generate_prd",
+      "generate_design_brief",
+      "generate_engineering_spec",
+      "generate_gtm_brief",
+    ],
     autoAdvance: createdDocs.includes("prd"),
     nextStage: "design",
     gateResults: {
       prd_exists: {
         passed: createdDocs.includes("prd"),
-        message: createdDocs.includes("prd") ? "PRD created" : "PRD not created",
+        message: createdDocs.includes("prd")
+          ? "PRD created"
+          : "PRD not created",
       },
       design_brief_exists: {
         passed: createdDocs.includes("design_brief"),
-        message: createdDocs.includes("design_brief") ? "Design brief created" : "Design brief not created",
+        message: createdDocs.includes("design_brief")
+          ? "Design brief created"
+          : "Design brief not created",
       },
     },
   };

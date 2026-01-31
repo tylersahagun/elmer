@@ -51,7 +51,9 @@ export function RecipeEditorChat({
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [pendingUpdates, setPendingUpdates] = useState<RecipeUpdate[] | null>(null);
+  const [pendingUpdates, setPendingUpdates] = useState<RecipeUpdate[] | null>(
+    null,
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -71,7 +73,13 @@ export function RecipeEditorChat({
 
   // Chat mutation
   const chatMutation = useMutation({
-    mutationFn: async ({ message, apply }: { message: string; apply: boolean }) => {
+    mutationFn: async ({
+      message,
+      apply,
+    }: {
+      message: string;
+      apply: boolean;
+    }) => {
       const res = await fetch("/api/stage-recipes/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,19 +101,21 @@ export function RecipeEditorChat({
         applied: data.applied,
         timestamp: new Date(),
       };
-      
+
       setMessages((prev) => [...prev, assistantMessage]);
-      
+
       // If there are updates and not applied, set as pending
       if (data.updates && data.updates.length > 0 && !variables.apply) {
         setPendingUpdates(data.updates);
       } else {
         setPendingUpdates(null);
       }
-      
+
       // Refresh recipes if applied
       if (data.applied) {
-        queryClient.invalidateQueries({ queryKey: ["stage-recipes", workspaceId] });
+        queryClient.invalidateQueries({
+          queryKey: ["stage-recipes", workspaceId],
+        });
       }
     },
   });
@@ -114,9 +124,11 @@ export function RecipeEditorChat({
   const applyMutation = useMutation({
     mutationFn: async () => {
       // Re-send the last user message with apply=true
-      const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+      const lastUserMessage = [...messages]
+        .reverse()
+        .find((m) => m.role === "user");
       if (!lastUserMessage) throw new Error("No message to apply");
-      
+
       const res = await fetch("/api/stage-recipes/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,8 +143,10 @@ export function RecipeEditorChat({
     },
     onSuccess: () => {
       setPendingUpdates(null);
-      queryClient.invalidateQueries({ queryKey: ["stage-recipes", workspaceId] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["stage-recipes", workspaceId],
+      });
+
       // Add confirmation message
       setMessages((prev) => [
         ...prev,
@@ -161,7 +175,7 @@ export function RecipeEditorChat({
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setPendingUpdates(null);
-    
+
     chatMutation.mutate({ message: input.trim(), apply: false });
   };
 
@@ -178,10 +192,7 @@ export function RecipeEditorChat({
       animate={{ height: isOpen ? "auto" : "48px" }}
       className="fixed bottom-4 right-4 w-[400px] max-w-[calc(100vw-2rem)] z-50"
     >
-      <Window
-        title="recipe-editor --chat"
-        className="h-full"
-      >
+      <Window title="recipe-editor --chat" className="h-full">
         {/* Header / Toggle */}
         <button
           onClick={onToggle}
@@ -194,7 +205,7 @@ export function RecipeEditorChat({
             <div>
               <p className="text-sm font-medium">Recipe Editor</p>
               <p className="text-[10px] text-muted-foreground font-mono">
-                // Edit automation with natural language
+                {"// Edit automation with natural language"}
               </p>
             </div>
           </div>
@@ -236,13 +247,13 @@ export function RecipeEditorChat({
                       </div>
                     </div>
                   )}
-                  
+
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
                       className={cn(
                         "flex",
-                        msg.role === "user" ? "justify-end" : "justify-start"
+                        msg.role === "user" ? "justify-end" : "justify-start",
                       )}
                     >
                       <div
@@ -250,7 +261,7 @@ export function RecipeEditorChat({
                           "max-w-[85%] rounded-lg px-3 py-2 text-sm",
                           msg.role === "user"
                             ? "bg-purple-500/20 text-purple-100"
-                            : "bg-muted/50"
+                            : "bg-muted/50",
                         )}
                       >
                         {msg.role === "assistant" ? (
@@ -260,13 +271,16 @@ export function RecipeEditorChat({
                         ) : (
                           <p>{msg.content}</p>
                         )}
-                        
+
                         {/* Show updates summary */}
                         {msg.updates && msg.updates.length > 0 && (
                           <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
                             {msg.updates.map((update, i) => (
                               <div key={i} className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-[10px]">
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px]"
+                                >
                                   {update.stage}
                                 </Badge>
                                 <span className="text-[10px] text-muted-foreground">
@@ -276,7 +290,7 @@ export function RecipeEditorChat({
                             ))}
                           </div>
                         )}
-                        
+
                         {/* Applied indicator */}
                         {msg.applied && (
                           <div className="mt-2 flex items-center gap-1 text-[10px] text-green-400">
@@ -287,7 +301,7 @@ export function RecipeEditorChat({
                       </div>
                     </div>
                   ))}
-                  
+
                   {chatMutation.isPending && (
                     <div className="flex justify-start">
                       <div className="bg-muted/50 rounded-lg px-3 py-2">
@@ -310,7 +324,8 @@ export function RecipeEditorChat({
                     <div className="flex items-center gap-2 mb-2">
                       <AlertCircle className="w-4 h-4 text-amber-400" />
                       <p className="text-xs font-medium text-amber-300">
-                        {pendingUpdates.length} change{pendingUpdates.length > 1 ? "s" : ""} ready to apply
+                        {pendingUpdates.length} change
+                        {pendingUpdates.length > 1 ? "s" : ""} ready to apply
                       </p>
                     </div>
                     <div className="flex gap-2">

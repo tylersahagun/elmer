@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable instrumentation hook to auto-start the background worker
-  experimental: {
-    instrumentationHook: true,
-  },
+  // instrumentation.js is now enabled by default in Next.js 16
+  // No experimental config needed
 };
 
 export default nextConfig;

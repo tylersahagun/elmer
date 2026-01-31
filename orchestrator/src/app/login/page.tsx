@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useMemo, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -18,7 +18,9 @@ import {
 import { GoogleIcon } from "@/components/icons/google";
 
 // Google OAuth is only shown when credentials are configured
-const GOOGLE_OAUTH_ENABLED = Boolean(process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED);
+const GOOGLE_OAUTH_ENABLED = Boolean(
+  process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED,
+);
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -27,22 +29,20 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Handle Auth.js error redirects
-  useEffect(() => {
+  const paramError = useMemo(() => {
     const errorParam = searchParams.get("error");
-    if (errorParam) {
-      switch (errorParam) {
-        case "CredentialsSignin":
-          setError("Invalid email or password");
-          break;
-        case "OAuthAccountNotLinked":
-          setError("This email is already registered with a different sign-in method");
-          break;
-        default:
-          setError("An error occurred during sign in");
-      }
+    if (!errorParam) return "";
+    switch (errorParam) {
+      case "CredentialsSignin":
+        return "Invalid email or password";
+      case "OAuthAccountNotLinked":
+        return "This email is already registered with a different sign-in method";
+      default:
+        return "An error occurred during sign in";
     }
   }, [searchParams]);
+
+  const displayError = error || paramError;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,9 +86,9 @@ function LoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {error && (
+          {displayError && (
             <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
+              {displayError}
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -178,20 +178,20 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted/30 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold tracking-tight">
-              Welcome back
-            </CardTitle>
-            <CardDescription>
-              Loading...
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted/30 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="space-y-1 text-center">
+              <CardTitle className="text-2xl font-bold tracking-tight">
+                Welcome back
+              </CardTitle>
+              <CardDescription>Loading...</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

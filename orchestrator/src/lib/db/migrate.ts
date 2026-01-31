@@ -1,9 +1,13 @@
+import { config } from "dotenv";
 import { neon } from "@neondatabase/serverless";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { migrate as migrateNeon } from "drizzle-orm/neon-http/migrator";
 import { migrate as migratePg } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
+
+// Load .env.local for local development
+config({ path: ".env.local" });
 
 const DATABASE_URL = process.env.DATABASE_URL;
 

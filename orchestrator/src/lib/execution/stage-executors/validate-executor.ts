@@ -1,6 +1,6 @@
 /**
  * Validate Stage Executor
- * 
+ *
  * Inputs: Prototype + PRD + jury personas
  * Automation:
  *   - Run synthetic user jury evaluation
@@ -87,17 +87,19 @@ Format your response as markdown:
 
 export async function executeValidate(
   context: StageContext,
-  callbacks: StreamCallback
+  callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
   const { run, project, documents: existingDocs } = context;
-  
+
   callbacks.onLog("info", "Starting validation jury evaluation", "validate");
   callbacks.onProgress(0.1, "Loading prototype and PRD...");
 
   // Get PRD and prototype notes
   const prdDoc = existingDocs.find((doc) => doc.type === "prd");
-  const prototypeNotes = existingDocs.find((doc) => doc.type === "prototype_notes");
-  
+  const prototypeNotes = existingDocs.find(
+    (doc) => doc.type === "prototype_notes",
+  );
+
   if (!prdDoc) {
     callbacks.onLog("warn", "No PRD found", "validate");
     return {
@@ -107,7 +109,7 @@ export async function executeValidate(
   }
 
   const provider = getDefaultProvider();
-  
+
   const userPrompt = `Evaluate this feature from the perspective of multiple user personas:
 
 Project: ${project.name}
@@ -131,7 +133,7 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
       cardId: run.cardId,
       stage: run.stage,
     },
-    callbacks
+    callbacks,
   );
 
   if (!result.success) {
@@ -146,12 +148,50 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
 
   // Parse the output to extract scores (simplified parsing)
   const output = result.output || "";
-  const passMatch = output.match(/Overall Verdict\s*\n\*\*\[(PASS|CONDITIONAL|FAIL)\]/i);
+  const passMatch = output.match(
+    /Overall Verdict\s*\n\*\*\[(PASS|CONDITIONAL|FAIL)\]/i,
+  );
   const verdict = passMatch ? passMatch[1].toLowerCase() : "conditional";
-  
-  // Extract approval rate
+
+  // Extract approval rate (fallback)
   const approvalMatch = output.match(/(\d+)%\s*would approve/i);
-  const approvalRate = approvalMatch ? parseInt(approvalMatch[1], 10) / 100 : 0.5;
+  const fallbackApprovalRate = approvalMatch
+    ? parseInt(approvalMatch[1], 10) / 100
+    : 0.5;
+
+  // Weighted Condorcet-style approximation (persona weights)
+  const personaWeights: Record<string, number> = {
+    "sales rep": 0.35,
+    "sales leader": 0.25,
+    csm: 0.2,
+    operations: 0.2,
+  };
+
+  const scoreRows = output.matchAll(
+    /\|\s*([^|]+)\s*\|\s*(\d+(?:\.\d+)?)\s*\|/g,
+  );
+  let weightedTotal = 0;
+  let weightSum = 0;
+  const weightedScores: Array<{
+    persona: string;
+    score: number;
+    weight: number;
+  }> = [];
+
+  for (const match of scoreRows) {
+    const persona = match[1].trim().toLowerCase();
+    const score = Number(match[2]);
+    if (Number.isNaN(score)) continue;
+    const weight = personaWeights[persona] ?? 0.1;
+    weightedTotal += (score / 10) * weight;
+    weightSum += weight;
+    weightedScores.push({ persona, score, weight });
+  }
+
+  const approvalRate =
+    weightSum > 0
+      ? Math.min(weightedTotal / weightSum, 1)
+      : fallbackApprovalRate;
 
   const now = new Date();
   const docId = `doc_${nanoid()}`;
@@ -172,6 +212,8 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
       promptVersion: "validate-v1",
       verdict,
       approvalRate,
+      weightedScores,
+      fallbackApprovalRate,
     },
     createdAt: now,
     updatedAt: now,
@@ -189,7 +231,13 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
     verdict: verdict as "pass" | "fail" | "conditional",
     topConcerns: [], // Would need more sophisticated parsing
     topSuggestions: [],
-    rawResults: { output },
+    rawResults: {
+      output,
+      weightedScores,
+      approvalRate,
+      fallbackApprovalRate,
+      weights: personaWeights,
+    },
     reportPath: `initiatives/${project.name.toLowerCase().replace(/\s+/g, "-")}/validation-report.md`,
     createdAt: now,
   });
@@ -198,13 +246,23 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
     "file",
     "Validation Report",
     `documents/${docId}`,
-    { documentType: "jury_report", verdict, approvalRate }
+    {
+      documentType: "jury_report",
+      verdict,
+      approvalRate,
+      weightedScores,
+    },
   );
 
-  callbacks.onLog("info", `Jury verdict: ${verdict.toUpperCase()} (${Math.round(approvalRate * 100)}% approval)`, "validate");
+  callbacks.onLog(
+    "info",
+    `Jury verdict: ${verdict.toUpperCase()} (${Math.round(approvalRate * 100)}% approval)`,
+    "validate",
+  );
   callbacks.onProgress(1.0, "Validation complete");
 
-  const passed = verdict === "pass" || (verdict === "conditional" && approvalRate >= 0.6);
+  const passed =
+    verdict === "pass" || (verdict === "conditional" && approvalRate >= 0.6);
 
   return {
     success: true,

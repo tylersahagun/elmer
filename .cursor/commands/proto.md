@@ -1,5 +1,7 @@
 # Prototype Builder
 
+**Delegates to:** `proto-builder` subagent (see `.cursor/agents/proto-builder.md`)
+
 You build interactive Storybook prototypes. Your goal is to create **multiple creative options** that meet human-centric AI design standards, enabling informed design decisions.
 
 **Prototype Location:** Configured in `elmer-docs/workspace-config.json` under `prototypes.default_location` (default: `prototypes/`). Always check this config before building.
@@ -19,16 +21,19 @@ When building a prototype for an initiative, automatically load context per `con
 Before writing code, internalize these principles from `elmer-docs/research/human-centric-ai-design-research.md`:
 
 ### Trust Calibration
+
 - **Receipts, not black boxes**: Every AI action needs visible evidence
 - **Progressive disclosure**: Summaries before details, suggestions before automation
 - **Graceful failure**: All AI features will fail—design for recovery
 
 ### Emotional Design (Don Norman)
+
 - **Visceral**: Does it look trustworthy at first glance?
 - **Behavioral**: Does it work predictably and efficiently?
 - **Reflective**: Does using it make users feel capable, not dependent?
 
 ### Persona Awareness
+
 - **Sales Reps**: Fear surveillance and replacement; AI must make them look good
 - **Sales Managers**: Need insights, not surveillance tools
 - **RevOps**: Need visibility and auditability
@@ -49,11 +54,11 @@ Before writing code, internalize these principles from `elmer-docs/research/huma
 
 For each major component, create distinct approaches:
 
-| Direction | Philosophy | Best For |
-|-----------|-----------|----------|
+| Direction    | Philosophy                               | Best For                             |
+| ------------ | ---------------------------------------- | ------------------------------------ |
 | **Option A** | Maximum control—user confirms everything | Low-trust users, high-stakes actions |
-| **Option B** | Balanced—AI suggests, easy override | Most users, building trust |
-| **Option C** | Maximum efficiency—AI acts, user reviews | Power users, routine tasks |
+| **Option B** | Balanced—AI suggests, easy override      | Most users, building trust           |
+| **Option C** | Maximum efficiency—AI acts, user reviews | Power users, routine tasks           |
 
 ### Step 2: Build All Options as Storybook Stories
 
@@ -69,13 +74,14 @@ export const OptionA_MaxControl: Story = { ... };
 // v2: Balanced Suggestion
 export const OptionB_Balanced: Story = { ... };
 
-// v3: Maximum Efficiency  
+// v3: Maximum Efficiency
 export const OptionC_Efficient: Story = { ... };
 ```
 
 ### Step 3: Document Design Rationale
 
 In each story, add a `docs` block explaining:
+
 - What trust level this assumes
 - Which persona this optimizes for
 - Tradeoffs made
@@ -84,24 +90,30 @@ In each story, add a `docs` block explaining:
 
 Every prototype with AI features MUST include all states:
 
-| State | Visual Treatment | Copy Pattern | Animation |
-|-------|-----------------|--------------|-----------|
-| **Loading (short)** | Subtle spinner | None needed | Pulse |
-| **Loading (long)** | Progress stages | "Analyzing your calls..." | Stage transitions |
-| **Success** | Check mark, muted | Affirming, brief | Scale + fade (150ms) |
-| **Error** | Warning icon | Honest, solution-focused | Gentle shake |
-| **Low Confidence** | Muted colors, dotted border | "I think...", hedging | None |
-| **Empty** | Helpful illustration | Encouraging, actionable | Fade in |
+| State               | Visual Treatment            | Copy Pattern              | Animation            |
+| ------------------- | --------------------------- | ------------------------- | -------------------- |
+| **Loading (short)** | Subtle spinner              | None needed               | Pulse                |
+| **Loading (long)**  | Progress stages             | "Analyzing your calls..." | Stage transitions    |
+| **Success**         | Check mark, muted           | Affirming, brief          | Scale + fade (150ms) |
+| **Error**           | Warning icon                | Honest, solution-focused  | Gentle shake         |
+| **Low Confidence**  | Muted colors, dotted border | "I think...", hedging     | None                 |
+| **Empty**           | Helpful illustration        | Encouraging, actionable   | Fade in              |
 
 ### Create State Stories
 
 ```typescript
-export const Loading: Story = { args: { state: 'loading' } };
-export const LoadingLong: Story = { args: { state: 'loading-long', message: 'Analyzing 45-minute call...' } };
-export const Success: Story = { args: { state: 'success' } };
-export const Error: Story = { args: { state: 'error', error: 'Could not connect to HubSpot' } };
-export const LowConfidence: Story = { args: { state: 'low-confidence', confidence: 0.6 } };
-export const Empty: Story = { args: { state: 'empty' } };
+export const Loading: Story = { args: { state: "loading" } };
+export const LoadingLong: Story = {
+  args: { state: "loading-long", message: "Analyzing 45-minute call..." },
+};
+export const Success: Story = { args: { state: "success" } };
+export const Error: Story = {
+  args: { state: "error", error: "Could not connect to HubSpot" },
+};
+export const LowConfidence: Story = {
+  args: { state: "low-confidence", confidence: 0.6 },
+};
+export const Empty: Story = { args: { state: "empty" } };
 ```
 
 ## Trust & Emotion Checkpoints
@@ -109,6 +121,7 @@ export const Empty: Story = { args: { state: 'empty' } };
 Before finalizing any option, verify:
 
 ### Trust Checklist
+
 - [ ] User understands what AI will do before it acts
 - [ ] User can see evidence for AI decisions (receipts)
 - [ ] User can easily undo AI actions
@@ -116,6 +129,7 @@ Before finalizing any option, verify:
 - [ ] Failures are graceful and recoverable
 
 ### Emotion Checklist
+
 - [ ] First impression feels trustworthy (visceral)
 - [ ] Interactions are predictable (behavioral)
 - [ ] User feels augmented, not replaced (reflective)
@@ -123,6 +137,7 @@ Before finalizing any option, verify:
 - [ ] No surveillance vibes
 
 ### Accessibility Checklist
+
 - [ ] Keyboard navigable
 - [ ] Screen reader compatible (aria-live for dynamic content)
 - [ ] Sufficient color contrast
@@ -143,6 +158,7 @@ Location is configured in `workspace-config.json`. Default structure:
 ```
 
 Example with default config (`prototypes/`):
+
 ```
 prototypes/src/components/UserOnboarding/
 ├── WelcomeCard.tsx
@@ -161,6 +177,7 @@ v3/ - After user testing (final candidate)
 ```
 
 Or use story naming:
+
 ```typescript
 export const V1_OptionA: Story = { ... };
 export const V2_OptionA_Refined: Story = { ... };
@@ -191,17 +208,18 @@ npm run storybook    # Opens at http://localhost:6006
    - Open questions for stakeholder review
 
 2. **Update `_meta.json`**:
+
    ```json
    {
-     "phase": "build",  // if advancing from define
+     "phase": "build", // if advancing from define
      "updated_at": "[current timestamp]",
-     "prototype_type": "standalone",  // Track prototype type for /iterate
+     "prototype_type": "standalone", // Track prototype type for /iterate
      "metrics": {
-       "total_iterations": 1  // or increment
+       "total_iterations": 1 // or increment
      }
    }
    ```
-   
+
    **Prototype Type Values:**
    - `"standalone"` - Created with `/proto` (isolated, PRD-driven)
    - `"context"` - Created with `/context-proto` (integrated with app UI)

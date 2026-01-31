@@ -55,7 +55,10 @@ function formatJobType(type: string): string {
     iterate_prototype: "Iterating Prototype",
     validate_tickets: "Validating Tickets",
   };
-  return typeMap[type] || type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return (
+    typeMap[type] ||
+    type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }
 
 // Get icon for log level
@@ -73,18 +76,45 @@ function LogLevelIcon({ level }: { level: string }) {
 }
 
 // Parse log message for context indicators
-function parseLogMessage(message: string): { icon: React.ReactNode; text: string } {
-  if (message.toLowerCase().includes("thinking") || message.toLowerCase().includes("analyzing")) {
-    return { icon: <Brain className="w-3.5 h-3.5 text-purple-400" />, text: message };
+function parseLogMessage(message: string): {
+  icon: React.ReactNode;
+  text: string;
+} {
+  if (
+    message.toLowerCase().includes("thinking") ||
+    message.toLowerCase().includes("analyzing")
+  ) {
+    return {
+      icon: <Brain className="w-3.5 h-3.5 text-purple-400" />,
+      text: message,
+    };
   }
-  if (message.toLowerCase().includes("reading") || message.toLowerCase().includes("loading")) {
-    return { icon: <FileText className="w-3.5 h-3.5 text-blue-400" />, text: message };
+  if (
+    message.toLowerCase().includes("reading") ||
+    message.toLowerCase().includes("loading")
+  ) {
+    return {
+      icon: <FileText className="w-3.5 h-3.5 text-blue-400" />,
+      text: message,
+    };
   }
-  if (message.toLowerCase().includes("generating") || message.toLowerCase().includes("creating")) {
-    return { icon: <Sparkles className="w-3.5 h-3.5 text-pink-400" />, text: message };
+  if (
+    message.toLowerCase().includes("generating") ||
+    message.toLowerCase().includes("creating")
+  ) {
+    return {
+      icon: <Sparkles className="w-3.5 h-3.5 text-pink-400" />,
+      text: message,
+    };
   }
-  if (message.toLowerCase().includes("complete") || message.toLowerCase().includes("success")) {
-    return { icon: <CheckCircle className="w-3.5 h-3.5 text-green-400" />, text: message };
+  if (
+    message.toLowerCase().includes("complete") ||
+    message.toLowerCase().includes("success")
+  ) {
+    return {
+      icon: <CheckCircle className="w-3.5 h-3.5 text-green-400" />,
+      text: message,
+    };
   }
   return { icon: null, text: message };
 }
@@ -99,7 +129,7 @@ export function JobLogsDrawer() {
   const [job, setJob] = useState<JobState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -160,8 +190,12 @@ export function JobLogsDrawer() {
           case "status":
             setJob((prev) =>
               prev
-                ? { ...prev, status: data.status, progress: data.progress || prev.progress }
-                : prev
+                ? {
+                    ...prev,
+                    status: data.status,
+                    progress: data.progress || prev.progress,
+                  }
+                : prev,
             );
             break;
 
@@ -175,7 +209,7 @@ export function JobLogsDrawer() {
                     error: data.error,
                     output: data.output,
                   }
-                : prev
+                : prev,
             );
             eventSource.close();
             setIsConnected(false);
@@ -194,11 +228,18 @@ export function JobLogsDrawer() {
 
   // Connect when drawer opens
   useEffect(() => {
+    let connectTimeout: ReturnType<typeof setTimeout> | null = null;
+
     if (isOpen && jobId) {
-      connectToStream();
+      connectTimeout = setTimeout(() => {
+        connectToStream();
+      }, 0);
     }
 
     return () => {
+      if (connectTimeout) {
+        clearTimeout(connectTimeout);
+      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -224,23 +265,23 @@ export function JobLogsDrawer() {
     job?.status === "completed"
       ? "text-green-400"
       : job?.status === "failed"
-      ? "text-red-400"
-      : job?.status === "cancelled"
-      ? "text-slate-400"
-      : job?.status === "running"
-      ? "text-purple-400"
-      : "text-amber-400";
+        ? "text-red-400"
+        : job?.status === "cancelled"
+          ? "text-slate-400"
+          : job?.status === "running"
+            ? "text-purple-400"
+            : "text-amber-400";
 
   const StatusIcon =
     job?.status === "completed"
       ? CheckCircle
       : job?.status === "failed"
-      ? AlertCircle
-      : job?.status === "cancelled"
-      ? XCircle
-      : job?.status === "running"
-      ? Loader2
-      : Clock;
+        ? AlertCircle
+        : job?.status === "cancelled"
+          ? XCircle
+          : job?.status === "running"
+            ? Loader2
+            : Clock;
 
   return (
     <>
@@ -264,7 +305,7 @@ export function JobLogsDrawer() {
           "bg-slate-900/95 backdrop-blur-xl",
           "border-l border-white/10",
           "flex flex-col z-50",
-          "shadow-2xl"
+          "shadow-2xl",
         )}
       >
         {/* Header */}
@@ -273,7 +314,7 @@ export function JobLogsDrawer() {
             <div
               className={cn(
                 "w-10 h-10 rounded-xl flex items-center justify-center",
-                "bg-gradient-to-br from-purple-500/20 to-pink-500/20"
+                "bg-gradient-to-br from-purple-500/20 to-pink-500/20",
               )}
             >
               <Terminal className="w-5 h-5 text-purple-400" />
@@ -283,7 +324,9 @@ export function JobLogsDrawer() {
                 {job ? formatJobType(job.type) : "Job Logs"}
               </h2>
               {projectName && (
-                <p className="text-xs text-muted-foreground truncate">{projectName}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {projectName}
+                </p>
               )}
             </div>
           </div>
@@ -293,7 +336,7 @@ export function JobLogsDrawer() {
               <div
                 className={cn(
                   "w-2 h-2 rounded-full",
-                  isConnected ? "bg-green-400 animate-pulse" : "bg-slate-500"
+                  isConnected ? "bg-green-400 animate-pulse" : "bg-slate-500",
                 )}
               />
               <span className="text-[10px] text-muted-foreground">
@@ -315,10 +358,12 @@ export function JobLogsDrawer() {
                   className={cn(
                     "w-4 h-4",
                     statusColor,
-                    job.status === "running" && "animate-spin"
+                    job.status === "running" && "animate-spin",
                   )}
                 />
-                <span className={cn("text-sm font-medium capitalize", statusColor)}>
+                <span
+                  className={cn("text-sm font-medium capitalize", statusColor)}
+                >
                   {job.status}
                 </span>
               </div>
@@ -375,7 +420,9 @@ export function JobLogsDrawer() {
                     <>
                       <Clock className="w-8 h-8 mb-2 opacity-50" />
                       <p className="text-sm">Waiting in queue...</p>
-                      <p className="text-xs mt-1">Logs will appear when processing starts</p>
+                      <p className="text-xs mt-1">
+                        Logs will appear when processing starts
+                      </p>
                     </>
                   ) : job?.status === "running" ? (
                     <>
@@ -409,8 +456,8 @@ export function JobLogsDrawer() {
                         log.level === "error"
                           ? "bg-red-500/10"
                           : log.level === "warn"
-                          ? "bg-amber-500/10"
-                          : "bg-white/5"
+                            ? "bg-amber-500/10"
+                            : "bg-white/5",
                       )}
                     >
                       <div className="flex-shrink-0 mt-0.5">
@@ -423,10 +470,10 @@ export function JobLogsDrawer() {
                             log.level === "error"
                               ? "text-red-300"
                               : log.level === "warn"
-                              ? "text-amber-300"
-                              : log.level === "debug"
-                              ? "text-slate-400"
-                              : "text-slate-200"
+                                ? "text-amber-300"
+                                : log.level === "debug"
+                                  ? "text-slate-400"
+                                  : "text-slate-200",
                           )}
                         >
                           {parsed.text}
@@ -455,7 +502,9 @@ export function JobLogsDrawer() {
                 className="flex items-center gap-2 p-2"
               >
                 <div className="w-2 h-2 rounded-full bg-purple-400" />
-                <span className="text-xs text-muted-foreground">Listening for updates...</span>
+                <span className="text-xs text-muted-foreground">
+                  Listening for updates...
+                </span>
               </motion.div>
             )}
           </div>
@@ -464,7 +513,9 @@ export function JobLogsDrawer() {
         {/* Footer with output summary */}
         {job?.output && Object.keys(job.output).length > 0 && (
           <div className="p-4 border-t border-white/10 bg-white/5">
-            <h3 className="text-xs font-medium text-muted-foreground mb-2">Output</h3>
+            <h3 className="text-xs font-medium text-muted-foreground mb-2">
+              Output
+            </h3>
             <pre className="text-xs text-slate-300 overflow-x-auto max-h-32 p-2 bg-black/20 rounded-lg">
               {JSON.stringify(job.output, null, 2)}
             </pre>
