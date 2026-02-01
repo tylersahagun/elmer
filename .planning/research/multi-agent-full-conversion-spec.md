@@ -29,12 +29,16 @@ This document specifies the complete conversion from a single-agent PM copilot t
 
 | Layer | Current | Target |
 |-------|---------|--------|
-| AI SDK | `@anthropic-ai/sdk` (direct) | `ai` (Vercel AI SDK v5) |
+| AI SDK | `@anthropic-ai/sdk` (direct) | `ai@6` (Vercel AI SDK v6) |
+| Agent Definition | Custom `AgentExecutor` | v6 `agent()` function |
 | Chat UI | Custom `ChatSidebar` | A2UI-pattern `AgentChat` |
-| Streaming | None | `useChat` + Server-Sent Events |
+| React Hooks | None | v6 `useAgent` + `useAgentThreads` |
+| Streaming | None | v6 `toAgentStream()` + streaming tools |
 | Multi-Provider | Claude only | Claude, GPT-4, Gemini |
-| Tool Execution | Custom `executeTool` | AI SDK `tools` with streaming |
-| Agent Memory | Basic `memoryEntries` | Semantic vector + conversation |
+| Tool Execution | Custom `executeTool` | v6 `tool()` with generator streaming |
+| Multi-Agent | None | v6 orchestrator + delegation |
+| Agent Memory | Basic `memoryEntries` | Semantic vector + conversation threads |
+| Middleware | None | v6 `defineMiddleware()` for observability |
 
 ---
 
@@ -402,24 +406,27 @@ export function AgentControlPanel({ agent, onPause, onResume, onStop, onConfigur
 
 ---
 
-## Vercel AI SDK Integration
+## Vercel AI SDK v6 Integration
 
 ### Installation
 
 ```bash
 cd orchestrator
-npm install ai @ai-sdk/anthropic @ai-sdk/openai
+npm install ai@6 @ai-sdk/anthropic @ai-sdk/openai @ai-sdk/google
 ```
 
-### Core Concepts
+### What's New in AI SDK v6
 
-The Vercel AI SDK v5 provides:
+AI SDK v6 introduces first-class agent support with new primitives:
 
-1. **Unified Provider Interface** - Same API for Claude, GPT-4, Gemini
-2. **Streaming First** - `streamText`, `streamObject` for real-time responses
-3. **Tool Execution** - Built-in tool calling with streaming
-4. **React Hooks** - `useChat`, `useCompletion`, `useObject`
-5. **Multi-Step Agents** - `maxSteps` for autonomous tool loops
+1. **`agent()` Function** - Declarative agent definition with tools and instructions
+2. **`useAgent` Hook** - React hook for agent interactions with built-in state management
+3. **Agent Streams** - `toAgentStream()` for real-time streaming of agent responses
+4. **Tool Result Streaming** - Stream tool outputs as they execute
+5. **Conversation Threads** - Built-in thread/conversation management
+6. **Multi-Agent Coordination** - Native support for agent-to-agent handoffs
+7. **Middleware Support** - Intercept and modify agent behavior
+8. **Improved Observability** - Better logging and tracing for agent actions
 
 ### Provider Setup
 
@@ -428,6 +435,7 @@ The Vercel AI SDK v5 provides:
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
+import { agent, type Agent as AIAgent, type Tool } from "ai";
 
 export type AIProvider = "anthropic" | "openai" | "google";
 
@@ -454,307 +462,566 @@ export function getModel(provider: AIProvider, modelId: string) {
 export const defaultModels: Record<AIProvider, string> = {
   anthropic: "claude-sonnet-4-20250514",
   openai: "gpt-4o",
-  google: "gemini-1.5-pro",
+  google: "gemini-2.0-flash",
+};
+
+// Model capabilities for agent selection
+export const modelCapabilities: Record<string, {
+  maxTokens: number;
+  supportsTools: boolean;
+  supportsStreaming: boolean;
+  costTier: "low" | "medium" | "high";
+}> = {
+  "claude-sonnet-4-20250514": {
+    maxTokens: 8192,
+    supportsTools: true,
+    supportsStreaming: true,
+    costTier: "medium",
+  },
+  "gpt-4o": {
+    maxTokens: 16384,
+    supportsTools: true,
+    supportsStreaming: true,
+    costTier: "high",
+  },
+  "gemini-2.0-flash": {
+    maxTokens: 8192,
+    supportsTools: true,
+    supportsStreaming: true,
+    costTier: "low",
+  },
 };
 ```
 
-### Streaming Chat API
+### AI SDK v6 Agent Definition
 
-Replace the current `/api/chat/route.ts` with streaming:
+The new `agent()` function in v6 provides declarative agent creation:
 
 ```typescript
-// app/api/chat/route.ts
-import { streamText, convertToCoreMessages, tool } from "ai";
+// lib/ai/agents/pm-agent.ts
+import { agent, tool } from "ai";
 import { z } from "zod";
-import { getModel } from "@/lib/ai/providers";
+import { anthropic } from "@ai-sdk/anthropic";
 import { getWorkspaceContext, getProjectContext } from "@/lib/context/resolve";
 
-export async function POST(req: Request) {
-  const { messages, workspaceId, projectId, agentConfig } = await req.json();
+// Define reusable tools
+export const pmTools = {
+  getProjectStatus: tool({
+    description: "Get the current status of a project including stage and key metrics",
+    parameters: z.object({
+      projectId: z.string().describe("The project ID to check"),
+    }),
+    execute: async ({ projectId }) => {
+      const project = await getProject(projectId);
+      return {
+        name: project?.name,
+        stage: project?.stage,
+        status: project?.status,
+        documentsCount: project?.documents?.length ?? 0,
+      };
+    },
+  }),
 
-  // Get agent configuration (defaults if not specified)
-  const provider = agentConfig?.provider ?? "anthropic";
-  const modelId = agentConfig?.model ?? "claude-sonnet-4-20250514";
-  const temperature = agentConfig?.temperature ?? 0.7;
-  
-  // Build context
-  const workspaceContext = await getWorkspaceContext(workspaceId);
-  const projectContext = projectId ? await getProjectContext(projectId) : "";
-  
-  // Define tools available to the agent
-  const tools = {
-    getProjectStatus: tool({
-      description: "Get the current status of a project",
-      parameters: z.object({
-        projectId: z.string().describe("The project ID to check"),
-      }),
-      execute: async ({ projectId }) => {
-        const project = await getProject(projectId);
-        return {
-          name: project?.name,
-          stage: project?.stage,
-          status: project?.status,
-        };
-      },
+  createDocument: tool({
+    description: "Create or update a document for a project",
+    parameters: z.object({
+      projectId: z.string(),
+      type: z.enum(["prd", "design_brief", "engineering_spec", "research"]),
+      content: z.string(),
     }),
-    
-    createDocument: tool({
-      description: "Create or update a document for a project",
-      parameters: z.object({
-        projectId: z.string(),
-        type: z.enum(["prd", "design_brief", "engineering_spec", "research"]),
-        content: z.string(),
-      }),
-      execute: async ({ projectId, type, content }) => {
-        const doc = await saveDocument(projectId, type, content);
-        return { documentId: doc.id, saved: true };
-      },
-    }),
-    
-    delegateToAgent: tool({
-      description: "Delegate a task to another specialized agent",
-      parameters: z.object({
-        agentId: z.string().describe("The ID of the agent to delegate to"),
-        task: z.string().describe("Description of the task to delegate"),
-        context: z.string().optional().describe("Additional context for the agent"),
-      }),
-      execute: async ({ agentId, task, context }) => {
-        // Create a job for the delegated agent
-        const job = await createAgentJob(agentId, { task, context });
-        return { 
-          delegated: true, 
-          jobId: job.id,
-          message: `Task delegated to agent. Job ID: ${job.id}`,
-        };
-      },
-    }),
-    
-    searchKnowledge: tool({
-      description: "Search the workspace knowledge base",
-      parameters: z.object({
-        query: z.string().describe("Search query"),
-        limit: z.number().optional().default(5),
-      }),
-      execute: async ({ query, limit }) => {
-        const results = await searchKnowledgeBase(workspaceId, query, limit);
-        return results;
-      },
-    }),
-  };
+    execute: async ({ projectId, type, content }) => {
+      const doc = await saveDocument(projectId, type, content);
+      return { documentId: doc.id, saved: true };
+    },
+  }),
 
-  // Build system prompt with agent persona
-  const systemPrompt = agentConfig?.systemPrompt ?? `You are a helpful PM assistant.
+  searchKnowledge: tool({
+    description: "Search the workspace knowledge base for relevant information",
+    parameters: z.object({
+      query: z.string().describe("Search query"),
+      limit: z.number().optional().default(5),
+    }),
+    execute: async ({ query, limit }, { context }) => {
+      const results = await searchKnowledgeBase(context.workspaceId, query, limit);
+      return results;
+    },
+  }),
+
+  // v6: Tool with streaming output for long-running operations
+  analyzeTranscript: tool({
+    description: "Analyze a transcript and extract insights",
+    parameters: z.object({
+      transcript: z.string().describe("The transcript text to analyze"),
+      projectId: z.string().optional(),
+    }),
+    // v6: Streaming tool execution
+    execute: async function* ({ transcript, projectId }) {
+      yield { status: "Extracting key quotes..." };
+      const quotes = await extractQuotes(transcript);
+      
+      yield { status: "Identifying themes...", quotes };
+      const themes = await identifyThemes(transcript);
+      
+      yield { status: "Generating summary...", quotes, themes };
+      const summary = await generateSummary(transcript, themes);
+      
+      return { quotes, themes, summary };
+    },
+  }),
+};
+
+// Create the PM Agent using v6 agent() function
+export function createPMAgent(config: {
+  workspaceId: string;
+  projectId?: string;
+  customInstructions?: string;
+}) {
+  return agent({
+    model: anthropic("claude-sonnet-4-20250514"),
+    
+    // System instructions with context
+    system: async () => {
+      const workspaceContext = await getWorkspaceContext(config.workspaceId);
+      const projectContext = config.projectId 
+        ? await getProjectContext(config.projectId) 
+        : "";
+      
+      return `You are an expert PM assistant helping with product management tasks.
+
+## Your Capabilities
+- Analyze user research and transcripts
+- Create PRDs, design briefs, and engineering specs  
+- Search and synthesize knowledge base information
+- Track project status and suggest next steps
 
 ## Workspace Context
 ${workspaceContext}
 
-${projectContext ? `## Project Context\n${projectContext}` : ""}
+${projectContext ? `## Current Project\n${projectContext}` : ""}
 
-Be concise and actionable. Use markdown for formatting.`;
+${config.customInstructions ?? ""}
 
-  // Stream the response
-  const result = streamText({
-    model: getModel(provider, modelId),
-    system: systemPrompt,
-    messages: convertToCoreMessages(messages),
-    tools,
-    temperature,
-    maxSteps: 5, // Allow up to 5 tool calls in a single turn
+Be concise and actionable. Always cite sources when referencing knowledge base.`;
+    },
     
-    // Callbacks for logging/tracking
-    onStepFinish: ({ stepType, toolCalls, toolResults }) => {
-      if (stepType === "tool-result") {
-        console.log("Tool calls:", toolCalls);
-        console.log("Tool results:", toolResults);
-      }
+    // Available tools
+    tools: pmTools,
+    
+    // v6: Context passed to all tools
+    context: {
+      workspaceId: config.workspaceId,
+      projectId: config.projectId,
+    },
+    
+    // v6: Agent behavior configuration
+    maxSteps: 10,           // Maximum tool execution steps
+    maxRetries: 3,          // Retry failed tool calls
+    
+    // v6: Callbacks for observability
+    onStepStart: ({ step, tools }) => {
+      console.log(`[Agent] Starting step ${step}`, tools);
+    },
+    onStepFinish: ({ step, result, duration }) => {
+      console.log(`[Agent] Completed step ${step} in ${duration}ms`);
+    },
+    onToolCall: ({ tool, args }) => {
+      console.log(`[Agent] Calling tool: ${tool}`, args);
     },
   });
-
-  return result.toDataStreamResponse();
 }
 ```
 
-### React Hook Integration
+### Streaming Chat API with v6 Agent
 
-Create a custom hook that wraps `useChat` with agent awareness:
+```typescript
+// app/api/chat/route.ts
+import { createPMAgent } from "@/lib/ai/agents/pm-agent";
+
+export async function POST(req: Request) {
+  const { messages, workspaceId, projectId, agentId } = await req.json();
+
+  // Get custom agent config if specified
+  const agentConfig = agentId ? await getAgentConfig(agentId) : null;
+  
+  // Create agent instance
+  const pmAgent = createPMAgent({
+    workspaceId,
+    projectId,
+    customInstructions: agentConfig?.systemPrompt,
+  });
+
+  // v6: Execute agent with streaming response
+  const result = await pmAgent.run({
+    messages,
+    // v6: Conversation thread support
+    threadId: req.headers.get("x-thread-id") ?? undefined,
+  });
+
+  // v6: Return agent stream with tool results
+  return result.toAgentStream();
+}
+```
+
+### Multi-Agent Orchestration with v6
+
+```typescript
+// lib/ai/agents/orchestrator.ts
+import { agent, tool } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { createPMAgent } from "./pm-agent";
+import { createResearchAgent } from "./research-agent";
+import { createPrototypeAgent } from "./prototype-agent";
+
+// Create specialized agents
+const agents = {
+  research: createResearchAgent,
+  pm: createPMAgent,
+  prototype: createPrototypeAgent,
+};
+
+// v6: Orchestrator agent that delegates to specialists
+export function createOrchestratorAgent(config: {
+  workspaceId: string;
+  projectId?: string;
+  availableAgents: string[];
+}) {
+  // Create delegation tools for each available agent
+  const delegationTools = Object.fromEntries(
+    config.availableAgents.map(agentType => [
+      `delegateTo${capitalize(agentType)}`,
+      tool({
+        description: `Delegate a task to the ${agentType} agent specialist`,
+        parameters: z.object({
+          task: z.string().describe("The task to delegate"),
+          context: z.string().optional().describe("Additional context"),
+        }),
+        // v6: Agent-to-agent delegation with streaming
+        execute: async function* ({ task, context }) {
+          const specialist = agents[agentType]({
+            workspaceId: config.workspaceId,
+            projectId: config.projectId,
+          });
+          
+          yield { status: `Delegating to ${agentType} agent...` };
+          
+          // v6: Stream results from delegated agent
+          const result = await specialist.run({
+            messages: [{ role: "user", content: `${task}\n\nContext: ${context}` }],
+          });
+          
+          // Yield streaming chunks from sub-agent
+          for await (const chunk of result.stream) {
+            yield chunk;
+          }
+          
+          return result.finalOutput;
+        },
+      }),
+    ])
+  );
+
+  return agent({
+    model: anthropic("claude-sonnet-4-20250514"),
+    system: `You are an orchestrator agent that coordinates specialized agents.
+
+Available specialists:
+${config.availableAgents.map(a => `- ${a}: ${getAgentDescription(a)}`).join('\n')}
+
+Analyze user requests and delegate to the appropriate specialist.
+You can delegate to multiple agents if the task requires it.
+Always synthesize results from delegated agents into a coherent response.`,
+    
+    tools: delegationTools,
+    maxSteps: 15, // Higher limit for multi-agent coordination
+    
+    // v6: Track delegation chain
+    context: {
+      workspaceId: config.workspaceId,
+      delegationDepth: 0,
+      maxDelegationDepth: 3,
+    },
+  });
+}
+```
+
+### React Hook Integration with v6 `useAgent`
+
+AI SDK v6 introduces the `useAgent` hook for seamless React integration:
 
 ```typescript
 // hooks/useAgentChat.ts
 "use client";
 
-import { useChat, type Message } from "ai/react";
-import { useState, useCallback, useMemo } from "react";
-import type { Agent } from "@/lib/db/schema";
+import { useAgent, type AgentState, type ToolInvocation } from "ai/react";
+import { useMemo, useCallback } from "react";
+import type { Agent as DBAgent } from "@/lib/db/schema";
 
-interface AgentChatOptions {
-  agent: Agent;
+interface UseAgentChatOptions {
+  agent: DBAgent;
   workspaceId: string;
   projectId?: string;
-  onToolCall?: (toolCall: ToolCall) => void;
-  onAgentThinking?: (thinking: AgentThinkingState) => void;
+  threadId?: string;
   onDelegation?: (delegation: AgentDelegation) => void;
-}
-
-interface ToolCall {
-  id: string;
-  name: string;
-  args: Record<string, unknown>;
-  result?: unknown;
-  status: "pending" | "running" | "complete" | "failed";
-}
-
-interface AgentThinkingState {
-  stage: string;
-  currentStep: string;
-  reasoning?: string;
 }
 
 interface AgentDelegation {
   fromAgentId: string;
   toAgentId: string;
   task: string;
-  jobId: string;
 }
 
 export function useAgentChat({
   agent,
   workspaceId,
   projectId,
-  onToolCall,
-  onAgentThinking,
+  threadId,
   onDelegation,
-}: AgentChatOptions) {
-  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
-  const [thinking, setThinking] = useState<AgentThinkingState | null>(null);
-  
+}: UseAgentChatOptions) {
+  // v6: useAgent hook with full agent state management
   const {
     messages,
     input,
-    handleInputChange,
+    setInput,
     handleSubmit,
-    isLoading,
+    
+    // v6: Agent-specific state
+    isRunning,          // Agent is actively processing
+    isPending,          // Waiting for user input
+    currentStep,        // Current execution step number
+    totalSteps,         // Total steps in current run
+    
+    // v6: Tool execution state
+    activeTools,        // Currently executing tools
+    completedTools,     // Completed tool invocations
+    
+    // v6: Streaming state
+    streamingContent,   // Current streaming text
+    streamingToolOutput, // Current streaming tool output
+    
+    // v6: Control methods
+    stop,               // Stop agent execution
+    retry,              // Retry last failed step
+    reset,              // Reset conversation
+    
+    // v6: Thread management
+    thread,             // Current conversation thread
+    switchThread,       // Switch to different thread
+    
     error,
-    reload,
-    stop,
-    append,
-    setMessages,
-  } = useChat({
+  } = useAgent({
     api: "/api/chat",
+    
+    // v6: Agent configuration
+    agentId: agent.id,
+    
+    // v6: Request body
     body: {
       workspaceId,
       projectId,
-      agentConfig: {
-        provider: agent.provider,
-        model: agent.model,
-        temperature: agent.temperature,
-        systemPrompt: agent.systemPromptTemplate,
-      },
+      agentId: agent.id,
     },
     
-    // Handle streaming events
-    onResponse: (response) => {
-      // Agent started responding
-      setThinking({
-        stage: "generating",
-        currentStep: "Generating response...",
-      });
+    // v6: Thread support for conversation persistence
+    threadId,
+    
+    // v6: Event callbacks with rich context
+    onStepStart: ({ step, toolCalls }) => {
+      console.log(`[useAgent] Step ${step} starting`, toolCalls);
     },
     
-    onToolCall: ({ toolCall }) => {
-      // Track tool calls for transparency
-      const newToolCall: ToolCall = {
-        id: toolCall.toolCallId,
-        name: toolCall.toolName,
-        args: toolCall.args as Record<string, unknown>,
-        status: "running",
-      };
+    onStepComplete: ({ step, result, duration }) => {
+      console.log(`[useAgent] Step ${step} complete in ${duration}ms`);
+    },
+    
+    onToolCall: ({ tool, args, step }) => {
+      console.log(`[useAgent] Tool call: ${tool}`, args);
       
-      setToolCalls((prev) => [...prev, newToolCall]);
-      onToolCall?.(newToolCall);
-      
-      // Update thinking state
-      setThinking({
-        stage: "acting",
-        currentStep: `Executing ${toolCall.toolName}...`,
-        reasoning: `Using ${toolCall.toolName} to ${getToolDescription(toolCall.toolName)}`,
-      });
-      
-      // Check for delegation
-      if (toolCall.toolName === "delegateToAgent") {
-        const args = toolCall.args as { agentId: string; task: string };
-        // We'll get the jobId from the result
+      // Detect delegation events
+      if (tool.startsWith("delegateTo")) {
+        const targetAgent = tool.replace("delegateTo", "").toLowerCase();
+        onDelegation?.({
+          fromAgentId: agent.id,
+          toAgentId: targetAgent,
+          task: args.task as string,
+        });
       }
     },
     
-    onFinish: (message) => {
-      setThinking(null);
-      
-      // Update tool call statuses
-      setToolCalls((prev) =>
-        prev.map((tc) => ({
-          ...tc,
-          status: tc.status === "running" ? "complete" : tc.status,
-        }))
-      );
+    // v6: Streaming tool results
+    onToolStream: ({ tool, chunk }) => {
+      console.log(`[useAgent] Tool stream: ${tool}`, chunk);
     },
     
     onError: (error) => {
-      setThinking(null);
-      console.error("Chat error:", error);
+      console.error("[useAgent] Error:", error);
+    },
+    
+    onFinish: ({ totalSteps, duration, tokensUsed }) => {
+      console.log(`[useAgent] Finished in ${duration}ms, ${totalSteps} steps, ${tokensUsed} tokens`);
     },
   });
-  
-  // Enhanced submit that clears tool calls
-  const submitMessage = useCallback(
-    (e?: React.FormEvent) => {
-      setToolCalls([]);
-      handleSubmit(e);
-    },
-    [handleSubmit]
-  );
-  
-  // Quick actions for common tasks
+
+  // v6: Computed thinking state from agent state
+  const thinking = useMemo(() => {
+    if (!isRunning) return null;
+    
+    const activeTool = activeTools[0];
+    return {
+      stage: activeTool ? "acting" : "thinking",
+      currentStep: activeTool 
+        ? `Executing ${activeTool.name}...`
+        : streamingContent 
+          ? "Generating response..."
+          : "Processing...",
+      progress: totalSteps > 0 ? currentStep / totalSteps : 0,
+      activeTools: activeTools.map(t => ({
+        name: t.name,
+        status: "running" as const,
+        args: t.args,
+        streamingOutput: t.id === streamingToolOutput?.toolId 
+          ? streamingToolOutput.output 
+          : undefined,
+      })),
+    };
+  }, [isRunning, activeTools, currentStep, totalSteps, streamingContent, streamingToolOutput]);
+
+  // v6: All tool invocations with status
+  const toolInvocations = useMemo(() => {
+    return [
+      ...activeTools.map(t => ({ ...t, status: "running" as const })),
+      ...completedTools.map(t => ({ ...t, status: "complete" as const })),
+    ];
+  }, [activeTools, completedTools]);
+
+  // Quick actions based on enabled tools
   const quickActions = useMemo(() => {
-    return agent.enabledTools?.map((tool) => ({
-      label: getToolLabel(tool),
-      description: getToolDescription(tool),
+    return agent.enabledTools?.map((toolName) => ({
+      label: getToolLabel(toolName),
+      description: getToolDescription(toolName),
       execute: () => {
-        append({
-          role: "user",
-          content: getToolPrompt(tool),
-        });
+        setInput(getToolPrompt(toolName));
       },
     })) ?? [];
-  }, [agent.enabledTools, append]);
-  
+  }, [agent.enabledTools, setInput]);
+
+  // v6: Submit with thread context
+  const submit = useCallback((e?: React.FormEvent) => {
+    handleSubmit(e, {
+      // v6: Attach files or context to message
+      experimental_attachments: undefined,
+    });
+  }, [handleSubmit]);
+
   return {
+    // Message state
     messages,
     input,
-    handleInputChange,
-    handleSubmit: submitMessage,
-    isLoading,
-    error,
-    reload,
-    stop,
-    append,
-    setMessages,
+    setInput,
+    handleSubmit: submit,
     
-    // Agent-specific state
-    agent,
-    toolCalls,
+    // v6: Rich agent state
+    isRunning,
+    isPending,
     thinking,
-    quickActions,
+    toolInvocations,
+    currentStep,
+    totalSteps,
     
-    // Computed state
+    // v6: Streaming state
+    streamingContent,
+    streamingToolOutput,
+    
+    // Controls
+    stop,
+    retry,
+    reset,
+    
+    // v6: Thread management
+    thread,
+    switchThread,
+    
+    // Error handling
+    error,
+    
+    // Helpers
+    quickActions,
+    agent,
+    
+    // Computed
     isThinking: thinking !== null,
-    hasActiveToolCalls: toolCalls.some((tc) => tc.status === "running"),
+    hasActiveTools: activeTools.length > 0,
   };
+}
+
+// Helper functions
+function getToolLabel(toolName: string): string {
+  const labels: Record<string, string> = {
+    getProjectStatus: "Check Status",
+    createDocument: "Create Document",
+    searchKnowledge: "Search Knowledge",
+    analyzeTranscript: "Analyze Transcript",
+    delegateToResearch: "Ask Research Agent",
+    delegateToPm: "Ask PM Agent",
+  };
+  return labels[toolName] ?? toolName;
+}
+
+function getToolDescription(toolName: string): string {
+  const descriptions: Record<string, string> = {
+    getProjectStatus: "Get current project status and metrics",
+    createDocument: "Create or update a project document",
+    searchKnowledge: "Search the knowledge base",
+    analyzeTranscript: "Extract insights from a transcript",
+  };
+  return descriptions[toolName] ?? "";
+}
+
+function getToolPrompt(toolName: string): string {
+  const prompts: Record<string, string> = {
+    getProjectStatus: "What's the current status?",
+    searchKnowledge: "Search the knowledge base for ",
+    analyzeTranscript: "Analyze this transcript: ",
+  };
+  return prompts[toolName] ?? "";
 }
 ```
 
-### Agent Chat Component
+### v6 Thread Management
 
-Full A2UI-pattern chat component:
+AI SDK v6 has built-in conversation thread support:
+
+```typescript
+// hooks/useAgentThreads.ts
+import { useAgentThreads } from "ai/react";
+
+export function useWorkspaceThreads(workspaceId: string, agentId: string) {
+  const {
+    threads,          // List of conversation threads
+    activeThread,     // Currently selected thread
+    createThread,     // Create new thread
+    deleteThread,     // Delete a thread
+    switchThread,     // Switch active thread
+    isLoading,
+  } = useAgentThreads({
+    api: "/api/threads",
+    body: { workspaceId, agentId },
+  });
+
+  return {
+    threads,
+    activeThread,
+    createThread,
+    deleteThread,
+    switchThread,
+    isLoading,
+  };
+}
+```
+```
+
+### Agent Chat Component with v6
+
+Full A2UI-pattern chat component using AI SDK v6:
 
 ```tsx
 // components/agents/AgentChat.tsx
@@ -769,6 +1036,7 @@ import { AgentActionCard } from "./AgentActionCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import { 
   Send, 
   Loader2, 
@@ -776,7 +1044,8 @@ import {
   Sparkles,
   Bot,
   User,
-  ChevronDown,
+  RotateCcw,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Agent } from "@/lib/db/schema";
@@ -786,28 +1055,55 @@ interface AgentChatProps {
   agent: Agent;
   workspaceId: string;
   projectId?: string;
+  threadId?: string;
   className?: string;
 }
 
-export function AgentChat({ agent, workspaceId, projectId, className }: AgentChatProps) {
+export function AgentChat({ 
+  agent, 
+  workspaceId, 
+  projectId, 
+  threadId,
+  className 
+}: AgentChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   
+  // v6: Use the new useAgent-powered hook
   const {
     messages,
     input,
-    handleInputChange,
+    setInput,
     handleSubmit,
-    isLoading,
-    stop,
+    
+    // v6: Rich agent state
+    isRunning,
     thinking,
-    toolCalls,
+    toolInvocations,
+    currentStep,
+    totalSteps,
+    
+    // v6: Streaming state
+    streamingContent,
+    streamingToolOutput,
+    
+    // v6: Controls
+    stop,
+    retry,
+    reset,
+    
+    // v6: Thread management
+    thread,
+    
+    error,
     quickActions,
     isThinking,
+    hasActiveTools,
   } = useAgentChat({
     agent,
     workspaceId,
     projectId,
+    threadId,
   });
   
   // Auto-scroll to bottom
@@ -815,7 +1111,7 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, thinking]);
+  }, [messages, thinking, streamingContent]);
   
   // Focus input on mount
   useEffect(() => {
@@ -831,23 +1127,48 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
   
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      {/* Agent header */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
-        <AgentPresenceBadge 
-          agent={{
-            avatar: agent.avatar ?? undefined,
-            name: agent.name,
-            role: agent.role,
-            statusIndicator: isThinking ? "thinking" : isLoading ? "acting" : "idle",
-            currentTask: thinking?.currentStep,
-          }}
-        />
+      {/* Agent header with v6 status */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <AgentPresenceBadge 
+            agent={{
+              avatar: agent.avatar ?? undefined,
+              name: agent.name,
+              role: agent.role,
+              statusIndicator: isRunning 
+                ? hasActiveTools ? "acting" : "thinking" 
+                : "idle",
+              currentTask: thinking?.currentStep,
+            }}
+          />
+          
+          <div className="flex items-center gap-2">
+            {/* v6: Thread indicator */}
+            {thread && (
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                <History className="w-3 h-3 mr-1" />
+                {thread.title ?? `Thread ${thread.id.slice(0, 8)}`}
+              </Button>
+            )}
+            
+            {isRunning && (
+              <Button variant="ghost" size="sm" onClick={stop}>
+                <Square className="w-4 h-4 mr-1" />
+                Stop
+              </Button>
+            )}
+          </div>
+        </div>
         
-        {isLoading && (
-          <Button variant="ghost" size="sm" onClick={stop}>
-            <Square className="w-4 h-4 mr-1" />
-            Stop
-          </Button>
+        {/* v6: Step progress indicator */}
+        {isRunning && totalSteps > 0 && (
+          <div className="mt-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+              <span>Step {currentStep} of {totalSteps}</span>
+              <span>{Math.round((currentStep / totalSteps) * 100)}%</span>
+            </div>
+            <Progress value={(currentStep / totalSteps) * 100} className="h-1" />
+          </div>
         )}
       </div>
       
@@ -855,10 +1176,14 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
       <ScrollArea className="flex-1" ref={scrollRef}>
         <div className="p-4 space-y-4">
           {/* Welcome message if no messages */}
-          {messages.length === 0 && (
+          {messages.length === 0 && !isRunning && (
             <div className="text-center py-8">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 mx-auto mb-4 flex items-center justify-center">
-                <Bot className="w-8 h-8 text-purple-500" />
+                {agent.avatar ? (
+                  <img src={agent.avatar} alt="" className="w-10 h-10 rounded-full" />
+                ) : (
+                  <Bot className="w-8 h-8 text-purple-500" />
+                )}
               </div>
               <h3 className="font-semibold text-lg">{agent.name}</h3>
               <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
@@ -924,7 +1249,7 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
                   <div className={cn(
                     "inline-block p-3 rounded-xl",
                     message.role === "user"
-                      ? "bg-purple-500/10 text-right"
+                      ? "bg-purple-500/10"
                       : "bg-muted/50"
                   )}>
                     <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -932,10 +1257,10 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
                     </div>
                   </div>
                   
-                  {/* Tool call attachments for assistant messages */}
+                  {/* v6: Tool invocations with streaming output */}
                   {message.role === "assistant" && message.toolInvocations && (
                     <div className="mt-2 space-y-2">
-                      {message.toolInvocations.map((invocation) => (
+                      {message.toolInvocations.map((invocation: any) => (
                         <AgentActionCard
                           key={invocation.toolCallId}
                           action={{
@@ -951,9 +1276,17 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
                             title: invocation.toolName,
                             description: `Called ${invocation.toolName}`,
                             toolName: invocation.toolName,
-                            toolInput: invocation.args as Record<string, unknown>,
+                            toolInput: invocation.args,
                             toolOutput: invocation.result,
-                            status: invocation.result ? "complete" : "running",
+                            // v6: Streaming tool output
+                            streamingOutput: streamingToolOutput?.toolId === invocation.toolCallId
+                              ? streamingToolOutput.output
+                              : undefined,
+                            status: invocation.result 
+                              ? "complete" 
+                              : streamingToolOutput?.toolId === invocation.toolCallId
+                                ? "running"
+                                : "pending",
                             canUndo: false,
                             canRetry: false,
                           }}
@@ -966,8 +1299,29 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
             ))}
           </AnimatePresence>
           
-          {/* Thinking indicator */}
-          {thinking && (
+          {/* v6: Streaming content indicator */}
+          {streamingContent && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex gap-3"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500/20 to-purple-500/20 flex items-center justify-center shrink-0">
+                <Bot className="w-4 h-4 text-teal-400" />
+              </div>
+              <div className="flex-1">
+                <div className="inline-block p-3 rounded-xl bg-muted/50">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                    <span className="inline-block w-2 h-4 bg-purple-500 animate-pulse ml-1" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* v6: Enhanced thinking indicator with active tools */}
+          {thinking && !streamingContent && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -980,20 +1334,30 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
               <div className="flex-1">
                 <AgentThinkingPanel 
                   thinking={{
-                    stage: "analyzing" as const,
+                    stage: thinking.stage as "planning" | "researching" | "analyzing" | "synthesizing" | "verifying",
                     currentStep: thinking.currentStep,
-                    stepsCompleted: toolCalls.filter(tc => tc.status === "complete").length,
-                    totalSteps: Math.max(1, toolCalls.length),
-                    reasoning: thinking.reasoning,
-                    toolsUsed: toolCalls.map(tc => ({
-                      name: tc.name,
-                      status: tc.status,
-                      input: tc.args,
-                      output: tc.result,
-                    })),
+                    stepsCompleted: currentStep,
+                    totalSteps: Math.max(1, totalSteps),
+                    toolsUsed: thinking.activeTools ?? [],
                   }}
+                  expanded={true}
                 />
               </div>
+            </motion.div>
+          )}
+          
+          {/* v6: Error with retry option */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 text-red-500"
+            >
+              <span className="text-sm">{error.message}</span>
+              <Button variant="ghost" size="sm" onClick={retry}>
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Retry
+              </Button>
             </motion.div>
           )}
         </div>
@@ -1005,14 +1369,15 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
           <Textarea
             ref={inputRef}
             value={input}
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`Ask ${agent.name}...`}
             className="min-h-[44px] max-h-[200px] resize-none"
             rows={1}
+            disabled={isRunning}
           />
-          <Button type="submit" disabled={!input.trim() || isLoading}>
-            {isLoading ? (
+          <Button type="submit" disabled={!input.trim() || isRunning}>
+            {isRunning ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Send className="w-4 h-4" />
@@ -1030,7 +1395,7 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
                 size="sm"
                 onClick={action.execute}
                 className="text-xs shrink-0"
-                disabled={isLoading}
+                disabled={isRunning}
               >
                 {action.label}
               </Button>
@@ -1043,59 +1408,208 @@ export function AgentChat({ agent, workspaceId, projectId, className }: AgentCha
 }
 ```
 
-### Multi-Agent Streaming
+### v6 Multi-Agent Streaming
 
-For multi-agent workflows with streaming:
+AI SDK v6 provides native multi-agent support with streaming:
 
 ```typescript
 // app/api/agents/team/route.ts
-import { streamText, convertToCoreMessages } from "ai";
-import { getModel } from "@/lib/ai/providers";
+import { agent, tool } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
 
 export async function POST(req: Request) {
   const { messages, teamId, workspaceId, task } = await req.json();
   
   // Get team configuration
   const team = await getTeam(teamId);
-  const orchestrator = team.agents.find(a => a.id === team.orchestratorAgentId);
+  const specialists = team.agents.filter(a => a.id !== team.orchestratorAgentId);
   
-  // Create orchestrator tools that can delegate to team members
-  const delegationTools = Object.fromEntries(
-    team.agents
-      .filter(a => a.id !== orchestrator?.id)
-      .map(agent => [
-        `delegateTo${agent.name.replace(/\s/g, '')}`,
+  // v6: Create sub-agents for team members
+  const subAgents = Object.fromEntries(
+    specialists.map(specialist => [
+      specialist.id,
+      agent({
+        model: anthropic(specialist.model ?? "claude-sonnet-4-20250514"),
+        system: specialist.systemPromptTemplate,
+        tools: getToolsForAgent(specialist),
+        context: { workspaceId, agentId: specialist.id },
+      }),
+    ])
+  );
+  
+  // v6: Create orchestrator with delegation tools
+  const orchestratorAgent = agent({
+    model: anthropic("claude-sonnet-4-20250514"),
+    system: `You are an orchestrator coordinating a team of specialists.
+    
+Available team members:
+${specialists.map(s => `- ${s.name} (${s.role}): ${s.description}`).join('\n')}
+
+Analyze user requests and delegate to appropriate specialists.
+Synthesize results into coherent responses.`,
+    
+    tools: Object.fromEntries(
+      specialists.map(specialist => [
+        `delegateTo${specialist.name.replace(/\s/g, '')}`,
         tool({
-          description: `Delegate a task to ${agent.name} (${agent.role}). ${agent.description}`,
+          description: `Delegate to ${specialist.name} (${specialist.role})`,
           parameters: z.object({
-            task: z.string().describe("The task to delegate"),
-            context: z.string().optional().describe("Additional context"),
+            task: z.string(),
+            context: z.string().optional(),
           }),
-          execute: async ({ task, context }) => {
-            // Execute the agent and return result
-            const result = await executeAgent(agent, task, context);
-            return result;
+          // v6: Streaming delegation with sub-agent execution
+          execute: async function* ({ task, context }) {
+            yield { status: `Delegating to ${specialist.name}...` };
+            
+            const subAgent = subAgents[specialist.id];
+            const result = await subAgent.run({
+              messages: [{ 
+                role: "user", 
+                content: `${task}${context ? `\n\nContext: ${context}` : ""}` 
+              }],
+            });
+            
+            // v6: Stream sub-agent results
+            for await (const chunk of result.stream) {
+              yield { 
+                status: `${specialist.name} responding...`,
+                chunk,
+              };
+            }
+            
+            return {
+              agent: specialist.name,
+              result: result.text,
+            };
           },
         }),
       ])
-  );
-  
-  // Orchestrator decides how to handle the task
-  const result = streamText({
-    model: getModel(orchestrator!.provider, orchestrator!.model),
-    system: orchestrator!.systemPromptTemplate,
-    messages: convertToCoreMessages([
-      ...messages,
-      {
-        role: "user",
-        content: `Task: ${task}\n\nYou have a team of agents available. Decide how to handle this task - you can do it yourself or delegate to team members.`,
-      },
-    ]),
-    tools: delegationTools,
-    maxSteps: 10, // Allow multiple delegation rounds
+    ),
+    
+    maxSteps: 20, // Higher for multi-agent coordination
+    
+    // v6: Track delegation chain
+    onToolCall: ({ tool, args }) => {
+      console.log(`[Orchestrator] Delegating: ${tool}`, args);
+    },
   });
   
-  return result.toDataStreamResponse();
+  // v6: Run orchestrator with team context
+  const result = await orchestratorAgent.run({
+    messages: [
+      ...messages,
+      { role: "user", content: task },
+    ],
+  });
+  
+  return result.toAgentStream();
+}
+```
+
+### v6 Parallel Agent Execution
+
+For tasks requiring multiple agents simultaneously:
+
+```typescript
+// lib/ai/agents/parallel-execution.ts
+import { agent } from "ai";
+
+export async function executeAgentsInParallel(
+  agents: Agent[],
+  task: string,
+  context: Record<string, unknown>
+) {
+  // v6: Create agent instances
+  const agentInstances = agents.map(a => createAgentInstance(a, context));
+  
+  // v6: Execute all agents in parallel
+  const results = await Promise.all(
+    agentInstances.map(async (agentInstance, i) => {
+      const result = await agentInstance.run({
+        messages: [{ role: "user", content: task }],
+      });
+      
+      return {
+        agentId: agents[i].id,
+        agentName: agents[i].name,
+        response: result.text,
+        toolCalls: result.toolCalls,
+        tokensUsed: result.usage,
+      };
+    })
+  );
+  
+  return results;
+}
+
+// v6: Consensus voting with parallel agents
+export async function executeWithConsensus(
+  agents: Agent[],
+  task: string,
+  options: { 
+    consensusMode: "majority" | "unanimous" | "weighted";
+    weights?: Record<string, number>;
+  }
+) {
+  const results = await executeAgentsInParallel(agents, task, {});
+  
+  // Aggregate results based on consensus mode
+  switch (options.consensusMode) {
+    case "majority":
+      return getMajorityResult(results);
+    case "unanimous":
+      return getUnanimousResult(results);
+    case "weighted":
+      return getWeightedResult(results, options.weights ?? {});
+  }
+}
+```
+
+### v6 Agent Middleware
+
+Intercept and modify agent behavior:
+
+```typescript
+// lib/ai/middleware/logging-middleware.ts
+import { defineMiddleware } from "ai";
+
+// v6: Middleware for agent observability
+export const loggingMiddleware = defineMiddleware({
+  name: "logging",
+  
+  // Intercept before agent runs
+  beforeRun: async ({ messages, context }) => {
+    console.log(`[Agent] Starting run with ${messages.length} messages`);
+    return { messages, context };
+  },
+  
+  // Intercept tool calls
+  beforeToolCall: async ({ tool, args, context }) => {
+    console.log(`[Agent] Tool call: ${tool}`, args);
+    await logToolCall(context.agentId, tool, args);
+    return { tool, args };
+  },
+  
+  // Intercept after tool execution
+  afterToolCall: async ({ tool, args, result, duration }) => {
+    console.log(`[Agent] Tool result (${duration}ms):`, result);
+    return result;
+  },
+  
+  // Intercept after run completes
+  afterRun: async ({ result, duration, tokensUsed }) => {
+    console.log(`[Agent] Run complete: ${duration}ms, ${tokensUsed} tokens`);
+    await logAgentRun(result, duration, tokensUsed);
+    return result;
+  },
+});
+
+// v6: Apply middleware to agents
+export function createAgentWithLogging(config: AgentConfig) {
+  return agent({
+    ...config,
+    middleware: [loggingMiddleware],
+  });
 }
 ```
 
@@ -1868,53 +2382,59 @@ CREATE TABLE agent_teams (
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 1: AI SDK v6 Foundation (Week 1-2)
 
-1. Install Vercel AI SDK: `npm install ai @ai-sdk/anthropic @ai-sdk/openai`
-2. Create provider abstraction layer
-3. Migrate `/api/chat` to streaming with `streamText`
-4. Update `ChatSidebar` to use `useChat` hook
-5. Add basic tool support
+1. Install AI SDK v6: `npm install ai@6 @ai-sdk/anthropic @ai-sdk/openai @ai-sdk/google`
+2. Create provider abstraction layer with v6 patterns
+3. Create first `agent()` definition (PM Agent)
+4. Implement `/api/chat` with `toAgentStream()`
+5. Create `useAgentChat` hook wrapping v6 `useAgent`
+6. Add basic tool definitions with streaming
 
-### Phase 2: Agent Entity (Week 3-4)
+### Phase 2: Agent Entity & Database (Week 3-4)
 
 1. Create agents schema and migrations
-2. Build Agent CRUD API
-3. Create `AgentBuilderDialog` UI
+2. Build Agent CRUD API (`/api/agents`)
+3. Create `AgentBuilderDialog` with 4-step wizard
 4. Create `AgentCard` components
-5. Add agent templates
+5. Add agent templates (Research, PM, Prototype, Reviewer)
+6. Implement agent enable/disable toggle
 
 ### Phase 3: A2UI Components (Week 5-6)
 
-1. Create `AgentPresenceBadge`
-2. Create `AgentThinkingPanel`
-3. Create `AgentActionCard`
-4. Create full `AgentChat` component
-5. Add streaming indicators
+1. Create `AgentPresenceBadge` with status indicators
+2. Create `AgentThinkingPanel` with v6 step tracking
+3. Create `AgentActionCard` with streaming tool output
+4. Create full `AgentChat` component with v6 integration
+5. Add progress indicators for multi-step execution
+6. Implement error handling with retry support
 
-### Phase 4: Conversations & Memory (Week 7-8)
+### Phase 4: Threads & Memory (Week 7-8)
 
-1. Create conversation/message schema
-2. Build conversation persistence
-3. Add conversation history UI
-4. Implement semantic memory with pgvector
-5. Add memory management UI
+1. Create `agent_conversations` and `agent_messages` schema
+2. Implement v6 thread management API
+3. Create `useWorkspaceThreads` hook
+4. Add conversation history sidebar
+5. Implement semantic memory with pgvector
+6. Create `AgentMemoryPanel` UI
 
-### Phase 5: Multi-Agent (Week 9-10)
+### Phase 5: Multi-Agent Orchestration (Week 9-10)
 
-1. Create team schema
-2. Build orchestration API
-3. Implement delegation tools
-4. Create `AgentTeamPanel` UI
-5. Add team configuration
+1. Create team schema (`agent_teams`, `agent_team_members`)
+2. Build `createOrchestratorAgent` with delegation tools
+3. Implement parallel agent execution
+4. Create `AgentTeamPanel` UI showing agent collaboration
+5. Add consensus/voting mechanisms
+6. Implement v6 middleware for logging/observability
 
-### Phase 6: Polish (Week 11-12)
+### Phase 6: Polish & Advanced Features (Week 11-12)
 
-1. `FloatingAgentWidget`
-2. Full-screen chat view
-3. Agent marketplace/templates
-4. Performance optimization
-5. Documentation
+1. `FloatingAgentWidget` for always-available access
+2. Full-screen chat view with context panels
+3. Agent marketplace with templates
+4. Performance optimization (caching, connection pooling)
+5. Comprehensive documentation
+6. End-to-end testing for agent workflows
 
 ---
 
@@ -1968,9 +2488,28 @@ orchestrator/
 This specification outlines a complete conversion from single-agent to multi-agent including:
 
 - **Google A2UI patterns**: Agent presence, transparency, control, collaboration
-- **Vercel AI SDK v5**: Streaming, multi-provider, tool execution
+- **Vercel AI SDK v6**: 
+  - `agent()` function for declarative agent definition
+  - `useAgent` hook for React integration
+  - `toAgentStream()` for streaming responses
+  - Streaming tool execution with generators
+  - Built-in thread/conversation management
+  - Multi-agent orchestration with delegation
+  - Middleware support for observability
 - **Full UI components**: Agent builder, chat, teams, floating widget
 - **Database schema**: Agents, conversations, memories, teams
 - **12-week implementation plan**
 
-The result is a first-class multi-agent experience where users can create, configure, and collaborate with specialized AI agents that work together as a team.
+### v6 Key Benefits Over v5
+
+| Feature | v5 | v6 |
+|---------|----|----|
+| Agent Definition | Manual with `streamText` | Declarative `agent()` |
+| React Hooks | `useChat` (chat-focused) | `useAgent` (agent-focused) |
+| Tool Streaming | Post-execution only | Generator-based live streaming |
+| Threads | Manual implementation | Built-in thread management |
+| Multi-Agent | Custom orchestration | Native delegation support |
+| Observability | Custom callbacks | Middleware pattern |
+| Context Sharing | Manual prop drilling | Automatic context injection |
+
+The result is a first-class multi-agent experience where users can create, configure, and collaborate with specialized AI agents that work together as a team, powered by Vercel AI SDK v6's native agent primitives.
