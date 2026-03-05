@@ -1,3 +1,943 @@
 {
-  "signals": []
+  "$schema": "pm-workspace-signals-index-v1",
+  "last_updated": "2026-02-24T19:55:00.000Z",
+  "total": 37,
+  "signals": [
+    {
+      "id": "sig-2026-02-23-agent-first-vision-tyler-team",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "agent-first-chief-of-staff-experience-vision",
+      "captured_at": "2026-02-23T00:00:00.000000",
+      "participants": [
+        "Tyler Sahagun",
+        "Team"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-02-23-agent-first-vision-tyler-team.md",
+      "problems_identified": 2,
+      "feature_requests": 8,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "chief-of-staff-experience",
+        "agent-command-center"
+      ],
+      "key_themes": [
+        "agent-first-interaction",
+        "chief-of-staff-as-primary-agent",
+        "configurable-chief-of-staff",
+        "sub-agent-architecture",
+        "meeting-summary-deprioritized",
+        "personal-os-vision",
+        "chat-based-configuration",
+        "proactive-surface-at-right-time"
+      ]
+    },
+    {
+      "id": "sig-2026-02-12-crm-platform-evolution-competitive-research",
+      "type": "research",
+      "source": "competitive-analysis",
+      "topic": "crm-platform-evolution-strategy",
+      "captured_at": "2026-02-12T18:00:00.000000",
+      "participants": [
+        "Tyler Sahagun"
+      ],
+      "status": "processed",
+      "path": "signals/research/2026-02-12-crm-platform-evolution-competitive-research.md",
+      "problems_identified": 4,
+      "feature_requests": 7,
+      "hypothesis_candidates": 0,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "structured-hubspot-agent-node",
+        "deprecate-legacy-hubspot",
+        "client-usage-metrics",
+        "composio-agent-framework"
+      ],
+      "key_themes": [
+        "crm-replacement-competitors",
+        "agent-automation-platforms",
+        "trojan-horse-platform-strategy",
+        "signal-intelligence-layer",
+        "workflow-builder-ux",
+        "notetaker-perception-fix",
+        "value-narrative"
+      ]
+    },
+    {
+      "id": "sig-2026-02-09-global-chat-launch-planning",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "global-chat-launch-planning",
+      "captured_at": "2026-02-09T19:00:00.000000",
+      "participants": [
+        "Tyler Sahagun",
+        "Skylar Sanford",
+        "Dylan Shallow"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-02-09-global-chat-launch-planning.md",
+      "problems_identified": 8,
+      "feature_requests": 10,
+      "hypothesis_candidates": 1,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "global-chat",
+        "settings-redesign"
+      ],
+      "key_themes": [
+        "global-chat-launch",
+        "top-bar-navigation",
+        "chat-ui-redesign",
+        "product-tour-onboarding",
+        "chat-discoverability",
+        "automation-thread-management",
+        "forward-slash-menu",
+        "pre-launch-vs-fast-follow"
+      ]
+    },
+    {
+      "id": "sig-2026-02-09-rob-feedback-agent-command-center-v9",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "rob-feedback-agent-command-center-v9-prototype",
+      "captured_at": "2026-02-09T16:46:00.000000",
+      "participants": [
+        "Robert Henderson",
+        "Tyler Sahagun"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-02-09-rob-feedback-agent-command-center-v9.md",
+      "problems_identified": 6,
+      "feature_requests": 10,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "agent-command-center"
+      ],
+      "key_themes": [
+        "action-over-insight",
+        "proactive-reactive-modes",
+        "time-aware-dynamic-ux",
+        "system-learning",
+        "chief-of-staff",
+        "rapid-fire-clearing",
+        "forecast-first",
+        "value-attribution",
+        "contextual-feature-discovery",
+        "goal-drill-down"
+      ]
+    },
+    {
+      "id": "sig-2026-02-04-council-of-product",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "council-of-product",
+      "captured_at": "2026-02-04T10:35:00.000000",
+      "participants": [
+        "Bryan Lund",
+        "Sam Ho",
+        "Woody Klemetson",
+        "Tony Mickelsen",
+        "Skylar Sanford",
+        "Robert Henderson",
+        "Tyler Sahagun"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-02-04-council-of-product.md",
+      "problems_identified": 7,
+      "feature_requests": 6,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "crm-exp-ete",
+        "hubspot-agent-config-ui",
+        "global-chat",
+        "notification-engine",
+        "agent-command-center",
+        "chief-of-staff-experience"
+      ],
+      "key_themes": [
+        "hubspot-crm",
+        "workflow-builder",
+        "global-chat",
+        "agent-transparency",
+        "product-storytelling",
+        "training-content",
+        "posthog-analytics",
+        "notifications"
+      ]
+    },
+    {
+      "id": "sig-2026-02-03-alpha-beta-feature-flags",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "alpha-beta-feature-flags",
+      "captured_at": "2026-02-03T09:30:00.000000",
+      "participants": [
+        "Unknown Speaker 1",
+        "Unknown Speaker 2"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-02-03-alpha-beta-feature-flags.md",
+      "problems_identified": 5,
+      "feature_requests": 6,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "release-lifecycle-process",
+        "settings-page-redesign",
+        "settings-redesign",
+        "feature-availability-audit",
+        "settings-page-early-access-revamp"
+      ],
+      "key_themes": [
+        "feature-flags",
+        "alpha-beta-ga",
+        "visibility-control",
+        "documentation",
+        "integrations-discovery",
+        "settings-ia"
+      ]
+    },
+    {
+      "id": "sig-2026-02-01-slack-other-channels-since-2026-01-28",
+      "type": "slack",
+      "source": "slack-ingest",
+      "topic": "since-2026-01-28-other-channels",
+      "captured_at": "2026-02-01T23:45:00.000000",
+      "status": "processed",
+      "path": "signals/slack/2026-02-01-slack-other-channels-since-2026-01-28.md",
+      "channels_scanned": [
+        "#product-forum",
+        "#design-ux",
+        "#team-dev",
+        "#team-dev-code-review",
+        "#epd-all",
+        "#general",
+        "#growth",
+        "#revenue",
+        "#team-partners"
+      ],
+      "problems_identified": 6,
+      "feature_requests": 2,
+      "strategic_alignment": "medium",
+      "key_themes": [
+        "workflow-builder",
+        "onboarding-reliability",
+        "tool-selection",
+        "integrations",
+        "revenue-events",
+        "growth-signals"
+      ]
+    },
+    {
+      "id": "sig-2026-02-01-github-sync",
+      "type": "release",
+      "source": "github",
+      "topic": "github-sync-2026-01-23-2026-02-01",
+      "captured_at": "2026-02-01T23:10:00.000000",
+      "status": "processed",
+      "path": "signals/releases/2026-02-01-github-sync.md",
+      "prs_merged": 29,
+      "contributors": 8,
+      "strategic_alignment": "medium",
+      "related_initiatives": [],
+      "key_themes": [
+        "onboarding-polish",
+        "chat-v2",
+        "telemetry",
+        "repo-maintenance",
+        "integrations"
+      ]
+    },
+    {
+      "id": "sig-2026-02-01-linear-recent-issues",
+      "type": "issue",
+      "source": "linear",
+      "topic": "recent-issues-since-2026-01-23",
+      "captured_at": "2026-02-01T23:10:00.000000",
+      "status": "processed",
+      "path": "signals/issues/2026-02-01-linear-recent-issues.md",
+      "issues_analyzed": 50,
+      "problems_identified": 5,
+      "strategic_alignment": "medium",
+      "related_initiatives": [],
+      "key_themes": [
+        "workflow-reliability",
+        "onboarding",
+        "chat-tooling",
+        "recording-reliability",
+        "telemetry"
+      ]
+    },
+    {
+      "id": "sig-2026-02-01-slack-since-2026-01-28",
+      "type": "slack",
+      "source": "slack-ingest",
+      "topic": "since-2026-01-28",
+      "captured_at": "2026-02-01T23:10:00.000000",
+      "status": "processed",
+      "path": "signals/slack/2026-02-01-slack-since-2026-01-28.md",
+      "channels_scanned": [
+        "#product-updates",
+        "#product-issues",
+        "#product-requests",
+        "#customer-feedback",
+        "#customer-quotes",
+        "#churn-alert",
+        "#sales-closed-won",
+        "#team-sales",
+        "#expansion-opportunities"
+      ],
+      "problems_identified": 5,
+      "feature_requests": 2,
+      "strategic_alignment": "medium",
+      "key_themes": [
+        "permissions",
+        "churn-risk",
+        "bot-reliability",
+        "competitive-pressure",
+        "revenue-wins"
+      ]
+    },
+    {
+      "id": "sig-2026-01-30-weekly-development-progress-update",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "weekly-development-progress-update",
+      "captured_at": "2026-01-30T16:50:00.000000",
+      "participants": [
+        "Kaden Wilkinson"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-30-weekly-development-progress-update.md",
+      "problems_identified": 4,
+      "feature_requests": 4,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "composio-agent-framework",
+        "internal-search"
+      ],
+      "key_themes": [
+        "infra-reliability",
+        "deployment-stability",
+        "ci-velocity",
+        "database-latency",
+        "composio-rollout",
+        "human-in-loop",
+        "tool-selection"
+      ]
+    },
+    {
+      "id": "sig-2026-01-30-weekly-team-end-of-week-report",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "weekly-team-end-of-week-report",
+      "captured_at": "2026-01-30T16:19:00.000000",
+      "participants": [
+        "Bryan Lund",
+        "Matt Noxon",
+        "Jason Harmon",
+        "Palmer Turley"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-30-weekly-team-end-of-week-report.md",
+      "problems_identified": 4,
+      "feature_requests": 4,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "medium",
+      "related_initiatives": [
+        "user-onboarding",
+        "internal-search",
+        "composio-agent-framework"
+      ],
+      "key_themes": [
+        "latency",
+        "nx-migration",
+        "code-review-skill",
+        "onboarding-durability",
+        "automation",
+        "human-in-loop",
+        "artifact-chat"
+      ]
+    },
+    {
+      "id": "sig-2026-02-01-voice-memo-workflow-clarity-worries",
+      "type": "transcript",
+      "source": "voice-memo",
+      "topic": "workflow-clarity-roadmap-process",
+      "captured_at": "2026-02-01T20:15:00.000000",
+      "participants": [
+        "Tyler Sahagun"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-02-01-voice-memo-workflow-clarity-worries.md",
+      "problems_identified": 6,
+      "feature_requests": 3,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "medium",
+      "related_initiatives": [],
+      "key_themes": [
+        "roadmap-clarity",
+        "linear-process",
+        "documentation-gaps",
+        "capacity-fragmentation",
+        "context-switching",
+        "posthog-visibility",
+        "stakeholder-alignment"
+      ]
+    },
+    {
+      "id": "sig-2026-02-01-signal-synthesis-week-5",
+      "type": "synthesis",
+      "source": "ingest-all",
+      "topic": "week-5-signal-synthesis",
+      "captured_at": "2026-02-01T12:00:00.000000",
+      "status": "processed",
+      "path": "signals/transcripts/2026-02-01-signal-synthesis-week-5.md",
+      "signals_analyzed": 6,
+      "problems_identified": 15,
+      "feature_requests": 23,
+      "hypothesis_candidates": 12,
+      "context_candidates_approved": 6,
+      "strategic_alignment": "strong",
+      "key_themes": [
+        "chief-of-staff",
+        "revenue-operating-system",
+        "configuration-simplification",
+        "flagship-meeting-recap",
+        "alhf",
+        "buyer-readiness-model"
+      ],
+      "date_range": {
+        "start": "2026-01-26",
+        "end": "2026-02-01"
+      }
+    },
+    {
+      "id": "sig-2026-01-30-meeting-page-view-brainstorm",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "meeting-page-view-chief-of-staff-ux",
+      "captured_at": "2026-01-30T15:29:00.000000",
+      "participants": [
+        "Sam Ho",
+        "Adam Shumway",
+        "Skylar Sanford"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-30-meeting-page-view-brainstorm.md",
+      "problems_identified": 5,
+      "feature_requests": 10,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "chief-of-staff-experience",
+        "agent-command-center"
+      ],
+      "key_themes": [
+        "meeting-summary",
+        "chief-of-staff",
+        "action-items",
+        "prioritization",
+        "workflow-artifacts",
+        "global-chat",
+        "deal-context",
+        "daily-review",
+        "weekly-review",
+        "alhf"
+      ]
+    },
+    {
+      "id": "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "product-vision-roadmap-board-deck",
+      "captured_at": "2026-01-29T10:07:00.000000",
+      "participants": [
+        "Tyler Sahagun",
+        "Sam Ho",
+        "Skylar Sanford"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-29-product-conversation-sam-ho-skylar-sanford.md",
+      "problems_identified": 5,
+      "feature_requests": 7,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "chief-of-staff-experience",
+        "agent-command-center"
+      ],
+      "key_themes": [
+        "revenue-operating-system",
+        "agentic-learning",
+        "chief-of-staff",
+        "semi-autonomous-agents",
+        "ai-first-ux",
+        "cognitive-overload",
+        "slack-first-bridge"
+      ],
+      "context_candidates": [
+        {
+          "id": "ctx-2026-01-29-001",
+          "target_file": "pm-workspace-docs/company-context/product-vision.md",
+          "target_section": "Core Identity",
+          "update_type": "add_note",
+          "content": "Position AskElephant as the revenue operating system (cursor for GTM teams), not a point solution.",
+          "source_signal": "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+          "confidence": "high",
+          "status": "approved"
+        },
+        {
+          "id": "ctx-2026-01-29-002",
+          "target_file": "pm-workspace-docs/company-context/product-vision.md",
+          "target_section": "Product Principles",
+          "update_type": "add_item",
+          "content": "Agentic learning with human feedback (ALHF) is the compounding advantage: manager feedback scales to all agents.",
+          "source_signal": "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+          "confidence": "high",
+          "status": "approved"
+        },
+        {
+          "id": "ctx-2026-01-29-003",
+          "target_file": "pm-workspace-docs/company-context/strategic-guardrails.md",
+          "target_section": "Questions to Ask Before Prototyping",
+          "update_type": "add_item",
+          "content": "Are we reducing approval burden and cognitive load, or adding more?",
+          "source_signal": "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+          "confidence": "medium",
+          "status": "approved"
+        },
+        {
+          "id": "ctx-2026-01-29-004",
+          "target_file": "pm-workspace-docs/roadmap/roadmap.json",
+          "target_section": "Roadmap Context Updates",
+          "update_type": "add_note",
+          "content": "Board deck roadmap: Q1–Q2 2026 Standard Agents (Chief of Staff, Coaching, Admin, Churn Alert); Q3–Q4 2026 Seamless Integration (context‑aware unified interface); 2027 Platform Expansion (marketplace, enterprise controls).",
+          "source_signal": "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+          "confidence": "high",
+          "status": "approved"
+        },
+        {
+          "id": "ctx-2026-01-29-005",
+          "target_file": "pm-workspace-docs/company-context/integrations.md",
+          "target_section": "Data Foundation",
+          "update_type": "add_item",
+          "content": "Board deck highlights data foundation integrations: Gong, Notion, Google Docs, HubSpot, Slack, Salesforce.",
+          "source_signal": "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+          "confidence": "medium",
+          "status": "approved"
+        }
+      ]
+    },
+    {
+      "id": "sig-2026-01-29-product-vision-robert-henderson",
+      "type": "transcript",
+      "source": "meeting",
+      "topic": "product-vision-chief-of-staff-interface",
+      "captured_at": "2026-01-29T11:35:00.000000",
+      "participants": [
+        "Tyler Sahagun",
+        "Robert Henderson"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-29-product-vision-robert-henderson.md",
+      "problems_identified": 3,
+      "feature_requests": 6,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "chief-of-staff-experience",
+        "agent-command-center"
+      ],
+      "key_themes": [
+        "chief-of-staff",
+        "orchestration-layer",
+        "proactive-automation",
+        "approval-workflow",
+        "ai-first-ux",
+        "data-foundation",
+        "buyer-readiness-model"
+      ],
+      "context_candidates": [
+        {
+          "id": "ctx-2026-01-29-006",
+          "target_file": "pm-workspace-docs/company-context/product-vision.md",
+          "target_section": "Product Principles",
+          "update_type": "add_item",
+          "content": "The primary experience must be a proactive, approval-driven hub (done, needs approval, scheduled), not just a collection of tools.",
+          "source_signal": "sig-2026-01-29-product-vision-robert-henderson",
+          "confidence": "medium",
+          "status": "approved"
+        }
+      ]
+    },
+    {
+      "id": "sig-2026-01-28-tyler-sam-flagship-meeting-recap-ux",
+      "type": "transcript",
+      "source": "voice-memo",
+      "topic": "flagship-meeting-recap-ux",
+      "captured_at": "2026-01-28T10:00:00.000000",
+      "participants": [
+        "Tyler Sahagun",
+        "Sam"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-28-tyler-sam-flagship-meeting-recap-ux.md",
+      "problems_identified": 5,
+      "feature_requests": 6,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "global-chat",
+        "settings-redesign"
+      ],
+      "key_themes": [
+        "ai-first-ux",
+        "chat-configuration",
+        "meeting-recap",
+        "flagship-experience",
+        "zero-to-one"
+      ]
+    },
+    {
+      "id": "sig-2026-01-27-tyler-sam-prioritization-workflow",
+      "type": "transcript",
+      "source": "internal-1-1",
+      "topic": "prioritization-workflow-simplification",
+      "captured_at": "2026-01-27T17:05:00.000000",
+      "participants": [
+        "Tyler Sahagun",
+        "Sam Ho"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-27-tyler-sam-prioritization-workflow.md",
+      "problems_identified": 4,
+      "feature_requests": 7,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "key_themes": [
+        "prioritization",
+        "boulder-sizing",
+        "workflow-simplification",
+        "roi-driven-requests",
+        "flagship-experience"
+      ]
+    },
+    {
+      "id": "sig-2026-01-26-14day-slack-synthesis",
+      "type": "slack",
+      "source": "slack-ingest",
+      "topic": "14day-slack-synthesis",
+      "captured_at": "2026-01-26T18:00:00.000000",
+      "status": "processed",
+      "path": "signals/slack/2026-01-26-14day-slack-synthesis.md",
+      "channels_scanned": [
+        "#churn-alert",
+        "#product-requests",
+        "#product-issues",
+        "#customer-feedback",
+        "#sales-closed-won",
+        "#competitors",
+        "#team-csm",
+        "#customer-quotes",
+        "#revenue",
+        "#team-sales",
+        "#askelephant-internal-workflow-requests",
+        "#growth",
+        "#epd-all"
+      ],
+      "date_range": {
+        "start": "2026-01-12",
+        "end": "2026-01-26"
+      },
+      "churn_signals": 18,
+      "mrr_at_risk": 5928,
+      "feature_requests": 12,
+      "bug_reports": 8,
+      "competitor_mentions": 45,
+      "key_findings": [
+        "Gong competitive pressure #1 threat",
+        "42% churn from adoption failure",
+        "Automation differentiation resonating"
+      ]
+    },
+    {
+      "id": "sig-2026-01-26-linear-all-projects",
+      "type": "issue",
+      "source": "linear-mcp",
+      "topic": "linear-all-projects-signal-ingest",
+      "captured_at": "2026-01-26T17:00:00.000000",
+      "status": "processed",
+      "path": "signals/issues/2026-01-26-linear-all-projects.md",
+      "issues_analyzed": 250,
+      "signal_rich_issues": 108,
+      "status_breakdown": {
+        "done": 57,
+        "in_progress": 6,
+        "acceptance_review": 8,
+        "code_review": 1,
+        "todo": 12,
+        "triage": 17,
+        "backlog": 22,
+        "canceled": 2
+      },
+      "key_patterns": [
+        "Chat stability (9 issues)",
+        "Workflow reliability (8 issues)",
+        "Bot/Notetaker issues (7 issues)",
+        "Analytics gaps",
+        "Onboarding friction"
+      ]
+    },
+    {
+      "id": "sig-2026-01-26-linear-product-team-backlog",
+      "path": "signals/issues/2026-01-26-linear-product-team-backlog.md"
+    },
+    {
+      "id": "sig-2026-01-22-composio-figma-make-chat-interface-spec",
+      "path": "signals/documents/2026-01-22-composio-figma-make-chat-interface-spec.md"
+    },
+    {
+      "id": "sig-2026-01-22-internal-composio-agent-architecture",
+      "type": "transcript",
+      "source": "internal-design-discussion",
+      "topic": "composio-agent-framework-architecture",
+      "captured_at": "2026-01-22T00:00:00.000000",
+      "participants": [
+        "Tyler Sahagun",
+        "Matt Noxon"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-22-internal-composio-agent-architecture.md",
+      "problems_identified": 4,
+      "feature_requests": 7,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "composio-agent-framework",
+        "agent-command-center",
+        "chief-of-staff-experience"
+      ],
+      "key_themes": [
+        "composio-as-toolbox",
+        "skills-layer",
+        "sub-agent-delegation",
+        "memory-architecture",
+        "chat-based-agent-setup",
+        "trigger-integration-ordering-ux",
+        "progressive-skill-disclosure",
+        "workflow-vs-agent-spectrum"
+      ]
+    },
+    {
+      "id": "sig-2026-01-22-adam-composio-agent-feedback",
+      "type": "transcript",
+      "source": "internal-design-review",
+      "topic": "composio-agent-config-ux-options-abc",
+      "captured_at": "2026-01-22T00:00:00.000000",
+      "participants": [
+        "Tyler Sahagun",
+        "Adam Shumway"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-22-adam-composio-agent-feedback.md",
+      "problems_identified": 3,
+      "feature_requests": 5,
+      "hypothesis_candidates": 2,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "composio-agent-framework",
+        "agent-command-center",
+        "chief-of-staff-experience"
+      ],
+      "key_themes": [
+        "conversational-agent-setup",
+        "workspace-vs-user-auth",
+        "blank-prompt-field-friction",
+        "test-before-activate",
+        "option-c-generated-agent",
+        "chat-based-configuration",
+        "non-deterministic-output",
+        "smart-suggestions"
+      ]
+    },
+    {
+      "id": "sig-Zipcio_ AI as a Service",
+      "path": "signals/documents/Zipcio_ AI as a Service.md"
+    },
+    {
+      "id": "sig-2026-01-21-crispy-feedback",
+      "type": "transcript",
+      "source": "partner-feedback",
+      "topic": "crispy-hubspot-partner-rep-workspace-feedback",
+      "captured_at": "2026-01-21T00:00:00.000000",
+      "participants": [
+        "Crispy",
+        "Woody Klemetson",
+        "Brian",
+        "Palmer Turley",
+        "Tyler Sahagun",
+        "Sam Ho"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-21-crispy-feedback.md",
+      "problems_identified": 7,
+      "feature_requests": 6,
+      "hypothesis_candidates": 5,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "agent-command-center",
+        "structured-hubspot-agent-node",
+        "admin-onboarding"
+      ],
+      "key_themes": [
+        "reps-wont-leave-crm",
+        "hubspot-sidebar-request",
+        "workflow-builder-simplification",
+        "crm-config-prerequisite",
+        "hidden-auto-fill-fields",
+        "deal-intelligence",
+        "partner-methodology"
+      ]
+    },
+    {
+      "id": "sig-2026-01-21-maple-billing-feedback",
+      "path": "signals/transcripts/2026-01-21-maple-billing-feedback.md"
+    },
+    {
+      "id": "sig-2026-01-24-council-of-product",
+      "type": "transcript",
+      "source": "internal-product-meeting",
+      "topic": "council-of-product-rep-workspace-composio-global-chat",
+      "captured_at": "2026-01-24T00:00:00.000000",
+      "participants": [
+        "Woody Klemetson",
+        "Robert Henderson",
+        "Sam Ho",
+        "Skylar Sanford",
+        "Tyler Sahagun",
+        "Brian"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-24-council-of-product.md",
+      "problems_identified": 6,
+      "feature_requests": 5,
+      "hypothesis_candidates": 4,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "agent-command-center",
+        "composio-agent-framework",
+        "global-chat",
+        "release-lifecycle-process"
+      ],
+      "key_themes": [
+        "rep-workspace-priority-1",
+        "composio-not-customer-ready",
+        "global-chat-beta-feb-1",
+        "deal-context-composio-actions",
+        "viral-feature",
+        "revenue-funnel-alignment",
+        "ai-enablement-scope"
+      ]
+    },
+    {
+      "id": "sig-2026-01-26-council-of-product",
+      "type": "transcript",
+      "source": "internal-product-meeting",
+      "topic": "council-of-product-crm-onboarding-composio-privacy-chat",
+      "captured_at": "2026-01-26T00:00:00.000000",
+      "participants": [
+        "Woody Klemetson",
+        "Brian",
+        "Sam Ho",
+        "Tyler Sahagun",
+        "Robert Henderson",
+        "Tony",
+        "Kenzie"
+      ],
+      "status": "processed",
+      "path": "signals/transcripts/2026-01-26-council-of-product.md",
+      "problems_identified": 8,
+      "feature_requests": 5,
+      "hypothesis_candidates": 3,
+      "strategic_alignment": "strong",
+      "related_initiatives": [
+        "agent-command-center",
+        "composio-agent-framework",
+        "global-chat",
+        "admin-onboarding"
+      ],
+      "key_themes": [
+        "crm-onboarding-consultative-slow",
+        "composio-wrapper-risk",
+        "rep-workspace-pipeline-view",
+        "proactive-home-page",
+        "crm-agent-wizard-setup",
+        "time-to-value-undefined",
+        "privacy-determination-launch"
+      ]
+    },
+    {
+      "id": "sig-2026-01-21-crispy-product-chat",
+      "path": "signals/transcripts/2026-01-21-crispy-product-chat.md"
+    },
+    {
+      "id": "sig-2026-01-16-internal-crm-exp-ete-planning",
+      "path": "signals/transcripts/2026-01-16-internal-crm-exp-ete-planning.md"
+    },
+    {
+      "id": "sig-2026-01-26-hubspot-salesforce-update",
+      "path": "signals/transcripts/2026-01-26-hubspot-salesforce-update.md"
+    },
+    {
+      "id": "sig-2026-01-26-product-sync-roicx",
+      "path": "signals/transcripts/2026-01-26-product-sync-roicx.md"
+    },
+    {
+      "id": "sig-2026-01-21-crispy-product-feedback-session",
+      "path": "signals/transcripts/2026-01-21-crispy-product-feedback-session.md"
+    },
+    {
+      "id": "sig-2026-01-15-customer-call-acme-corp-1225d797",
+      "path": "signals/transcripts/2026-01-15-customer-call-acme-corp-1225d797.md"
+    },
+    {
+      "id": "slack-product-forum-2026-02-19",
+      "type": "slack",
+      "source": "#product-forum",
+      "topic": "General Product Feedback & Bugs",
+      "captured_at": "2026-02-19T18:00:00.000000",
+      "participants": [
+        "Jason Harmon",
+        "Ben",
+        "Tyler Sahagun",
+        "Skylar",
+        "Matt Bennett",
+        "Sam Ho",
+        "Kaden",
+        "James",
+        "Erika",
+        "Wyatt Cooper"
+      ],
+      "status": "pending_review",
+      "path": "signals/slack/2026-02-19-product-forum.md",
+      "problems_identified": 4,
+      "feature_requests": 14,
+      "hypothesis_candidates": 0,
+      "strategic_alignment": "strong",
+      "related_initiatives": [],
+      "key_themes": [
+        "Privacy Agent Over-Aggressive Tagging causing workflows not to run on innocuous calls",
+        "Admins impersonating users create workflows incorrectly attributed to the customer, polluting audit logs",
+        "Inactive seat login errors are generic 'Invalid code' causing support load",
+        "Composio tools firing unexpectedly and sending unauthorized emails externally",
+        "Pest Share premium use case mega-request list"
+      ]
+    }
+  ]
 }

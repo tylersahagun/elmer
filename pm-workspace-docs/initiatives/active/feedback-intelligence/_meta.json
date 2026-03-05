@@ -1,0 +1,64 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "feedback-intelligence",
+  "name": "Feedback Intelligence",
+  "hypothesis_id": "hyp-feedback-intelligence-unified-loop",
+  "phase": "define",
+  "sub_phase": "schema-and-automation-design",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "eng_lead": null,
+  "design_lead": null,
+  "feedback_method": "support-tickets",
+  "feedback_status": "in-progress",
+  "personas": ["csm", "sales-rep", "sales-leader", "revops"],
+  "pillar": "data-knowledge",
+  "strategic_initiative": "Workflow Builder / AI Assistant Tool + CRM Agent Upgrades",
+  "created_at": "2026-02-19T00:00:00.000Z",
+  "updated_at": "2026-02-19T00:00:00.000Z",
+  "phase_history": [
+    {
+      "phase": "define",
+      "entered": "2026-02-19T00:00:00.000Z",
+      "exited": null,
+      "notes": "Initiative created from Head of CS request to unify product feedback and product requests into one operating system."
+    }
+  ],
+  "blockers": [
+    "Notion schema migration not yet executed in production",
+    "Identity backfill quality depends on customer and contact source consistency"
+  ],
+  "next_action": "Approve and execute Notion migration spec, then implement signal-router queue contract extension and launch daily digest at 4:30 PM MT.",
+  "timeline": {
+    "started": "2026-02-19",
+    "target_launch": "2026-03-13"
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 1
+  },
+  "posthog": {
+    "dashboard_id": null,
+    "dashboard_url": null,
+    "key_insights": [],
+    "baseline_established": false
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": null,
+  "notion_project_url": null,
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": ["initiative:feedback-intelligence"],
+  "github_branch_prefix": "feat/feedback-intelligence",
+  "related_initiatives": [
+    "chief-of-staff-experience",
+    "structured-hubspot-agent-node",
+    "agent-command-center"
+  ],
+  "visibility": "internal"
+}

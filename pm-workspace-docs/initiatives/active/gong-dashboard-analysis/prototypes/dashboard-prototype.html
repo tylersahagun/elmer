@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AskElephant Dashboards — Interactive Prototype</title>
+<style>
+  :root {
+    --blue: #2563EB;
+    --blue-light: #DBEAFE;
+    --green: #10B981;
+    --green-light: #D1FAE5;
+    --amber: #F59E0B;
+    --amber-light: #FEF3C7;
+    --red: #EF4444;
+    --red-light: #FEE2E2;
+    --purple: #8B5CF6;
+    --purple-light: #EDE9FE;
+    --purple-bg: #F5F3FF;
+    --slate-50: #F8FAFC;
+    --slate-100: #F1F5F9;
+    --slate-200: #E2E8F0;
+    --slate-300: #CBD5E1;
+    --slate-400: #94A3B8;
+    --slate-500: #64748B;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1E293B;
+    --slate-900: #0F172A;
+    --card-radius: 16px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--slate-50);
+    color: var(--slate-800);
+    line-height: 1.5;
+  }
+
+  /* Header */
+  .header {
+    background: white;
+    border-bottom: 1px solid var(--slate-200);
+    padding: 16px 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--slate-900);
+  }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+  }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--slate-500);
+  }
+  .freshness {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .freshness-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+  }
+
+  /* Role Tabs */
+  .role-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--slate-100);
+    border-radius: 10px;
+    padding: 3px;
+    width: fit-content;
+  }
+  .role-tab {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--slate-600);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: all 0.2s;
+  }
+  .role-tab:hover {
+    color: var(--slate-800);
+    background: rgba(255,255,255,0.5);
+  }
+  .role-tab.active {
+    background: white;
+    color: var(--slate-900);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+  }
+
+  /* Filter Bar */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 32px;
+    background: white;
+    border-bottom: 1px solid var(--slate-200);
+  }
+  .filters-left {
+    display: flex;
+    gap: 8px;
+  }
+  .filter-pill {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--slate-200);
+    background: white;
+    color: var(--slate-600);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-pill:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+  .filter-pill.active {
+    background: var(--blue-light);
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+
+  /* Main Content */
+  .main {
+    padding: 24px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Grid System */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .col-3 { grid-column: span 3; }
+  .col-4 { grid-column: span 4; }
+  .col-6 { grid-column: span 6; }
+  .col-8 { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+  .row-2 { grid-row: span 2; }
+
+  /* Cards */
+  .card {
+    background: white;
+    border-radius: var(--card-radius);
+    border: 1px solid var(--slate-200);
+    padding: 20px;
+    transition: box-shadow 0.2s;
+  }
+  .card:hover {
+    box-shadow: var(--shadow-md);
+  }
+  .card-purple {
+    background: var(--purple-bg);
+    border-color: rgba(139, 92, 246, 0.2);
+  }
+  .card-purple .card-label {
+    color: var(--purple);
+  }
+  .card-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--slate-500);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--slate-900);
+    line-height: 1.1;
+  }
+  .card-value.medium {
+    font-size: 28px;
+  }
+  .card-trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .trend-up { color: var(--green); }
+  .trend-down { color: var(--red); }
+  .trend-flat { color: var(--amber); }
+
+  .card-subtitle {
+    font-size: 13px;
+    color: var(--slate-500);
+    margin-top: 4px;
+  }
+
+  /* Section Headers */
+  .section-header {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--slate-800);
+    margin-bottom: 16px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Donut Chart (CSS) */
+  .donut-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .donut {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    position: relative;
+  }
+  .donut-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--slate-900);
+  }
+  .donut-label {
+    font-size: 13px;
+    color: var(--slate-600);
+  }
+  .donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--slate-600);
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Sparkline (CSS bars) */
+  .sparkline {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 40px;
+    margin-top: 12px;
+  }
+  .spark-bar {
+    flex: 1;
+    min-width: 4px;
+    border-radius: 2px 2px 0 0;
+    background: var(--blue);
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+  .spark-bar:last-child {
+    opacity: 1;
+  }
+  .spark-bar:hover {
+    opacity: 1;
+  }
+  .spark-bar.purple { background: var(--purple); }
+
+  /* Table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .data-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--slate-500);
+    border-bottom: 1px solid var(--slate-200);
+  }
+  .data-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--slate-100);
+    color: var(--slate-700);
+  }
+  .data-table tr:hover td {
+    background: var(--slate-50);
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .status-green { background: var(--green); }
+  .status-amber { background: var(--amber); }
+  .status-red { background: var(--red); }
+
+  /* Coaching Tip Card */
+  .coaching-card {
+    background: linear-gradient(135deg, #F0F9FF 0%, #F5F3FF 100%);
+    border: 1px solid rgba(37, 99, 235, 0.15);
+  }
+  .coaching-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .coaching-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--slate-700);
+  }
+  .coaching-action {
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    cursor: pointer;
+  }
+
+  /* Topic Tags */
+  .topic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .topic-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--slate-50);
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .topic-name {
+    font-weight: 500;
+    color: var(--slate-700);
+  }
+  .topic-count {
+    font-size: 12px;
+    color: var(--slate-500);
+    background: var(--slate-200);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    height: 8px;
+    background: var(--slate-200);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  .progress-fill.blue { background: var(--blue); }
+  .progress-fill.green { background: var(--green); }
+  .progress-fill.purple { background: var(--purple); }
+
+  /* Hero Bento (Admin) */
+  .hero-bento {
+    background: linear-gradient(135deg, var(--purple-bg) 0%, #EEF2FF 50%, var(--blue-light) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    padding: 28px;
+  }
+  .hero-bento .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+  .hero-metric {
+    text-align: center;
+  }
+  .hero-metric-value {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+  .hero-metric-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate-600);
+    margin-top: 4px;
+  }
+  .hero-metric-trend {
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  /* Competitive Bar */
+  .comp-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--slate-100);
+  }
+  .comp-item:last-child { border-bottom: none; }
+  .comp-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--slate-700);
+    width: 80px;
+  }
+  .comp-bar-wrapper {
+    flex: 1;
+    height: 24px;
+    background: var(--slate-100);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .comp-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+  }
+  .comp-trend {
+    font-size: 12px;
+    font-weight: 500;
+    width: 50px;
+    text-align: right;
+  }
+
+  /* Automation list */
+  .auto-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .auto-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .auto-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: var(--purple-light);
+  }
+  .auto-text {
+    flex: 1;
+  }
+  .auto-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--slate-800);
+  }
+  .auto-sub {
+    font-size: 12px;
+    color: var(--slate-500);
+  }
+  .auto-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--purple);
+  }
+
+  /* View containers */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    gap: 3px;
+  }
+  .badge-purple {
+    background: var(--purple-light);
+    color: var(--purple);
+  }
+  .badge-green {
+    background: var(--green-light);
+    color: var(--green);
+  }
+  .badge-red {
+    background: var(--red-light);
+    color: var(--red);
+  }
+
+  /* Chart area placeholder */
+  .chart-area {
+    height: 160px;
+    background: linear-gradient(180deg, var(--slate-50) 0%, white 100%);
+    border-radius: 8px;
+    margin-top: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .chart-line {
+    position: absolute;
+    bottom: 20px;
+    left: 16px;
+    right: 16px;
+    height: 2px;
+    background: var(--slate-200);
+  }
+  .chart-path {
+    position: absolute;
+    bottom: 20px;
+    left: 16px;
+    right: 16px;
+    height: 100px;
+  }
+
+  /* SVG Chart */
+  .svg-chart { width: 100%; margin-top: 12px; }
+  .svg-chart path { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .svg-chart .area { stroke: none; }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .col-3 { grid-column: span 6; }
+    .col-6 { grid-column: span 12; }
+    .hero-bento .hero-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .col-3 { grid-column: span 12; }
+    .col-4 { grid-column: span 12; }
+    .col-6 { grid-column: span 12; }
+    .col-8 { grid-column: span 12; }
+    .main { padding: 16px; }
+    .header { padding: 12px 16px; }
+    .filter-bar { padding: 8px 16px; flex-wrap: wrap; gap: 8px; }
+    .hero-bento .hero-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Prototype badge */
+  .proto-badge {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    background: var(--slate-900);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 200;
+    opacity: 0.9;
+  }
+</style>
+</head>
+<body>
+
+<!-- Prototype Badge -->
+<div class="proto-badge">⚡ AskElephant Dashboard Prototype — March 2026</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-icon">🐘</div>
+      AskElephant Dashboards
+    </div>
+    <div class="header-meta">
+      <div class="freshness">
+        <span class="freshness-dot"></span>
+        Updated 23 min ago
+      </div>
+      <span>Acme Corp Workspace</span>
+    </div>
+  </div>
+  <div class="role-tabs">
+    <button class="role-tab active" onclick="switchView('user')">👤 My Performance</button>
+    <button class="role-tab" onclick="switchView('manager')">👥 Team Performance</button>
+    <button class="role-tab" onclick="switchView('admin')">🏢 Organization</button>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <div class="filters-left">
+    <button class="filter-pill active" onclick="setTimeRange(this, '7d')">7 days</button>
+    <button class="filter-pill" onclick="setTimeRange(this, '30d')">30 days</button>
+    <button class="filter-pill" onclick="setTimeRange(this, '90d')">90 days</button>
+    <button class="filter-pill" onclick="setTimeRange(this, 'custom')">Custom</button>
+  </div>
+  <div class="filters-left" id="team-filter" style="display:none;">
+    <button class="filter-pill active">All Reps</button>
+    <button class="filter-pill">Sales Team A</button>
+    <button class="filter-pill">Sales Team B</button>
+    <button class="filter-pill">CS Team</button>
+  </div>
+</div>
+
+<!-- ==================== USER VIEW ==================== -->
+<div class="main">
+<div class="view active" id="view-user">
+
+  <!-- Metric Cards Row -->
+  <div class="grid">
+    <div class="card col-3">
+      <div class="card-label">Talk Ratio</div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div>
+          <div class="card-value">46%</div>
+          <div class="card-trend trend-up">↑ from 52% last period</div>
+        </div>
+        <div style="width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--blue) 0% 46%, var(--slate-200) 46% 100%);display:flex;align-items:center;justify-content:center;">
+          <div style="width:48px;height:48px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">46%</div>
+        </div>
+      </div>
+      <div class="card-subtitle">You talked 46% of the time (target: 40-50%)</div>
+    </div>
+
+    <div class="card col-3">
+      <div class="card-label">Questions / Call</div>
+      <div class="card-value">3.8</div>
+      <div class="card-trend trend-up">↑ from 3.2 last period</div>
+      <div class="sparkline">
+        <div class="spark-bar" style="height:45%"></div>
+        <div class="spark-bar" style="height:50%"></div>
+        <div class="spark-bar" style="height:40%"></div>
+        <div class="spark-bar" style="height:55%"></div>
+        <div class="spark-bar" style="height:65%"></div>
+        <div class="spark-bar" style="height:70%"></div>
+        <div class="spark-bar" style="height:85%"></div>
+      </div>
+    </div>
+
+    <div class="card col-3">
+      <div class="card-label">Meetings This Week</div>
+      <div class="card-value">14</div>
+      <div class="card-trend trend-up">↑ 27% from last week (11)</div>
+      <div class="card-subtitle">8 external · 6 internal</div>
+    </div>
+
+    <div class="card col-3">
+      <div class="card-label">Avg Call Duration</div>
+      <div class="card-value">32m</div>
+      <div class="card-trend trend-flat">→ Same as team average</div>
+      <div class="card-subtitle">Longest: 58 min (Acme Discovery)</div>
+    </div>
+  </div>
+
+  <!-- Automation + Coaching Row -->
+  <div class="grid">
+    <div class="card card-purple col-6 row-2">
+      <div class="card-label">⚡ AskElephant Did This For You</div>
+      <div style="font-size:14px;color:var(--slate-600);margin-bottom:16px;">This week, AskElephant worked in the background so you didn't have to:</div>
+      <div class="auto-list">
+        <div class="auto-item">
+          <div class="auto-icon">📝</div>
+          <div class="auto-text">
+            <div class="auto-label">CRM Records Updated</div>
+            <div class="auto-sub">Deals, contacts, and company properties</div>
+          </div>
+          <div class="auto-value">28</div>
+        </div>
+        <div class="auto-item">
+          <div class="auto-icon">✅</div>
+          <div class="auto-text">
+            <div class="auto-label">Action Items Generated</div>
+            <div class="auto-sub">From meeting transcripts</div>
+          </div>
+          <div class="auto-value">15</div>
+        </div>
+        <div class="auto-item">
+          <div class="auto-icon">📧</div>
+          <div class="auto-text">
+            <div class="auto-label">Emails Processed</div>
+            <div class="auto-sub">Read, analyzed, or sent on your behalf</div>
+          </div>
+          <div class="auto-value">9</div>
+        </div>
+        <div class="auto-item">
+          <div class="auto-icon">💬</div>
+          <div class="auto-text">
+            <div class="auto-label">Slack Updates</div>
+            <div class="auto-sub">Messages sent to deal channels</div>
+          </div>
+          <div class="auto-value">6</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:12px 16px;background:rgba(139,92,246,0.1);border-radius:10px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:20px;">⏱️</span>
+        <div>
+          <div style="font-size:20px;font-weight:700;color:var(--purple);">~4.2 hours saved</div>
+          <div style="font-size:12px;color:var(--slate-600);">Estimated time you would have spent doing this manually</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card coaching-card col-6 row-2">
+      <div class="card-label">🎯 AI Coaching Insights</div>
+      <div style="margin-top:12px;">
+        <div style="padding:14px;background:white;border-radius:10px;margin-bottom:10px;border:1px solid var(--slate-200);">
+          <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:4px;">📊 Question Rate Insight</div>
+          <div class="coaching-text">Your question rate drops to <strong>2.1/call in demo calls</strong> vs. 4.8 in discovery. Top performers maintain <strong>4+ questions</strong> across all call types. Consider preparing 3-4 demo-specific questions.</div>
+        </div>
+        <div style="padding:14px;background:white;border-radius:10px;margin-bottom:10px;border:1px solid var(--slate-200);">
+          <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:4px;">🏆 Improvement Spotted</div>
+          <div class="coaching-text">Your talk ratio improved from <strong>52% to 46%</strong> over the last 3 weeks — now within the optimal 40-50% zone. Keep it up!</div>
+        </div>
+        <div style="padding:14px;background:white;border-radius:10px;border:1px solid var(--slate-200);">
+          <div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:4px;">💡 Team Comparison</div>
+          <div class="coaching-text">You're in the <strong>top 25%</strong> for question rate but <strong>bottom 50%</strong> for follow-up email speed. Top reps send follow-ups within 2 hours.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Topics + Action Items Row -->
+  <div class="grid">
+    <div class="card col-6">
+      <div class="card-label">🏷️ My Top Topics This Period</div>
+      <div class="topic-list">
+        <div class="topic-item">
+          <span class="topic-name">Budget & Pricing</span>
+          <span class="topic-count">8 calls</span>
+        </div>
+        <div class="topic-item">
+          <span class="topic-name">Implementation Timeline</span>
+          <span class="topic-count">6 calls</span>
+        </div>
+        <div class="topic-item">
+          <span class="topic-name">Competitor: Gong</span>
+          <span class="topic-count">4 calls</span>
+        </div>
+        <div class="topic-item">
+          <span class="topic-name">Integration Requirements</span>
+          <span class="topic-count">4 calls</span>
+        </div>
+        <div class="topic-item">
+          <span class="topic-name">Onboarding Process</span>
+          <span class="topic-count">3 calls</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card col-6">
+      <div class="card-label">✅ Action Items</div>
+      <div style="display:flex;gap:24px;margin-top:12px;margin-bottom:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--slate-900);">15</div>
+          <div style="font-size:12px;color:var(--slate-500);">Generated</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--green);">11</div>
+          <div style="font-size:12px;color:var(--slate-500);">Completed</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--amber);">4</div>
+          <div style="font-size:12px;color:var(--slate-500);">Pending</div>
+        </div>
+      </div>
+      <div class="card-label" style="margin-top:16px;">Completion Rate</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="progress-bar" style="flex:1;">
+          <div class="progress-fill green" style="width:73%;"></div>
+        </div>
+        <span style="font-size:14px;font-weight:600;color:var(--green);">73%</span>
+      </div>
+      <div class="card-subtitle" style="margin-top:8px;">↑ from 61% last period — above team average (68%)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MANAGER VIEW ==================== -->
+<div class="view" id="view-manager">
+
+  <!-- Team Summary Cards -->
+  <div class="grid">
+    <div class="card col-3">
+      <div class="card-label">Team Calls</div>
+      <div class="card-value">148</div>
+      <div class="card-trend trend-up">↑ 12% from last period (132)</div>
+    </div>
+    <div class="card col-3">
+      <div class="card-label">Avg Team Talk Ratio</div>
+      <div class="card-value">48%</div>
+      <div class="card-trend trend-flat">→ from 49% (within optimal zone)</div>
+    </div>
+    <div class="card col-3">
+      <div class="card-label">Active Deals</div>
+      <div class="card-value medium">34</div>
+      <div class="card-trend trend-down">
+        <span class="badge badge-red">6 at risk</span>
+      </div>
+    </div>
+    <div class="card card-purple col-3">
+      <div class="card-label">⚡ Team CRM Updates</div>
+      <div class="card-value medium" style="color:var(--purple);">287</div>
+      <div class="card-trend" style="color:var(--purple);">⚡ by AskElephant this period</div>
+    </div>
+  </div>
+
+  <!-- Rep Performance Table -->
+  <div class="grid">
+    <div class="card col-12">
+      <div class="card-label">👥 Rep Performance Grid</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Rep</th>
+            <th>Calls</th>
+            <th>Talk Ratio</th>
+            <th>Questions/Call</th>
+            <th>⚡ CRM Updates</th>
+            <th>Avg Monologue</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="status-dot status-green"></span></td>
+            <td><strong>Sarah Mitchell</strong></td>
+            <td>32</td>
+            <td><span style="color:var(--green);">44%</span></td>
+            <td>4.1</td>
+            <td><span class="badge badge-purple">⚡ 67</span></td>
+            <td>1.8 min</td>
+            <td><span class="trend-up">↑ Improving</span></td>
+          </tr>
+          <tr>
+            <td><span class="status-dot status-green"></span></td>
+            <td><strong>Alex Rodriguez</strong></td>
+            <td>28</td>
+            <td><span style="color:var(--green);">47%</span></td>
+            <td>3.8</td>
+            <td><span class="badge badge-purple">⚡ 54</span></td>
+            <td>2.1 min</td>
+            <td><span class="trend-up">↑ Improving</span></td>
+          </tr>
+          <tr>
+            <td><span class="status-dot status-green"></span></td>
+            <td><strong>Jamie Chen</strong></td>
+            <td>26</td>
+            <td><span style="color:var(--green);">45%</span></td>
+            <td>3.5</td>
+            <td><span class="badge badge-purple">⚡ 49</span></td>
+            <td>2.3 min</td>
+            <td><span class="trend-flat">→ Stable</span></td>
+          </tr>
+          <tr>
+            <td><span class="status-dot status-amber"></span></td>
+            <td><strong>Mike Johnson</strong></td>
+            <td>24</td>
+            <td><span style="color:var(--amber);">51%</span></td>
+            <td>3.2</td>
+            <td><span class="badge badge-purple">⚡ 41</span></td>
+            <td>3.1 min</td>
+            <td><span class="trend-flat">→ Stable</span></td>
+          </tr>
+          <tr>
+            <td><span class="status-dot status-amber"></span></td>
+            <td><strong>Lisa Park</strong></td>
+            <td>22</td>
+            <td><span style="color:var(--amber);">53%</span></td>
+            <td>2.9</td>
+            <td><span class="badge badge-purple">⚡ 38</span></td>
+            <td>3.4 min</td>
+            <td><span class="trend-down">↓ Declining</span></td>
+          </tr>
+          <tr>
+            <td><span class="status-dot status-red"></span></td>
+            <td><strong>Tom Bradley</strong></td>
+            <td>16</td>
+            <td><span style="color:var(--red);">63%</span></td>
+            <td>2.1</td>
+            <td><span class="badge badge-purple">⚡ 22</span></td>
+            <td>5.2 min</td>
+            <td><span class="trend-down">↓ Declining</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Coaching Queue + Talk Ratio Comparison -->
+  <div class="grid">
+    <div class="card col-6">
+      <div class="card-label">🎯 Coaching Queue</div>
+      <div style="margin-top:12px;">
+        <div style="padding:14px;background:var(--red-light);border-radius:10px;margin-bottom:10px;border:1px solid rgba(239,68,68,0.2);">
+          <div style="display:flex;justify-content:space-between;align-items:start;">
+            <div>
+              <div style="font-size:14px;font-weight:600;color:var(--red);">🔴 Tom Bradley — Needs Coaching</div>
+              <div style="font-size:13px;color:var(--slate-700);margin-top:4px;">Talk ratio 63% (target: 40-50%). Longest monologue avg 5.2 min. Question rate 2.1/call — lowest on team.</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:13px;color:var(--slate-600);">
+            <strong>AI Suggestion:</strong> Review Tom's last 3 discovery calls. His monologue length increased from 2.1 to 5.2 min over 4 weeks. Focus coaching on active listening and open-ended questions.
+          </div>
+        </div>
+        <div style="padding:14px;background:var(--amber-light);border-radius:10px;margin-bottom:10px;border:1px solid rgba(245,158,11,0.2);">
+          <div style="font-size:14px;font-weight:600;color:var(--amber);">🟡 Lisa Park — Watch</div>
+          <div style="font-size:13px;color:var(--slate-700);margin-top:4px;">Talk ratio trending up (47% → 53%). Question rate below team average. 3 consecutive weeks of declining metrics.</div>
+          <div style="margin-top:8px;font-size:13px;color:var(--slate-600);">
+            <strong>AI Suggestion:</strong> Lisa's question rate drops significantly in follow-up calls. May benefit from a follow-up call question template.
+          </div>
+        </div>
+        <div style="padding:14px;background:var(--green-light);border-radius:10px;border:1px solid rgba(16,185,129,0.2);">
+          <div style="font-size:14px;font-weight:600;color:var(--green);">🟢 Sarah Mitchell — Top Performer</div>
+          <div style="font-size:13px;color:var(--slate-700);margin-top:4px;">Consistent optimal talk ratio. Highest question rate on team. Consider having her share techniques in team meeting.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card col-6">
+      <div class="card-label">🏷️ Team Themes This Month</div>
+      <div class="topic-list" style="margin-top:8px;">
+        <div class="topic-item">
+          <span class="topic-name">"Budget constraints"</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="topic-count">23 calls</span>
+            <span class="trend-up" style="font-size:12px;">↑↑</span>
+          </div>
+        </div>
+        <div class="topic-item">
+          <span class="topic-name">"Integration timeline"</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="topic-count">19 calls</span>
+            <span class="trend-flat" style="font-size:12px;">→</span>
+          </div>
+        </div>
+        <div class="topic-item">
+          <span class="topic-name">"Competitor: Gong"</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="topic-count">14 calls</span>
+            <span class="trend-up" style="font-size:12px;">↑</span>
+          </div>
+        </div>
+        <div class="topic-item">
+          <span class="topic-name">"Onboarding concerns"</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="topic-count">11 calls</span>
+            <span class="trend-down" style="font-size:12px;">↓</span>
+          </div>
+        </div>
+        <div class="topic-item">
+          <span class="topic-name">"ROI / value proof"</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="topic-count">9 calls</span>
+            <span class="trend-up" style="font-size:12px;">↑</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <div class="card-label">⚡ Automation Adoption</div>
+        <div style="margin-top:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>Meeting Recaps</span><span style="font-weight:600;">5/6 reps (83%)</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill purple" style="width:83%"></div></div>
+        </div>
+        <div style="margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>CRM Auto-Update</span><span style="font-weight:600;">4/6 reps (67%)</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill purple" style="width:67%"></div></div>
+        </div>
+        <div style="margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>Email Follow-ups</span><span style="font-weight:600;">3/6 reps (50%)</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill purple" style="width:50%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ADMIN VIEW ==================== -->
+<div class="view" id="view-admin">
+
+  <!-- Hero Bento -->
+  <div class="grid">
+    <div class="card hero-bento col-12">
+      <div class="card-label" style="color:var(--purple);font-size:13px;">⚡ ASKELEPHANT ORGANIZATION IMPACT — LAST 90 DAYS</div>
+      <div class="hero-grid" style="margin-top:16px;">
+        <div class="hero-metric">
+          <div class="hero-metric-value">1,247</div>
+          <div class="hero-metric-label">Meetings Captured</div>
+          <div class="hero-metric-trend trend-up">↑ 18% vs. prior period</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-value">3,891</div>
+          <div class="hero-metric-label">Workflows Executed</div>
+          <div class="hero-metric-trend trend-up">↑ 24% vs. prior period</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-value">8,472</div>
+          <div class="hero-metric-label">CRM Records Updated</div>
+          <div class="hero-metric-trend trend-up">↑ 31% vs. prior period</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-value">~312h</div>
+          <div class="hero-metric-label">Estimated Time Saved</div>
+          <div class="hero-metric-trend trend-up">↑ 27% vs. prior period</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Comparison + Competitive Intel -->
+  <div class="grid">
+    <div class="card col-6">
+      <div class="card-label">📊 Team Comparison</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Team</th><th>Calls</th><th>Talk Ratio</th><th>⚡ CRM Updates</th><th>Health</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Sales Team A</strong></td>
+            <td>148</td>
+            <td>48%</td>
+            <td><span class="badge badge-purple">⚡ 287</span></td>
+            <td><span class="status-dot status-green"></span> Healthy</td>
+          </tr>
+          <tr>
+            <td><strong>Sales Team B</strong></td>
+            <td>92</td>
+            <td>51%</td>
+            <td><span class="badge badge-purple">⚡ 184</span></td>
+            <td><span class="status-dot status-amber"></span> Watch</td>
+          </tr>
+          <tr>
+            <td><strong>CS Team</strong></td>
+            <td>67</td>
+            <td>39%</td>
+            <td><span class="badge badge-purple">⚡ 143</span></td>
+            <td><span class="status-dot status-green"></span> Healthy</td>
+          </tr>
+          <tr>
+            <td><strong>BDR Team</strong></td>
+            <td>134</td>
+            <td>55%</td>
+            <td><span class="badge badge-purple">⚡ 98</span></td>
+            <td><span class="status-dot status-amber"></span> Watch</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card col-6">
+      <div class="card-label">🏆 Competitive Intelligence</div>
+      <div style="margin-top:12px;">
+        <div class="comp-item">
+          <div class="comp-name">Gong</div>
+          <div class="comp-bar-wrapper">
+            <div class="comp-bar-fill" style="width:23%;background:var(--red);">23%</div>
+          </div>
+          <div class="comp-trend trend-up">↑ 8%</div>
+        </div>
+        <div class="comp-item">
+          <div class="comp-name">Chorus</div>
+          <div class="comp-bar-wrapper">
+            <div class="comp-bar-fill" style="width:11%;background:var(--amber);">11%</div>
+          </div>
+          <div class="comp-trend trend-flat">→</div>
+        </div>
+        <div class="comp-item">
+          <div class="comp-name">Fathom</div>
+          <div class="comp-bar-wrapper">
+            <div class="comp-bar-fill" style="width:8%;background:var(--blue);">8%</div>
+          </div>
+          <div class="comp-trend trend-down">↓ 3%</div>
+        </div>
+        <div class="comp-item">
+          <div class="comp-name">Clari</div>
+          <div class="comp-bar-wrapper">
+            <div class="comp-bar-fill" style="width:5%;background:var(--slate-400);">5%</div>
+          </div>
+          <div class="comp-trend trend-flat">→</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:12px;background:var(--slate-50);border-radius:8px;">
+        <div style="font-size:13px;color:var(--slate-600);">
+          <strong>Win rate when Gong is mentioned:</strong> <span style="color:var(--amber);font-weight:600;">34%</span>
+          <br><span style="font-size:12px;">vs. 52% overall win rate. Focus competitive training on Gong positioning.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRM Quality + Platform Adoption -->
+  <div class="grid">
+    <div class="card col-6">
+      <div class="card-label">📈 CRM Data Quality</div>
+      <div style="margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px;">
+          <div>
+            <div style="font-size:13px;color:var(--slate-500);">Before AskElephant</div>
+            <div style="font-size:32px;font-weight:700;color:var(--slate-400);">41%</div>
+            <div style="font-size:12px;color:var(--slate-400);">Field fill rate</div>
+          </div>
+          <div style="font-size:32px;color:var(--slate-300);">→</div>
+          <div>
+            <div style="font-size:13px;color:var(--green);">With AskElephant</div>
+            <div style="font-size:32px;font-weight:700;color:var(--green);">78%</div>
+            <div style="font-size:12px;color:var(--green);">Field fill rate</div>
+          </div>
+        </div>
+        <div style="font-size:36px;font-weight:800;color:var(--purple);text-align:center;">+37 pts</div>
+        <div style="font-size:13px;color:var(--slate-600);text-align:center;">improvement in CRM data completeness</div>
+        <div style="margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>Deal properties</span><span style="font-weight:600;">82% filled</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill purple" style="width:82%"></div></div>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>Contact properties</span><span style="font-weight:600;">74% filled</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill purple" style="width:74%"></div></div>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>Company properties</span><span style="font-weight:600;">69% filled</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill purple" style="width:69%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card col-6">
+      <div class="card-label">👤 Platform Adoption</div>
+      <div style="margin-top:16px;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
+          <div style="text-align:center;">
+            <div style="font-size:28px;font-weight:700;color:var(--green);">31</div>
+            <div style="font-size:12px;color:var(--slate-500);">Active (7d)</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:28px;font-weight:700;color:var(--amber);">8</div>
+            <div style="font-size:12px;color:var(--slate-500);">Invited, Inactive</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:28px;font-weight:700;color:var(--red);">6</div>
+            <div style="font-size:12px;color:var(--slate-500);">Not Invited</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+          <span>Seat Utilization</span><span style="font-weight:600;">69% (31/45)</span>
+        </div>
+        <div class="progress-bar" style="height:12px;"><div class="progress-fill green" style="width:69%"></div></div>
+        
+        <div style="margin-top:20px;">
+          <div class="card-label">Feature Adoption</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <div style="flex:1;min-width:120px;padding:10px;background:var(--slate-50);border-radius:8px;text-align:center;">
+              <div style="font-size:20px;font-weight:700;color:var(--green);">89%</div>
+              <div style="font-size:11px;color:var(--slate-500);">Meeting Recaps</div>
+            </div>
+            <div style="flex:1;min-width:120px;padding:10px;background:var(--slate-50);border-radius:8px;text-align:center;">
+              <div style="font-size:20px;font-weight:700;color:var(--green);">67%</div>
+              <div style="font-size:11px;color:var(--slate-500);">CRM Agent</div>
+            </div>
+            <div style="flex:1;min-width:120px;padding:10px;background:var(--slate-50);border-radius:8px;text-align:center;">
+              <div style="font-size:20px;font-weight:700;color:var(--amber);">42%</div>
+              <div style="font-size:11px;color:var(--slate-500);">Email Agent</div>
+            </div>
+            <div style="flex:1;min-width:120px;padding:10px;background:var(--slate-50);border-radius:8px;text-align:center;">
+              <div style="font-size:20px;font-weight:700;color:var(--red);">28%</div>
+              <div style="font-size:11px;color:var(--slate-500);">Slack Agent</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Automation Health -->
+  <div class="grid">
+    <div class="card card-purple col-12">
+      <div class="card-label">⚡ Automation Health</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--purple);">96.3%</div>
+          <div style="font-size:12px;color:var(--slate-600);">Workflow Success Rate</div>
+          <div style="font-size:11px;color:var(--green);">↑ from 94.1%</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--purple);">2.4s</div>
+          <div style="font-size:12px;color:var(--slate-600);">Avg Execution Time</div>
+          <div style="font-size:11px;color:var(--green);">↓ from 3.1s</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--purple);">12</div>
+          <div style="font-size:12px;color:var(--slate-600);">Failures This Month</div>
+          <div style="font-size:11px;color:var(--green);">↓ from 18 last month</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--purple);">3,891</div>
+          <div style="font-size:12px;color:var(--slate-600);">Total Executions</div>
+          <div style="font-size:11px;color:var(--green);">↑ 24% growth</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:12px;">
+        <div style="flex:1;padding:10px 14px;background:rgba(139,92,246,0.1);border-radius:8px;font-size:13px;">
+          <strong>Most Used:</strong> CRM Update (1,247 runs)
+        </div>
+        <div style="flex:1;padding:10px 14px;background:rgba(139,92,246,0.1);border-radius:8px;font-size:13px;">
+          <strong>2nd:</strong> Meeting Recap (892 runs)
+        </div>
+        <div style="flex:1;padding:10px 14px;background:rgba(139,92,246,0.1);border-radius:8px;font-size:13px;">
+          <strong>3rd:</strong> Email Processing (421 runs)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .main -->
+
+<script>
+function switchView(view) {
+  // Update tabs
+  document.querySelectorAll('.role-tab').forEach(tab => tab.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  // Update views
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  
+  // Show/hide team filter for manager/admin
+  const teamFilter = document.getElementById('team-filter');
+  if (view === 'manager' || view === 'admin') {
+    teamFilter.style.display = 'flex';
+  } else {
+    teamFilter.style.display = 'none';
+  }
+  
+  // Update default time range
+  const pills = document.querySelectorAll('.filters-left:first-child .filter-pill');
+  pills.forEach(p => p.classList.remove('active'));
+  if (view === 'user') pills[0].classList.add('active');
+  else if (view === 'manager') pills[1].classList.add('active');
+  else pills[2].classList.add('active');
+}
+
+function setTimeRange(el, range) {
+  el.parentNode.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+
+</body>
+</html>

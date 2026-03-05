@@ -1,0 +1,19 @@
+{
+  "snapshots": [
+    {
+      "date": "2026-02-03",
+      "health_score": 54,
+      "total_initiatives": 22,
+      "by_phase": {
+        "discovery": 4,
+        "define": 5,
+        "build": 9,
+        "validate": 3,
+        "launch": 0,
+        "measure": 1
+      },
+      "by_status": { "on_track": 17, "in_progress": 4, "blocked": 1 },
+      "by_priority": { "P0": 8, "P1": 2, "P2": 8, "P3": 4 }
+    }
+  ]
+}

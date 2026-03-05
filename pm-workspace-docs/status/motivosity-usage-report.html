@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motivosity — AskElephant Usage Report</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2d3250;
+    --accent: #6366f1;
+    --accent2: #8b5cf6;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
+    --sky: #38bdf8;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --card-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #161929 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
+    color: #a5b4fc; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 500;
+  }
+  .btn {
+    background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4);
+    color: #a5b4fc; border-radius: 8px; padding: 8px 16px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: rgba(99,102,241,0.35); }
+
+  .main { padding: 28px 32px; }
+
+  /* Summary stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: var(--card-shadow);
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .stat-card .value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .text-green { color: var(--green); }
+  .text-amber { color: var(--amber); }
+  .text-accent { color: var(--accent); }
+  .text-sky { color: var(--sky); }
+  .text-rose { color: var(--rose); }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .search-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-size: 13px;
+    width: 240px;
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+  select.filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  select.filter-select:focus { outline: none; border-color: var(--accent); }
+  .controls-right { margin-left: auto; display: flex; gap: 10px; }
+
+  /* Table */
+  .table-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+  }
+  th:hover { color: var(--text); }
+  th .sort-icon { margin-left: 4px; opacity: 0.4; font-size: 10px; }
+  th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+  td {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(45,50,80,0.5);
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(99,102,241,0.05); }
+
+  .user-cell { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: white;
+    flex-shrink: 0;
+  }
+  .user-name { font-weight: 500; }
+  .user-email { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    border-radius: 20px; padding: 3px 9px; font-size: 11px; font-weight: 500;
+  }
+  .pill-green { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
+  .pill-amber { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+  .pill-rose { background: rgba(244,63,94,0.15); color: var(--rose); border: 1px solid rgba(244,63,94,0.25); }
+  .pill-muted { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid rgba(100,116,139,0.25); }
+
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .num-high { color: var(--green); font-weight: 600; }
+  .num-med { color: var(--amber); }
+  .num-zero { color: var(--muted); }
+
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar { height: 4px; background: var(--border); border-radius: 2px; flex: 1; min-width: 40px; }
+  .bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+
+  .footer {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 0 4px;
+  }
+
+  .hidden { display: none; }
+
+  /* Export panel */
+  .export-notice {
+    background: rgba(99,102,241,0.08);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .export-notice strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">🐘</div>
+    <div>
+      <h1>Motivosity — AskElephant Usage Report</h1>
+      <p>PostHog Production · Generated March 4, 2026 · 40 users found</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="badge">⚡ Live Data</span>
+    <button class="btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Summary Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Total Users</div>
+      <div class="value text-accent">40</div>
+      <div class="sub">across 2 workspaces</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Active (30d)</div>
+      <div class="value text-green">18</div>
+      <div class="sub">last active after Feb 4, 2026</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Meetings Processed</div>
+      <div class="value text-sky">97,983</div>
+      <div class="sub">pipelines + workflows runs</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Bot Recordings</div>
+      <div class="value text-amber">4,466</div>
+      <div class="sub">recall:bot_done events</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total AI Queries</div>
+      <div class="value text-accent">160</div>
+      <div class="sub">conversation messages sent</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Most Active User</div>
+      <div class="value" style="font-size:16px; padding-top:4px;">Sarah Riding</div>
+      <div class="sub">29,623 meetings · 161 days</div>
+    </div>
+  </div>
+
+  <div class="export-notice">
+    <span>ℹ️</span>
+    <div><strong>Note:</strong> <em>Is Manager</em> and <em>Has Paid Seat</em> are not yet tracked in PostHog person properties for this workspace. <em>Utilized Seat</em> = active within the last 30 days (after Feb 4, 2026). Data covers all time since workspace onboarding.</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search by name or email..." oninput="filterTable()">
+    <select class="filter-select" id="statusFilter" onchange="filterTable()">
+      <option value="all">All Users</option>
+      <option value="active">Active (30d)</option>
+      <option value="inactive">Inactive</option>
+    </select>
+    <div class="controls-right">
+      <span id="rowCount" style="font-size:13px; color: var(--muted); align-self:center;"></span>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-container">
+    <table id="usageTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">User <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(1)">Home Workspace <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(2)">Is Manager <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(3)">Utilized Seat <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(4)" class="num">Last Active <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(5)" class="num">Days Active <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(6)" class="num">Meetings Processed <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(7)" class="num">Bot Recordings <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(8)" class="num">Artifacts Viewed <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(9)" class="num">Artifacts Interacted <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(10)" class="num">AI Queries <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(11)" class="num">Chats <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(12)" class="num">Conversations <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(13)" class="num">Page Views <span class="sort-icon">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <span>Source: PostHog Production (project 81505) · All-time data through Mar 4, 2026</span>
+    <span id="footerCount"></span>
+  </div>
+
+</div>
+
+<script>
+const MAX_MEETINGS = 29623;
+const MAX_DAYS = 189;
+
+const users = [
+  {name:"Steve Johnson",       email:"steve@motivosity.com",             workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:189, meetings:7443,  botRec:232,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Sarah Riding",        email:"sarah.riding@motivosity.com",       workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:161, meetings:29623, botRec:304,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:8},
+  {name:"Jack Mayfield",       email:"jack.mayfield@motivosity.com",      workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:167, meetings:5504,  botRec:357,  artViewed:0,   artInteract:0,   aiQueries:16, chats:1, convos:6, pageviews:3263},
+  {name:"Andy Johnson",        email:"andy.johnson@motivosity.com",       workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:139, meetings:5559,  botRec:184,  artViewed:0,   artInteract:3,   aiQueries:5,  chats:0, convos:3, pageviews:1719},
+  {name:"Truman Manning",      email:"truman.manning@motivosity.com",     workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:139, meetings:5102,  botRec:245,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Tyler Erickson",      email:"tyler.erickson@motivosity.com",     workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:164, meetings:4214,  botRec:264,  artViewed:0,   artInteract:1,   aiQueries:2,  chats:0, convos:1, pageviews:51},
+  {name:"Brandon Russon",      email:"brandon.russon@motivosity.com",     workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:155, meetings:4143,  botRec:404,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Rachel Treglown",     email:"rachel.treglown@motivosity.com",    workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:123, meetings:3386,  botRec:294,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Sam Beck",            email:"sam.beck@motivosity.com",            workspace:"Motivosity", isManager:null, lastActive:"2026-02-12", daysActive:174, meetings:1967,  botRec:283,  artViewed:0,   artInteract:2,   aiQueries:11, chats:0, convos:2, pageviews:1567},
+  {name:"Tom Morrell",         email:"tom.morrell@motivosity.com",         workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:170, meetings:1926,  botRec:75,   artViewed:0,   artInteract:1,   aiQueries:5,  chats:0, convos:3, pageviews:175},
+  {name:"Zack Priestley",      email:"zack.priestley@motivosity.com",      workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:128, meetings:2955,  botRec:438,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Cortney Cummings",    email:"cortney.cummings@motivosity.com",    workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:133, meetings:2298,  botRec:195,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Jordan Pinedo",       email:"jordan.pinedo@motivosity.com",       workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:119, meetings:2103,  botRec:327,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Kolby Heiner",        email:"kolby.heiner@motivosity.com",        workspace:"Motivosity", isManager:null, lastActive:"2026-02-12", daysActive:177, meetings:1267,  botRec:110,  artViewed:0,   artInteract:0,   aiQueries:5,  chats:0, convos:4, pageviews:1985},
+  {name:"Damian Barrios",      email:"damian.barrios@motivosity.com",      workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:105, meetings:1653,  botRec:198,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Zack Kerr",           email:"zack.kerr@motivosity.com",           workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:68,  meetings:1373,  botRec:188,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Davis Watkins",       email:"davis.watkins@motivosity.com",       workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:68,  meetings:1461,  botRec:80,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Zack Kerr",           email:"zack.kerr@motivosity.com",           workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:68,  meetings:1373,  botRec:188,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Andrew Emmons",       email:"andrew.emmons@motivosity.com",       workspace:"Motivosity", isManager:null, lastActive:"2025-05-29", daysActive:148, meetings:753,   botRec:302,  artViewed:213, artInteract:245, aiQueries:101,chats:0, convos:16,pageviews:2612},
+  {name:"Nate Goates",         email:"nate.goates@motivosity.com",         workspace:"Motivosity", isManager:null, lastActive:"2026-02-12", daysActive:99,  meetings:816,   botRec:28,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Mark Evans",          email:"mark.evans@motivosity.com",          workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:127, meetings:438,   botRec:56,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Alicia Elliot",       email:"alicia.elliott@motivosity.com",      workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:70,  meetings:695,   botRec:118,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Spencer Barclay",     email:"spencer.barclay@motivosity.com",     workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:80,  meetings:257,   botRec:148,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Will Merrick",        email:"will.merrick@motivosity.com",        workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:57,  meetings:284,   botRec:13,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Matt Dorius",         email:"matt.dorius@motivosity.com",         workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:55,  meetings:213,   botRec:70,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Matt Dastrup",        email:"matthew.dastrup@motivosity.com",     workspace:"Motivosity", isManager:null, lastActive:"2026-01-19", daysActive:53,  meetings:186,   botRec:23,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:23},
+  {name:"Christopher Wood",    email:"christopher.wood@motivosity.com",    workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:72,  meetings:115,   botRec:46,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Jason Hawks",         email:"jason.hawks@motivosity.com",         workspace:"Motivosity", isManager:null, lastActive:"2026-01-12", daysActive:82,  meetings:172,   botRec:114,  artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Sam McKay",           email:"sam.mckay@motivosity.com",           workspace:"Motivosity", isManager:null, lastActive:"2025-09-29", daysActive:36,  meetings:34,    botRec:32,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:2},
+  {name:"Raechel Duplain",     email:"raechel.duplain@motivosity.com",     workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:36,  meetings:118,   botRec:40,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Jake Wright",         email:"jake.wright@motivosity.com",         workspace:"Motivosity", isManager:null, lastActive:"2025-05-28", daysActive:35,  meetings:3,     botRec:43,   artViewed:0,   artInteract:0,   aiQueries:2,  chats:0, convos:0, pageviews:102},
+  {name:"Brady Knapp",         email:"brady.knapp@motivosity.com",         workspace:"Motivosity", isManager:null, lastActive:"2026-01-30", daysActive:33,  meetings:90,    botRec:26,   artViewed:0,   artInteract:0,   aiQueries:1,  chats:0, convos:0, pageviews:101},
+  {name:"Slade Beuchert",      email:"slade.beuchert@motivosity.com",      workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:29,  meetings:131,   botRec:37,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Dustin Kenyon",       email:"dustin.kenyon@motivosity.com",       workspace:"Motivosity", isManager:null, lastActive:"2026-01-26", daysActive:26,  meetings:10,    botRec:25,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Jesse Dowdle",        email:"jesse@motivosity.com",               workspace:"Motivosity", isManager:null, lastActive:"2026-01-12", daysActive:25,  meetings:84,    botRec:16,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Courtney Angell",     email:"courtney.angell@motivosity.com",     workspace:"Motivosity", isManager:null, lastActive:"2026-02-04", daysActive:22,  meetings:100,   botRec:7,    artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Scott Johnson",       email:"scott@motivosity.com",               workspace:"Motivosity", isManager:null, lastActive:"2026-01-19", daysActive:22,  meetings:34,    botRec:13,   artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Chris",               email:"chris@motivosity.com",               workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:5,   meetings:4,     botRec:2,    artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Carly MacLennan",     email:"carly@motivosity.com",               workspace:"Motivosity", isManager:null, lastActive:"2026-02-03", daysActive:4,   meetings:20,    botRec:4,    artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Tyler Ashton",        email:"tyler.ashton@motivosity.com",        workspace:"Motivosity", isManager:null, lastActive:"2026-02-02", daysActive:4,   meetings:8,     botRec:2,    artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+  {name:"Matthew Johnson",     email:"matthew.johnson@motivosity.com",     workspace:"Motivosity", isManager:null, lastActive:"2026-01-29", daysActive:1,   meetings:0,     botRec:0,    artViewed:0,   artInteract:0,   aiQueries:0,  chats:0, convos:0, pageviews:0},
+];
+
+// Deduplicate by email (keep highest days_active)
+const seen = {};
+const deduped = [];
+for (const u of users) {
+  if (!seen[u.email] || u.daysActive > seen[u.email].daysActive) {
+    seen[u.email] = u;
+  }
+}
+for (const k in seen) deduped.push(seen[k]);
+deduped.sort((a,b) => b.daysActive - a.daysActive);
+
+const ACTIVE_CUTOFF = '2026-02-04';
+
+function utilized(u) {
+  return u.lastActive >= ACTIVE_CUTOFF ? 'Active' : 'Inactive';
+}
+
+function numCell(n, max) {
+  if (n === 0) return `<td class="num num-zero">—</td>`;
+  const pct = max ? Math.round((n / max) * 100) : 0;
+  const cls = pct > 50 ? 'num-high' : pct > 10 ? 'num-med' : '';
+  return `<td class="num ${cls}">${n.toLocaleString()}</td>`;
+}
+
+function barCell(n, max) {
+  const pct = max ? Math.round((n / max) * 100) : 0;
+  return `<td><div class="bar-wrap"><div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div><span class="num" style="min-width:36px; color:${n===0?'var(--muted)':'inherit'}">${n > 0 ? n.toLocaleString() : '—'}</span></div></td>`;
+}
+
+function initials(name) {
+  return name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+}
+
+function renderRows(data) {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  for (const u of data) {
+    const util = utilized(u);
+    const utilPill = util === 'Active'
+      ? `<span class="pill pill-green">● Active</span>`
+      : `<span class="pill pill-rose">○ Inactive</span>`;
+    const managerPill = `<span class="pill pill-muted">Unknown</span>`;
+    const row = `<tr data-email="${u.email}" data-name="${u.name.toLowerCase()}" data-status="${util.toLowerCase()}">
+      <td>
+        <div class="user-cell">
+          <div class="avatar">${initials(u.name)}</div>
+          <div>
+            <div class="user-name">${u.name}</div>
+            <div class="user-email">${u.email}</div>
+          </div>
+        </div>
+      </td>
+      <td>${u.workspace}</td>
+      <td>${managerPill}</td>
+      <td>${utilPill}</td>
+      <td class="num">${u.lastActive}</td>
+      ${barCell(u.daysActive, MAX_DAYS)}
+      ${barCell(u.meetings, MAX_MEETINGS)}
+      ${numCell(u.botRec, 404)}
+      ${numCell(u.artViewed, 213)}
+      ${numCell(u.artInteract, 245)}
+      ${numCell(u.aiQueries, 101)}
+      ${numCell(u.chats, 1)}
+      ${numCell(u.convos, 16)}
+      ${numCell(u.pageviews, 3263)}
+    </tr>`;
+    tbody.insertAdjacentHTML('beforeend', row);
+  }
+  document.getElementById('rowCount').textContent = `Showing ${data.length} users`;
+  document.getElementById('footerCount').textContent = `${data.length} of ${deduped.length} users displayed`;
+}
+
+let currentSort = {col: 5, asc: false};
+
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  let filtered = deduped.filter(u => {
+    const matchSearch = !search || u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
+    const matchStatus = status === 'all' ||
+      (status === 'active' && utilized(u) === 'Active') ||
+      (status === 'inactive' && utilized(u) === 'Inactive');
+    return matchSearch && matchStatus;
+  });
+  sortAndRender(filtered);
+}
+
+function sortTable(col) {
+  if (currentSort.col === col) {
+    currentSort.asc = !currentSort.asc;
+  } else {
+    currentSort = {col, asc: col < 4};
+  }
+  document.querySelectorAll('th').forEach((th, i) => {
+    th.classList.toggle('sorted', i === col);
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = i === col ? (currentSort.asc ? '↑' : '↓') : '↕';
+  });
+  filterTable();
+}
+
+function sortAndRender(data) {
+  const col = currentSort.col;
+  const asc = currentSort.asc;
+  const keys = ['name','workspace','isManager','_util','lastActive','daysActive','meetings','botRec','artViewed','artInteract','aiQueries','chats','convos','pageviews'];
+  data.sort((a, b) => {
+    let av = col === 3 ? utilized(a) : a[keys[col]];
+    let bv = col === 3 ? utilized(b) : b[keys[col]];
+    if (typeof av === 'string') return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+    return asc ? av - bv : bv - av;
+  });
+  renderRows(data);
+}
+
+function exportCSV() {
+  const headers = ['User Name','User Email Address','Home Workspace','Is Manager','Utilized Seat','Last Active','Days Active','Meetings Processed','Bot Recordings','Artifacts Viewed','Artifacts Interacted','AI Queries Sent','Chats Created','Conversations Created','Page Views'];
+  const rows = deduped.map(u => [
+    u.name, u.email, u.workspace,
+    u.isManager ?? 'Unknown',
+    utilized(u),
+    u.lastActive, u.daysActive, u.meetings, u.botRec,
+    u.artViewed, u.artInteract, u.aiQueries, u.chats, u.convos, u.pageviews
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'motivosity-askelephant-usage-report.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Init
+renderRows(deduped);
+</script>
+</body>
+</html>

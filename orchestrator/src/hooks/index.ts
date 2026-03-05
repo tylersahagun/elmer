@@ -4,6 +4,7 @@
 
 export { useJobPolling, useProjectJobs } from "./useJobPolling";
 export { useRealtimeJobs, useSSEConnectionStatus } from "./useRealtimeJobs";
+export { useJobLogs } from "./useJobLogs";
 export { useBrowserNotifications } from "./useBrowserNotifications";
 export { useDiscoveryImport } from "./useDiscoveryImport";
 export { useStreamingDiscovery } from "./useStreamingDiscovery";

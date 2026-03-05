@@ -1,0 +1,544 @@
+{
+  "contract_version": "v2-future-state",
+  "initiative": "client-usage-metrics",
+  "view": "askelephant-by-numbers-world-class",
+  "updated_at": "2026-02-11T00:00:00Z",
+  "intent": "Define the absolute best-state insight surface AskElephant could provide across all connected systems, optimized for trust, outcomes, and defensible customer value.",
+  "positioning_guardrails": {
+    "north_star": "AskElephant is a revenue outcome system, not a transcript dashboard.",
+    "anti_vision_checks": [
+      "No vanity-only counters without actionability.",
+      "No generic summary metrics that cannot tie to behavior change.",
+      "No claims without provenance, confidence, and freshness."
+    ],
+    "required_metric_fields": [
+      "business_outcome_link",
+      "confidence_score",
+      "freshness_sla",
+      "explainability",
+      "owner"
+    ]
+  },
+  "global_dimensions": {
+    "supported_scopes": [
+      "workspace",
+      "segment",
+      "team",
+      "manager",
+      "user",
+      "account",
+      "opportunity",
+      "pipeline",
+      "geo"
+    ],
+    "time_ranges": [
+      "live",
+      "24h",
+      "7d",
+      "30d",
+      "90d",
+      "180d",
+      "365d",
+      "all_time",
+      "qtd",
+      "ytd"
+    ],
+    "persona_views": [
+      "executive",
+      "sales_leader",
+      "ae",
+      "sdr",
+      "csm",
+      "revops",
+      "marketing",
+      "product",
+      "support"
+    ]
+  },
+  "integration_catalog": [
+    {
+      "integration_id": "slack",
+      "source_type": "composio",
+      "primary_objects": [
+        "channels",
+        "messages",
+        "threads",
+        "reactions",
+        "mentions",
+        "user_activity"
+      ],
+      "dream_insights": [
+        {
+          "id": "slack_signal_to_action_rate",
+          "label": "Signal-to-Action Rate",
+          "description": "Percent of customer or deal-risk signals in Slack that become tracked actions in workflows, CRM, or tasks within target SLA.",
+          "business_outcome_link": "Faster risk response and lower revenue leakage.",
+          "persona_primary": "sales_leader",
+          "example_question": "How often are risk signals acknowledged and acted on within 24h?"
+        },
+        {
+          "id": "slack_revenue_moment_heatmap",
+          "label": "Revenue Moment Heatmap",
+          "description": "Classifies Slack conversations into wins, risks, expansion opportunities, blockers, and maps response velocity by team.",
+          "business_outcome_link": "Improved execution quality and forecast confidence.",
+          "persona_primary": "executive",
+          "example_question": "Which teams are fastest at closing the loop on expansion signals?"
+        },
+        {
+          "id": "slack_coaching_gap_index",
+          "label": "Coaching Gap Index",
+          "description": "Identifies reps whose conversation risk patterns are high but coaching interactions are low.",
+          "business_outcome_link": "Higher quota attainment via targeted coaching.",
+          "persona_primary": "sales_leader",
+          "example_question": "Who shows repeated objection patterns but has low manager coaching coverage?"
+        }
+      ]
+    },
+    {
+      "integration_id": "hubspot",
+      "source_type": "composio",
+      "primary_objects": [
+        "contacts",
+        "companies",
+        "deals",
+        "activities",
+        "properties",
+        "tasks"
+      ],
+      "dream_insights": [
+        {
+          "id": "hubspot_autonomous_pipeline_progress",
+          "label": "Autonomous Pipeline Progress",
+          "description": "Measures pipeline movement attributable to AskElephant-triggered actions vs. human-only updates.",
+          "business_outcome_link": "Proves platform contribution to time-to-close.",
+          "persona_primary": "revops",
+          "example_question": "How much pipeline progression this quarter was assisted by AskElephant actions?"
+        },
+        {
+          "id": "hubspot_data_hygiene_recovery",
+          "label": "Data Hygiene Recovery",
+          "description": "Tracks missing/incorrect CRM fields detected from meetings and automatically corrected with confidence scoring.",
+          "business_outcome_link": "Improves forecast reliability and reporting trust.",
+          "persona_primary": "revops",
+          "example_question": "How many stale deal properties were auto-corrected from meeting evidence?"
+        },
+        {
+          "id": "hubspot_risk_to_save_conversion",
+          "label": "Risk-to-Save Conversion",
+          "description": "Quantifies at-risk deals/accounts rescued after AskElephant surfaced risk signals and triggered interventions.",
+          "business_outcome_link": "Increases retention and reduces churn.",
+          "persona_primary": "csm",
+          "example_question": "What percentage of high-risk accounts recovered after intervention playbooks ran?"
+        }
+      ]
+    },
+    {
+      "integration_id": "notion",
+      "source_type": "composio",
+      "primary_objects": [
+        "projects",
+        "docs",
+        "specs",
+        "tasks",
+        "knowledge_base"
+      ],
+      "dream_insights": [
+        {
+          "id": "notion_decision_velocity",
+          "label": "Decision Velocity",
+          "description": "Time from signal intake to documented decision with owner, rationale, and next action.",
+          "business_outcome_link": "Faster execution and less organizational drift.",
+          "persona_primary": "product",
+          "example_question": "How long does it take us to convert customer evidence into a documented decision?"
+        },
+        {
+          "id": "notion_artifact_completeness_score",
+          "label": "Artifact Completeness Score",
+          "description": "Evaluates initiative quality gates across research, PRD, design brief, engineering spec, launch and metrics.",
+          "business_outcome_link": "Higher quality launches and fewer downstream misses.",
+          "persona_primary": "product",
+          "example_question": "Which active initiatives have the highest execution risk due to artifact gaps?"
+        },
+        {
+          "id": "notion_evidence_traceability",
+          "label": "Evidence Traceability",
+          "description": "Percent of roadmap and PRD claims directly traceable to customer signals, calls, or revenue data.",
+          "business_outcome_link": "Increases strategic rigor and trust in roadmap choices.",
+          "persona_primary": "executive",
+          "example_question": "How much of our roadmap is evidence-backed versus intuition-backed?"
+        }
+      ]
+    },
+    {
+      "integration_id": "google_gmail",
+      "source_type": "composio",
+      "primary_objects": [
+        "emails",
+        "threads",
+        "labels",
+        "response_latency",
+        "stakeholder_patterns"
+      ],
+      "dream_insights": [
+        {
+          "id": "gmail_revenue_response_sla",
+          "label": "Revenue Response SLA",
+          "description": "Monitors response times for customer and prospect emails by segment and urgency.",
+          "business_outcome_link": "Improves conversion and account confidence.",
+          "persona_primary": "sales_leader",
+          "example_question": "Which account tiers are receiving slower-than-target responses?"
+        },
+        {
+          "id": "gmail_expansion_signal_mining",
+          "label": "Expansion Signal Mining",
+          "description": "Detects growth intent, product demand, and champion momentum from inbound email language.",
+          "business_outcome_link": "Increases expansion pipeline creation rate.",
+          "persona_primary": "csm",
+          "example_question": "How many expansion opportunities were first detected in email before CRM updates?"
+        }
+      ]
+    },
+    {
+      "integration_id": "google_calendar",
+      "source_type": "composio",
+      "primary_objects": [
+        "meetings",
+        "attendees",
+        "durations",
+        "recurrence",
+        "no_show_patterns"
+      ],
+      "dream_insights": [
+        {
+          "id": "calendar_meeting_roi_index",
+          "label": "Meeting ROI Index",
+          "description": "Compares meeting time investment with measurable downstream outcomes (deal progression, action completion, risk reduction).",
+          "business_outcome_link": "Reduces non-productive meeting load and improves close velocity.",
+          "persona_primary": "executive",
+          "example_question": "Which recurring meetings consume time without moving revenue outcomes?"
+        },
+        {
+          "id": "calendar_champion_engagement_model",
+          "label": "Champion Engagement Model",
+          "description": "Maps stakeholder attendance and engagement consistency to win/churn likelihood.",
+          "business_outcome_link": "Improves risk detection and champion strategy.",
+          "persona_primary": "ae",
+          "example_question": "Which accounts show declining champion engagement before churn signals appear?"
+        }
+      ]
+    },
+    {
+      "integration_id": "google_tasks",
+      "source_type": "composio",
+      "primary_objects": [
+        "tasks",
+        "owners",
+        "due_dates",
+        "completion_states"
+      ],
+      "dream_insights": [
+        {
+          "id": "tasks_commitment_reliability_score",
+          "label": "Commitment Reliability Score",
+          "description": "Tracks follow-through quality on customer commitments captured in calls, Slack, and email.",
+          "business_outcome_link": "Builds trust and reduces preventable churn.",
+          "persona_primary": "csm",
+          "example_question": "Where are we making commitments we do not close on time?"
+        }
+      ]
+    },
+    {
+      "integration_id": "figma",
+      "source_type": "mcp_native",
+      "primary_objects": [
+        "design_files",
+        "components",
+        "annotations",
+        "versions"
+      ],
+      "dream_insights": [
+        {
+          "id": "figma_design_to_delivery_latency",
+          "label": "Design-to-Delivery Latency",
+          "description": "Measures time from approved design intent to shipped experience and links delays to bottlenecks.",
+          "business_outcome_link": "Improves speed and quality of execution.",
+          "persona_primary": "product",
+          "example_question": "How long does it take us to turn approved design into customer-visible value?"
+        },
+        {
+          "id": "figma_intent_drift_detector",
+          "label": "Intent Drift Detector",
+          "description": "Compares shipped behavior against intended design rationale, accessibility, and trust cues.",
+          "business_outcome_link": "Protects user trust and UX quality.",
+          "persona_primary": "design",
+          "example_question": "Which shipped screens diverged most from approved trust-critical design cues?"
+        }
+      ]
+    },
+    {
+      "integration_id": "linear",
+      "source_type": "mcp_native",
+      "primary_objects": [
+        "issues",
+        "projects",
+        "cycles",
+        "lead_time",
+        "blockers"
+      ],
+      "dream_insights": [
+        {
+          "id": "linear_signal_to_ship_cycle_time",
+          "label": "Signal-to-Ship Cycle Time",
+          "description": "Measures elapsed time from customer signal detection to shipped fix/feature and customer communication.",
+          "business_outcome_link": "Faster learning loops and stronger retention.",
+          "persona_primary": "product",
+          "example_question": "How quickly do we ship meaningful responses to high-impact customer feedback?"
+        },
+        {
+          "id": "linear_risk_weighted_delivery_index",
+          "label": "Risk-Weighted Delivery Index",
+          "description": "Prioritizes throughput not just by ticket count, but by customer/revenue risk mitigated.",
+          "business_outcome_link": "Aligns engineering execution with business impact.",
+          "persona_primary": "executive",
+          "example_question": "How much customer risk did this sprint actually remove?"
+        }
+      ]
+    },
+    {
+      "integration_id": "posthog",
+      "source_type": "mcp_native",
+      "primary_objects": [
+        "events",
+        "funnels",
+        "cohorts",
+        "feature_flags",
+        "dashboards"
+      ],
+      "dream_insights": [
+        {
+          "id": "posthog_outcome_funnel_attribution",
+          "label": "Outcome Funnel Attribution",
+          "description": "Attribution model linking usage behaviors and agent actions to retention, expansion, and conversion outcomes.",
+          "business_outcome_link": "Clarifies what product behaviors actually move revenue outcomes.",
+          "persona_primary": "executive",
+          "example_question": "Which usage sequences most strongly predict expansion and low churn risk?"
+        },
+        {
+          "id": "posthog_feature_trust_index",
+          "label": "Feature Trust Index",
+          "description": "Composite score blending adoption depth, user correction patterns, override rates, and sentiment to evaluate trust.",
+          "business_outcome_link": "Ensures automation scales with confidence, not friction.",
+          "persona_primary": "product",
+          "example_question": "Which automations are adopted but still distrusted due to frequent overrides?"
+        }
+      ]
+    },
+    {
+      "integration_id": "hubspot_activity",
+      "source_type": "mcp_subagent",
+      "primary_objects": [
+        "deals_closed_won",
+        "deals_closed_lost",
+        "meetings_booked",
+        "expansion_activity"
+      ],
+      "dream_insights": [
+        {
+          "id": "hubspot_revenue_momentum_nowcast",
+          "label": "Revenue Momentum Nowcast",
+          "description": "Predictive short-horizon model for win likelihood based on live behavior, activity quality, and risk signals.",
+          "business_outcome_link": "Improves planning and intervention timing.",
+          "persona_primary": "executive",
+          "example_question": "What is most likely to close this month and what actions could change that?"
+        }
+      ]
+    }
+  ],
+  "cross_integration_super_insights": [
+    {
+      "id": "customer_360_outcome_graph",
+      "label": "Customer 360 Outcome Graph",
+      "description": "Unified timeline linking meetings, Slack/email signals, CRM updates, tasks, product usage, and outcomes per account.",
+      "value": "Single source of truth for account health and momentum.",
+      "example_question": "What chain of events led this enterprise account from neutral to expansion-ready?"
+    },
+    {
+      "id": "deal_autopilot_effectiveness",
+      "label": "Deal Autopilot Effectiveness",
+      "description": "Measures incremental lift from AskElephant-assisted workflows compared to matched unassisted cohorts.",
+      "value": "Defensible ROI for renewals and expansion conversations.",
+      "example_question": "How much faster do assisted deals move versus non-assisted deals?"
+    },
+    {
+      "id": "trust_and_transparency_score",
+      "label": "Trust and Transparency Score",
+      "description": "Blends privacy compliance, correction rate, explanation usage, override frequency, and user sentiment.",
+      "value": "Ensures growth does not come at the expense of trust.",
+      "example_question": "Are we scaling automation while increasing or decreasing user trust?"
+    },
+    {
+      "id": "manager_leverage_index",
+      "label": "Manager Leverage Index",
+      "description": "Quantifies how effectively manager time is converted into rep improvement through targeted AI-assisted coaching.",
+      "value": "Higher team performance without linear manager effort growth.",
+      "example_question": "Where is manager coaching generating the greatest measurable rep performance change?"
+    },
+    {
+      "id": "signal_to_revenue_closed_loop",
+      "label": "Signal-to-Revenue Closed Loop",
+      "description": "Tracks every major signal from detection to action to business outcome with accountability and timing.",
+      "value": "Turns product telemetry into business narrative clarity.",
+      "example_question": "How much revenue impact came from acted-on signals this quarter?"
+    }
+  ],
+  "metric_tiers": {
+    "tier_1_board_ready": [
+      "net_revenue_retention_influence",
+      "expansion_pipeline_influence",
+      "time_to_close_lift",
+      "churn_risk_reduction",
+      "trust_and_transparency_score"
+    ],
+    "tier_2_operator_ready": [
+      "signal_to_action_rate",
+      "commitment_reliability_score",
+      "risk_to_save_conversion",
+      "meeting_roi_index",
+      "data_hygiene_recovery"
+    ],
+    "tier_3_diagnostic": [
+      "event_coverage_score",
+      "identity_resolution_quality",
+      "scope_attribution_quality",
+      "freshness_sla_compliance",
+      "explainability_completion_rate"
+    ]
+  },
+  "semantic_event_contract_requirements": [
+    {
+      "event_family": "signal",
+      "required_fields": [
+        "signal_id",
+        "signal_source",
+        "workspace_id",
+        "account_id",
+        "opportunity_id",
+        "severity",
+        "detected_at",
+        "confidence_score"
+      ]
+    },
+    {
+      "event_family": "action",
+      "required_fields": [
+        "action_id",
+        "action_type",
+        "action_channel",
+        "owner_id",
+        "due_at",
+        "executed_at",
+        "status",
+        "linked_signal_id"
+      ]
+    },
+    {
+      "event_family": "outcome",
+      "required_fields": [
+        "outcome_id",
+        "outcome_type",
+        "outcome_value",
+        "currency",
+        "effective_at",
+        "linked_action_id",
+        "attribution_model",
+        "confidence_score"
+      ]
+    }
+  ],
+  "data_quality_and_governance": {
+    "must_have": [
+      "source provenance for every metric",
+      "confidence score and confidence reason",
+      "freshness timestamp and expected refresh SLA",
+      "identity resolution status (high, medium, low)",
+      "privacy and permission guardrails by role"
+    ],
+    "quality_score_formula": "0.30*coverage + 0.20*freshness + 0.20*identity_resolution + 0.15*consistency + 0.15*explainability",
+    "minimum_quality_threshold_for_external_claims": 0.85
+  },
+  "ui_contract": {
+    "mandatory_badges": [
+      "confidence_badge",
+      "freshness_badge",
+      "provenance_badge",
+      "scope_badge"
+    ],
+    "required_modes": [
+      "executive_story_mode",
+      "operator_mode",
+      "diagnostics_mode",
+      "live_wall_mode"
+    ],
+    "required_interactions": [
+      "drill_down_by_persona",
+      "drill_down_by_account",
+      "trace_metric_to_events",
+      "compare_assisted_vs_unassisted",
+      "what_changed_since_last_qbr"
+    ]
+  },
+  "strategic_use_cases": [
+    {
+      "id": "qbr_value_story",
+      "goal": "Tell a defensible value narrative in under 5 minutes.",
+      "required_outputs": [
+        "value_created_this_period",
+        "top_saved_risks",
+        "expansion_influence",
+        "trust_trajectory"
+      ]
+    },
+    {
+      "id": "renewal_defense",
+      "goal": "Show attributable business impact prior to renewal conversation.",
+      "required_outputs": [
+        "assisted_outcome_lift",
+        "operational_hours_saved",
+        "commitment_reliability",
+        "adoption_depth_by_team"
+      ]
+    },
+    {
+      "id": "leadership_operating_review",
+      "goal": "Run weekly operating review with outcome-linked leading indicators.",
+      "required_outputs": [
+        "signal_volume_vs_action_rate",
+        "delivery_cycle_health",
+        "risk_burndown",
+        "forecast_confidence_shift"
+      ]
+    }
+  ],
+  "phased_realization": {
+    "phase_1_foundation": [
+      "canonical event taxonomy",
+      "identity graph (workspace/team/user/account/opportunity)",
+      "confidence and freshness pipeline"
+    ],
+    "phase_2_visibility": [
+      "tier_2 operator metrics",
+      "cross-integration account timeline",
+      "signal-to-action closed-loop tracking"
+    ],
+    "phase_3_attribution": [
+      "assisted vs unassisted causal models",
+      "board-ready tier_1 metrics",
+      "automated QBR and renewal value packs"
+    ],
+    "phase_4_autonomous_intelligence": [
+      "predictive intervention recommendations",
+      "self-optimizing workflow playbooks",
+      "real-time revenue momentum nowcast"
+    ]
+  }
+}

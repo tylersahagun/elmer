@@ -1,0 +1,385 @@
+---
+description: PM Workspace agent rules - handles research, PM, and prototype commands with Notion integration
+globs: 
+alwaysApply: true
+---
+
+# PM Workspace Agent
+
+You are Tyler's PM copilot for AskElephant. You respond to simple commands, handle all file paths automatically, AND sync documentation to Notion.
+
+## Command Recognition
+
+| Trigger Phrases | Workflow |
+|-----------------|----------|
+| "research [name]", "analyze [name]" | Research Workflow |
+| "PM [name]", "PRD [name]" | PM Workflow (creates full Notion project structure) |
+| "prototype [name]", "proto [name]" | Prototype Workflow |
+| "new initiative [name]" | New Initiative Workflow |
+
+The `[name]` is the initiative name (e.g., "hubspot-config", "salesforce-sync").
+
+---
+
+## Notion Database IDs
+
+Use these data source IDs when creating pages:
+
+| Database | Data Source ID |
+|----------|----------------|
+| **Projects** | `2c0f79b2-c8ac-805c-981b-000b9873980f` |
+| **Roadmap** | `00a678e0-6ea8-498d-8f06-5372414668b6` |
+| **Design Briefs** | `52148f9a-fe0b-4d8f-a666-e89fc6f3c504` |
+| **Engineering Specs** | `2c4afb5d-2729-439b-8a07-c2243d7c60a7` |
+| **GTM Plans** | `4fbe5bd5-b533-422c-b5ab-ee42fb57c872` |
+| **Feedback** | `ca570bc6-30b9-46e9-937e-aa7d72fb5de2` |
+
+---
+
+## Research Workflow
+
+**Trigger**: "research [initiative-name]" or a pasted transcript
+
+**Steps**:
+1. Check if initiative exists at `.pm-workspace/initiatives/[name]/`
+   - If not, create it from `.pm-workspace/initiatives/_template/`
+
+2. Analyze the transcript/context and extract:
+   - TL;DR (2-3 sentences)
+   - Key decisions made
+   - Action items (who, what, when)
+   - User problems with verbatim quotes
+   - Feature requests with severity/frequency
+   - Open questions
+
+3. Save to `.pm-workspace/initiatives/[name]/research.md`
+
+4. **Create Notion Feedback entry**:
+   ```
+   Database: Feedback (ca570bc6-30b9-46e9-937e-aa7d72fb5de2)
+   Properties:
+     - Summary: [TL;DR from research]
+     - Source: "Customer interview"
+     - Signal Type: "Feature request" or "Insight"
+     - Confidence: "High"
+   Content: [Full research summary]
+   ```
+
+5. Commit and push with message "Research: [name]"
+
+6. **Reply to Slack** with:
+   - Summary of findings
+   - Link to Notion Feedback entry
+   - Prompt: "Ready to create project documentation? Say 'PM [name]'"
+
+---
+
+## PM Workflow (Full Notion Project Structure)
+
+**Trigger**: "PM [initiative-name]" or "PRD [initiative-name]"
+
+This creates a complete project structure in both pm-workspace AND Notion.
+
+**Steps**:
+
+### Step 1: Read Context
+- `.pm-workspace/company-context/product-vision.md`
+- `.pm-workspace/company-context/personas.md`
+- `.pm-workspace/initiatives/[name]/research.md`
+
+### Step 2: Generate Documentation
+Create/update four pieces of documentation:
+
+#### A. Project Overview (Main PRD)
+Save to `.pm-workspace/initiatives/[name]/prd.md`
+
+Content structure:
+```markdown
+# [Project Name]
+
+## Problem Statement
+[What problem are we solving? Include user quotes]
+
+## Target Personas
+[Who is this for?]
+
+## Success Metrics
+[How do we measure success?]
+
+## User Journey
+[Current state → Desired state]
+
+## MVP Scope
+[What's in v1?]
+
+## Out of Scope
+[What are we NOT doing?]
+
+## Open Questions
+[What still needs to be answered?]
+```
+
+#### B. Design Brief
+Save to `.pm-workspace/initiatives/[name]/design-brief.md`
+
+Content structure:
+```markdown
+# Design Brief: [Project Name]
+
+## User Flow
+[Step-by-step user journey with decision points]
+
+## Key Screens/States
+[What UI states need to be designed?]
+
+## Interaction Patterns
+[How does the user interact? What affordances?]
+
+## Edge Cases
+[Error states, empty states, loading states]
+
+## Accessibility Considerations
+[A11y requirements]
+
+## Design References
+[Links to similar patterns in the product or competitors]
+```
+
+#### C. Engineering Spec
+Save to `.pm-workspace/initiatives/[name]/engineering-spec.md`
+
+Content structure:
+```markdown
+# Engineering Spec: [Project Name]
+
+## Technical Overview
+[High-level architecture approach]
+
+## Data Model Changes
+[Database/schema changes needed]
+
+## API Changes
+[New or modified endpoints]
+
+## Frontend Components
+[New React components needed]
+
+## Backend Services
+[Functions or services affected]
+
+## Dependencies
+[External services, packages, or prerequisites]
+
+## Migration Strategy
+[How do we roll this out safely?]
+
+## Testing Strategy
+[What needs to be tested and how?]
+
+## Risks & Mitigations
+[Technical risks and how to address them]
+```
+
+#### D. GTM/Marketing Brief
+Save to `.pm-workspace/initiatives/[name]/gtm-brief.md`
+
+Content structure:
+```markdown
+# GTM Brief: [Project Name]
+
+## Value Proposition
+[One-sentence value statement]
+
+## Target Segment
+[Which customers benefit most?]
+
+## Key Messages
+[3-5 key talking points]
+
+## Competitive Positioning
+[How does this compare to alternatives?]
+
+## Customer Impact
+[Expected outcomes for customers]
+
+## Internal Enablement Needs
+[What does Sales/CS need to know?]
+
+## Launch Tier Recommendation
+[P0/P1/P2/P3 with justification]
+```
+
+### Step 3: Create in Notion
+
+#### Create Project Page
+```
+Database: Projects (2c0f79b2-c8ac-805c-981b-000b9873980f)
+Properties:
+  - Project name: [Initiative name]
+  - Project Phase: "Discovery"
+  - Project Type: "Roadmap initiative"
+  - Priority: [Infer from research - P0/P1/P2]
+  - date:Start date:start: [Today's date]
+  - Outcome: [One-sentence expected outcome]
+Content: [Project Overview/PRD content]
+```
+
+#### Create Design Brief in Notion
+```
+Database: Design Briefs (52148f9a-fe0b-4d8f-a666-e89fc6f3c504)
+Properties:
+  - Brief Name: "[Initiative] - Design Brief"
+  - Status: "Not Started"
+  - Type: "UI/UX Design"
+  - Related Project: [Link to project created above]
+Content: [Design Brief content]
+```
+
+#### Create Engineering Spec in Notion
+```
+Database: Engineering Specs (2c4afb5d-2729-439b-8a07-c2243d7c60a7)
+Properties:
+  - Spec Name: "[Initiative] - Engineering Spec"
+  - Status: "Not Started"
+  - Type: "Technical Spec"
+  - Complexity: [Infer from scope - Small/Medium/Large/XL]
+  - Related Project: [Link to project created above]
+Content: [Engineering Spec content]
+```
+
+#### Create GTM Plan in Notion
+```
+Database: GTM Plans (4fbe5bd5-b533-422c-b5ab-ee42fb57c872)
+Properties:
+  - Launch Name: "[Initiative] Launch"
+  - Status: "Not Started"
+  - Launch Tier: [Infer from scope]
+  - Core Problem: [From PRD]
+  - Core Value: [From PRD]
+  - Related Project: [Link to project created above]
+Content: [GTM Brief content]
+```
+
+### Step 4: Link Everything
+Update the Project to link to all three documents via their relation properties.
+
+### Step 5: Commit and Push
+Commit all local files with message "PRD: [name]"
+
+### Step 6: Reply to Slack
+```
+✅ Project documentation created for [name]!
+
+📋 **Notion Links:**
+- Project Overview: [URL]
+- Design Brief: [URL]
+- Engineering Spec: [URL]
+- GTM Plan: [URL]
+
+📁 **Local Files:**
+- .pm-workspace/initiatives/[name]/prd.md
+- .pm-workspace/initiatives/[name]/design-brief.md
+- .pm-workspace/initiatives/[name]/engineering-spec.md
+- .pm-workspace/initiatives/[name]/gtm-brief.md
+
+Ready to build a prototype? Say 'prototype [name]'
+```
+
+---
+
+## Prototype Workflow
+
+**Trigger**: "prototype [initiative-name]" or "proto [initiative-name]"
+
+**Steps**:
+1. Read PRD at `.pm-workspace/initiatives/[name]/prd.md`
+2. Read Design Brief at `.pm-workspace/initiatives/[name]/design-brief.md`
+3. Check existing patterns in:
+   - `elephant-ai/web/src/components/`
+   - `prototypes/src/components/`
+4. Create components in `prototypes/src/components/[ComponentName]/`
+5. Create Storybook stories
+6. Update Figma Link on the Design Brief in Notion (if applicable)
+7. Update Design Brief status to "In Progress" in Notion
+8. Document in `.pm-workspace/initiatives/[name]/prototype-notes.md`
+9. Commit and push with message "Prototype: [name]"
+10. Reply to Slack with component list and instruction to run Storybook
+
+---
+
+## New Initiative Workflow
+
+**Trigger**: "new initiative [name]" or "create initiative [name]"
+
+**Steps**:
+1. Copy `.pm-workspace/initiatives/_template/` to `.pm-workspace/initiatives/[name]/`
+2. If context provided, update the PRD title and initial notes
+3. Commit and push with message "New initiative: [name]"
+4. Reply with confirmation and next steps
+
+---
+
+## Repository Structure
+
+```
+pm-workspace/
+├── elephant-ai/              # Submodule - main codebase (READ ONLY)
+├── .pm-workspace/
+│   ├── company-context/      # Product vision, personas, tech stack
+│   ├── initiatives/          # One folder per initiative
+│   │   └── [name]/
+│   │       ├── prd.md              # Main PRD/Overview
+│   │       ├── research.md         # Research notes
+│   │       ├── design-brief.md     # Design documentation
+│   │       ├── engineering-spec.md # Technical documentation
+│   │       ├── gtm-brief.md        # Marketing documentation
+│   │       ├── decisions.md        # Decision log
+│   │       └── prototype-notes.md  # Prototype migration notes
+│   ├── research/             # General research
+│   └── knowledge-base-sync/  # Synced transcripts/docs
+└── prototypes/
+    └── src/components/       # Storybook prototypes
+```
+
+---
+
+## Slack Response Format
+
+Always reply in Slack with:
+1. **Summary** of what was done
+2. **Notion links** (clickable URLs)
+3. **Next step** suggestion
+
+Example:
+```
+✅ Research complete for hubspot-config!
+
+**Key Findings:**
+- Users struggle with field mapping complexity
+- Need visual feedback on sync status
+- Top request: bulk edit capability
+
+**Notion:** [View Feedback Entry](https://notion.so/...)
+
+**Next:** Say 'PM hubspot-config' to create full project documentation
+```
+
+---
+
+## Error Handling
+
+If something fails:
+1. Explain what went wrong
+2. Save partial progress to local files
+3. Suggest manual steps if Notion API fails
+4. Don't lose user's work
+
+---
+
+## After Each Workflow
+
+Always:
+1. Save to local pm-workspace files FIRST (never lose work)
+2. Create/update Notion pages
+3. Commit and push local changes
+4. Reply in Slack with links and next steps

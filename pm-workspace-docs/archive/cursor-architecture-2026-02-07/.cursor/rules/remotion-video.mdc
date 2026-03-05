@@ -1,0 +1,26 @@
+---
+description: "Remotion PMM video conventions and structure"
+globs: ["remotion-pmm/**/*"]
+alwaysApply: false
+---
+
+# Remotion PMM Video Conventions
+
+## Structure
+
+- Keep compositions in `remotion-pmm/src/` with a clear, readable scene layout.
+- Store JSON briefs in `remotion-pmm/briefs/`.
+- Render outputs go to `remotion-pmm/out/`.
+
+## Coding guidelines
+
+- Keep scene durations explicit and readable.
+- Prefer data‑driven rendering from JSON props.
+- Ensure typography and colors are consistent with brand.
+- Keep the copy concise and outcome‑focused.
+
+## Quality checks
+
+- Each scene has a clear narrative purpose.
+- Evidence is shown on screen when possible.
+- CTA is explicit and aligned to persona.

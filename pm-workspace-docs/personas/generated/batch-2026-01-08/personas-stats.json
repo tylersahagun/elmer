@@ -1,0 +1,98 @@
+{
+  "total_count": 1000,
+  "by_archetype": {
+    "sales-leader": {
+      "count": 250,
+      "percent": 25.0
+    },
+    "operations": {
+      "count": 150,
+      "percent": 15.0
+    },
+    "sales-rep": {
+      "count": 350,
+      "percent": 35.0
+    },
+    "csm": {
+      "count": 150,
+      "percent": 15.0
+    },
+    "strategic-consultant": {
+      "count": 100,
+      "percent": 10.0
+    }
+  },
+  "by_ai_adoption": {
+    "skeptic": {
+      "count": 351,
+      "percent": 35.1
+    },
+    "curious": {
+      "count": 208,
+      "percent": 20.8
+    },
+    "early-adopter": {
+      "count": 204,
+      "percent": 20.4
+    },
+    "power-user": {
+      "count": 237,
+      "percent": 23.7
+    }
+  },
+  "by_company_size": {
+    "51-200": {
+      "count": 262,
+      "percent": 26.2
+    },
+    "1000+": {
+      "count": 239,
+      "percent": 23.9
+    },
+    "1-50": {
+      "count": 256,
+      "percent": 25.6
+    },
+    "201-1000": {
+      "count": 243,
+      "percent": 24.3
+    }
+  },
+  "by_tech_literacy": {
+    "intermediate": {
+      "count": 255,
+      "percent": 25.5
+    },
+    "advanced": {
+      "count": 257,
+      "percent": 25.7
+    },
+    "expert": {
+      "count": 248,
+      "percent": 24.8
+    },
+    "novice": {
+      "count": 240,
+      "percent": 24.0
+    }
+  },
+  "by_comm_style": {
+    "analytical": {
+      "count": 243,
+      "percent": 24.3
+    },
+    "amiable": {
+      "count": 267,
+      "percent": 26.7
+    },
+    "driver": {
+      "count": 240,
+      "percent": 24.0
+    },
+    "expressive": {
+      "count": 250,
+      "percent": 25.0
+    }
+  },
+  "skeptic_percentage": 35.1
+}

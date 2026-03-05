@@ -525,7 +525,7 @@ export function DocumentList({
   );
 
   // Order of document types
-  const typeOrder: DocumentType[] = [
+  const typeOrder = [
     "research",
     "prd",
     "design_brief",
@@ -534,7 +534,16 @@ export function DocumentList({
     "prototype_notes",
     "metrics",
     "jury_report",
-  ];
+    // GTM-53: new document types
+    "feature_guide",
+    "competitive_landscape",
+    "success_criteria",
+    "gtm_plan",
+    "retrospective",
+    "decisions",
+    "visual_directions",
+    "state",
+  ] as DocumentType[];
 
   // Get types that have documents
   const typesWithDocs = typeOrder.filter((type) => grouped[type]?.length > 0);

@@ -1,0 +1,118 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "meeting-summary",
+  "name": "Chief of Staff - Meeting Summary",
+  "parent_initiative": "chief-of-staff-experience",
+  "hypothesis_id": "hyp-chief-of-staff-first-class-artifacts",
+  "phase": "define",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "eng_lead": null,
+  "design_lead": null,
+  "feedback_method": "interview-plan",
+  "feedback_status": "in-progress",
+  "personas": [
+    "sales-rep",
+    "sales-leader",
+    "csm"
+  ],
+  "pillar": "customer-trust",
+  "created_at": "2026-02-17T10:00:00.000Z",
+  "updated_at": "2026-02-19T00:30:00.000Z",
+  "next_action": "Close Gate 1/2/3 handoff criteria (metrics baselines + template scope policy + trust acceptance thresholds) and assign eng/design leads",
+  "timeline": {
+    "started": "2026-02-17",
+    "target_launch": "2026-05-01"
+  },
+  "artifacts": {
+    "prd": true,
+    "design_brief": true,
+    "engineering_spec": true,
+    "gtm_brief": true,
+    "competitive_landscape": true,
+    "research": true,
+    "metrics": true,
+    "prototype_notes": true
+  },
+  "jury_score": 65.5,
+  "jury_status": "validated",
+  "notion_project_id": "30af79b2-c8ac-8059-85a8-fad34b8d07da",
+  "notion_project_url": "https://www.notion.so/ask-elephant/Meeting-Summary-30af79b2c8ac805985a8fad34b8d07da",
+  "visibility": "internal",
+  "competitive_landscape": {
+    "last_analyzed": "2026-02-17",
+    "competitors": [
+      "Gong",
+      "Clari",
+      "Chorus",
+      "Avoma",
+      "Fathom",
+      "Fireflies.ai",
+      "Salesforce Agentforce",
+      "HubSpot Breeze"
+    ],
+    "differentiation_points": [
+      "First-class summary artifact",
+      "Template by meeting type",
+      "Section-level AI edit",
+      "Save-as-template",
+      "Evidence links with source quotes",
+      "Privacy-before-share controls"
+    ]
+  },
+  "prototype": {
+    "version": "v4",
+    "path": "elephant-ai/apps/web/src/components/prototypes/ChiefOfStaff/MeetingSummary/v4",
+    "iterations": [
+      {
+        "from": "v1",
+        "to": "v2",
+        "date": "2026-02-18",
+        "signals": [
+          "Skylar Sanford (Design)",
+          "Palmer Turley (Engineering)"
+        ],
+        "changes": [
+          "Action items actionable",
+          "TLDR at top",
+          "Full-screen layout",
+          "Edit in chat",
+          "Template auto-inferred",
+          "Add to deal affordance"
+        ]
+      },
+      {
+        "from": "v2",
+        "to": "v3",
+        "date": "2026-02-18",
+        "signals": [
+          "V2 validation findings"
+        ],
+        "changes": [
+          "Stateful workspace model",
+          "Section reorder controls",
+          "Template builder sidebar",
+          "Blank template workflow"
+        ]
+      },
+      {
+        "from": "v3",
+        "to": "v4",
+        "date": "2026-02-18",
+        "signals": [
+          "Tyler Sahagun (PM/Owner) — v3 regression feedback"
+        ],
+        "changes": [
+          "Removed all section management UI (arrows, grip, builder)",
+          "One cohesive document feel",
+          "Length control (Short/Medium/Detailed)",
+          "Chat-as-configuration (floating chat button → slide-out)",
+          "Subtle hover affordances (rewrite/edit/verify)",
+          "Rich mock data with evidence and automation badges",
+          "7 story variants"
+        ]
+      }
+    ]
+  }
+}

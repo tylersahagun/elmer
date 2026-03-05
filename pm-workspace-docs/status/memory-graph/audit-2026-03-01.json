@@ -1,0 +1,126 @@
+{
+  "generated_at": "2026-03-01T08:06:10.829577+00:00",
+  "graph_path": "packages/product-os-memory/data/graph-projection.json",
+  "summary": {
+    "node_count": 63,
+    "edge_count": 56,
+    "graph_load_ms": 0.257,
+    "scoped_query_avg_ms": 0.009,
+    "missing_evidence_edge_count": 0,
+    "bad_evidence_ref_count": 0,
+    "status": "pass"
+  },
+  "missing_evidence_edges": [],
+  "bad_evidence_refs": [],
+  "sampled_edges": [
+    {
+      "edge_id": "edge:chief-of-staff-experience:candidate:ac_90a221f80e2a",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "edge_id": "edge:privacy-agent-v2:metrics",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/privacy-agent-v2/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:settings-redesign:metrics",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/settings-redesign/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:chief-of-staff-experience:metrics",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:chief-of-staff-experience:candidate:ac_bb4bcd5544b0",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "edge_id": "edge:feedback-intelligence:related:agent-command-center",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/_meta.json"
+      ]
+    },
+    {
+      "edge_id": "edge:feedback-intelligence:metrics",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:client-usage-metrics:metrics",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/client-usage-metrics/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:chief-of-staff-experience:related:global-chat",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "edge_id": "edge:settings-redesign:candidate:ac_cde06513528e",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/settings-redesign/_meta.json"
+      ]
+    },
+    {
+      "edge_id": "edge:global-chat:candidate:ac_013bfab0d1e0",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/global-chat/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:global-chat:metrics",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/global-chat/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:speaker-id-voiceprint:candidate:ac_2473305a3777",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/speaker-id-voiceprint/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:feature-flag-audit:metrics",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feature-flag-audit/metrics-contract.json"
+      ]
+    },
+    {
+      "edge_id": "edge:agent-command-center:related:composio-agent-framework",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/agent-command-center/_meta.json"
+      ]
+    }
+  ],
+  "thresholds": {
+    "graph_load_ms_warn": 250.0,
+    "scoped_query_avg_ms_warn": 30.0
+  }
+}

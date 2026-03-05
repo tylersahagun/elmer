@@ -16,7 +16,7 @@ import {
 import { Sun, Moon, Globe, Menu, LogOut, User, Settings } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useUser, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { type ReactNode } from "react";
 
@@ -164,7 +164,8 @@ export function SimpleNavbar({
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
 
   // Get stored workspace from store (persists across page navigation)
   const storedWorkspace = useKanbanStore((s) => s.workspace);
@@ -177,6 +178,8 @@ export function SimpleNavbar({
   const isControlCenterActive = pathname?.includes("/control-center");
   const isSwarmActive = pathname?.includes("/swarm");
   const isAgentsActive = pathname?.includes("/agents");
+  const isTasksActive = pathname?.includes("/tasks");
+  const isInboxActive = pathname?.includes("/inbox");
   const isSettingsActive = pathname?.includes("/settings");
   const isDashboardActive =
     pathname === "/" ||
@@ -188,6 +191,8 @@ export function SimpleNavbar({
       !isControlCenterActive &&
       !isSwarmActive &&
       !isAgentsActive &&
+      !isTasksActive &&
+      !isInboxActive &&
       !isSettingsActive);
 
   // Extract workspace ID from pathname, or fall back to stored workspace
@@ -223,6 +228,14 @@ export function SimpleNavbar({
     workspaceId && {
       label: "Agents",
       href: `/workspace/${workspaceId}/agents`,
+    },
+    workspaceId && {
+      label: "Inbox",
+      href: `/workspace/${workspaceId}/inbox`,
+    },
+    workspaceId && {
+      label: "Tasks",
+      href: `/workspace/${workspaceId}/tasks`,
     },
     workspaceId && {
       label: "Settings",
@@ -402,6 +415,38 @@ export function SimpleNavbar({
                     </Link>
 
                     <Link
+                      href={`/workspace/${workspaceId}/inbox`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isInboxActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>cat</span>
+                        <span className="text-muted-foreground">inbox/</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
+                      href={`/workspace/${workspaceId}/tasks`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isTasksActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>ls</span>
+                        <span className="text-muted-foreground">tasks/</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
                       href={`/workspace/${workspaceId}/settings`}
                       className="w-full"
                     >
@@ -436,28 +481,28 @@ export function SimpleNavbar({
                 <DropdownMenuSeparator />
 
                 {/* Auth section */}
-                {status === "authenticated" && session?.user ? (
+                {isLoaded && user ? (
                   <>
                     <div className="px-2 py-1.5">
                       <p className="text-sm font-medium truncate">
-                        {session.user.name || session.user.email}
+                        {user.fullName || user.primaryEmailAddress?.emailAddress}
                       </p>
-                      {session.user.name && session.user.email && (
+                      {user.fullName && user.primaryEmailAddress?.emailAddress && (
                         <p className="text-xs text-muted-foreground truncate">
-                          {session.user.email}
+                          {user.primaryEmailAddress.emailAddress}
                         </p>
                       )}
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onClick={() => signOut({ callbackUrl: "/login" })}
+                      onClick={() => signOut({ redirectUrl: "/login" })}
                       className="gap-2 text-destructive focus:text-destructive"
                     >
                       <LogOut className="w-4 h-4" />
                       Sign out
                     </DropdownMenuItem>
                   </>
-                ) : status === "unauthenticated" ? (
+                ) : isLoaded ? (
                   <Link href="/login" className="w-full">
                     <DropdownMenuItem className="gap-2">
                       <User className="w-4 h-4" />
@@ -483,6 +528,8 @@ export function SimpleNavbar({
                   isControlCenterActive) ||
                 (item.href.includes("/swarm") && isSwarmActive) ||
                 (item.href.includes("agents") && isAgentsActive) ||
+                (item.href.includes("/tasks") && isTasksActive) ||
+                (item.href.includes("/inbox") && isInboxActive) ||
                 (item.href.includes("settings") && isSettingsActive);
               return (
                 <Link key={item.href} href={item.href} className="shrink-0">

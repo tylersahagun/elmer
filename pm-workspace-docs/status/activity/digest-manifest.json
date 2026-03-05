@@ -1,0 +1,24 @@
+{
+  "$schema": "digest-manifest-v1",
+  "site_title": "AskElephant Weekly",
+  "tagline": "What shipped this week",
+  "location": "San Francisco, USA",
+  "base_url": "https://askelephant.github.io/pm-workspace",
+  "issues": [
+    {
+      "number": 1,
+      "type": "weekly",
+      "date": "2026-01-24",
+      "week": "W04",
+      "source": "digest/digest-2026-W04.md",
+      "published": "2026-01-24T17:00:00Z",
+      "headline": "Dialpad Integration Now Live",
+      "stats": {
+        "features": 12,
+        "improvements": 8,
+        "bugs": 14
+      }
+    }
+  ],
+  "current_issue": 1
+}

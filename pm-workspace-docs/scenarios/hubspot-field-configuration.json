@@ -1,0 +1,81 @@
+{
+  "$schema": "../personas/scenario-schema.json",
+  "id": "scenario_hubspot_field_config",
+  "name": "HubSpot agent field configuration",
+  "description": "Admin configures which HubSpot fields the AI agent should update after each call",
+  "applicable_archetypes": ["sales-leader", "revops"],
+  "task": {
+    "primary_goal": "Configure 5 HubSpot deal properties to update automatically after calls",
+    "steps": [
+      "Navigate to agent configuration",
+      "Select HubSpot as the integration",
+      "Choose deal properties to update",
+      "Set instructions for each property",
+      "Configure read-before-write dependencies",
+      "Test the configuration",
+      "Save and activate"
+    ],
+    "expected_duration": "10-15 minutes",
+    "difficulty": "moderate"
+  },
+  "context": {
+    "time_of_day": "Dedicated admin time",
+    "device_type": "desktop",
+    "environment": "Quiet office or home",
+    "interruption_level": "none",
+    "prior_experience": "First time configuring this feature"
+  },
+  "success_criteria": [
+    {
+      "criterion": "Configuration completion",
+      "measurement": "Can complete all 7 steps without abandoning",
+      "threshold": "100% task completion"
+    },
+    {
+      "criterion": "Time to value",
+      "measurement": "Time to first working configuration",
+      "threshold": "Under 15 minutes for 5 fields"
+    },
+    {
+      "criterion": "Confidence in result",
+      "measurement": "Would trust this to run on real deals",
+      "threshold": "4+/5 confidence score"
+    },
+    {
+      "criterion": "Debuggability",
+      "measurement": "Would know what to do if something went wrong",
+      "threshold": "Clear understanding of how to troubleshoot"
+    }
+  ],
+  "relevant_persona_attributes": [
+    "psychographics.tech_literacy",
+    "psychographics.detail_orientation",
+    "psychographics.trust_in_ai",
+    "behavioral_heuristics.error_response",
+    "role.decision_authority"
+  ],
+  "evaluation_focus": {
+    "heuristics_to_emphasize": [
+      "visibility_of_status",
+      "user_control",
+      "error_prevention",
+      "recognition_over_recall"
+    ],
+    "key_questions": [
+      "Is it clear which fields are available to configure?",
+      "Do you understand what 'read-before-write' means?",
+      "Would you know if the configuration was correct before testing?",
+      "If this broke something in HubSpot, could you figure out why?"
+    ]
+  },
+  "from_research": {
+    "source": ".pm-workspace/research/user-interviews/2026-01-06-hubspot-agent-configuration-james-hinkson.md",
+    "key_quotes": [
+      "There is zero confidence that an admin or rep can find out why things were updated the way they were in the CRM",
+      "My goal is that this should take five minutes per node",
+      "I'm probably like a hundred hours now of chatting with AskElephant to find out why something would or would not work"
+    ],
+    "success_definition": "100% confident that every field I want updated in HubSpot is updated after every call"
+  }
+}
+

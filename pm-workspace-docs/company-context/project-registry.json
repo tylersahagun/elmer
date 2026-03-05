@@ -1,0 +1,408 @@
+{
+  "$schema": "product-os-project-registry-v1",
+  "generated_at": "2026-03-01T08:06:10.591209+00:00",
+  "source": "initiatives/active",
+  "total_projects": 16,
+  "projects": [
+    {
+      "project_id": "admin-onboarding",
+      "initiative_name": "Admin Onboarding",
+      "initiative_path": "initiatives/active/admin-onboarding",
+      "pilot": false,
+      "phase": "define",
+      "status": "on_track",
+      "owner": null,
+      "sponsor": null,
+      "linear": {
+        "project_id": "fb8f1181-d633-4220-a9a7-c1ce8ba11643",
+        "project_url": "https://linear.app/askelephant/project/onboarding-v2-carousel-and-seeding-3a4b978eb3de"
+      },
+      "notion": {
+        "project_id": "2f4f79b2-c8ac-8149-8975-ec5d5a990848",
+        "project_url": "https://www.notion.so/Admin-Onboarding-2f4f79b2c8ac81498975ec5d5a990848"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.589924+00:00"
+    },
+    {
+      "project_id": "agent-command-center",
+      "initiative_name": "Agent Command Center",
+      "initiative_path": "initiatives/active/agent-command-center",
+      "pilot": false,
+      "phase": "build",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": null,
+        "project_url": null
+      },
+      "notion": {
+        "project_id": "301f79b2-c8ac-8162-89dc-e4b4b298eb19",
+        "project_url": "https://www.notion.so/Chat-V2-Agent-Architecture-301f79b2c8ac816289dce4b4b298eb19"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590098+00:00"
+    },
+    {
+      "project_id": "chief-of-staff-experience",
+      "initiative_name": "Chief of Staff Experience",
+      "initiative_path": "initiatives/active/chief-of-staff-experience",
+      "pilot": true,
+      "phase": "define",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": null,
+        "project_url": null
+      },
+      "notion": {
+        "project_id": "30af79b2-c8ac-8125-b850-d5df42f68e76",
+        "project_url": "https://www.notion.so/ask-elephant/Chief-of-Staff-Experience-30af79b2c8ac8125b850d5df42f68e76"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590212+00:00"
+    },
+    {
+      "project_id": "client-usage-metrics",
+      "initiative_name": "Client Usage Metrics",
+      "initiative_path": "initiatives/active/client-usage-metrics",
+      "pilot": false,
+      "phase": "build",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": null,
+        "project_url": null
+      },
+      "notion": {
+        "project_id": "2fff79b2-c8ac-807f-8ff0-c6a9ff7e2ed3",
+        "project_url": "https://www.notion.so/How-do-we-get-client-specific-usage-metrics-2fff79b2c8ac807f8ff0c6a9ff7e2ed3"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590288+00:00"
+    },
+    {
+      "project_id": "composio-agent-framework",
+      "initiative_name": "Composio Agent Framework",
+      "initiative_path": "initiatives/active/composio-agent-framework",
+      "pilot": false,
+      "phase": "validate",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": "313bc3ff-9c2f-4a18-bb27-1d9e7c203eb3",
+        "project_url": "https://linear.app/askelephant/project/deprecating-the-pipedream-70c7a6bf99aa"
+      },
+      "notion": {
+        "project_id": "2f4f79b2-c8ac-814f-944b-fd2d8d857425",
+        "project_url": "https://www.notion.so/Composio-Agent-Framework-2f4f79b2c8ac814f944bfd2d8d857425"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590418+00:00"
+    },
+    {
+      "project_id": "deprecate-legacy-hubspot",
+      "initiative_name": "Deprecate Legacy Hubspot",
+      "initiative_path": "initiatives/active/deprecate-legacy-hubspot",
+      "pilot": false,
+      "phase": "build",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": "313bc3ff-9c2f-4a18-bb27-1d9e7c203eb3",
+        "project_url": "https://linear.app/askelephant/project/deprecating-the-pipedream-70c7a6bf99aa"
+      },
+      "notion": {
+        "project_id": "2fff79b2-c8ac-80a5-9cc4-d690ec69cbb3",
+        "project_url": "https://www.notion.so/Deprecate-Legacy-Hubspot-Nodes-2fff79b2c8ac80a59cc4d690ec69cbb3"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590490+00:00"
+    },
+    {
+      "project_id": "feature-flag-audit",
+      "initiative_name": "Feature Flag Audit",
+      "initiative_path": "initiatives/active/feature-flag-audit",
+      "pilot": false,
+      "phase": "build",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": null,
+        "project_url": null
+      },
+      "notion": {
+        "project_id": "2e7f79b2-c8ac-81a4-bd34-c955b8d07595",
+        "project_url": "https://www.notion.so/Feature-Flag-Audit-Cleanup-2e7f79b2c8ac81a4bd34c955b8d07595"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590552+00:00"
+    },
+    {
+      "project_id": "feedback-intelligence",
+      "initiative_name": "Feedback Intelligence",
+      "initiative_path": "initiatives/active/feedback-intelligence",
+      "pilot": false,
+      "phase": "define",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": null,
+        "project_url": null
+      },
+      "notion": {
+        "project_id": null,
+        "project_url": null
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590610+00:00"
+    },
+    {
+      "project_id": "fga-engine",
+      "initiative_name": "Fga Engine",
+      "initiative_path": "initiatives/active/fga-engine",
+      "pilot": false,
+      "phase": "define",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": "38305c64-0c1d-4299-9f02-80b59f838b56",
+        "project_url": "https://linear.app/askelephant/project/fga-engine-071b1bfd3808"
+      },
+      "notion": {
+        "project_id": "2c5f79b2-c8ac-807a-8a11-d430594431ff",
+        "project_url": "https://www.notion.so/FGA-engine-2c5f79b2c8ac807a8a11d430594431ff"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590666+00:00"
+    },
+    {
+      "project_id": "global-chat",
+      "initiative_name": "Global Chat",
+      "initiative_path": "initiatives/active/global-chat",
+      "pilot": false,
+      "phase": "build",
+      "status": "on_track",
+      "owner": "skylar",
+      "sponsor": null,
+      "linear": {
+        "project_id": "05066db9-89d7-432c-bffd-234ca92af024",
+        "project_url": "https://linear.app/askelephant/project/global-chat-45b141b480bc"
+      },
+      "notion": {
+        "project_id": "2c0f79b2-c8ac-8199-8b42-c3e9126cac78",
+        "project_url": "https://www.notion.so/Global-Chat-Internal-Seach-2c0f79b2c8ac81998b42c3e9126cac78"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590725+00:00"
+    },
+    {
+      "project_id": "privacy-agent-v2",
+      "initiative_name": "Privacy Agent V2",
+      "initiative_path": "initiatives/active/privacy-agent-v2",
+      "pilot": false,
+      "phase": "validate",
+      "status": "on_track",
+      "owner": null,
+      "sponsor": null,
+      "linear": {
+        "project_id": "a51a5921-1c7c-4f1d-871c-2e2d1dcfe265",
+        "project_url": "https://linear.app/askelephant/project/privacy-determination-agent-eb13c790b4bb"
+      },
+      "notion": {
+        "project_id": "2c0f79b2-c8ac-8193-8868-ce8ce8a79d4c",
+        "project_url": "https://www.notion.so/Privacy-Determination-Agent-v2-2c0f79b2c8ac81938868ce8ce8a79d4c"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590776+00:00"
+    },
+    {
+      "project_id": "release-lifecycle-process",
+      "initiative_name": "Release Lifecycle Process",
+      "initiative_path": "initiatives/active/release-lifecycle-process",
+      "pilot": false,
+      "phase": "build",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": null,
+        "project_url": null
+      },
+      "notion": {
+        "project_id": "2f4f79b2-c8ac-815f-adec-da94b74ad879",
+        "project_url": "https://www.notion.so/Release-Lifecycle-Process-2f4f79b2c8ac815fadecda94b74ad879"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590844+00:00"
+    },
+    {
+      "project_id": "settings-redesign",
+      "initiative_name": "Settings Redesign",
+      "initiative_path": "initiatives/active/settings-redesign",
+      "pilot": false,
+      "phase": "validate",
+      "status": "blocked",
+      "owner": "Rob",
+      "sponsor": null,
+      "linear": {
+        "project_id": "11d0e1b8-1f1f-4654-ab72-e37e37db747d",
+        "project_url": "https://linear.app/askelephant/project/workspace-settings-2f7d97fc66a3"
+      },
+      "notion": {
+        "project_id": "2eaf79b2-c8ac-812e-a058-fe0ae17dfd7e",
+        "project_url": "https://www.notion.so/Settings-Redesign-2eaf79b2c8ac812ea058fe0ae17dfd7e"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590915+00:00"
+    },
+    {
+      "project_id": "speaker-id-voiceprint",
+      "initiative_name": "Speaker Id Voiceprint",
+      "initiative_path": "initiatives/active/speaker-id-voiceprint",
+      "pilot": false,
+      "phase": "discovery",
+      "status": "in_progress",
+      "owner": "Delo",
+      "sponsor": null,
+      "linear": {
+        "project_id": null,
+        "project_url": null
+      },
+      "notion": {
+        "project_id": "2f4f79b2-c8ac-8120-9c1f-c5adb964e4cc",
+        "project_url": "https://www.notion.so/Speaker-ID-Voice-Print-2f4f79b2c8ac81209c1fc5adb964e4cc"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.590984+00:00"
+    },
+    {
+      "project_id": "structured-hubspot-agent-node",
+      "initiative_name": "Structured Hubspot Agent Node",
+      "initiative_path": "initiatives/active/structured-hubspot-agent-node",
+      "pilot": false,
+      "phase": "validate",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": "a647b6d3-7a49-4cad-9c64-708897016408",
+        "project_url": "https://linear.app/askelephant/project/hubspot-integration-d79d588493b9"
+      },
+      "notion": {
+        "project_id": "2c0f79b2-c8ac-81a1-935f-c59c6e634170",
+        "project_url": "https://www.notion.so/Structured-Hubspot-Agent-Node-2c0f79b2c8ac81a1935fc59c6e634170"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.591131+00:00"
+    },
+    {
+      "project_id": "universal-signal-tables",
+      "initiative_name": "Universal Signal Tables",
+      "initiative_path": "initiatives/active/universal-signal-tables",
+      "pilot": false,
+      "phase": "build",
+      "status": "on_track",
+      "owner": "tyler",
+      "sponsor": null,
+      "linear": {
+        "project_id": "978cd60b-ee1c-48ed-bb70-8ca951e37329",
+        "project_url": "https://linear.app/askelephant/project/universal-signals-12c493778b42"
+      },
+      "notion": {
+        "project_id": "2e2f79b2-c8ac-81e0-9481-e3a196a216ea",
+        "project_url": "https://www.notion.so/Universal-Signal-Tables-2e2f79b2c8ac81e09481e3a196a216ea"
+      },
+      "slack": {
+        "channel_ids": []
+      },
+      "posthog": {
+        "dashboard_ids": []
+      },
+      "last_synced_at": "2026-03-01T08:06:10.591200+00:00"
+    }
+  ]
+}

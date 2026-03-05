@@ -1,0 +1,165 @@
+{
+  "archetype_id": "operations",
+  "archetype_name": "Operations / Technical Evaluator",
+  "source_documents": [
+    ".pm-workspace/company-context/personas.md",
+    ".pm-workspace/personas/Personas/Customer Personas/Kevin Marra*.md",
+    ".pm-workspace/personas/Personas/Customer Personas/Courtney Huggins*.md",
+    ".pm-workspace/personas/Personas/Customer Personas/Forrest Klein*.md",
+    ".pm-workspace/personas/Personas/Customer Personas/Steven Farmer*.md"
+  ],
+  "core_definition": {
+    "goal": "Streamline workflows, reduce manual work, protect decision-maker's time",
+    "pain": "Tool complexity, manual CRM updates, too many features without clear guidance",
+    "success": "Simple tools that just work, automation that saves time, easy setup",
+    "key_workflows": ["Tool evaluation", "Workflow building", "Integration management", "Team enablement"]
+  },
+  "critical_role_in_buying": {
+    "note": "This persona is the GATEKEEPER in most deals. They do the hands-on evaluation, test the product, and recommend to the decision-maker. Losing them = losing the deal.",
+    "decision_authority": "influencer",
+    "evaluation_role": "primary"
+  },
+  "sub_types": {
+    "operations_manager": {
+      "description": "Manages team efficiency and tool stack, evaluates on behalf of leadership",
+      "distribution": 0.50,
+      "distinguishing_traits": {
+        "primary_focus": "Usability and simplicity",
+        "quote_example": "I feel like this is a garage full of tools... all I need is a hammer and a screwdriver"
+      }
+    },
+    "technical_ops": {
+      "description": "Manages complex tech stack, builds workflows and automations",
+      "distribution": 0.30,
+      "distinguishing_traits": {
+        "primary_focus": "Integration and technical feasibility",
+        "quote_example": "I work here, I go home, and then I work some more"
+      }
+    },
+    "sdm_manager": {
+      "description": "Manages SDR/BDR team, hybrid ops and coaching role",
+      "distribution": 0.20,
+      "distinguishing_traits": {
+        "primary_focus": "Team performance and process",
+        "quote_example": "When I became the outbound manager in June, we cleaned house and hired four new people"
+      }
+    }
+  },
+  "variation_dimensions": {
+    "company_size": {
+      "distribution": {
+        "1-50": 0.15,
+        "51-200": 0.35,
+        "201-1000": 0.35,
+        "1000+": 0.15
+      }
+    },
+    "tech_literacy": {
+      "distribution": {
+        "novice": 0.05,
+        "intermediate": 0.35,
+        "advanced": 0.45,
+        "expert": 0.15
+      }
+    },
+    "ai_adoption_stage": {
+      "distribution": {
+        "skeptic": 0.15,
+        "curious": 0.40,
+        "early-adopter": 0.35,
+        "power-user": 0.10
+      }
+    },
+    "complexity_tolerance": {
+      "distribution": {
+        "low": 0.35,
+        "medium": 0.45,
+        "high": 0.20
+      },
+      "note": "Low tolerance personas will abandon if not 'Apple easy'"
+    },
+    "seniority": {
+      "distribution": {
+        "individual-contributor": 0.55,
+        "manager": 0.35,
+        "director": 0.10
+      }
+    }
+  },
+  "common_titles": [
+    "Operations Manager",
+    "Revenue Operations Analyst",
+    "RevOps Manager",
+    "Sales Operations Analyst",
+    "CRM Administrator",
+    "Salesforce Admin",
+    "HubSpot Admin",
+    "GTM Systems Manager",
+    "Outbound Manager",
+    "Technical Operations Lead"
+  ],
+  "typical_pain_points": [
+    "Product complexity - 'engineers overbuilt your product'",
+    "45 minutes of effort with no results = abandonment",
+    "Too many features without clear guidance on which to use",
+    "Unclear syntax or configuration (e.g., double-bracket completions)",
+    "Not 'Apple easy to use'",
+    "Protecting decision-maker's time means doing evaluation heavy lifting",
+    "Comparison to simpler alternatives (Fathom does it in a minute)",
+    "Tool fragmentation and integration overhead"
+  ],
+  "typical_fears": [
+    "Will have to support this tool on top of everything else",
+    "Learning curve will slow me down without clear payoff",
+    "Product complexity will frustrate my team",
+    "AI will write garbage data to CRM at scale",
+    "Can't audit or explain what the AI did"
+  ],
+  "typical_voice_quotes": [
+    "My god's honest feedback is it's not easy. I'm sitting here trying to do my homework for you, and it's like, what am I doing here? This doesn't make me money.",
+    "I feel like this is a garage full of tools, and I don't know what any of them do... all I need is a hammer and a screwdriver, like a college dorm room tool bag.",
+    "I think the engineers overbuilt your product here, dude. I could learn it... I truly believe I'm smart enough, but I'm too lazy to really do it.",
+    "It's missing something, Parker... it just wasn't Apple easy to use.",
+    "Even with Fathom, it's not as automated as you guys, but I can just ask the question in a minute... and it does it perfect.",
+    "That's why I took this off of Kim's calendar because she's in half hour back to back for thirty consecutive hours a week.",
+    "Show me the audit trail or I can't approve it."
+  ],
+  "behavioral_patterns": {
+    "first_click_tendency": "Tries to figure it out themselves, explores settings/config",
+    "error_response": "Investigates root cause, documents, then escalates if needed",
+    "help_seeking": "Prefers independent learning, then checks docs, then asks support",
+    "abandonment_trigger": "45 minutes without clear progress OR first time it corrupts data",
+    "evaluation_style": "Hands-on testing, side-by-side comparison with alternatives"
+  },
+  "usability_expectations": {
+    "time_investment_threshold": "45 minutes maximum for initial setup/evaluation",
+    "comparison_mindset": "Always comparing to simpler alternatives",
+    "self_service_preference": "Wants to do it themselves but ONLY if simple",
+    "support_fallback": "Will accept support help if self-service is too hard",
+    "quote": "I could learn it, but it just feels like my recommendation is we wait and check back"
+  },
+  "real_customer_examples": [
+    {
+      "name": "Kevin Marra",
+      "company": "CodingScape",
+      "sub_type": "operations_manager",
+      "key_trait": "Brutally honest feedback, 45-minute frustration threshold",
+      "quote": "It just wasn't Apple easy to use"
+    },
+    {
+      "name": "Courtney Huggins",
+      "company": "UserGems",
+      "sub_type": "sdm_manager",
+      "key_trait": "Partnership-focused, protects team from tool overload",
+      "quote": "It's almost like we would do everything building up to the point of actually having people worked in the pipeline"
+    },
+    {
+      "name": "Forrest Klein",
+      "company": "Agent Boost",
+      "sub_type": "technical_ops",
+      "key_trait": "Manages 85 GoHighLevel subaccounts, builds AI chatbots",
+      "quote": "I work here, I go home, and then I work some more"
+    }
+  ]
+}
+

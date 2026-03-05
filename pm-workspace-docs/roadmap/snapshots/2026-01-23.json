@@ -1,0 +1,881 @@
+{
+  "$schema": "pm-workspace-roadmap-v1",
+  "generated_at": "2026-01-23T09:00:00.204980",
+  "summary": {
+    "total_initiatives": 19,
+    "by_phase": {
+      "discovery": 2,
+      "define": 8,
+      "build": 6,
+      "validate": 3,
+      "launch": 0,
+      "measure": 0,
+      "learn": 0
+    },
+    "health": {
+      "on_track": 17,
+      "at_risk": 0,
+      "blocked": 0,
+      "stale": 0,
+      "in-progress": 1,
+      "active": 1
+    }
+  },
+  "initiatives": [
+    {
+      "id": "condorcet-jury-system",
+      "name": "Condorcet Jury System",
+      "hypothesis_id": "hyp-condorcet-jury-system",
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "csm",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-08",
+        "target_launch": null,
+        "phase_entered": "2026-01-08T20:17:18.050807",
+        "days_in_phase": 14
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review define phase status",
+      "metrics": {
+        "days_in_phase": 6,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "feature-availability-audit",
+      "name": "Feature Availability Audit",
+      "hypothesis_id": "hyp-feature-availability-audit",
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-leader",
+        "sales-rep",
+        "csm",
+        "revops"
+      ],
+      "pillar": "data-knowledge",
+      "timeline": {
+        "started": "2026-01-13",
+        "target_launch": null,
+        "phase_entered": "2026-01-13T07:55:49.925423",
+        "days_in_phase": 9
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review define phase status",
+      "metrics": {
+        "days_in_phase": 2,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "crm-exp-ete",
+      "name": "Crm Exp Ete",
+      "hypothesis_id": null,
+      "phase": "build",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "Tyler",
+      "personas": [
+        "revops",
+        "sales-rep",
+        "sales-leader"
+      ],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": "2026-01-16T16:00:00.000Z",
+        "days_in_phase": 6
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "",
+      "metrics": {
+        "total_iterations": 2,
+        "jury_evaluations": 3,
+        "last_jury_pass_rate": 50
+      }
+    },
+    {
+      "id": "universal-signal-tables",
+      "name": "Universal Signal Tables",
+      "hypothesis_id": "hyp-universal-signal-tables",
+      "phase": "build",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-08",
+        "target_launch": null,
+        "phase_entered": "2026-01-08T09:09:35.408891",
+        "days_in_phase": 8
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review build phase status",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "customer-journey-map",
+      "name": "Customer Journey Map",
+      "hypothesis_id": "hyp-customer-journey-map",
+      "phase": "build",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "csm",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-13",
+        "target_launch": null,
+        "phase_entered": "2026-01-13T16:52:15.961627",
+        "days_in_phase": 8
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review build phase status",
+      "metrics": {
+        "days_in_phase": 1,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "release-lifecycle-process",
+      "name": "Release Lifecycle Process",
+      "hypothesis_id": "hyp-release-lifecycle-process",
+      "phase": "build",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-leader",
+        "csm",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-13",
+        "target_launch": null,
+        "phase_entered": "2026-01-13T12:23:43.552620",
+        "days_in_phase": 8
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review build phase status",
+      "metrics": {
+        "days_in_phase": 1,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "hubspot-agent-config-ui",
+      "name": "Hubspot Agent Config Ui",
+      "hypothesis_id": "hyp-hubspot-agent-config-ui",
+      "phase": "validate",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-07",
+        "target_launch": null,
+        "phase_entered": "2026-01-07T12:18:01.093543",
+        "days_in_phase": 8
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review validate phase status",
+      "metrics": {
+        "days_in_phase": 1,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "composio-agent-framework",
+      "name": "Composio Agent Framework",
+      "hypothesis_id": null,
+      "phase": "validate",
+      "sub_phase": "design-handoff",
+      "status": "on_track",
+      "priority": "P1",
+      "owner": "tyler",
+      "personas": [
+        "revops",
+        "sales-leader",
+        "csm",
+        "sales-rep"
+      ],
+      "pillar": "data-knowledge",
+      "timeline": {
+        "started": "2026-01-22",
+        "target_launch": null,
+        "phase_entered": "2026-01-22T00:00:00.000000",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Woody reviews design handoff brief and provides feedback or starts Figma refinement",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 6
+      }
+    },
+    {
+      "id": "crm-readiness-diagnostic",
+      "name": "Crm Readiness Diagnostic",
+      "hypothesis_id": "hyp-crm-readiness-diagnostic",
+      "phase": "discovery",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P2",
+      "owner": null,
+      "personas": [
+        "revops",
+        "sales-leader",
+        "implementation-partner"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-21",
+        "target_launch": null,
+        "phase_entered": "2026-01-21T17:30:00.000000",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Finalize positioning decision (customer-facing vs partner-only)",
+      "metrics": {
+        "days_in_phase": 1,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "automated-metrics-observability",
+      "name": "Automated Metrics Observability",
+      "hypothesis_id": "hyp-automated-metrics-observability",
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P2",
+      "owner": "tyler",
+      "personas": [
+        "sales-leader",
+        "revops"
+      ],
+      "pillar": "data-knowledge",
+      "timeline": {
+        "started": "2026-01-08",
+        "target_launch": null,
+        "phase_entered": "2026-01-08T09:46:14.509127",
+        "days_in_phase": 14
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review define phase status",
+      "metrics": {
+        "days_in_phase": 7,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "call-import-engine",
+      "name": "Call Import Engine",
+      "hypothesis_id": "hyp-call-import-engine",
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P2",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "csm",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-12",
+        "target_launch": null,
+        "phase_entered": "2026-01-12T18:24:47.128294",
+        "days_in_phase": 9
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review define phase status",
+      "metrics": {
+        "days_in_phase": 2,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "rep-workspace",
+      "name": "Rep Workspace",
+      "hypothesis_id": null,
+      "phase": "build",
+      "sub_phase": null,
+      "status": "in-progress",
+      "priority": "high",
+      "owner": "Skylar/Tyler",
+      "personas": [],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": null,
+        "days_in_phase": 6
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "",
+      "metrics": {
+        "total_iterations": 2,
+        "current_version": "v2"
+      }
+    },
+    {
+      "id": "design-system-workflow",
+      "name": "Design System Workflow",
+      "hypothesis_id": null,
+      "phase": "build",
+      "sub_phase": null,
+      "status": "active",
+      "priority": "P2",
+      "owner": "Tyler Sahagun",
+      "personas": [],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": "2026-01-23T00:00:00Z",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "",
+      "metrics": {
+        "total_iterations": 2
+      }
+    },
+    {
+      "id": "settings-redesign",
+      "name": "Settings Redesign",
+      "hypothesis_id": null,
+      "phase": "validate",
+      "sub_phase": "jury-complete",
+      "status": "on_track",
+      "priority": "P2",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": "2026-01-22T12:45:00.000000",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review jury evaluation results",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 2
+      }
+    },
+    {
+      "id": "internal-search",
+      "name": "Internal Search",
+      "hypothesis_id": null,
+      "phase": "discovery",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P3",
+      "owner": null,
+      "personas": [],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": "2026-01-22T12:45:00.000000",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Create research.md and PRD",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "user-onboarding",
+      "name": "User Onboarding",
+      "hypothesis_id": null,
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P3",
+      "owner": null,
+      "personas": [],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": "2026-01-22T12:45:00.000000",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review and update initiative details",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "speaker-id-voiceprint",
+      "name": "Speaker Id Voiceprint",
+      "hypothesis_id": null,
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P3",
+      "owner": null,
+      "personas": [],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": "2026-01-22T12:45:00.000000",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review and update initiative details",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "product-usability",
+      "name": "Product Usability",
+      "hypothesis_id": null,
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P3",
+      "owner": null,
+      "personas": [],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": "2026-01-22T12:45:00.000000",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review and update initiative details",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "admin-onboarding",
+      "name": "Admin Onboarding",
+      "hypothesis_id": null,
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P3",
+      "owner": null,
+      "personas": [],
+      "pillar": null,
+      "timeline": {
+        "started": null,
+        "target_launch": null,
+        "phase_entered": "2026-01-22T12:45:00.000000",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review and update initiative details",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 0
+      }
+    }
+  ],
+  "timeline_view": [],
+  "dependencies_graph": {
+    "nodes": [
+      "condorcet-jury-system",
+      "feature-availability-audit",
+      "crm-exp-ete",
+      "universal-signal-tables",
+      "customer-journey-map",
+      "release-lifecycle-process",
+      "hubspot-agent-config-ui",
+      "composio-agent-framework",
+      "crm-readiness-diagnostic",
+      "automated-metrics-observability",
+      "call-import-engine",
+      "rep-workspace",
+      "design-system-workflow",
+      "settings-redesign",
+      "internal-search",
+      "user-onboarding",
+      "speaker-id-voiceprint",
+      "product-usability",
+      "admin-onboarding"
+    ],
+    "edges": []
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "$schema": "pm-workspace-activity-history-v1",
+  "description": "Historical activity snapshots for trend tracking",
+  "daily": [
+    {
+      "date": "2026-02-02",
+      "prs_merged": 30,
+      "prs_opened": 15,
+      "issues_completed": 20,
+      "issues_in_progress": 6,
+      "initiatives_touched": 1,
+      "docs_updated": 3,
+      "prototype_versions": 0,
+      "contributors": 9,
+      "deals_closed": 4,
+      "arr_won": 0
+    },
+    {
+      "date": "2026-01-30",
+      "prs_merged": 0,
+      "prs_opened": 0,
+      "issues_completed": 0,
+      "issues_in_progress": 0,
+      "initiatives_touched": 0,
+      "docs_updated": 0,
+      "prototype_versions": 0,
+      "contributors": 0,
+      "deals_closed": 0,
+      "arr_won": 0
+    },
+    {
+      "date": "2026-01-29",
+      "prs_merged": 30,
+      "prs_opened": 6,
+      "issues_completed": 0,
+      "issues_in_progress": 0,
+      "initiatives_touched": 0,
+      "docs_updated": 0,
+      "prototype_versions": 0,
+      "contributors": 10,
+      "deals_closed": 5,
+      "arr_won": 0
+    },
+    {
+      "date": "2026-01-28",
+      "prs_merged": 17,
+      "prs_opened": 12,
+      "issues_completed": 0,
+      "issues_in_progress": 0,
+      "initiatives_touched": 6,
+      "docs_updated": 1,
+      "prototype_versions": 0,
+      "contributors": 8,
+      "deals_closed": 6,
+      "arr_won": 37663.56
+    },
+    {
+      "date": "2026-01-24",
+      "prs_merged": 2,
+      "prs_opened": 0,
+      "issues_completed": 2,
+      "issues_in_progress": 5,
+      "initiatives_touched": 2,
+      "docs_updated": 3,
+      "prototype_versions": 0,
+      "contributors": 1,
+      "cycle_progress": 35
+    },
+    {
+      "date": "2026-01-23",
+      "prs_merged": 27,
+      "prs_opened": 6,
+      "issues_completed": 15,
+      "issues_in_progress": 10,
+      "initiatives_touched": 6,
+      "docs_updated": 8,
+      "prototype_versions": 0,
+      "contributors": 8,
+      "cycle_progress": 30
+    },
+    {
+      "date": "2026-01-22",
+      "prs_merged": 16,
+      "prs_opened": 5,
+      "issues_completed": 8,
+      "issues_in_progress": 12,
+      "initiatives_touched": 5,
+      "docs_updated": 25,
+      "prototype_versions": 3,
+      "contributors": 7,
+      "cycle_progress": 25
+    },
+    {
+      "date": "2026-01-21",
+      "prs_merged": 15,
+      "prs_opened": 4,
+      "issues_completed": 10,
+      "issues_in_progress": 8,
+      "initiatives_touched": 4,
+      "docs_updated": 12,
+      "prototype_versions": 2,
+      "contributors": 6,
+      "cycle_progress": 20
+    },
+    {
+      "date": "2026-01-20",
+      "prs_merged": 10,
+      "prs_opened": 3,
+      "issues_completed": 6,
+      "issues_in_progress": 6,
+      "initiatives_touched": 3,
+      "docs_updated": 4,
+      "prototype_versions": 1,
+      "contributors": 5,
+      "cycle_progress": 15
+    }
+  ],
+  "weekly": [
+    {
+      "week": "2026-W05",
+      "start_date": "2026-01-26",
+      "end_date": "2026-02-01",
+      "totals": {
+        "prs_merged": 45,
+        "prs_opened": 12,
+        "issues_completed": 25,
+        "phase_advances": 2,
+        "initiatives_touched": 6,
+        "docs_updated": 10,
+        "jury_evaluations": 0,
+        "new_arr": 21624,
+        "expansion_arr": 5700,
+        "sdr_meetings_set": 30
+      },
+      "velocity_trend": "down",
+      "highlights": [
+        "Flagship meeting recap advanced to build phase",
+        "$27.3k revenue impact (5 new + 1 expansion)",
+        "HubSpot deal imports to projects",
+        "Salesforce agent list objects tool",
+        "Beta Features V4 UI ready"
+      ]
+    },
+    {
+      "week": "2026-W04",
+      "start_date": "2026-01-20",
+      "end_date": "2026-01-26",
+      "totals": {
+        "prs_merged": 70,
+        "prs_opened": 18,
+        "issues_completed": 41,
+        "phase_advances": 2,
+        "initiatives_touched": 8,
+        "docs_updated": 52,
+        "jury_evaluations": 4
+      },
+      "velocity_trend": "up",
+      "highlights": [
+        "Dialpad integration live",
+        "Composio framework 92% jury approval",
+        "Design system workflow validated",
+        "OAuth 2.0 schema prepared"
+      ]
+    }
+  ]
+}

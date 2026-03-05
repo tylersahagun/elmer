@@ -1,5 +1,7 @@
 # Elmer Deployment Guide
 
+> **Note:** This guide covers the current local stack (PostgreSQL + Cloudflare Tunnel). A Post-Convex section at the bottom covers how deployment changes after the Convex migration completes (Phases 7–8). The new Chat & Agent Hub feature is Convex-first and will not function on the legacy PostgreSQL backend.
+
 **Infrastructure:** Local PostgreSQL + Cloudflare Tunnel  
 **Public URL:** https://elmer.studio  
 **Status:** Self-hosted on local Mac
@@ -416,6 +418,130 @@ docker compose down -v
 
 ---
 
-**Deployment Guide Version:** 2.0  
-**Last Updated:** 2026-01-24  
-**Infrastructure:** Local PostgreSQL + Cloudflare Tunnel
+---
+
+## Post-Convex Deployment (After Phase 7 Migration)
+
+When the Convex migration completes, the deployment model changes significantly:
+
+### New Stack
+
+| Service | Old | New |
+|---|---|---|
+| Backend DB | PostgreSQL in Docker | **Convex** (managed cloud) |
+| Auth | NextAuth + Google OAuth | **Clerk** (Google OAuth, `@askelephant.ai` domain) |
+| Hosting | Local Mac + Cloudflare Tunnel | **Vercel** (always-on) |
+| Vector search | pgvector sidecar | **Neon PostgreSQL** (embeddings only) |
+| Cron jobs | launchd on local Mac | **Convex crons** (cloud-native) |
+
+### New Environment Variables (Convex Era)
+
+```bash
+# Clerk auth
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<from Clerk dashboard>
+CLERK_SECRET_KEY=<from Clerk dashboard>
+
+# Convex
+NEXT_PUBLIC_CONVEX_URL=<from Convex dashboard>
+CONVEX_DEPLOY_KEY=<for CI/CD>
+
+# Neon (vector sidecar only)
+NEON_DATABASE_URL=<from Neon dashboard>
+
+# AI
+ANTHROPIC_API_KEY=<for agents + chat>
+OPENAI_API_KEY=<for embeddings via text-embedding-3-small>
+
+# Integrations
+COMPOSIO_API_KEY=<for Slack, Linear, Notion, HubSpot>
+BRAVE_SEARCH_API_KEY=<for web search>
+```
+
+### Chat & Agent Hub (Convex-required)
+
+The new ElmerPanel chat system (`convex/chat.ts`) requires Convex to be deployed. It does **not** have a PostgreSQL fallback. Key features only available after migration:
+- Persistent conversation threads (`chatThreads` + `chatMessages` tables)
+- Streaming chat responses via Convex HTTP endpoint
+- Agent Hub with live Convex subscriptions
+- Context Peek with cached summaries in Convex
+
+### Vercel Deployment
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy (from orchestrator/)
+cd orchestrator
+vercel --prod
+
+# Set environment variables
+vercel env add NEXT_PUBLIC_CONVEX_URL production
+vercel env add CLERK_SECRET_KEY production
+# (etc. for all vars above)
+```
+
+### Convex Deployment
+
+```bash
+# Install Convex CLI
+npm i -g convex
+
+# Deploy from the orchestrator/convex/ directory
+cd orchestrator
+npx convex deploy --prod
+```
+
+The local Mac + Docker setup is no longer needed once Vercel + Convex are live. The Cloudflare Tunnel can be retired.
+
+---
+
+---
+
+## E2E Test Commands
+
+Playwright is installed and configured. Run tests from `orchestrator/`:
+
+```bash
+# Run all E2E tests (requires local server running or PLAYWRIGHT_BASE_URL set)
+npm run test:e2e
+
+# Smoke tests only — fast, post-deploy validation (~30s)
+npm run test:e2e:smoke
+
+# Interactive UI mode
+npm run test:e2e:ui
+
+# Against a specific URL (e.g. Vercel Preview)
+PLAYWRIGHT_BASE_URL=https://your-preview.vercel.app npm run test:e2e:smoke
+```
+
+### Auth Setup
+Before running E2E tests, create `e2e/.auth/user.json` by running:
+```bash
+# Set credentials in .env.local first:
+# E2E_TEST_EMAIL=test@askelephant.ai
+# E2E_TEST_PASSWORD=...
+npm run test:e2e -- --project=setup
+```
+
+---
+
+## MCP UI Apps
+
+The 5 MCP UI apps are pre-built in `mcp-server/apps/dist/`. To rebuild after source changes:
+
+```bash
+cd mcp-server
+npm run build:apps
+# Builds: initiative-dashboard, signal-map, agent-monitor, pm-navigator, jury-viewer
+```
+
+Apps are automatically served as MCP resources when `mcp-server` runs.
+
+---
+
+**Deployment Guide Version:** 2.2  
+**Last Updated:** 2026-03-05  
+**Infrastructure (current):** Local PostgreSQL + Cloudflare Tunnel  
+**Infrastructure (post-migration):** Vercel + Convex + Neon

@@ -1,0 +1,84 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "condorcet-jury-system",
+  "hypothesis_id": "hyp-condorcet-jury-system",
+  "phase": "measure",
+  "sub_phase": "operational",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "personas": ["sales-rep", "sales-leader", "csm", "revops"],
+  "pillar": "internal-tooling",
+  "created_at": "2026-01-08T20:17:18.050807",
+  "updated_at": "2026-01-23T00:00:00.000000",
+  "phase_history": [
+    {
+      "phase": "define",
+      "entered": "2026-01-08T20:17:18.050807",
+      "exited": "2026-01-10T00:00:00.000000"
+    },
+    {
+      "phase": "build",
+      "entered": "2026-01-10T00:00:00.000000",
+      "exited": "2026-01-15T00:00:00.000000"
+    },
+    {
+      "phase": "launch",
+      "entered": "2026-01-15T00:00:00.000000",
+      "exited": "2026-01-20T00:00:00.000000"
+    },
+    {
+      "phase": "measure",
+      "entered": "2026-01-20T00:00:00.000000",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Monitor jury usage metrics and refine persona quality",
+  "graduation_criteria": {
+    "define_to_build": {
+      "prd_complete": true,
+      "persona_schema_defined": true,
+      "evaluation_prompts_drafted": true
+    },
+    "build_to_launch": {
+      "personas_generated": true,
+      "cursor_commands_integrated": true,
+      "jury_reports_working": true
+    },
+    "launch_to_measure": {
+      "used_in_3_initiatives": true,
+      "pass_rate_tracking": true
+    }
+  },
+  "timeline": {
+    "started": "2026-01-08",
+    "launched": "2026-01-15",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 3,
+    "total_iterations": 0,
+    "initiatives_validated": 6,
+    "total_jury_runs": 15,
+    "average_pass_rate": 0.82
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": null,
+  "notion_project_url": null,
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": ["initiative:jury-system", "internal-tooling"],
+  "github_branch_prefix": "feat/jury",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  }
+}

@@ -1,0 +1,256 @@
+---
+description: "Component organization patterns in elephant-ai codebase"
+globs: ["elephant-ai/web/src/components/**/*"]
+alwaysApply: false
+---
+
+# Component Organization Patterns
+
+This rule documents how components are organized in `elephant-ai/web/src/components/` to help with prototype placement and integration.
+
+## Directory Structure Overview
+
+```
+elephant-ai/web/src/components/
+├── ui/                    # shadcn/ui primitives (Button, Dialog, Sheet, etc.)
+├── prototypes/            # Work-in-progress prototypes
+├── [domain]/              # Feature domains (integrations/, workflows/, signals/)
+├── [feature-name]/        # Grouped feature components
+└── [component].tsx        # Standalone utilities
+```
+
+## Component Categories
+
+### 1. UI Primitives (`ui/`)
+
+Base shadcn/ui components. Never modify directly—extend if needed.
+
+```typescript
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+```
+
+### 2. Domain Folders
+
+Major feature areas get their own directories:
+
+| Domain | Contains | Example Components |
+|--------|----------|-------------------|
+| `integrations/` | CRM connections | HubSpot, Salesforce configs |
+| `workflows/` | Workflow builder | WorkflowCanvas, WorkflowNode |
+| `signals/` | Signal management | SignalTable, SignalFilters |
+| `chat/` | AI chat interface | ChatWindow, ChatMessage |
+| `knowledge-base/` | KB features | DocumentList, SearchResults |
+| `navigation/` | Nav components | Sidebar, Breadcrumbs |
+| `ai-agents/` | Agent UI | AgentCard, AgentConfig |
+| `crm-update/` | CRM sync UI | FieldMapping, SyncStatus |
+
+### 3. Feature Groupings
+
+Related components grouped by feature:
+
+| Folder | Pattern |
+|--------|---------|
+| `action-items/` | ActionItemList, ActionItemCard, CreateActionItem |
+| `engagement-folders/` | FolderList, FolderCard, FolderPicker |
+| `health-score/` | HealthScoreCard, HealthScoreChart |
+| `filters/` | FilterBar, FilterChips, FilterDrawer |
+
+### 4. Standalone Components
+
+Single-purpose utilities at root level:
+
+- `copy-to-clipboard.tsx` - Single utility
+- `confirmation-dialog.tsx` - Reusable modal
+- `gradient-fade-out.tsx` - Visual effect
+- `markdown.tsx` - Markdown renderer
+
+## Placement Decision Tree
+
+```
+Is it a base UI primitive?
+└─ Yes → Don't create, use ui/ or extend
+└─ No ↓
+
+Does a domain folder exist for this feature area?
+└─ Yes → Place in that domain folder
+└─ No ↓
+
+Are there 3+ related components?
+└─ Yes → Create a new feature folder
+└─ No ↓
+
+Is it truly standalone/reusable?
+└─ Yes → Root level .tsx file
+└─ No → Find the closest related domain folder
+```
+
+## Component File Patterns
+
+### Simple Component (1 file)
+
+```
+[component-name].tsx
+[component-name].stories.tsx  # Optional but encouraged
+```
+
+### Feature Folder (multiple files)
+
+```
+[feature-name]/
+├── [FeatureName].tsx           # Main component
+├── [FeatureName].stories.tsx   # Storybook stories
+├── [SubComponent].tsx          # Supporting components
+├── types.ts                    # Shared types
+├── hooks/                      # Feature-specific hooks
+│   └── use[Feature].ts
+├── utils/                      # Feature-specific utils
+└── index.ts                    # Barrel export
+```
+
+### Index File Pattern
+
+Always create barrel exports for folders:
+
+```typescript
+// index.ts
+export { FeatureName } from './FeatureName';
+export { SubComponent } from './SubComponent';
+export type { FeatureProps, SubComponentProps } from './types';
+```
+
+## Prototype → Production Path
+
+### Phase 1: Isolated Prototype
+
+```
+prototypes/[ProjectName]/
+├── ComponentName.tsx
+└── ComponentName.stories.tsx
+```
+
+### Phase 2: Context Prototype
+
+```
+prototypes/[ProjectName]/
+├── ComponentName.tsx
+├── ComponentName.stories.tsx
+└── contexts/                    # Integration previews
+    ├── ComponentNameInPage.tsx
+    └── ComponentName.context.stories.tsx
+```
+
+### Phase 3: Production Promotion
+
+Move from `prototypes/` to final location:
+
+```
+[domain]/[feature-name]/
+├── ComponentName.tsx           # Cleaned up, production-ready
+├── ComponentName.stories.tsx   # Stories stay with component
+├── types.ts
+└── index.ts
+```
+
+## Integration Patterns
+
+### Page Integration
+
+For full-page features:
+
+```typescript
+// pages/[feature].tsx
+import { FeatureName } from '@/components/[domain]/[feature-name]';
+
+export default function FeaturePage() {
+  return (
+    <Layout>
+      <PageHeader title="Feature" />
+      <FeatureName />
+    </Layout>
+  );
+}
+```
+
+### Panel Integration
+
+For slide-out features:
+
+```typescript
+// Used in parent component
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { FeatureName } from '@/components/[domain]/[feature-name]';
+
+<Sheet>
+  <SheetTrigger asChild>
+    <Button>Open Feature</Button>
+  </SheetTrigger>
+  <SheetContent>
+    <FeatureName />
+  </SheetContent>
+</Sheet>
+```
+
+### Modal Integration
+
+For dialog features:
+
+```typescript
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { FeatureName } from '@/components/[domain]/[feature-name]';
+
+<Dialog>
+  <DialogTrigger asChild>
+    <Button>Open Feature</Button>
+  </DialogTrigger>
+  <DialogContent>
+    <FeatureName />
+  </DialogContent>
+</Dialog>
+```
+
+## Storybook Organization
+
+### Prototypes
+
+```typescript
+const meta = {
+  title: 'Prototypes/[ProjectName]/[ComponentName]',
+  // ...
+};
+```
+
+### Production Components
+
+```typescript
+const meta = {
+  title: '[Domain]/[ComponentName]',  // e.g., 'Workflows/WorkflowNode'
+  // ...
+};
+```
+
+## Common Import Aliases
+
+```typescript
+// UI components
+import { Button } from '@/components/ui/button';
+
+// Domain components
+import { WorkflowCanvas } from '@/components/workflows';
+
+// Types
+import type { Engagement } from '@/types';
+
+// Hooks
+import { useEngagement } from '@/hooks/useEngagement';
+
+// Utils
+import { formatDate } from '@/lib/utils';
+```
+
+## Related Commands
+
+- `/placement [name]` - Research where a component should live
+- `/context-proto [name]` - Build in-context prototype
+- `/proto [name]` - Build isolated prototype

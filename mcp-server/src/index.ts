@@ -1,601 +1,654 @@
 #!/usr/bin/env node
+/**
+ * Elmer MCP Server — Phase 5 rewrite
+ *
+ * Replaces the old SQLite-backed stub server with a Convex-backed
+ * proxy. Every tool call hits the Convex HTTP API directly.
+ *
+ * 20 P0 tools across 6 domains:
+ *   Projects  — list, get, create, update
+ *   Signals   — list, get, ingest, link
+ *   Agents    — list, get, run, sync
+ *   Jobs      — list, get, logs, pending questions, respond
+ *   Knowledge — list_context, get_context, search
+ *   Memory    — store, query, graph_get_context
+ */
+
+import { readFileSync, existsSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import {
-  // Document Generation
-  generatePRD,
-  generateDesignBrief,
-  generateEngineeringSpec,
-  generateGTMBrief,
-  // Research
-  analyzeTranscript,
-  // Jury
-  runJuryEvaluation,
-  iterateFromFeedback,
-  // Prototypes
-  buildStandalonePrototype,
-  buildContextPrototype,
-  iteratePrototype,
-  deployToChromatic,
-  // Linear
-  generateTickets,
-  validateTickets,
-} from "./tools/index.js";
+import { listProjects, getProject, createProject, updateProject, advanceStage } from "./tools/projects.js";
+import { listSignals, getSignal, ingestSignal, linkSignal, synthesizeSignals } from "./tools/signals.js";
+import { listAgents, getAgent, runAgent, syncAgents } from "./tools/agents.js";
+import { listJobs, getJob, getJobLogs, getPendingQuestions, respondToQuestion } from "./tools/jobs.js";
+import { listContext, getContext, search, storeMemory, queryMemory, graphGetContext, listCommands } from "./tools/knowledge.js";
+import { postPrototype, getPrototypeFeedback, iteratePrototype, listPrototypeVariants } from "./tools/prototypes.js";
+import { mcpGet, mcpPost } from "./convex-client.js";
 
-// Job CRUD operations (for Cursor AI to process jobs)
-import {
-  getPendingJobs,
-  getJobContext,
-  updateJobStatus,
-  completeJob,
-  failJob,
-  getProjectDetails,
-  saveDocument,
-  getCompanyContext,
-} from "./tools/jobs-crud.js";
+// ── Tool definitions ──────────────────────────────────────────────────────────
 
-import {
-  GeneratePRDInputSchema,
-  GenerateDesignBriefInputSchema,
-  GenerateEngineeringSpecInputSchema,
-  GenerateGTMBriefInputSchema,
-  AnalyzeTranscriptInputSchema,
-  RunJuryInputSchema,
-  BuildPrototypeInputSchema,
-  IteratePrototypeInputSchema,
-  GenerateTicketsInputSchema,
-  ValidateTicketsInputSchema,
-} from "./types.js";
-
-// ============================================
-// MCP SERVER SETUP
-// ============================================
-
-const server = new Server(
+const TOOLS = [
+  // ── Projects ──
   {
-    name: "pm-orchestrator",
-    version: "0.1.0",
+    name: "elmer_list_projects",
+    description: "List all active initiatives in Elmer, grouped by lifecycle stage (inbox → launch). Returns names, IDs, priorities, and TL;DRs.",
+    inputSchema: { type: "object", properties: {}, required: [] },
   },
   {
-    capabilities: {
-      tools: {},
+    name: "elmer_get_project",
+    description: "Get full details for a project: stage, status, priority, TL;DR, and all linked documents (PRD, research, design brief, etc.).",
+    inputSchema: {
+      type: "object",
+      properties: { project_id: { type: "string", description: "Convex project ID" } },
+      required: ["project_id"],
     },
-  }
+  },
+  {
+    name: "elmer_create_project",
+    description: "Create a new initiative/project in Elmer.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string" },
+        stage: { type: "string", enum: ["inbox", "discovery", "define", "build", "validate", "launch"] },
+        priority: { type: "string", enum: ["P0", "P1", "P2", "P3"] },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "elmer_update_project",
+    description:
+      "Update a project's stage, status, priority, description, or linked Slack channel. " +
+      "Set slackChannelId to link a Slack channel — Elmer will then monitor it for prototype feedback " +
+      "and automatically ingest replies as signals.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        project_id: { type: "string" },
+        stage: { type: "string" },
+        status: { type: "string" },
+        priority: { type: "string" },
+        description: { type: "string" },
+        slack_channel_id: {
+          type: "string",
+          description: "Slack channel ID (e.g. C0AH98NHUU9) to link for prototype feedback",
+        },
+        slack_channel_name: {
+          type: "string",
+          description: "Human-readable channel name (e.g. chief-of-staff-feedback)",
+        },
+      },
+      required: ["project_id"],
+    },
+  },
+  {
+    name: "elmer_advance_stage",
+    description:
+      "Advance a project to the next lifecycle stage: inbox → discovery → define → build → validate → launch. " +
+      "Automatically triggers TL;DR regeneration for the new stage.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        project_id: { type: "string", description: "Convex project ID" },
+      },
+      required: ["project_id"],
+    },
+  },
+  // ── Signals ──
+  {
+    name: "elmer_list_signals",
+    description: "List customer signals/feedback in the workspace. Optionally filter by status (new, pending, processed, archived).",
+    inputSchema: {
+      type: "object",
+      properties: { status: { type: "string", description: "Filter by status: new, pending, processed, archived" } },
+      required: [],
+    },
+  },
+  {
+    name: "elmer_get_signal",
+    description: "Get full details for a signal including verbatim, interpretation, severity, and linked projects.",
+    inputSchema: {
+      type: "object",
+      properties: { signal_id: { type: "string" } },
+      required: ["signal_id"],
+    },
+  },
+  {
+    name: "elmer_ingest_signal",
+    description: "Ingest a new customer signal or feedback. It will be auto-processed: TL;DR generated, project matched, impact scored.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        verbatim: { type: "string", description: "The raw signal text or quote" },
+        source: { type: "string", description: "Where this came from: slack, interview, support, email, etc." },
+        severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
+        project_id: { type: "string", description: "Optional: immediately link to this project" },
+      },
+      required: ["verbatim", "source"],
+    },
+  },
+  {
+    name: "elmer_link_signal",
+    description: "Link an existing signal to a project.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        signal_id: { type: "string" },
+        project_id: { type: "string" },
+        confidence: { type: "number", description: "Match confidence 0-1" },
+      },
+      required: ["signal_id", "project_id"],
+    },
+  },
+  {
+    name: "elmer_synthesize_signals",
+    description:
+      "Cluster all unlinked signals into themes using keyword analysis. " +
+      "Shows a Signal Map: which topics appear most frequently, which signals are unlinked, " +
+      "and how many signals belong to each theme. Use to decide what new projects to create " +
+      "or which existing projects to link signals to.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  // ── Agents ──
+  {
+    name: "elmer_list_agents",
+    description: "List all PM workflow agent definitions: subagents, skills, commands, rules. Shows what's available to run.",
+    inputSchema: {
+      type: "object",
+      properties: { type: { type: "string", enum: ["subagent", "skill", "command", "rule"] } },
+      required: [],
+    },
+  },
+  {
+    name: "elmer_get_agent",
+    description: "Get full content and metadata for a specific agent definition.",
+    inputSchema: {
+      type: "object",
+      properties: { agent_id: { type: "string" } },
+      required: ["agent_id"],
+    },
+  },
+  {
+    name: "elmer_run_agent",
+    description: "Run a PM workflow agent on a project. Creates a Convex job and schedules it immediately. Returns the job ID to track progress.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_definition_id: { type: "string", description: "Agent definition ID from elmer_list_agents" },
+        project_id: { type: "string", description: "Project to run the agent on" },
+        input: { type: "object", description: "Additional input: {transcript?, feedback?, command?, args?}" },
+      },
+      required: ["agent_definition_id"],
+    },
+  },
+  {
+    name: "elmer_sync_agents",
+    description: "Sync agent definitions from GitHub (reads .cursor/agents/, skills/, commands/, rules/). Call after updating agent markdown files.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  // ── Jobs ──
+  {
+    name: "elmer_list_jobs",
+    description: "List jobs in the workspace. Shows running, pending, completed, and failed jobs.",
+    inputSchema: {
+      type: "object",
+      properties: { status: { type: "string", description: "Filter by: pending, running, completed, failed, waiting_input, cancelled" } },
+      required: [],
+    },
+  },
+  {
+    name: "elmer_get_job",
+    description: "Get status, output, and recent logs for a specific job. Use to track agent execution progress.",
+    inputSchema: {
+      type: "object",
+      properties: { job_id: { type: "string" } },
+      required: ["job_id"],
+    },
+  },
+  {
+    name: "elmer_get_job_logs",
+    description: "Get full execution logs for a job.",
+    inputSchema: {
+      type: "object",
+      properties: { job_id: { type: "string" } },
+      required: ["job_id"],
+    },
+  },
+  {
+    name: "elmer_get_pending_questions",
+    description: "List all HITL questions waiting for human input across the workspace. Agents pause here.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "elmer_respond_to_question",
+    description: "Answer a pending HITL question to unblock a paused agent. The agent resumes immediately.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        question_id: { type: "string", description: "Pending question ID from elmer_get_pending_questions" },
+        response: { type: "string", description: "Your answer (text or chosen option)" },
+      },
+      required: ["question_id", "response"],
+    },
+  },
+  // ── Knowledge Base ──
+  {
+    name: "elmer_list_context",
+    description: "List all knowledge base entries: company context, personas, guardrails, feature guides, hypotheses, roadmap.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "elmer_list_commands",
+    description:
+      "List all 68 PM workflow commands organized by lifecycle phase " +
+      "(Signal Collection, Analysis, Definition, Build, Validation, Launch, Reporting, Dev Ops). " +
+      "Shows each command name, description, triggers, and ID. " +
+      "Use to discover what agents/skills are available and run them on a project.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "elmer_get_context",
+    description: "Get the content of a specific knowledge base entry type.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          description: "Entry type: company_context, strategic_guardrails, personas, org_chart, team_context, tech_stack, feature_guide, hypothesis, roadmap",
+        },
+      },
+      required: ["type"],
+    },
+  },
+  {
+    name: "elmer_search",
+    description: "Full-text search across projects, documents, agent definitions, and knowledge base entries.",
+    inputSchema: {
+      type: "object",
+      properties: { query: { type: "string" } },
+      required: ["query"],
+    },
+  },
+  // ── Memory ──
+  {
+    name: "elmer_store_memory",
+    description: "Store a memory entry (decision, feedback, context, artifact). Links to a project if project_id provided.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        content: { type: "string" },
+        type: { type: "string", enum: ["decision", "feedback", "context", "artifact", "conversation"] },
+        project_id: { type: "string" },
+      },
+      required: ["content", "type"],
+    },
+  },
+  {
+    name: "elmer_query_memory",
+    description: "Query memory entries for a project or workspace.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        project_id: { type: "string" },
+        type: { type: "string" },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "elmer_graph_get_context",
+    description: "Get rich graph context for a project: documents with content, memory entries, observations. Use to load full project context before running an agent.",
+    inputSchema: {
+      type: "object",
+      properties: { project_id: { type: "string" } },
+      required: ["project_id"],
+    },
+  },
+  // ── Prototype Feedback Loop ──
+  {
+    name: "elmer_post_prototype",
+    description:
+      "Post a prototype variant's Chromatic/Storybook URL to the project's linked Slack channel, " +
+      "opening a thread where customers and team members can leave feedback. " +
+      "The Slack message timestamp is stored on the variant so replies can be ingested later. " +
+      "Requires the project to have a slackChannelId set (use elmer_update_project).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        variant_id: { type: "string", description: "prototypeVariants ID to post" },
+      },
+      required: ["variant_id"],
+    },
+  },
+  {
+    name: "elmer_get_prototype_feedback",
+    description:
+      "Get all feedback signals collected for a specific prototype variant. " +
+      "Shows verbatim feedback, severity, and source for each reply ingested from the Slack thread. " +
+      "Use before calling elmer_iterate_prototype to review what was said.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        variant_id: {
+          type: "string",
+          description: "prototypeVariants ID — use elmer_list_projects then get variants via project",
+        },
+        project_id: {
+          type: "string",
+          description: "Alternative: provide project_id to list all variants for a project first",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "elmer_iterate_prototype",
+    description:
+      "Synthesize feedback signals for a prototype variant and queue a new iteration. " +
+      "1) Collects all feedback signals linked to the variant " +
+      "2) Runs an AI synthesis against the project's research doc " +
+      "3) Creates a new prototypeVariant (v+1) with parentVariantId set " +
+      "4) Schedules a prototype-builder job with the synthesis brief " +
+      "5) Stores the synthesis as a memory entry on the project. " +
+      "Use after elmer_get_prototype_feedback confirms there's feedback to act on.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        variant_id: { type: "string", description: "The variant to iterate from" },
+        instructions: {
+          type: "string",
+          description: "Optional extra direction for the next iteration (e.g. 'focus on the header', 'try a simpler layout')",
+        },
+      },
+      required: ["variant_id"],
+    },
+  },
+];
+
+// ── Server setup ──────────────────────────────────────────────────────────────
+
+const server = new Server(
+  { name: "elmer", version: "2.0.0" },
+  { capabilities: { tools: {}, resources: {} } },
 );
 
-// ============================================
-// TOOL DEFINITIONS
-// ============================================
+// ── Register MCP App resources ────────────────────────────────────────────────
+const __dirname_apps = dirname(fileURLToPath(import.meta.url));
 
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      // Document Generation Tools
-      {
-        name: "generate-prd",
-        description: "Generate a Product Requirements Document from research and context",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            projectName: { type: "string", description: "Name of the project/feature" },
-            research: { type: "string", description: "Research findings" },
-            transcript: { type: "string", description: "Meeting transcript or notes" },
-            companyContext: { type: "string", description: "Company context and vision" },
-            personas: { type: "array", items: { type: "string" }, description: "Target personas" },
-          },
-          required: ["projectId", "projectName"],
-        },
-      },
-      {
-        name: "generate-design-brief",
-        description: "Generate a design brief from a PRD",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            prd: { type: "string", description: "The PRD content" },
-            designLanguage: { type: "string", description: "Design language guidelines" },
-            existingPatterns: { type: "array", items: { type: "string" }, description: "Existing design patterns" },
-          },
-          required: ["projectId", "prd"],
-        },
-      },
-      {
-        name: "generate-engineering-spec",
-        description: "Generate an engineering specification from PRD and design brief",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            prd: { type: "string", description: "The PRD content" },
-            designBrief: { type: "string", description: "The design brief" },
-            techStack: { type: "string", description: "Technology stack details" },
-          },
-          required: ["projectId", "prd"],
-        },
-      },
-      {
-        name: "generate-gtm-brief",
-        description: "Generate a go-to-market brief from a PRD",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            prd: { type: "string", description: "The PRD content" },
-            targetPersonas: { type: "array", items: { type: "string" }, description: "Target personas" },
-            marketingGuidelines: { type: "string", description: "Marketing guidelines" },
-          },
-          required: ["projectId", "prd"],
-        },
-      },
+function loadApp(appName: string): string | null {
+  const htmlPath = resolve(__dirname_apps, `../apps/dist/${appName}/index.html`);
+  if (!existsSync(htmlPath)) {
+    console.error(`[elmer-mcp] App not built: ${appName} (run npm run build:app:${appName})`);
+    return null;
+  }
+  return readFileSync(htmlPath, "utf-8");
+}
 
-      // Research Tools
-      {
-        name: "analyze-transcript",
-        description: "Analyze a meeting transcript or user interview for insights",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            transcript: { type: "string", description: "The transcript to analyze" },
-            context: { type: "string", description: "Additional context" },
-          },
-          required: ["projectId", "transcript"],
-        },
-      },
+const APP_HTML: Record<string, string | null> = {
+  "initiative-dashboard": loadApp("initiative-dashboard"),
+  "signal-map": loadApp("signal-map"),
+  "agent-monitor": loadApp("agent-monitor"),
+  "pm-navigator": loadApp("pm-navigator"),
+  "jury-viewer": loadApp("jury-viewer"),
+};
 
-      // Jury Tools
-      {
-        name: "run-jury-evaluation",
-        description: "Run a synthetic user jury evaluation on content",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            phase: { type: "string", enum: ["research", "prd", "prototype"], description: "Evaluation phase" },
-            content: { type: "string", description: "Content to evaluate" },
-            jurySize: { type: "number", description: "Number of jury members (3-100)", default: 12 },
-            personasPath: { type: "string", description: "Path to custom personas file" },
-          },
-          required: ["projectId", "phase", "content"],
-        },
-      },
-      {
-        name: "iterate-from-feedback",
-        description: "Generate an iteration plan from jury feedback",
-        inputSchema: {
-          type: "object",
-          properties: {
-            originalContent: { type: "string", description: "Original content that was evaluated" },
-            juryResult: { type: "object", description: "Jury evaluation result" },
-          },
-          required: ["originalContent", "juryResult"],
-        },
-      },
+const APP_RESOURCES = [
+  { uri: "ui://initiative-dashboard", name: "Initiative Dashboard", description: "Visual initiative status and artifact tracker" },
+  { uri: "ui://signal-map",           name: "Signal Map",           description: "Cluster and visualize unlinked signals" },
+  { uri: "ui://agent-monitor",        name: "Agent Monitor",        description: "Live job and agent execution monitor" },
+  { uri: "ui://pm-navigator",         name: "PM Navigator",         description: "Browse all PM workflow commands" },
+  { uri: "ui://jury-viewer",          name: "Jury Viewer",          description: "View jury evaluation results" },
+];
 
-      // Prototype Tools
-      {
-        name: "build-standalone-prototype",
-        description: "Build a standalone Storybook prototype using Cursor agent",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            type: { type: "string", enum: ["standalone", "context"], default: "standalone" },
-            prd: { type: "string", description: "PRD content" },
-            designBrief: { type: "string", description: "Design brief" },
-            workspacePath: { type: "string", description: "Path to workspace" },
-            outputPath: { type: "string", description: "Output path for components" },
-            existingComponents: { type: "array", items: { type: "string" }, description: "Existing components to reference" },
-          },
-          required: ["projectId", "prd", "workspacePath"],
-        },
-      },
-      {
-        name: "build-context-prototype",
-        description: "Build a context-aware prototype that integrates with existing app patterns",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            type: { type: "string", enum: ["standalone", "context"], default: "context" },
-            prd: { type: "string", description: "PRD content" },
-            designBrief: { type: "string", description: "Design brief" },
-            workspacePath: { type: "string", description: "Path to workspace" },
-            outputPath: { type: "string", description: "Output path for components" },
-            existingComponents: { type: "array", items: { type: "string" }, description: "Existing components to reference" },
-          },
-          required: ["projectId", "prd", "workspacePath"],
-        },
-      },
-      {
-        name: "iterate-prototype",
-        description: "Iterate on an existing prototype based on feedback",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            prototypeId: { type: "string", description: "Prototype ID" },
-            feedback: { type: "string", description: "Feedback to address" },
-            workspacePath: { type: "string", description: "Path to workspace" },
-          },
-          required: ["projectId", "prototypeId", "feedback", "workspacePath"],
-        },
-      },
-      {
-        name: "deploy-chromatic",
-        description: "Deploy Storybook to Chromatic for sharing",
-        inputSchema: {
-          type: "object",
-          properties: {
-            workspacePath: { type: "string", description: "Path to workspace with Storybook" },
-            projectToken: { type: "string", description: "Chromatic project token" },
-          },
-          required: ["workspacePath"],
-        },
-      },
+server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+  resources: APP_RESOURCES.map((r) => ({
+    uri: r.uri,
+    name: r.name,
+    description: r.description,
+    mimeType: "text/html",
+  })),
+}));
 
-      // Linear Tools
-      {
-        name: "generate-tickets",
-        description: "Generate Linear/Jira tickets from an engineering spec",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            engineeringSpec: { type: "string", description: "Engineering specification" },
-            prototypeComponents: { type: "array", items: { type: "string" }, description: "Prototype components to link" },
-            maxTickets: { type: "number", description: "Maximum number of tickets", default: 20 },
-          },
-          required: ["projectId", "engineeringSpec"],
-        },
-      },
-      {
-        name: "validate-tickets",
-        description: "Validate that tickets will achieve the PRD outcome",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "Project ID" },
-            tickets: { type: "array", items: { type: "object" }, description: "Tickets to validate" },
-            prd: { type: "string", description: "PRD to validate against" },
-            prototypeDescription: { type: "string", description: "Description of the prototype" },
-          },
-          required: ["projectId", "tickets", "prd"],
-        },
-      },
-
-      // ==========================================
-      // JOB CRUD TOOLS (for Cursor AI processing)
-      // ==========================================
-      {
-        name: "get-pending-jobs",
-        description: "Get all pending and running jobs from the orchestrator. Use this to find jobs that need processing.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            workspaceId: { type: "string", description: "Optional workspace ID to filter by" },
-            limit: { type: "number", description: "Maximum number of jobs to return (default: 20)" },
-          },
-          required: [],
-        },
-      },
-      {
-        name: "get-job-context",
-        description: "Get full context for a job including project details and existing documents. Use this before processing a job.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            jobId: { type: "string", description: "The job ID to get context for" },
-          },
-          required: ["jobId"],
-        },
-      },
-      {
-        name: "update-job-status",
-        description: "Update a job's status and progress. Use this to mark a job as running or update progress.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            jobId: { type: "string", description: "The job ID to update" },
-            status: { type: "string", enum: ["pending", "running", "completed", "failed", "cancelled"], description: "New status" },
-            progress: { type: "number", description: "Progress from 0 to 1" },
-            output: { type: "object", description: "Output data" },
-            error: { type: "string", description: "Error message if failed" },
-          },
-          required: ["jobId", "status"],
-        },
-      },
-      {
-        name: "complete-job",
-        description: "Mark a job as complete and save the generated content as a document. This is the primary way to finish processing a job.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            jobId: { type: "string", description: "The job ID to complete" },
-            content: { type: "string", description: "The generated content (markdown)" },
-            documentType: { type: "string", description: "Override document type (auto-detected from job type if not provided)" },
-            documentTitle: { type: "string", description: "Custom document title" },
-            metadata: { type: "object", description: "Additional metadata to store" },
-          },
-          required: ["jobId", "content"],
-        },
-      },
-      {
-        name: "fail-job",
-        description: "Mark a job as failed with an error message.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            jobId: { type: "string", description: "The job ID to fail" },
-            error: { type: "string", description: "Error message explaining what went wrong" },
-          },
-          required: ["jobId", "error"],
-        },
-      },
-      {
-        name: "get-project-details",
-        description: "Get full project details including all documents. Use this to understand a project's current state.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "The project ID" },
-          },
-          required: ["projectId"],
-        },
-      },
-      {
-        name: "save-document",
-        description: "Save a document to a project. Use this to create new documents outside of job processing.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            projectId: { type: "string", description: "The project ID" },
-            type: { type: "string", description: "Document type (research, prd, design_brief, engineering_spec, gtm_brief, prototype_notes, jury_report)" },
-            title: { type: "string", description: "Document title" },
-            content: { type: "string", description: "Document content (markdown)" },
-            metadata: { type: "object", description: "Additional metadata" },
-          },
-          required: ["projectId", "type", "title", "content"],
-        },
-      },
-      {
-        name: "get-company-context",
-        description: "Get the paths to company context files (product vision, guardrails, personas). Read these files before generating content.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            workspaceId: { type: "string", description: "The workspace ID" },
-          },
-          required: ["workspaceId"],
-        },
-      },
-    ],
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const uri: string = request.params.uri;
+  const appMap: Record<string, string> = {
+    "ui://initiative-dashboard": "initiative-dashboard",
+    "ui://signal-map": "signal-map",
+    "ui://agent-monitor": "agent-monitor",
+    "ui://pm-navigator": "pm-navigator",
+    "ui://jury-viewer": "jury-viewer",
   };
+  const appName = appMap[uri];
+  if (appName && APP_HTML[appName]) {
+    return {
+      contents: [{
+        uri,
+        mimeType: "text/html",
+        text: APP_HTML[appName] as string,
+      }],
+    };
+  }
+  return { contents: [] };
 });
 
-// ============================================
-// TOOL EXECUTION
-// ============================================
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: TOOLS,
+}));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+  const a = (args ?? {}) as Record<string, unknown>;
+
+  let result: string;
+  let structuredContent: unknown = undefined;
 
   try {
     switch (name) {
-      // Document Generation
-      case "generate-prd": {
-        const input = GeneratePRDInputSchema.parse(args);
-        const result = await generatePRD(input);
-        return {
-          content: [{ type: "text", text: result.success ? result.data! : `Error: ${result.error}` }],
-        };
+      // Projects
+      case "elmer_list_projects":
+        result = await listProjects();
+        break;
+      case "elmer_get_project": {
+        const [text, raw] = await Promise.all([
+          getProject(a.project_id as string),
+          mcpGet("/project", { id: a.project_id as string }).catch(() => undefined),
+        ]);
+        result = text;
+        structuredContent = raw;
+        break;
+      }
+      case "elmer_create_project":
+        result = await createProject(
+          a.name as string,
+          a.description as string | undefined,
+          a.stage as string | undefined,
+          a.priority as string | undefined,
+        );
+        break;
+      case "elmer_update_project":
+        result = await updateProject(a.project_id as string, {
+          stage: a.stage as string | undefined,
+          status: a.status as string | undefined,
+          priority: a.priority as string | undefined,
+          description: a.description as string | undefined,
+          slackChannelId: a.slack_channel_id as string | undefined,
+          slackChannelName: a.slack_channel_name as string | undefined,
+        });
+        break;
+      case "elmer_advance_stage":
+        result = await advanceStage(a.project_id as string);
+        break;
+
+      // Signals
+      case "elmer_list_signals":
+        result = await listSignals(a.status as string | undefined);
+        break;
+      case "elmer_get_signal":
+        result = await getSignal(a.signal_id as string);
+        break;
+      case "elmer_ingest_signal":
+        result = await ingestSignal(
+          a.verbatim as string,
+          a.source as string,
+          a.severity as string | undefined,
+          a.project_id as string | undefined,
+        );
+        break;
+      case "elmer_link_signal":
+        result = await linkSignal(
+          a.signal_id as string,
+          a.project_id as string,
+          a.confidence as number | undefined,
+        );
+        break;
+      case "elmer_synthesize_signals": {
+        const [text, raw] = await Promise.all([
+          synthesizeSignals(),
+          mcpPost("/signals/synthesize", {}).catch(() => undefined),
+        ]);
+        result = text;
+        structuredContent = raw;
+        break;
       }
 
-      case "generate-design-brief": {
-        const input = GenerateDesignBriefInputSchema.parse(args);
-        const result = await generateDesignBrief(input);
-        return {
-          content: [{ type: "text", text: result.success ? result.data! : `Error: ${result.error}` }],
-        };
-      }
+      // Agents
+      case "elmer_list_agents":
+        result = await listAgents(a.type as string | undefined);
+        break;
+      case "elmer_get_agent":
+        result = await getAgent(a.agent_id as string);
+        break;
+      case "elmer_run_agent":
+        result = await runAgent(
+          a.agent_definition_id as string,
+          a.project_id as string | undefined,
+          a.input as Record<string, unknown> | undefined,
+        );
+        break;
+      case "elmer_sync_agents":
+        result = await syncAgents();
+        break;
 
-      case "generate-engineering-spec": {
-        const input = GenerateEngineeringSpecInputSchema.parse(args);
-        const result = await generateEngineeringSpec(input);
-        return {
-          content: [{ type: "text", text: result.success ? result.data! : `Error: ${result.error}` }],
-        };
+      // Jobs
+      case "elmer_list_jobs": {
+        const statusParam = a.status as string | undefined;
+        const [text, raw] = await Promise.all([
+          listJobs(statusParam),
+          mcpGet("/jobs", statusParam ? { status: statusParam } : undefined).catch(() => undefined),
+        ]);
+        result = text;
+        structuredContent = raw;
+        break;
       }
+      case "elmer_get_job":
+        result = await getJob(a.job_id as string);
+        break;
+      case "elmer_get_job_logs":
+        result = await getJobLogs(a.job_id as string);
+        break;
+      case "elmer_get_pending_questions":
+        result = await getPendingQuestions();
+        break;
+      case "elmer_respond_to_question":
+        result = await respondToQuestion(
+          a.question_id as string,
+          a.response as string,
+        );
+        break;
 
-      case "generate-gtm-brief": {
-        const input = GenerateGTMBriefInputSchema.parse(args);
-        const result = await generateGTMBrief(input);
-        return {
-          content: [{ type: "text", text: result.success ? result.data! : `Error: ${result.error}` }],
-        };
+      // Knowledge
+      case "elmer_list_context":
+        result = await listContext();
+        break;
+      case "elmer_list_commands": {
+        const [text, raw] = await Promise.all([
+          listCommands(),
+          mcpGet("/commands").catch(() => undefined),
+        ]);
+        result = text;
+        structuredContent = raw;
+        break;
       }
+      case "elmer_get_context":
+        result = await getContext(a.type as string);
+        break;
+      case "elmer_search":
+        result = await search(a.query as string);
+        break;
 
-      // Research
-      case "analyze-transcript": {
-        const input = AnalyzeTranscriptInputSchema.parse(args);
-        const result = await analyzeTranscript(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
-      }
+      // Memory
+      case "elmer_store_memory":
+        result = await storeMemory(
+          a.content as string,
+          a.type as string,
+          a.project_id as string | undefined,
+        );
+        break;
+      case "elmer_query_memory":
+        result = await queryMemory(
+          a.project_id as string | undefined,
+          a.type as string | undefined,
+        );
+        break;
+      case "elmer_graph_get_context":
+        result = await graphGetContext(a.project_id as string);
+        break;
 
-      // Jury
-      case "run-jury-evaluation": {
-        const input = RunJuryInputSchema.parse(args);
-        const result = await runJuryEvaluation(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
+      // Prototype Feedback Loop
+      case "elmer_post_prototype":
+        result = await postPrototype(a.variant_id as string);
+        break;
+      case "elmer_get_prototype_feedback": {
+        if (a.project_id && !a.variant_id) {
+          // List variants for project so user can pick one
+          result = await listPrototypeVariants(a.project_id as string);
+        } else if (a.variant_id) {
+          result = await getPrototypeFeedback(a.variant_id as string);
+        } else {
+          result = "Provide either variant_id or project_id.";
+        }
+        break;
       }
-
-      case "iterate-from-feedback": {
-        const { originalContent, juryResult } = args as { originalContent: string; juryResult: unknown };
-        const result = await iterateFromFeedback(originalContent, juryResult as Parameters<typeof iterateFromFeedback>[1]);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
-      }
-
-      // Prototypes
-      case "build-standalone-prototype": {
-        const input = BuildPrototypeInputSchema.parse({ ...args, type: "standalone" });
-        const result = await buildStandalonePrototype(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
-      }
-
-      case "build-context-prototype": {
-        const input = BuildPrototypeInputSchema.parse({ ...args, type: "context" });
-        const result = await buildContextPrototype(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
-      }
-
-      case "iterate-prototype": {
-        const input = IteratePrototypeInputSchema.parse(args);
-        const result = await iteratePrototype(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
-      }
-
-      case "deploy-chromatic": {
-        const { workspacePath, projectToken } = args as { workspacePath: string; projectToken?: string };
-        const result = await deployToChromatic(workspacePath, projectToken);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
-      }
-
-      // Linear
-      case "generate-tickets": {
-        const input = GenerateTicketsInputSchema.parse(args);
-        const result = await generateTickets(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
-      }
-
-      case "validate-tickets": {
-        const input = ValidateTicketsInputSchema.parse(args);
-        const result = await validateTickets(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-        };
-      }
-
-      // ==========================================
-      // JOB CRUD HANDLERS
-      // ==========================================
-      case "get-pending-jobs": {
-        const { workspaceId, limit } = args as { workspaceId?: string; limit?: number };
-        const result = await getPendingJobs({ workspaceId, limit });
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-          isError: !result.success,
-        };
-      }
-
-      case "get-job-context": {
-        const { jobId } = args as { jobId: string };
-        const result = await getJobContext({ jobId });
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-          isError: !result.success,
-        };
-      }
-
-      case "update-job-status": {
-        const input = args as { jobId: string; status: "pending" | "running" | "completed" | "failed" | "cancelled"; progress?: number; output?: Record<string, unknown>; error?: string };
-        const result = await updateJobStatus(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-          isError: !result.success,
-        };
-      }
-
-      case "complete-job": {
-        const input = args as { jobId: string; content: string; documentType?: string; documentTitle?: string; metadata?: Record<string, unknown> };
-        const result = await completeJob(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-          isError: !result.success,
-        };
-      }
-
-      case "fail-job": {
-        const { jobId, error: errorMsg } = args as { jobId: string; error: string };
-        const result = await failJob({ jobId, error: errorMsg });
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-          isError: !result.success,
-        };
-      }
-
-      case "get-project-details": {
-        const { projectId } = args as { projectId: string };
-        const result = await getProjectDetails({ projectId });
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-          isError: !result.success,
-        };
-      }
-
-      case "save-document": {
-        const input = args as { projectId: string; type: string; title: string; content: string; metadata?: Record<string, unknown> };
-        const result = await saveDocument(input);
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-          isError: !result.success,
-        };
-      }
-
-      case "get-company-context": {
-        const { workspaceId } = args as { workspaceId: string };
-        const result = await getCompanyContext({ workspaceId });
-        return {
-          content: [{ type: "text", text: result.success ? JSON.stringify(result.data, null, 2) : `Error: ${result.error}` }],
-          isError: !result.success,
-        };
-      }
+      case "elmer_iterate_prototype":
+        result = await iteratePrototype(
+          a.variant_id as string,
+          a.instructions as string | undefined,
+        );
+        break;
 
       default:
-        return {
-          content: [{ type: "text", text: `Unknown tool: ${name}` }],
-          isError: true,
-        };
+        result = `Unknown tool: ${name}`;
     }
   } catch (error) {
-    return {
-      content: [{ type: "text", text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` }],
-      isError: true,
-    };
+    const msg = error instanceof Error ? error.message : String(error);
+    result = `❌ Error: ${msg}`;
+    console.error(`[elmer-mcp] ${name} failed:`, msg);
   }
+
+  return {
+    content: [{ type: "text", text: result }],
+    ...(structuredContent !== undefined ? { structuredContent } : {}),
+  };
 });
 
-// ============================================
-// START SERVER
-// ============================================
+// ── Start ─────────────────────────────────────────────────────────────────────
 
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("PM Orchestrator MCP server running on stdio");
-}
-
-main().catch(console.error);
+const transport = new StdioServerTransport();
+await server.connect(transport);
+console.error("[elmer-mcp] Elmer MCP server v2 started (Convex-backed)");

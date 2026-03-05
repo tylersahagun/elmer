@@ -1,0 +1,67 @@
+{
+  "name": "NewChatSidebar",
+  "initiative": "global-chat",
+  "figmaUrl": "https://www.figma.com/design/EgEsOKl70B0iULW29ZrjJj/New-Chat--side-bar-?node-id=604-11532&p=f&t=9GR7nJj6LLCS00hz-0",
+  "figmaNodeId": "604:11532",
+  "extractedAt": "2026-02-07",
+  "mode": "manual-scaffold",
+  "notes": [
+    "Private Figma MCP extraction was not executed in this environment.",
+    "Spec was derived from existing chat/sidebar patterns and the node naming context."
+  ],
+  "props": {
+    "title": {
+      "type": "string",
+      "required": false,
+      "default": "Chats"
+    },
+    "searchPlaceholder": {
+      "type": "string",
+      "required": false,
+      "default": "Search chats"
+    },
+    "searchValue": {
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    "privateChats": {
+      "type": "NewChatSidebarItem[]",
+      "required": false
+    },
+    "workflowChats": {
+      "type": "NewChatSidebarItem[]",
+      "required": false
+    },
+    "selectedChatId": {
+      "type": "string",
+      "required": false
+    },
+    "loading": {
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    "error": {
+      "type": "string | null",
+      "required": false,
+      "default": null
+    }
+  },
+  "states": [
+    "default",
+    "loading",
+    "empty",
+    "error",
+    "mobile-width"
+  ],
+  "tokens": {
+    "source": "elephant-ai existing design tokens",
+    "usage": [
+      "Button variant=outline",
+      "Input",
+      "Badge outline blue",
+      "neutral color scale for list and separators"
+    ]
+  }
+}

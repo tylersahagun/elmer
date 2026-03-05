@@ -1,0 +1,41 @@
+{
+  "name": "Gong Dashboard Analysis & AskElephant Dashboard Strategy",
+  "slug": "gong-dashboard-analysis",
+  "phase": "Discovery",
+  "status": "active",
+  "owner": "Tyler Sahagun",
+  "created": "2026-03-01",
+  "updated": "2026-03-01",
+  "priority": "high",
+  "strategic_pillar": ["Data Knowledge", "Trend Visibility"],
+  "initiative_2026": "Competitive Intelligence / Dashboard Experience",
+  "personas": ["Sales Representative", "Sales Leader", "Workspace Owner/Admin", "CSM"],
+  "related_initiatives": [
+    "client-usage-metrics",
+    "universal-signal-tables",
+    "agent-command-center",
+    "chief-of-staff-experience"
+  ],
+  "hypotheses": [
+    "automation-beats-gong-positioning"
+  ],
+  "tags": ["competitive", "gong", "dashboards", "analytics", "data-visualization"],
+  "description": "Competitive research on Gong's dashboards and data visualization capabilities, gap analysis of AskElephant's current state, and a strategic plan with prototypes for adding role-based dashboards (user, manager, admin) that leverage our automation and CRM intelligence advantages.",
+  "artifacts": {
+    "research": "research.md",
+    "competitive_landscape": "competitive-landscape.md",
+    "gap_analysis": "gap-analysis.md",
+    "prd": "prd.md",
+    "design_brief": "design-brief.md",
+    "prototype": "prototypes/dashboard-prototype.html",
+    "prototype_notes": "prototype-notes.md"
+  },
+  "next_steps": [
+    "Review with Sam Ho (VP Product) for strategic alignment and prioritization",
+    "Validate data availability with Bryan/Kaden (talk ratio, question rate extractability)",
+    "Design review with Skylar/Adam on bento grid approach",
+    "Validate manager dashboard with Ben Kinard (coaching utility)",
+    "Validate admin dashboard with Rob (QBR/expansion utility)",
+    "Scope V1 engineering effort and timeline"
+  ]
+}

@@ -1,0 +1,63 @@
+# Workspace Maintenance Audit
+
+**Generated:** 2026-01-22 20:15
+**Status:** ⚠️ 8 issues found (4 warnings, 4 info)
+
+---
+
+## Summary
+
+| Category | Status | Issues |
+|----------|--------|--------|
+| Structure Integrity | ⚠️ | 3 |
+| Data Consistency | ⚠️ | 1 |
+| Health Checks | ✅ | 0 |
+| Cleanup Candidates | ℹ️ | 4 |
+
+---
+
+## Issues Found
+
+### Warning (should fix)
+
+1. **Missing `research.md`**: `condorcet-jury-eval`, `internal-search`
+2. **Inconsistent `_meta.json`**: `crm-readiness-diagnostic` uses non-standard schema
+3. **Orphaned `current/` folder**: 10 subdirs with only `analysis.md` files
+4. **Prototype versioning**: 4 prototypes not using versioned subfolders
+
+### Info (optional)
+
+1. Empty folders: `signals/conversations/`, `signals/issues/`, `signals/tickets/`, `maintenance/audit-history/`, `hypotheses/retired/`
+2. Duplicate name: `current/release-lifecycle-process/` conflicts with main initiative
+3. Redundant initiative: `condorcet-jury-eval` may be duplicate of `condorcet-jury-system`
+4. Snapshots: 5 (within limits)
+
+---
+
+## Health Checks: All Pass ✅
+
+- No stale initiatives (>14 days)
+- No stale hypotheses (>30 days)  
+- All P0/P1 have owners
+- No blockers without descriptions
+- Index files synced correctly
+
+---
+
+## Statistics
+
+- **Initiatives:** 19
+- **Hypotheses:** 11
+- **Signals:** 9
+- **Prototypes:** 5
+
+### Phase Distribution
+- Discovery: 2 (15%)
+- Define: 4 (31%)
+- Build: 5 (38%)
+- Validate: 2 (15%)
+- Launch: 0 (0%)
+
+---
+
+*Full report at `latest-audit.md`*

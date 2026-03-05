@@ -1,0 +1,37 @@
+{
+  "rice": {
+    "reach_defaults": {
+      "enterprise": 8.0,
+      "growth": 6.0,
+      "starter": 4.0,
+      "free": 2.0,
+      "unknown": 3.0
+    },
+    "impact_defaults": {
+      "churn_risk": 3.0,
+      "bug": 2.5,
+      "incident": 3.0,
+      "feature_request": 1.5,
+      "customer_feedback": 1.0,
+      "question": 0.75,
+      "general": 1.0
+    },
+    "confidence_base": 0.55,
+    "effort_default": 3.0
+  },
+  "routing": {
+    "linear_min_score": 2.0,
+    "notion_min_score": 1.0,
+    "high_priority_score": 4.0,
+    "urgent_keywords": [
+      "critical",
+      "urgent",
+      "outage",
+      "blocked",
+      "cannot",
+      "can't",
+      "churn",
+      "escalation"
+    ]
+  }
+}

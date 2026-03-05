@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUIStore } from "@/lib/store";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useJobLogs } from "@/hooks/useJobLogs";
 import {
   X,
   Loader2,
@@ -17,26 +21,8 @@ import {
   FileText,
   Brain,
   ArrowRight,
-  RefreshCw,
   XCircle,
 } from "lucide-react";
-
-interface LogEntry {
-  id: string;
-  timestamp: Date;
-  level: "info" | "warn" | "error" | "debug";
-  message: string;
-  data?: Record<string, unknown>;
-}
-
-interface JobState {
-  id: string;
-  type: string;
-  status: "pending" | "running" | "completed" | "failed" | "cancelled";
-  progress: number;
-  error?: string | null;
-  output?: Record<string, unknown> | null;
-}
 
 // Format job type for display
 function formatJobType(type: string): string {
@@ -125,13 +111,33 @@ export function JobLogsDrawer() {
   const projectName = useUIStore((s) => s.jobLogsDrawerProjectName);
   const closeDrawer = useUIStore((s) => s.closeJobLogsDrawer);
 
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [job, setJob] = useState<JobState | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-
+  const { logs: rawLogs, job, isLoading } = useJobLogs(isOpen ? jobId : null);
+  const [activeTab, setActiveTab] = useState<"logs" | "trace">("logs");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Execution trace for the Trace tab
+  const execution = useQuery(
+    api.agentExecutions.getByJob,
+    isOpen && jobId ? { jobId: jobId as Id<"jobs"> } : "skip",
+  );
+  const toolCalls = (execution?.toolCalls ?? []) as Array<{
+    name: string;
+    input: Record<string, unknown>;
+    output: unknown;
+    durationMs: number;
+  }>;
+
+  // Map Convex log entries to display shape
+  const logs = rawLogs.map((l) => ({
+    id: l._id,
+    timestamp: new Date(l._creationTime),
+    level: l.level as "info" | "warn" | "error" | "debug",
+    message: l.message,
+    data: l.meta as Record<string, unknown> | undefined,
+  }));
+
+  const isConnected = !isLoading && job !== null;
+  const connectionError = null;
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -140,122 +146,10 @@ export function JobLogsDrawer() {
     }
   }, [logs]);
 
-  // Connect to SSE stream
-  const connectToStream = useCallback(() => {
-    if (!jobId) return;
-
-    // Close existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    setConnectionError(null);
-    setLogs([]);
-
-    const eventSource = new EventSource(`/api/jobs/${jobId}/logs`);
-    eventSourceRef.current = eventSource;
-
-    eventSource.onopen = () => {
-      setIsConnected(true);
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        switch (data.type) {
-          case "initial":
-            setJob({
-              id: data.job.id,
-              type: data.job.type,
-              status: data.job.status,
-              progress: data.job.progress || 0,
-              error: data.job.error,
-            });
-            break;
-
-          case "log":
-            setLogs((prev) => [
-              ...prev,
-              {
-                id: `${Date.now()}-${Math.random()}`,
-                timestamp: new Date(data.timestamp),
-                level: data.level,
-                message: data.message,
-                data: data.data,
-              },
-            ]);
-            break;
-
-          case "status":
-            setJob((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    status: data.status,
-                    progress: data.progress || prev.progress,
-                  }
-                : prev,
-            );
-            break;
-
-          case "finished":
-            setJob((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    status: data.status,
-                    progress: 1,
-                    error: data.error,
-                    output: data.output,
-                  }
-                : prev,
-            );
-            eventSource.close();
-            setIsConnected(false);
-            break;
-        }
-      } catch (err) {
-        console.error("Failed to parse SSE message:", err);
-      }
-    };
-
-    eventSource.onerror = () => {
-      setIsConnected(false);
-      setConnectionError("Connection lost. Click to reconnect.");
-    };
-  }, [jobId]);
-
-  // Connect when drawer opens
-  useEffect(() => {
-    let connectTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    if (isOpen && jobId) {
-      connectTimeout = setTimeout(() => {
-        connectToStream();
-      }, 0);
-    }
-
-    return () => {
-      if (connectTimeout) {
-        clearTimeout(connectTimeout);
-      }
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-    };
-  }, [isOpen, jobId, connectToStream]);
+  // Connect to SSE stream — REMOVED: Convex useQuery in useJobLogs handles this reactively
 
   // Clean up on close
   const handleClose = () => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-    setLogs([]);
-    setJob(null);
-    setIsConnected(false);
     closeDrawer();
   };
 
@@ -367,9 +261,9 @@ export function JobLogsDrawer() {
                   {job.status}
                 </span>
               </div>
-              {job.progress > 0 && job.progress < 1 && (
+              {(job.progress ?? 0) > 0 && (job.progress ?? 0) < 1 && (
                 <span className="text-xs text-muted-foreground">
-                  {Math.round(job.progress * 100)}%
+                  {Math.round((job.progress ?? 0) * 100)}%
                 </span>
               )}
             </div>
@@ -379,38 +273,103 @@ export function JobLogsDrawer() {
                 <motion.div
                   className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
                   initial={{ width: 0 }}
-                  animate={{ width: `${job.progress * 100}%` }}
+                  animate={{ width: `${(job.progress ?? 0) * 100}%` }}
                   transition={{ duration: 0.3 }}
                 />
               </div>
             )}
             {/* Error message */}
-            {job.error && (
+            {job.errorMessage && (
               <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
-                <p className="text-xs text-red-400">{job.error}</p>
+                <p className="text-xs text-red-400">{job.errorMessage}</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Connection error */}
-        {connectionError && (
-          <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/20">
+        {/* Connection error — Convex useQuery manages reconnection automatically */}
+
+        {/* Tab switcher */}
+        <div className="flex border-b border-white/[0.08] px-4 gap-4 shrink-0">
+          {(["logs", "trace"] as const).map((tab) => (
             <button
-              onClick={connectToStream}
-              className="flex items-center gap-2 text-xs text-amber-400 hover:text-amber-300"
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "text-xs font-mono py-2 border-b-2 transition-colors",
+                activeTab === tab
+                  ? "border-purple-400 text-purple-400"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
             >
-              <RefreshCw className="w-3 h-3" />
-              {connectionError}
+              {tab === "logs" ? `Logs (${logs.length})` : `Trace (${toolCalls.length})`}
             </button>
-          </div>
+          ))}
+        </div>
+
+        {/* Trace tab */}
+        {activeTab === "trace" && (
+          <ScrollArea className="flex-1 p-4">
+            {toolCalls.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Terminal className="w-8 h-8 mb-2 opacity-50" />
+                <p className="text-sm">No tool calls yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {toolCalls.map((tc, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-purple-400 font-medium">
+                          {tc.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          #{idx + 1}
+                        </span>
+                      </div>
+                      {tc.durationMs != null && (
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {tc.durationMs}ms
+                        </span>
+                      )}
+                    </div>
+                    {tc.input && Object.keys(tc.input).length > 0 && (
+                      <details className="group">
+                        <summary className="text-[10px] text-muted-foreground cursor-pointer select-none">
+                          Input
+                        </summary>
+                        <pre className="mt-1 text-[10px] font-mono text-foreground/70 whitespace-pre-wrap break-all overflow-hidden">
+                          {JSON.stringify(tc.input, null, 2).slice(0, 400)}
+                        </pre>
+                      </details>
+                    )}
+                    {tc.output !== undefined && (
+                      <details className="group">
+                        <summary className="text-[10px] text-muted-foreground cursor-pointer select-none">
+                          Output
+                        </summary>
+                        <pre className="mt-1 text-[10px] font-mono text-emerald-400/70 whitespace-pre-wrap break-all overflow-hidden">
+                          {JSON.stringify(tc.output, null, 2).slice(0, 600)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         )}
 
-        {/* Logs */}
+        {/* Logs tab */}
+        {activeTab === "trace" ? null : (
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-2">
             <AnimatePresence mode="popLayout">
-              {logs.length === 0 && !job?.error ? (
+              {logs.length === 0 && !job?.errorMessage ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -509,6 +468,7 @@ export function JobLogsDrawer() {
             )}
           </div>
         </ScrollArea>
+        )}
 
         {/* Footer with output summary */}
         {job?.output && Object.keys(job.output).length > 0 && (

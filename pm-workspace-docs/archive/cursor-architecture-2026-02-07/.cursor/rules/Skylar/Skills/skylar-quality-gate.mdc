@@ -1,0 +1,243 @@
+---
+description: "Skylar quality gate -- enforces responsive design, dark mode, state completeness, accessibility, animation, and Storybook coverage on every component change"
+globs:
+  - "elephant-ai/apps/web/src/components/**/*"
+  - "elephant-ai/packages/react-web-ui/src/components/**/*"
+alwaysApply: false
+---
+
+# Quality Gate -- Every Component Change
+
+No component change is complete until it passes every check below. Fix issues before reporting the change to the designer.
+
+---
+
+## 1. Responsive Design
+
+Every layout must work at three breakpoints. Chromatic tests at all three.
+
+| Breakpoint | Width  | Typical device          | Tailwind prefix             |
+| ---------- | ------ | ----------------------- | --------------------------- |
+| Mobile     | 375px  | iPhone SE / small phone | (no prefix -- mobile-first) |
+| Tablet     | 768px  | iPad                    | `md:`                       |
+| Desktop    | 1280px | Laptop / monitor        | `lg:` or `xl:`              |
+
+### Required Responsive Patterns
+
+- **Grid layouts**: Must collapse columns on mobile. A 3-column desktop grid should be 1-column on mobile.
+  ```
+  grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+  ```
+- **Horizontal lists**: Must wrap or scroll horizontally on mobile. Never overflow the viewport.
+- **Navigation**: Sidebar content must be accessible via a mobile drawer or collapse.
+- **Typography**: h1 uses `text-4xl lg:text-5xl` -- the responsive step is built into the type scale.
+- **Padding**: Page-level padding can reduce on mobile (`px-4 md:px-6 lg:px-8`).
+- **Tables**: Wide tables must be wrapped in a horizontal scroll container on mobile.
+
+### FORBIDDEN Responsive Patterns
+
+- Fixed widths that exceed mobile viewport (`w-[500px]` without responsive override)
+- Horizontal overflow without scroll containers
+- Text that wraps in ways that break readability on mobile
+- Touch targets smaller than 44x44px on mobile
+
+---
+
+## 2. Dark Mode
+
+All colors must use semantic tokens from `elephant-ai/apps/web/src/index.css`. Semantic tokens automatically switch between light and dark mode via the `.dark` class.
+
+### Verification Checklist
+
+- [ ] No hardcoded `bg-white` -- use `bg-card` or `bg-background`
+- [ ] No hardcoded `text-black` -- use `text-foreground`
+- [ ] No hardcoded `border-gray-*` -- use `border-border`
+- [ ] No hardcoded hex colors or RGB values
+- [ ] Status colors (emerald, amber, rose, blue) need dark mode consideration -- these Tailwind colors don't auto-adapt, so use them only for badges/status indicators where the contrast is acceptable in both modes
+- [ ] SVG fills and strokes use `currentColor` or semantic tokens
+
+### How to Verify
+
+Check the component in Storybook with the theme switcher (toolbar dropdown). If any element becomes invisible, unreadable, or jarring in dark mode, fix it.
+
+---
+
+## 3. State Completeness
+
+Every component that displays data must handle all four states:
+
+### Loading State
+
+- Use `Skeleton` components from `@/components/ui/skeleton`
+- Match the shape and size of the content being loaded
+- Skeletons pulse (`animate-pulse`) to indicate activity
+- Never show a blank screen while data loads
+
+```
+<Skeleton className="h-5 w-3/4" />   /* title-sized skeleton */
+<Skeleton className="h-4 w-1/2" />   /* description-sized skeleton */
+```
+
+### Empty State
+
+- Show a helpful message explaining why there's no data
+- Include a primary action to resolve the empty state when possible
+- Use an icon or illustration to make it feel intentional, not broken
+- Center vertically and horizontally in the available space
+
+### Error State
+
+- Explain what went wrong in plain language (not technical error messages)
+- Provide a clear recovery action ("Try again", "Refresh", "Go back")
+- Use `text-destructive` for the error message
+- Never show a raw error string from the API
+
+### Disabled State
+
+- Interactive elements use `opacity-50 cursor-not-allowed`
+- Disabled buttons must not trigger actions
+- If an entire section is disabled, explain why with a tooltip or message
+
+---
+
+## 4. Accessibility
+
+### Contrast
+
+- Body text on backgrounds: minimum 4.5:1 ratio
+- Large text (18px+ or 14px bold): minimum 3:1 ratio
+- All semantic token pairings (e.g., `foreground` on `background`) already meet this -- using tokens correctly guarantees compliance
+
+### Focus Management
+
+- Every interactive element must have a visible focus ring: `focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`
+- Focus order must follow visual reading order (top to bottom, left to right)
+- Modals must trap focus within the dialog while open
+- When a modal closes, focus returns to the trigger element
+
+### Labels and ARIA
+
+- Every form input needs a visible `<Label>` or `aria-label`
+- Icon-only buttons need `aria-label` describing the action
+- Status indicators must not rely on color alone -- include text or icons
+- Images need meaningful `alt` text or `aria-hidden="true"` if decorative
+
+### Keyboard Navigation
+
+- All interactive elements reachable via Tab key
+- Enter/Space activates buttons and links
+- Escape closes modals, dropdowns, and popovers
+- Arrow keys navigate within lists, tabs, and menus
+
+---
+
+## 5. Animation & Transitions
+
+### Required Transitions
+
+| Element type                | Required transition                               |
+| --------------------------- | ------------------------------------------------- |
+| Buttons (hover)             | `transition-colors`                               |
+| Cards (hover/select)        | `transition-colors`                               |
+| Accordion/collapsible       | `animate-accordion-down` / `animate-accordion-up` |
+| Dropdown/popover appearance | Handled by Radix UI                               |
+| Page transitions            | `transition-transform` if applicable              |
+
+### Animation Tokens
+
+| Token             | Value                              | Usage                        |
+| ----------------- | ---------------------------------- | ---------------------------- |
+| `--duration-550`  | 550ms                              | Standard transition duration |
+| `--ease-out-expo` | `cubic-bezier(0.46, 0.7, 0.41, 1)` | Smooth deceleration          |
+
+### Motion Sensitivity
+
+- Always include `motion-safe:` or check `prefers-reduced-motion` for non-essential animations
+- Loading spinners and skeletons are exempt (they serve a functional purpose)
+- Decorative animations must be skippable
+
+### FORBIDDEN Animation Patterns
+
+- Animations longer than 1 second (feels sluggish)
+- Animations that block user interaction
+- Bounce or elastic easing on UI elements (feels unserious for a B2B product)
+- Missing transitions on hover states (feels janky)
+
+---
+
+## 6. Storybook Coverage
+
+Every component change must be reflected in Storybook.
+
+### Story Requirements
+
+- **Default story**: The component in its primary, happy-path state
+- **Variant stories**: Each visual variant (size, color, style) as a separate story
+- **State stories**: Loading, empty, error, and disabled states
+- **Interactive story**: A story that demonstrates the component's interactive behavior (click, type, select)
+
+### Story File Convention
+
+Stories live alongside the component:
+
+```
+component-name.tsx           /* component */
+component-name.stories.tsx   /* stories */
+```
+
+### Mock Data
+
+Use `makeFragmentData()` for GraphQL fragment data in stories. Use realistic mock data that reflects actual product content, not "Lorem ipsum."
+
+### Chromatic Viewports
+
+Stories are automatically tested at 375px, 768px, and 1280px via Chromatic. Design with all three in mind.
+
+---
+
+## 7. Code Quality
+
+### After Every Change
+
+1. Run lints to check for issues introduced by the change
+2. Fix any lint errors immediately
+3. Ensure TypeScript compiles without errors
+4. Verify the component renders without console errors
+
+### Class Merging
+
+Always use `cn()` for conditional classes:
+
+```
+className={cn(
+  "base-classes",
+  variant === "active" && "active-classes",
+  className
+)}
+```
+
+### No Inline Styles
+
+Never use `style={{}}` attributes. Everything must go through Tailwind utility classes or CSS variables.
+
+---
+
+## Quality Gate Summary
+
+Before telling the designer a change is done, confirm all checks:
+
+- [ ] Responsive at 375px, 768px, 1280px
+- [ ] Dark mode renders correctly
+- [ ] Loading state exists (skeletons)
+- [ ] Empty state exists (helpful message)
+- [ ] Error state exists (explanation + recovery)
+- [ ] Focus rings on all interactive elements
+- [ ] Sufficient contrast (4.5:1 for body text)
+- [ ] All form inputs have labels
+- [ ] Transitions on hover/focus states
+- [ ] Respects reduced motion preference
+- [ ] Storybook story updated with all states
+- [ ] No lint errors introduced
+- [ ] No hardcoded colors, spacing, or styles
+
+If any box is unchecked, fix it before reporting to the designer.

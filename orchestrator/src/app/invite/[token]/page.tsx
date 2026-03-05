@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +54,7 @@ export default function AcceptInvitationPage({
 }) {
   const { token } = use(params);
   const router = useRouter();
-  const { data: session, status: sessionStatus } = useSession();
+  const { user, isLoaded, isSignedIn } = useCurrentUser();
   const [acceptSuccess, setAcceptSuccess] = useState(false);
 
   // Fetch invitation details
@@ -119,7 +119,7 @@ export default function AcceptInvitationPage({
   };
 
   // Loading state
-  if (isLoading || sessionStatus === "loading") {
+  if (isLoading || !isLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted/30 p-4">
         <Card className="w-full max-w-md">
@@ -276,7 +276,7 @@ export default function AcceptInvitationPage({
           </div>
 
           {/* Auth state */}
-          {!session ? (
+          {!isSignedIn ? (
             <div className="space-y-3">
               <p className="text-sm text-center text-muted-foreground">
                 Sign in or create an account to accept this invitation
@@ -297,7 +297,7 @@ export default function AcceptInvitationPage({
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-center text-muted-foreground">
-                Signed in as <strong>{session.user?.email}</strong>
+                Signed in as <strong>{user?.email}</strong>
               </p>
               {acceptMutation.error && (
                 <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -307,7 +307,7 @@ export default function AcceptInvitationPage({
             </div>
           )}
         </CardContent>
-        {session && (
+        {isSignedIn && (
           <CardFooter>
             <Button
               className="w-full gap-2"

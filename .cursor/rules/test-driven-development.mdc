@@ -1,0 +1,213 @@
+---
+name: test-driven-development
+description: Enforces test-first development for all agent changes to Elmer. Agents must write and run tests alongside every code change.
+globs:
+  - "orchestrator/convex/**/*.ts"
+  - "orchestrator/src/**/*.tsx"
+  - "orchestrator/src/**/*.ts"
+  - "mcp-server/src/**/*.ts"
+  - "mcp-server/apps/**/*.tsx"
+alwaysApply: true
+---
+
+# Test-Driven Development for Elmer
+
+Every code change MUST be accompanied by tests. This rule applies to all agent sessions building Elmer.
+
+## MANDATORY: Pre-Change Checklist
+
+Before writing ANY code, check:
+
+1. **Does a test file already exist?** Look for `__tests__/*.test.ts` adjacent to the module you're changing.
+2. **Is there an E2E spec?** Look in `orchestrator/e2e/tests/` for a spec covering the affected page/flow.
+3. **If no tests exist, write them first** (or write them alongside — never after).
+
+## Layer-Specific Test Patterns
+
+### Layer 1: Convex Backend (`orchestrator/convex/**`)
+
+**Test file location:** `orchestrator/convex/__tests__/[module].test.ts`
+
+**Framework:** `convex-test` (`@convex-dev/test-helpers`)
+
+```typescript
+// convex/__tests__/signals.test.ts
+import { convexTest } from "convex-test";
+import { api } from "../_generated/api";
+import schema from "../schema";
+
+test("classifies signal on insert", async () => {
+  const t = convexTest(schema);
+  const signalId = await t.mutation(api.signals.create, { ... });
+  const signal = await t.query(api.signals.get, { id: signalId });
+  expect(signal.classification).toBe("feature_request");
+});
+```
+
+**Run command:** `cd orchestrator && npm run test:run -- convex/__tests__/[module].test.ts`
+
+**Required coverage:** Every new mutation/query needs at least 1 test.
+
+---
+
+### Layer 2: MCP Server Tools (`mcp-server/src/tools/**`)
+
+**Test file location:** `mcp-server/src/tools/__tests__/[tool].test.ts`
+
+**Framework:** Vitest
+
+```typescript
+// mcp-server/src/tools/__tests__/projects.test.ts
+import { describe, it, expect, vi } from "vitest";
+
+describe("list_projects tool", () => {
+  it("calls correct Convex endpoint", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ projects: [] });
+    const result = await listProjects({ fetch: mockFetch });
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/projects/list")
+    );
+  });
+});
+```
+
+**Run command:** `cd mcp-server && npm run test:run -- src/tools/__tests__/[tool].test.ts`
+
+---
+
+### Layer 3: MCP UI Apps (`mcp-server/apps/**`)
+
+**Test file location:** `mcp-server/apps/[app]/__tests__/App.test.tsx`
+
+**Framework:** Vitest + React Testing Library
+
+```typescript
+// mcp-server/apps/agent-monitor/__tests__/App.test.tsx
+import { render, screen } from "@testing-library/react";
+import App from "../App";
+
+test("renders agent monitor without crashing", () => {
+  render(<App />);
+  expect(screen.getByRole("heading")).toBeInTheDocument();
+});
+```
+
+**Run command:** `cd mcp-server && npm run test:run -- apps/[app]/__tests__/App.test.tsx`
+
+---
+
+### Layer 4: Next.js Pages / UI Changes (`orchestrator/src/**`)
+
+**For NEW pages or significant UI changes, write a Playwright E2E test:**
+
+**Test file location:** `orchestrator/e2e/tests/[feature].spec.ts`
+
+**Use Page Object Model classes from `orchestrator/e2e/pages/`:**
+
+```typescript
+// orchestrator/e2e/tests/signal-inbox.spec.ts
+import { test, expect } from "@playwright/test";
+import { SignalInboxPage } from "../pages/SignalInboxPage";
+
+test("signal appears in inbox after classification", async ({ page }) => {
+  const inbox = new SignalInboxPage(page);
+  await inbox.goto(TEST_WORKSPACE_ID);
+  // ... test the flow
+});
+```
+
+**Run command:** `cd orchestrator && npm run test:e2e -- --grep "[feature]"`
+
+---
+
+## Visual Validation with Browser MCP
+
+After ANY UI change, validate visually using the browser MCP:
+
+1. Confirm local server is running: `/local status`
+2. Navigate to the affected page: use `browser_navigate` to `http://localhost:3000/workspace/[id]/[route]`
+3. Capture state: use `browser_snapshot` to see current page structure
+4. Assert key elements are present (no crashes, expected content visible)
+5. Report what you saw in your response
+
+**Page-to-validation mapping:**
+
+| Change Type | Validate Page |
+|---|---|
+| Convex schema change | All major workspace tabs (agents, inbox, signals) |
+| New agent definition | `/workspace/[id]/agents` — Agent Hub |
+| Signal handler change | `/workspace/[id]/inbox` — Signal Inbox |
+| MCP tool change | Run tool via Claude Desktop, verify output |
+| MCP UI app change | `/workspace/[id]` — check InitiativeDashboardEmbed |
+| New page/route | Navigate directly to the new route |
+| Document/task change | `/workspace/[id]/tasks` and project detail |
+
+---
+
+## Required Commands Before Reporting Complete
+
+When finishing any code change, run ALL applicable commands:
+
+```bash
+# Convex changes:
+cd orchestrator && npm run test:run -- convex/__tests__/
+
+# MCP tool changes:
+cd mcp-server && npm run test:run -- src/tools/__tests__/
+
+# UI component changes:
+cd orchestrator && npm run test:e2e -- --grep "@affected-feature"
+
+# All unit tests:
+cd orchestrator && npm run test:run
+```
+
+**DO NOT report a change as complete if any test fails.**
+
+If a test reveals a bug you introduced, fix it before reporting complete.
+
+---
+
+## Agent Self-Validation Checklist
+
+Before saying "done" on any feature:
+
+- [ ] Test file exists for every new/changed module
+- [ ] All tests pass (`npm run test:run` exits 0)
+- [ ] Visual validation done via browser MCP (for UI changes)
+- [ ] No new TypeScript errors (`npx tsc --noEmit`)
+- [ ] No new linter errors
+- [ ] Test names clearly describe what they test (not "it works")
+
+---
+
+## Test Naming Convention
+
+```
+[module/component]: [what it does] — [expected behavior]
+
+✅ Good: "signals.create: auto-classifies signal as feature_request when content mentions missing feature"
+✅ Good: "SignalInboxPage: high-impact signal shows red badge"
+❌ Bad: "test signal", "works correctly", "renders"
+```
+
+---
+
+## What NOT to Test
+
+- `index.ts` barrel exports
+- Type definitions (`types.ts`)
+- Convex `_generated/` files (auto-generated)
+- Third-party library behavior (mock it instead)
+
+---
+
+## Quick Reference
+
+| Layer | Test Location | Framework | Run Command |
+|---|---|---|---|
+| Convex functions | `convex/__tests__/` | convex-test + vitest | `npm run test:run` |
+| MCP tools | `mcp-server/src/tools/__tests__/` | vitest | `npm run test:run` |
+| MCP UI apps | `mcp-server/apps/[app]/__tests__/` | vitest + RTL | `npm run test:run` |
+| Next.js pages | `orchestrator/e2e/tests/` | Playwright | `npm run test:e2e` |
+| Visual validation | browser MCP | cursor-ide-browser | `browser_navigate` + `browser_snapshot` |

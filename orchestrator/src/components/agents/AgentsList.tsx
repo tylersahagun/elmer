@@ -2,14 +2,20 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAction, useQuery as useConvexQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   Bot,
   ChevronDown,
   ChevronRight,
   Loader2,
   AlertCircle,
+  RefreshCw,
+  Database,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AgentCard } from "./AgentCard";
 import type { AgentDefinitionType } from "@/lib/db/schema";
 
@@ -69,6 +75,44 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
     queryKey: ["agents", workspaceId],
     queryFn: () => fetchAgents(workspaceId),
   });
+
+  // Convex sync actions
+  const syncAgents = useAction(api.agents.syncAgents);
+  const syncDocs = useAction(api.agents.syncPmWorkspaceDocs);
+  const [syncingAgents, setSyncingAgents] = useState(false);
+  const [syncingDocs, setSyncingDocs] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+
+  const handleSyncAgents = async () => {
+    setSyncingAgents(true);
+    setSyncResult(null);
+    try {
+      const result = await syncAgents({ workspaceId: workspaceId as Id<"workspaces"> });
+      setSyncResult(`✓ Synced ${(result as { synced?: number }).synced ?? 0} agent definitions`);
+    } catch (e) {
+      setSyncResult(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSyncingAgents(false);
+    }
+  };
+
+  const handleSyncDocs = async () => {
+    setSyncingDocs(true);
+    setSyncResult(null);
+    try {
+      const result = await syncDocs({ workspaceId: workspaceId as Id<"workspaces"> }) as {
+        knowledgebase?: number; projects?: number; documents?: number; errors?: number;
+      };
+      setSyncResult(
+        `✓ Synced ${result.knowledgebase ?? 0} KB entries, ${result.projects ?? 0} projects, ${result.documents ?? 0} documents` +
+        (result.errors ? ` (${result.errors} errors)` : ""),
+      );
+    } catch (e) {
+      setSyncResult(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSyncingDocs(false);
+    }
+  };
 
   // Track which sections are expanded (all expanded by default)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -195,13 +239,46 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header with count */}
-      <div className="flex items-center gap-3">
-        <Bot className="h-6 w-6 text-muted-foreground" />
-        <h1 className="text-2xl font-semibold">Agents</h1>
-        <Badge variant="secondary" className="text-sm">
-          {agents.length} {agents.length === 1 ? "item" : "items"}
-        </Badge>
+      {/* Header with count + sync buttons */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <Bot className="h-6 w-6 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold">Agents</h1>
+          <Badge variant="secondary" className="text-sm">
+            {agents.length} {agents.length === 1 ? "item" : "items"}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {syncResult && (
+            <span className="text-xs text-muted-foreground font-mono">
+              {syncResult}
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSyncAgents}
+            disabled={syncingAgents || syncingDocs}
+            className="gap-1.5 text-xs"
+          >
+            {syncingAgents
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : <RefreshCw className="w-3 h-3" />}
+            Sync Agents
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSyncDocs}
+            disabled={syncingAgents || syncingDocs}
+            className="gap-1.5 text-xs"
+          >
+            {syncingDocs
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : <Database className="w-3 h-3" />}
+            Sync PM Workspace
+          </Button>
+        </div>
       </div>
 
       {/* Grouped sections */}

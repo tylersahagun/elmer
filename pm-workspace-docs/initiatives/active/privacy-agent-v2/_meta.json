@@ -1,0 +1,39 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "privacy-agent-v2",
+  "notion_project_id": "2c0f79b2-c8ac-8193-8868-ce8ce8a79d4c",
+  "notion_project_name": "Privacy Determination Agent (v2)",
+  "notion_project_url": "https://www.notion.so/Privacy-Determination-Agent-v2-2c0f79b2c8ac81938868ce8ce8a79d4c",
+  "hypothesis_id": null,
+  "phase": "validate",
+  "sub_phase": "open-beta",
+  "status": "on_track",
+  "priority": "P2",
+  "owner": null,
+  "personas": [
+    "sales-rep",
+    "sales-leader",
+    "csm",
+    "revops"
+  ],
+  "pillar": "customer-trust",
+  "created_at": "2025-12-05T18:56:00.000000",
+  "updated_at": "2026-02-07T00:00:00.000000",
+  "linear_project_url": "https://linear.app/askelephant/project/privacy-determination-agent-eb13c790b4bb",
+  "phase_history": [
+    {
+      "phase": "validate",
+      "entered": "2025-12-05T18:56:00.000000",
+      "exited": null
+    }
+  ],
+  "linear_project_id": "a51a5921-1c7c-4f1d-871c-2e2d1dcfe265",
+  "linear_project_name": "Privacy Determination Agent",
+  "dev_activity": {
+    "last_synced": "2026-02-20T06:54:56Z",
+    "linear_issues_total": 13,
+    "linear_issues_completed": 12,
+    "linear_issues_in_progress": 0,
+    "github_prs_merged_30d": null
+  }
+}

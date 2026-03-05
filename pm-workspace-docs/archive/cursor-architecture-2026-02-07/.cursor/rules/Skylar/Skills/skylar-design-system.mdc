@@ -1,0 +1,201 @@
+---
+description: 'Skylar design system enforcement -- activates when editing components to enforce token usage, spacing grid, typography scale, and component anatomy patterns'
+globs:
+  - 'elephant-ai/apps/web/src/components/**/*'
+  - 'elephant-ai/packages/react-web-ui/src/components/**/*'
+alwaysApply: false
+---
+
+# Design System Enforcement
+
+When editing any component file, enforce these design system rules strictly. Every violation must be fixed before the change is complete.
+
+---
+
+## Color Token Map
+
+### REQUIRED: Use Semantic Tokens
+
+All colors must come from semantic CSS variable tokens. These are defined in `elephant-ai/apps/web/src/index.css` and automatically adapt for dark mode.
+
+| Semantic purpose | Tailwind class | CSS variable | Light value | Dark value |
+|---|---|---|---|---|
+| Page background | `bg-background` | `--background` | `hsl(0 0% 98%)` | `hsl(222.2 84% 4.9%)` |
+| Primary text | `text-foreground` | `--foreground` | `hsl(222.2 84% 4.9%)` | `hsl(210 40% 98%)` |
+| Brand primary | `bg-primary` / `text-primary` | `--primary` | `hsl(240 86% 49%)` | `hsl(240 86% 49%)` |
+| Primary button bg | `bg-primary-dark` | `--primary-dark` | `hsl(0 0% 9%)` | `hsl(0 0% 98%)` |
+| Muted/secondary text | `text-muted-foreground` | `--muted-foreground` | `hsl(0 0% 50%)` | `hsl(215 20.2% 65.1%)` |
+| Subtle backgrounds | `bg-secondary` / `bg-muted` | `--secondary` | `hsl(210 40% 96.1%)` | `hsl(217.2 32.6% 17.5%)` |
+| Card surfaces | `bg-card` | `--card` | `hsl(0 0% 100%)` | `hsl(222.2 84% 4.9%)` |
+| Borders | `border-border` | `--border` | `hsl(214.3 31.8% 91.4%)` | `hsl(217.2 32.6% 17.5%)` |
+| Error/delete | `text-destructive` / `bg-destructive` | `--destructive` | `red-600` | `hsl(0 62.8% 30.6%)` |
+| Warning | `text-warning` / `bg-warning` | `--warning` | `hsl(35 90% 50%)` | same |
+| Success | `text-success` / `bg-success` | `--success` | `green-600` | -- |
+| Focus rings | `ring-ring` | `--ring` | `hsl(240 86% 49%)` | same |
+| Links | `text-hyperlink` | `--hyperlink` | `hsl(221 83% 53%)` | -- |
+| Inputs | `bg-input-background` | `--input-background` | `hsl(0 0% 100%)` | `hsl(222.2 84% 4.9%)` |
+
+### Status Color Patterns
+
+```
+Success: bg-emerald-50 text-emerald-700 border-emerald-200
+Warning: bg-amber-50 text-amber-700 border-amber-200
+Error:   bg-rose-50 text-rose-700 border-rose-200
+Info:    bg-blue-50 text-blue-700 border-blue-200
+```
+
+### Privacy Badge Colors
+
+```
+Public:  bg-privacy-public-bg text-privacy-public-text   (teal-50 / teal-700)
+Private: bg-privacy-private-bg text-privacy-private-text (purple-50 / purple-600)
+```
+
+---
+
+## FORBIDDEN Color Patterns
+
+Reject and replace these immediately:
+
+| Forbidden | Replacement |
+|---|---|
+| `text-gray-500` | `text-muted-foreground` |
+| `text-red-500` for errors | `text-destructive` |
+| `bg-red-100` for error bg | `bg-destructive-light` |
+| `bg-white` | `bg-card` or `bg-background` |
+| `text-black` | `text-foreground` |
+| `border-gray-200` | `border-border` |
+| `text-blue-600` for links | `text-hyperlink` |
+| `text-[#anything]` | Use the appropriate semantic token |
+| `bg-[#anything]` | Use the appropriate semantic token |
+| `style={{ color: ... }}` | Use Tailwind semantic classes |
+
+---
+
+## Typography Enforcement
+
+### Type Scale (Must Use)
+
+| Purpose | Class pattern |
+|---|---|
+| Page titles | `text-4xl font-extrabold tracking-tight lg:text-5xl` |
+| Section headers | `text-3xl font-semibold tracking-tight` |
+| Card titles | `text-2xl font-semibold tracking-tight` or `text-sm font-semibold` (compact cards) |
+| Subsection headers | `text-xl font-semibold tracking-tight` |
+| Body text | `text-sm` (14px -- this is the default) |
+| Secondary text | `text-xs text-muted-foreground` |
+| Captions | `text-[10px] text-muted-foreground` |
+| Form section titles | `text-sm font-medium text-muted-foreground uppercase tracking-wider` |
+
+### FORBIDDEN Typography
+
+- `text-base` as default body (our body is `text-sm`)
+- `text-lg` without semantic purpose
+- Arbitrary font sizes like `text-[15px]`
+- Missing `tracking-tight` on headers
+- Using `font-bold` instead of `font-semibold` on headers (except h1)
+
+---
+
+## Spacing Grid Enforcement
+
+### 4px Base Grid
+
+All spacing must align to the 4px grid:
+
+| Allowed values | Tailwind |
+|---|---|
+| 4px | `p-1`, `m-1`, `gap-1` |
+| 8px | `p-2`, `m-2`, `gap-2` |
+| 12px | `p-3`, `m-3`, `gap-3` |
+| 16px | `p-4`, `m-4`, `gap-4` |
+| 20px | `p-5`, `m-5`, `gap-5` |
+| 24px | `p-6`, `m-6`, `gap-6` |
+| 32px | `p-8`, `m-8`, `gap-8` |
+
+### FORBIDDEN Spacing
+
+- Arbitrary values: `p-[13px]`, `m-[7px]`, `gap-[5px]`
+- Zero values where spacing is expected (unless intentional like `pt-0` on CardContent)
+- Mixing spacing scales (e.g., `gap-3` and `gap-5` on sibling containers)
+
+### Component Spacing Patterns
+
+| Component | Required spacing |
+|---|---|
+| Card padding | `p-6` (24px) |
+| CardHeader | `space-y-1.5` internal |
+| CardContent | `p-6 pt-0` |
+| Section spacing | `space-y-4` to `space-y-8` |
+| Form label to input | `space-y-2` |
+| Button group gap | `gap-2` |
+| Icon to text | `gap-2` |
+
+---
+
+## Component Anatomy Patterns
+
+### Card
+
+```
+<Card>                           /* border bg-card shadow-sm rounded-lg */
+  <CardHeader className="pb-2">  /* tight bottom when content follows */
+    <CardTitle>                   /* text-sm font-semibold (compact) */
+    <CardDescription>             /* text-xs text-muted-foreground */
+  </CardHeader>
+  <CardContent className="pt-0"> /* zero top when header above */
+  </CardContent>
+</Card>
+```
+
+### Form Section
+
+```
+<section className="space-y-4">
+  <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+  /* form fields with space-y-2 */
+</section>
+```
+
+### Badge Variants
+
+```
+<Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+<Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+<Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200">
+```
+
+---
+
+## Required Patterns on Every Interactive Element
+
+1. **Focus ring**: `focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`
+2. **Transition**: `transition-colors` for color changes, `transition-transform` for movement
+3. **Disabled state**: `disabled:cursor-not-allowed disabled:opacity-50`
+4. **Cursor**: Buttons and clickable elements use `cursor-pointer` (set globally for non-disabled buttons)
+
+---
+
+## Class Merging
+
+Always use `cn()` from `@/lib/utils` to merge Tailwind classes. Never concatenate class strings manually:
+
+```
+// Correct
+className={cn("base-classes", conditional && "conditional-classes", className)}
+
+// Wrong
+className={`base-classes ${conditional ? 'conditional-classes' : ''}`}
+```
+
+---
+
+## Import Conventions for Components
+
+| Purpose | Import from |
+|---|---|
+| UI primitives | `@/components/ui/*` |
+| Icons | `lucide-react` |
+| Brand icons | `@/components/icons` |
+| Class merging | `cn` from `@/lib/utils` |
+| Toasts | `toast` from `sonner` |

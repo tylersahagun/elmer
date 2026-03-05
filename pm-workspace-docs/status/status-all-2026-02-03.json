@@ -1,0 +1,631 @@
+{
+  "generated_at": "2026-02-03T04:24:57Z",
+  "health_score": 54,
+  "health_trend": "first_run",
+  "summary": {
+    "total": 22,
+    "by_priority": { "P0": 8, "P1": 2, "P2": 8, "P3": 4 },
+    "by_phase": {
+      "discovery": 4,
+      "define": 5,
+      "build": 9,
+      "validate": 3,
+      "launch": 0,
+      "measure": 1
+    },
+    "by_status": { "on_track": 17, "in_progress": 4, "blocked": 1 },
+    "ready_to_advance": 1,
+    "need_attention": 6
+  },
+  "attention_required": [
+    {
+      "id": "settings-redesign",
+      "issue": "Blocked (stakeholder)",
+      "days": 10,
+      "action": "/status settings-redesign"
+    },
+    {
+      "id": "universal-signal-tables",
+      "issue": "Stale update",
+      "days": 20,
+      "action": "/status universal-signal-tables"
+    },
+    {
+      "id": "customer-journey-map",
+      "issue": "Stale update",
+      "days": 20,
+      "action": "/status customer-journey-map"
+    },
+    {
+      "id": "crm-exp-ete",
+      "issue": "Stale update",
+      "days": 18,
+      "action": "/status crm-exp-ete"
+    },
+    {
+      "id": "call-import-engine",
+      "issue": "Stale update",
+      "days": 21,
+      "action": "/status call-import-engine"
+    },
+    {
+      "id": "settings-page-redesign",
+      "issue": "Missing research + PRD",
+      "days": 1,
+      "action": "/pm settings-page-redesign"
+    }
+  ],
+  "artifact_matrix": [
+    {
+      "id": "release-lifecycle-process",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "settings-page-redesign",
+      "phase": "define",
+      "artifacts": {
+        "research": "missing",
+        "prd": "missing",
+        "design_brief": "complete",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 0.33
+    },
+    {
+      "id": "chief-of-staff-recap-hub",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 0.8
+    },
+    {
+      "id": "composio-agent-framework",
+      "phase": "validate",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "jury": "complete"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "user-onboarding",
+      "phase": "define",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "internal-search",
+      "phase": "discovery",
+      "artifacts": {
+        "research": "complete",
+        "prd": "not_required",
+        "design_brief": "not_required",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "feature-availability-audit",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 0.8
+    },
+    {
+      "id": "deprecate-deprecating-the-pipe-dream",
+      "phase": "discovery",
+      "artifacts": {
+        "research": "complete",
+        "prd": "not_required",
+        "design_brief": "not_required",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "universal-signal-tables",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "speaker-id-voiceprint",
+      "phase": "discovery",
+      "artifacts": {
+        "research": "complete",
+        "prd": "not_required",
+        "design_brief": "not_required",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "settings-redesign",
+      "phase": "validate",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "jury": "complete"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "rep-workspace",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 0.8
+    },
+    {
+      "id": "product-usability",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 0.6
+    },
+    {
+      "id": "hubspot-agent-config-ui",
+      "phase": "validate",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "jury": "complete"
+      },
+      "completeness": 0.83
+    },
+    {
+      "id": "crm-exp-ete",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "call-import-engine",
+      "phase": "define",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "admin-onboarding",
+      "phase": "define",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "design-system-workflow",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "customer-journey-map",
+      "phase": "build",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 0.8
+    },
+    {
+      "id": "crm-readiness-diagnostic",
+      "phase": "discovery",
+      "artifacts": {
+        "research": "complete",
+        "prd": "not_required",
+        "design_brief": "not_required",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "condorcet-jury-system",
+      "phase": "measure",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "missing",
+        "jury": "missing"
+      },
+      "completeness": 0.33
+    },
+    {
+      "id": "automated-metrics-observability",
+      "phase": "define",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "not_required",
+        "prototype": "not_required",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    }
+  ],
+  "ready_to_advance": [
+    {
+      "id": "design-system-workflow",
+      "current_phase": "build",
+      "next_phase": "validate",
+      "criteria_met": "3/3",
+      "blocker": null
+    }
+  ],
+  "action_queue": [
+    {
+      "rank": 1,
+      "action": "/status universal-signal-tables",
+      "initiative": "universal-signal-tables",
+      "impact": "P0 stale build",
+      "effort": "med"
+    },
+    {
+      "rank": 2,
+      "action": "/status customer-journey-map",
+      "initiative": "customer-journey-map",
+      "impact": "P0 stale build",
+      "effort": "med"
+    },
+    {
+      "rank": 3,
+      "action": "/status crm-exp-ete",
+      "initiative": "crm-exp-ete",
+      "impact": "P0 stale build",
+      "effort": "med"
+    },
+    {
+      "rank": 4,
+      "action": "/status settings-redesign",
+      "initiative": "settings-redesign",
+      "impact": "unblock validate",
+      "effort": "low"
+    },
+    {
+      "rank": 5,
+      "action": "/status call-import-engine",
+      "initiative": "call-import-engine",
+      "impact": "stale define",
+      "effort": "low"
+    },
+    {
+      "rank": 6,
+      "action": "/pm settings-page-redesign",
+      "initiative": "settings-page-redesign",
+      "impact": "define docs missing",
+      "effort": "med"
+    },
+    {
+      "rank": 7,
+      "action": "add engineering-spec.md",
+      "initiative": "chief-of-staff-recap-hub",
+      "impact": "build gap",
+      "effort": "med"
+    },
+    {
+      "rank": 8,
+      "action": "add engineering-spec.md",
+      "initiative": "rep-workspace",
+      "impact": "build gap",
+      "effort": "med"
+    },
+    {
+      "rank": 9,
+      "action": "add design-brief.md",
+      "initiative": "user-onboarding",
+      "impact": "define gap",
+      "effort": "low"
+    },
+    {
+      "rank": 10,
+      "action": "add prototype-notes.md",
+      "initiative": "feature-availability-audit",
+      "impact": "build gap",
+      "effort": "low"
+    }
+  ],
+  "initiatives": [
+    {
+      "id": "release-lifecycle-process",
+      "phase": "build",
+      "status": "on_track",
+      "priority": "P0",
+      "days_since_update": 8,
+      "updated_at": "2026-01-26T19:45:00.000000",
+      "next_action": "Enable beta-features-v4-ui flag for internal testing; review with Engineering team"
+    },
+    {
+      "id": "settings-page-redesign",
+      "phase": "define",
+      "status": "in_progress",
+      "priority": "P2",
+      "days_since_update": 1,
+      "updated_at": "2026-02-02T22:00:00.000000Z",
+      "next_action": "Finalize settings IA mapping and kick off implementation tickets"
+    },
+    {
+      "id": "chief-of-staff-recap-hub",
+      "phase": "build",
+      "status": "on_track",
+      "priority": "P2",
+      "days_since_update": 2,
+      "updated_at": "2026-02-01T00:00:00.000000Z",
+      "next_action": "Iterate on approval thresholds and action accuracy; validate primary persona with customers"
+    },
+    {
+      "id": "composio-agent-framework",
+      "phase": "validate",
+      "status": "on_track",
+      "priority": "P1",
+      "days_since_update": 10,
+      "updated_at": "2026-01-24T10:30:00.000000",
+      "next_action": "Woody reviews design handoff brief; Rob clarifies Composio status to revenue team"
+    },
+    {
+      "id": "user-onboarding",
+      "phase": "define",
+      "status": "on_track",
+      "priority": "P2",
+      "days_since_update": 10,
+      "updated_at": "2026-01-24T10:30:00.000000",
+      "next_action": "Add job title/function field to onboarding for PostHog analytics segmentation"
+    },
+    {
+      "id": "internal-search",
+      "phase": "discovery",
+      "status": "on_track",
+      "priority": "P3",
+      "days_since_update": 12,
+      "updated_at": "2026-01-22T12:45:00.000000",
+      "next_action": "Create research.md and PRD"
+    },
+    {
+      "id": "feature-availability-audit",
+      "phase": "build",
+      "status": "on_track",
+      "priority": "P0",
+      "days_since_update": 8,
+      "updated_at": "2026-01-26T19:45:00.000000",
+      "next_action": "Review audit findings with Engineering; prioritize flag cleanup"
+    },
+    {
+      "id": "deprecate-deprecating-the-pipe-dream",
+      "phase": "discovery",
+      "status": "on_track",
+      "priority": "P1",
+      "days_since_update": 4,
+      "updated_at": "2026-01-30T00:00:00.000000",
+      "next_action": "Complete parity map; define Composio auth + workflow requirements"
+    },
+    {
+      "id": "universal-signal-tables",
+      "phase": "build",
+      "status": "on_track",
+      "priority": "P0",
+      "days_since_update": 20,
+      "updated_at": "2026-01-14T20:05:31.625729",
+      "next_action": "Review build phase status"
+    },
+    {
+      "id": "speaker-id-voiceprint",
+      "phase": "discovery",
+      "status": "in_progress",
+      "priority": "P3",
+      "days_since_update": 10,
+      "updated_at": "2026-01-24T10:30:00.000000",
+      "next_action": "Delo exploring Hugging Face hosting; vendor conversations for embedding providers"
+    },
+    {
+      "id": "settings-redesign",
+      "phase": "validate",
+      "status": "blocked",
+      "priority": "P2",
+      "days_since_update": 10,
+      "updated_at": "2026-01-24T10:30:00.000000",
+      "next_action": "Rob to loop in Sam today; incorporate Erica's feedback"
+    },
+    {
+      "id": "rep-workspace",
+      "phase": "build",
+      "status": "in_progress",
+      "priority": "P0",
+      "days_since_update": 10,
+      "updated_at": "2026-01-24T10:30:00Z",
+      "next_action": "Brian proving deal context + Composio actions integration; demo story milestone"
+    },
+    {
+      "id": "product-usability",
+      "phase": "build",
+      "status": "in_progress",
+      "priority": "P2",
+      "days_since_update": 10,
+      "updated_at": "2026-01-24T10:30:00.000000",
+      "next_action": "Knox to revert visual regression and provide performance improvement estimate by EOD"
+    },
+    {
+      "id": "hubspot-agent-config-ui",
+      "phase": "validate",
+      "status": "on_track",
+      "priority": "P0",
+      "days_since_update": 10,
+      "updated_at": "2026-01-24T10:30:00.000000",
+      "next_action": "Review validate phase status; explore HubSpot sidebar/widget integration"
+    },
+    {
+      "id": "crm-exp-ete",
+      "phase": "build",
+      "status": "on_track",
+      "priority": "P0",
+      "days_since_update": 18,
+      "updated_at": "2026-01-16T17:00:00.000Z",
+      "next_action": ""
+    },
+    {
+      "id": "call-import-engine",
+      "phase": "define",
+      "status": "on_track",
+      "priority": "P2",
+      "days_since_update": 21,
+      "updated_at": "2026-01-13T13:16:22.088800",
+      "next_action": "Review define phase status"
+    },
+    {
+      "id": "admin-onboarding",
+      "phase": "define",
+      "status": "on_track",
+      "priority": "P3",
+      "days_since_update": 12,
+      "updated_at": "2026-01-22T12:45:00.000000",
+      "next_action": "Review and update initiative details"
+    },
+    {
+      "id": "design-system-workflow",
+      "phase": "build",
+      "status": "on_track",
+      "priority": "P2",
+      "days_since_update": 11,
+      "updated_at": "2026-01-23T00:00:00.000000",
+      "next_action": ""
+    },
+    {
+      "id": "customer-journey-map",
+      "phase": "build",
+      "status": "on_track",
+      "priority": "P0",
+      "days_since_update": 20,
+      "updated_at": "2026-01-14T17:16:38.650679",
+      "next_action": "Review build phase status"
+    },
+    {
+      "id": "crm-readiness-diagnostic",
+      "phase": "discovery",
+      "status": "on_track",
+      "priority": "P2",
+      "days_since_update": 12,
+      "updated_at": "2026-01-22T20:20:00.000000",
+      "next_action": "Finalize positioning decision (customer-facing vs partner-only)"
+    },
+    {
+      "id": "condorcet-jury-system",
+      "phase": "measure",
+      "status": "on_track",
+      "priority": "P0",
+      "days_since_update": 11,
+      "updated_at": "2026-01-23T00:00:00.000000",
+      "next_action": "Monitor jury usage metrics and refine persona quality"
+    },
+    {
+      "id": "automated-metrics-observability",
+      "phase": "define",
+      "status": "on_track",
+      "priority": "P3",
+      "days_since_update": 11,
+      "updated_at": "2026-01-23T00:00:00.000000",
+      "next_action": "Deprioritized - revisit after P0 initiatives complete"
+    }
+  ],
+  "notes": {
+    "history": "No previous history file found; trend not computed.",
+    "phase_exceptions": "measure assessed against validate-era artifacts"
+  }
+}

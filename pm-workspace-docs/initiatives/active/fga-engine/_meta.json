@@ -1,0 +1,56 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "fga-engine",
+  "notion_project_id": "2c5f79b2-c8ac-807a-8a11-d430594431ff",
+  "notion_project_name": "FGA engine",
+  "notion_project_url": "https://www.notion.so/FGA-engine-2c5f79b2c8ac807a8a11d430594431ff",
+  "hypothesis_id": null,
+  "phase": "define",
+  "sub_phase": "prd-complete",
+  "status": "on_track",
+  "priority": "P2",
+  "owner": "tyler",
+  "eng_lead": "matt.noxon",
+  "design_lead": null,
+  "personas": [
+    "enterprise-admin",
+    "revops",
+    "sales-leader",
+    "sales-rep"
+  ],
+  "pillar": "customer-trust",
+  "created_at": "2025-12-10T23:06:00.000000",
+  "updated_at": "2026-02-08T00:00:00.000000",
+  "linear_project_url": "https://linear.app/askelephant/project/fga-engine-071b1bfd3808",
+  "phase_history": [
+    {
+      "phase": "build",
+      "entered": "2025-12-10T23:06:00.000000",
+      "exited": "2026-02-08T00:00:00.000000",
+      "note": "Backend engine completed by Matt Noxon"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-02-08T00:00:00.000000",
+      "exited": null,
+      "note": "UI customer journey PRD, design brief, eng spec, GTM brief created"
+    }
+  ],
+  "posthog": {
+    "feature_flag": "fga-engine-beta",
+    "dashboard_id": null,
+    "baseline_established": false
+  },
+  "feedback_method": "internal-dogfooding",
+  "feedback_status": "not_started",
+  "current_version": "v1",
+  "linear_project_id": "38305c64-0c1d-4299-9f02-80b59f838b56",
+  "linear_project_name": "FGA Engine",
+  "dev_activity": {
+    "last_synced": "2026-02-20T06:54:56Z",
+    "linear_issues_total": 7,
+    "linear_issues_completed": 4,
+    "linear_issues_in_progress": 1,
+    "github_prs_merged_30d": null
+  }
+}

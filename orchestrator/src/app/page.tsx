@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Window, MiniWindow } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import {
@@ -53,23 +53,21 @@ interface WorkspaceWithRole {
 function HomeContent() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session, status } = useSession();
+  const { user, isLoaded, isSignedIn } = useCurrentUser();
   const [showNewWorkspace, setShowNewWorkspace] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
 
-  // Track if session is invalid (401 from API despite "authenticated" status)
+  // Track if session is invalid (401 from API despite being signed in)
   const [sessionInvalid, setSessionInvalid] = useState(false);
-  // Track the session user ID to detect new logins
-  const [lastSessionUserId, setLastSessionUserId] = useState<string | null>(null);
+  const [lastUserId, setLastUserId] = useState<string | null>(null);
 
-  // Reset sessionInvalid when a new login happens (session.user.id changes)
   useEffect(() => {
-    if (session?.user?.id && session.user.id !== lastSessionUserId) {
+    if (user?.id && user.id !== lastUserId) {
       setSessionInvalid(false);
-      setLastSessionUserId(session.user.id);
+      setLastUserId(user.id);
     }
-  }, [session?.user?.id, lastSessionUserId]);
+  }, [user?.id, lastUserId]);
 
   // Fetch workspaces (only if authenticated)
   const { data: workspaces, isLoading } = useQuery<WorkspaceWithRole[]>({
@@ -90,7 +88,7 @@ function HomeContent() {
       setSessionInvalid(false);
       return res.json();
     },
-    enabled: status === "authenticated",
+    enabled: isSignedIn,
     // Refetch on window focus to pick up new session
     refetchOnWindowFocus: true,
   });
@@ -144,8 +142,8 @@ function HomeContent() {
   };
 
   // Consider user unauthenticated if session is invalid (401 from API)
-  const isAuthenticated = status === "authenticated" && !sessionInvalid;
-  const isLoadingAuth = status === "loading";
+  const isAuthenticated = isSignedIn && !sessionInvalid;
+  const isLoadingAuth = !isLoaded;
   const hasWorkspaces = workspaces && workspaces.length > 0;
 
   return (
@@ -306,7 +304,7 @@ function HomeContent() {
               </div>
               <h3 className="font-semibold text-xl mb-2">
                 Welcome,{" "}
-                {session?.user?.name || session?.user?.email?.split("@")[0]}!
+                {user?.name || user?.email?.split("@")[0]}!
               </h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 Create your first workspace to start managing your product

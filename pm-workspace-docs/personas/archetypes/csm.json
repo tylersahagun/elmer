@@ -1,0 +1,121 @@
+{
+  "archetype_id": "csm",
+  "archetype_name": "Customer Success Manager",
+  "source_documents": [
+    ".pm-workspace/company-context/personas.md",
+    ".pm-workspace/personas/Personas/Customer Personas/AJ Hoke*.md"
+  ],
+  "core_definition": {
+    "goal": "Retain and expand through proactive engagement",
+    "pain": "Doesn't know problems until too late, action items fall through cracks at scale",
+    "success": "Catches risk signals early, smooth handoffs, QBRs prepared automatically",
+    "key_workflows": ["Health monitoring", "Renewal prep", "Escalation handling", "QBR preparation"]
+  },
+  "variation_dimensions": {
+    "company_size": {
+      "distribution": {
+        "1-50": 0.10,
+        "51-200": 0.30,
+        "201-1000": 0.40,
+        "1000+": 0.20
+      }
+    },
+    "tech_literacy": {
+      "distribution": {
+        "novice": 0.15,
+        "intermediate": 0.45,
+        "advanced": 0.30,
+        "expert": 0.10
+      },
+      "note": "CSMs are more technical than originally modeled - they ask about APIs and webhooks"
+    },
+    "ai_adoption_stage": {
+      "distribution": {
+        "skeptic": 0.12,
+        "curious": 0.40,
+        "early-adopter": 0.35,
+        "power-user": 0.13
+      }
+    },
+    "account_load": {
+      "distribution": {
+        "low_touch_100+": 0.35,
+        "mid_touch_50-100": 0.40,
+        "high_touch_under_50": 0.25
+      }
+    },
+    "upsell_quota": {
+      "distribution": {
+        "yes_primary": 0.20,
+        "yes_secondary": 0.45,
+        "no": 0.35
+      }
+    },
+    "seniority": {
+      "distribution": {
+        "individual-contributor": 0.65,
+        "manager": 0.25,
+        "director": 0.10
+      }
+    }
+  },
+  "common_titles": [
+    "Customer Success Manager",
+    "CSM",
+    "Senior CSM",
+    "Enterprise CSM",
+    "Strategic CSM",
+    "Account Manager (CS org)",
+    "Customer Success Lead",
+    "Director of Customer Success"
+  ],
+  "typical_pain_points": [
+    "100+ accounts means action items fall through cracks after 25 conversations",
+    "Context switching between tools (CRM, chat, email, docs)",
+    "Handoff from sales lacks context on promises made",
+    "QBR prep requires manual synthesis of internal + external data",
+    "Can't resurface the right CTA at the right time",
+    "Renewal conversations feel reactive, not strategic",
+    "Health scores don't reflect actual sentiment from calls",
+    "Team has to re-watch videos or read notes to update CRM"
+  ],
+  "typical_fears": [
+    "AI will miss the emotional nuance in customer conversations",
+    "Automated outreach will feel impersonal and damage relationship",
+    "Will lose my 'ear to the ground' advantage",
+    "Tool will surface false positives and waste my time",
+    "AI will log wrong info, making me look bad"
+  ],
+  "typical_voice_quotes": [
+    "I have 100 ish accounts that I'm responsible for. So today, that CTA is very front of mind for me. After I have 25 more customer conversations, it may not be.",
+    "I'm an account manager under the CS organization. AM is sort of the foot in both camps, but I am looking at this more from a CS lens.",
+    "The more that I can create in HubSpot, the better. Like, if I could create an upsell deal.",
+    "Tell me what AskElephant would do to help me resurface that at the right time.",
+    "I can tell when a customer is unhappy before any metric shows it",
+    "If I had known they said that in the sales call, I would have handled onboarding differently"
+  ],
+  "behavioral_patterns": {
+    "first_click_tendency": "Looks for customer-specific context, history, recent activity",
+    "error_response": "Documents issue, works around it, flags to team",
+    "help_seeking": "Searches knowledge base, then asks team channel",
+    "abandonment_trigger": "Tool creates more work than it saves",
+    "evaluation_style": "Systematic, comparing 4-5 vendors with structured criteria"
+  },
+  "technical_interest": {
+    "note": "Higher than typical CSM persona - asks about APIs, webhooks, integrations",
+    "indicators": [
+      "Do you guys have an API?",
+      "Are you working any technical or service solutions around integrating with products?",
+      "I'm already using ChatGPT company knowledge feature"
+    ]
+  },
+  "real_customer_examples": [
+    {
+      "name": "AJ Hoke",
+      "company": "Bridge (Brij)",
+      "account_load": "100 accounts",
+      "key_trait": "Technical curiosity + scale challenges",
+      "quote": "After I have 25 more customer conversations, it may not be front of mind"
+    }
+  ]
+}

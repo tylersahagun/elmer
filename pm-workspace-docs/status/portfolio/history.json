@@ -1,0 +1,33 @@
+{
+  "$schema": "pm-workspace-status-history-v1",
+  "description": "Historical portfolio status snapshots for trend tracking",
+  "snapshots": [
+    {
+      "date": "2026-01-23",
+      "health_score": 71,
+      "total_initiatives": 19,
+      "by_phase": {
+        "discovery": 2,
+        "define": 8,
+        "build": 6,
+        "validate": 3,
+        "launch": 0
+      },
+      "by_status": {
+        "on_track": 17,
+        "at_risk": 0,
+        "blocked": 0,
+        "stale": 2
+      },
+      "by_priority": {
+        "P0": 7,
+        "P1": 1,
+        "P2": 5,
+        "P3": 5,
+        "other": 1
+      },
+      "ready_to_advance": 2,
+      "need_attention": 3
+    }
+  ]
+}

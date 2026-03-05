@@ -1,0 +1,61 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "action-items",
+  "name": "Chief of Staff - Action Items",
+  "parent_initiative": "chief-of-staff-experience",
+  "hypothesis_id": "hyp-chief-of-staff-action-first",
+  "phase": "define",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "feedback_method": "usage-analytics",
+  "feedback_status": "planned",
+  "personas": ["sales-rep", "sales-leader", "revops", "csm"],
+  "pillar": "customer-trust",
+  "created_at": "2026-02-17T10:00:00.000Z",
+  "updated_at": "2026-02-17T10:00:00.000Z",
+  "next_action": "URGENT: Add checkboxes to action items, port recap email extraction logic, add automation visibility badge",
+  "prototype_feedback_2026_02_20": {
+    "critical_issues": [
+      "No checkboxes — users cannot track completion",
+      "Extraction quality poor vs recap email workflow",
+      "No visibility into what AskElephant automates vs requires manual action"
+    ],
+    "immediate_fixes": [
+      "Add checkbox UI to all action items",
+      "Add completion state (pending/done/snoozed)",
+      "Add 'AskElephant will do this' badge for automated actions",
+      "Audit and port recap email prompt extraction logic"
+    ],
+    "user_quote": "Anytime we actually present action items, they need to be a checkbox... I think not seeing where AskElephant is gonna do these action items for me is what's really missing."
+  },
+  "timeline": { "started": "2026-02-17", "target_launch": null },
+  "visibility": "internal",
+  "competitive_landscape": {
+    "last_analyzed": "2026-02-17",
+    "competitors": [
+      "Gong",
+      "Clari",
+      "Chorus",
+      "Avoma",
+      "Fathom",
+      "Fireflies.ai",
+      "Salesforce Agentforce",
+      "HubSpot Breeze",
+      "Salesloft",
+      "Outreach",
+      "Relay.app",
+      "Lindy.ai",
+      "StackAI",
+      "Gumloop",
+      "Zapier",
+      "Make"
+    ],
+    "differentiation_points": [
+      "Evidence + confidence per action",
+      "Approve/edit/snooze/schedule controls",
+      "Calendar-aware scheduling",
+      "Risk-tiered approval (approval by exception)"
+    ]
+  }
+}

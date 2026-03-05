@@ -1,0 +1,146 @@
+version: 1
+name: cursor-native-agentic
+description: Stage-based workflow for fully agentic PM execution in Cursor.
+
+defaults:
+  project_id_template: "{project}"
+  repo_binding: workspace-config.yaml
+  automation_policy_default: review
+
+stage_graph:
+  - id: intake
+    label: Intake
+    automation_policy: auto
+    agents:
+      - signal-ingester
+      - signal-router
+    outputs:
+      - signals
+    next: discovery
+
+  - id: discovery
+    label: Discovery
+    automation_policy: auto
+    commands:
+      - "/research {project}"
+    outputs:
+      - research.md
+    next: prd
+
+  - id: prd
+    label: PRD
+    automation_policy: auto
+    commands:
+      - "/pm {project}"
+    outputs:
+      - prd.md
+    validates_with: validate_docs
+    next: design
+
+  - id: design
+    label: Design Brief
+    automation_policy: auto
+    commands:
+      - "/design {project}"
+    outputs:
+      - design-brief.md
+    next: prototype
+
+  - id: prototype
+    label: Prototype
+    automation_policy: auto
+    commands:
+      - "/proto {project}"
+    outputs:
+      - prototype-notes.md
+    validates_with: validate_prototype
+    next: validate
+
+  - id: validate
+    label: Validation
+    automation_policy: review
+    commands:
+      - "/validate {project}"
+    outputs:
+      - jury-evaluations/
+    next: build_plan
+
+  - id: build_plan
+    label: Build Plan
+    automation_policy: review
+    agents:
+      - ship-runner
+    outputs:
+      - engineering-spec.md
+      - linear-project.json
+    validates_with: validate_tickets
+    next: build
+
+  - id: build
+    label: Build
+    automation_policy: manual
+    commands:
+      - "/execute-plan {project}"
+    outputs:
+      - build-log.md
+    next: release_alpha
+
+  - id: release_alpha
+    label: Release Alpha
+    automation_policy: review
+    metrics_gate: alpha_gate
+    next: release_beta
+
+  - id: release_beta
+    label: Release Beta
+    automation_policy: review
+    metrics_gate: beta_gate
+    next: release_ga
+
+  - id: release_ga
+    label: Release GA
+    automation_policy: review
+    metrics_gate: ga_gate
+    next: metrics
+
+  - id: metrics
+    label: Metrics
+    automation_policy: auto
+    agents:
+      - posthog-analyst
+    outputs:
+      - METRICS.md
+
+loops:
+  - id: validate_docs
+    from_stage: prd
+    judge: work-judge
+    on_fail:
+      return_to: discovery
+    on_pass:
+      continue_to: design
+
+  - id: validate_prototype
+    from_stage: prototype
+    judge: work-judge
+    on_fail:
+      return_to: prototype
+    on_pass:
+      continue_to: validate
+
+  - id: validate_tickets
+    from_stage: build_plan
+    judge: work-judge
+    on_fail:
+      return_to: build_plan
+    on_pass:
+      continue_to: build
+
+signals:
+  router_levels:
+    - L1_log
+    - L2_report
+    - L3_initiative
+    - L4_ship
+  l3_starts_at: discovery
+  l4_requires_human_gate: true

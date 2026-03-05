@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AskElephant — Customer Usage Explorer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --surface3:#2a2f45;
+  --border:#2d3250; --accent:#6366f1; --accent2:#8b5cf6;
+  --green:#22c55e; --amber:#f59e0b; --rose:#f43f5e; --sky:#38bdf8;
+  --text:#e2e8f0; --text2:#cbd5e1; --muted:#64748b;
+  --card-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* ── Auth banner ── */
+#authBanner{background:linear-gradient(135deg,#1a1d27,#161929);border-bottom:1px solid var(--border);padding:11px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.logo{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+#authBanner h1{font-size:16px;font-weight:700;letter-spacing:-.3px;}
+#authBanner p{font-size:11px;color:var(--muted);margin-top:1px;}
+.auth-row{display:flex;align-items:center;gap:8px;margin-left:auto;}
+#apiKeyInput{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 11px;color:var(--text);font-size:11px;width:260px;font-family:monospace;}
+#apiKeyInput:focus{outline:none;border-color:var(--accent);}
+#apiKeyInput::placeholder{color:var(--muted);font-family:inherit;}
+#authStatus{font-size:11px;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.auth-ok{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.auth-err{background:rgba(244,63,94,.15);color:var(--rose);border:1px solid rgba(244,63,94,.3);}
+.auth-idle{background:rgba(100,116,139,.15);color:var(--muted);border:1px solid rgba(100,116,139,.3);}
+
+/* ── Picker bar ── */
+#picker{background:var(--surface);border-bottom:1px solid var(--border);padding:13px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.picker-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+.company-wrap{position:relative;flex:1;max-width:320px;}
+#companyInput{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 32px 7px 11px;color:var(--text);font-size:13px;}
+#companyInput:focus{outline:none;border-color:var(--accent);}
+#companyInput::placeholder{color:var(--muted);}
+.si{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;}
+#sugg{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:200px;overflow-y:auto;display:none;}
+.si-item{padding:8px 13px;cursor:pointer;font-size:13px;}
+.si-item:hover,.si-item.act{background:rgba(99,102,241,.15);}
+.si-name{font-weight:500;}
+.si-meta{font-size:10px;color:var(--muted);}
+.recent-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.rc{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11px;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.rc:hover{background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.4);color:#a5b4fc;}
+.date-sel{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;cursor:pointer;}
+/* Mode toggle */
+.mode-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-left:auto;}
+.mode-btn{padding:6px 13px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .15s;letter-spacing:.03em;}
+.mode-btn.active{background:var(--accent);color:white;}
+.btn-run{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:7px;padding:7px 16px;color:white;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.btn-run:hover{opacity:.85;}
+.btn-run:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ── Main ── */
+#mainArea{padding:22px 28px;}
+#emptyState{text-align:center;padding:70px 20px;color:var(--muted);}
+#emptyState .ico{font-size:44px;margin-bottom:14px;}
+#emptyState h2{font-size:17px;color:var(--text2);margin-bottom:7px;}
+#emptyState p{font-size:12px;max-width:400px;margin:0 auto;}
+
+/* ── Skeleton ── */
+.skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);background-size:400%;animation:shim 1.4s infinite;border-radius:5px;}
+@keyframes shim{0%{background-position:100%}100%{background-position:-100%}}
+
+/* ── Stats ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;box-shadow:var(--card-shadow);}
+.stat-card .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.stat-card .val{font-size:22px;font-weight:700;letter-spacing:-.5px;}
+.stat-card .sub{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.stat-note{font-size:9px;color:rgba(100,116,139,.7);margin-top:2px;}
+
+/* ── Charts ── */
+.charts-section{margin-bottom:20px;}
+.charts-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.charts-title{font-size:13px;font-weight:600;color:var(--text2);}
+.charts-sub{font-size:11px;color:var(--muted);}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr;}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;box-shadow:var(--card-shadow);}
+.chart-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:2px;}
+.chart-sub{font-size:10px;color:var(--muted);margin-bottom:12px;}
+.chart-wrap{position:relative;height:160px;}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.tb-input{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 12px;color:var(--text);font-size:12px;width:200px;}
+.tb-input:focus{outline:none;border-color:var(--accent);}
+.tb-input::placeholder{color:var(--muted);}
+.tb-sel{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;cursor:pointer;}
+.col-btn{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--muted);font-size:11px;cursor:pointer;}
+.col-btn:hover{border-color:var(--accent);color:var(--accent);}
+#colMenu{position:relative;}
+#colPanel{display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;z-index:100;min-width:190px;box-shadow:var(--card-shadow);}
+#colPanel.open{display:block;}
+.cc{display:flex;align-items:center;gap:7px;padding:4px;font-size:12px;cursor:pointer;border-radius:5px;}
+.cc:hover{background:rgba(99,102,241,.1);}
+.cc input{accent-color:var(--accent);cursor:pointer;}
+.tb-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+#rowCount{font-size:11px;color:var(--muted);}
+.btn-exp{background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);border-radius:7px;padding:6px 12px;color:#a5b4fc;font-size:11px;font-weight:500;cursor:pointer;}
+.btn-exp:hover{background:rgba(99,102,241,.25);}
+
+/* ── Table ── */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:auto;box-shadow:var(--card-shadow);max-height:calc(100vh - 440px);min-height:260px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead{background:var(--surface2);position:sticky;top:0;z-index:10;}
+thead tr{border-bottom:1px solid var(--border);}
+th{padding:9px 12px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{color:var(--text);}
+th.sa::after{content:' ↑';color:var(--accent);}
+th.sd::after{content:' ↓';color:var(--accent);}
+th.sa,th.sd{color:var(--accent);}
+td{padding:9px 12px;border-bottom:1px solid rgba(45,50,80,.35);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(99,102,241,.04);}
+.uc{display:flex;align-items:center;gap:9px;}
+.av{width:27px;height:27px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+.un{font-weight:500;}
+.ue{font-size:10px;color:var(--muted);}
+.pill{display:inline-flex;align-items:center;gap:3px;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500;}
+.p-green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.p-rose{background:rgba(244,63,94,.15);color:var(--rose);border:1px solid rgba(244,63,94,.25);}
+.p-muted{background:rgba(100,116,139,.12);color:var(--muted);border:1px solid rgba(100,116,139,.2);}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.bw{display:flex;align-items:center;gap:7px;}
+.br{height:3px;background:var(--border);border-radius:2px;width:46px;}
+.bf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.avgc{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
+.avgm{font-weight:600;font-variant-numeric:tabular-nums;}
+.avgs{font-size:9px;color:var(--muted);}
+
+/* ── Metric legend ── */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.legend-item{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:11px;color:var(--muted);cursor:help;}
+.legend-item strong{color:var(--text2);}
+
+/* ── Data note ── */
+.data-note{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--muted);line-height:1.6;}
+.data-note strong{color:var(--amber);}
+
+/* ── Report footer ── */
+.rep-footer{margin-top:10px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--muted);}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 16px;font-size:12px;box-shadow:var(--card-shadow);opacity:0;transform:translateY(6px);transition:all .22s;pointer-events:none;z-index:999;}
+#toast.show{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- Auth -->
+<div id="authBanner">
+  <div class="logo">🐘</div>
+  <div><h1>AskElephant — Customer Usage Explorer</h1><p>Live PostHog data · per-account usage reporting</p></div>
+  <div class="auth-row">
+    <input id="apiKeyInput" type="password" placeholder="PostHog personal API key (phx_…)" autocomplete="off">
+    <span id="authStatus" class="auth-idle">⬤ Not connected</span>
+  </div>
+</div>
+
+<!-- Picker -->
+<div id="picker">
+  <span class="picker-label">Company</span>
+  <div class="company-wrap">
+    <input id="companyInput" type="text" placeholder="Search company name…" autocomplete="off">
+    <span class="si">⌕</span>
+    <div id="sugg"></div>
+  </div>
+  <div class="recent-chips" id="recentChips"></div>
+  <select class="date-sel" id="dateRange">
+    <option value="365" selected>Last 12 months</option>
+    <option value="180">Last 6 months</option>
+    <option value="90">Last 90 days</option>
+    <option value="all">All time</option>
+  </select>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btnInternal" onclick="setMode('internal')">Internal</button>
+    <button class="mode-btn" id="btnCustomer" onclick="setMode('customer')">Customer</button>
+  </div>
+  <button class="btn-run" id="runBtn" disabled onclick="runReport()">Run Report</button>
+</div>
+
+<div id="mainArea">
+  <div id="emptyState">
+    <div class="ico">📊</div>
+    <h2>Select a company to get started</h2>
+    <p>Enter your PostHog API key, search for a customer, then click Run Report to see live usage data.</p>
+  </div>
+  <div id="reportArea" style="display:none"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+const PID     = '81505';
+const API     = 'https://us.posthog.com';
+const GTI     = 0;
+const LS_KEY  = 'ae_ph_key';
+const LS_REC  = 'ae_recent_v2';
+const LS_COLS = 'ae_cols_v2';
+
+// ── State ────────────────────────────────────────────────────────────────────
+let apiKey         = localStorage.getItem(LS_KEY)||'';
+let selectedGroups = [];
+let currentUsers   = [];
+let monthlyData    = [];
+let totalPlatformUsers = 0;
+let sortState      = {col:'daysActive',asc:false};
+let mode           = 'internal';  // 'internal' | 'customer'
+let hiddenCols     = new Set(JSON.parse(localStorage.getItem(LS_COLS)||'[]'));
+let searchQ        = '';
+let seatFilter     = 'all';
+let meetMin        = 0;
+let lastRunAt      = null;
+let suggItems      = [];
+let suggIdx        = -1;
+let searchTimer    = null;
+let reportCompName = '';
+
+// ── Column defs ──────────────────────────────────────────────────────────────
+// internal_only: hidden in customer mode
+// customer_hide: hidden in customer mode
+const COLS = [
+  {key:'name',       label:'User',             sort:'name',       always:true},
+  {key:'seat',       label:'Seat',             sort:'utilized',   cust_transform:true},
+  {key:'lastActive', label:'Last Active',      sort:'lastActive', internal_only:true},
+  {key:'daysActive', label:'Days Active',      sort:'daysActive', num:true, bar:true},
+  {key:'avgPerMo',   label:'Avg Mtgs/Mo',      sort:'avgPerMo',   num:true, avg:true},
+  {key:'meetTotal',  label:'Meetings',         sort:'meetTotal',  num:true, bar:true},
+  {key:'botRec',     label:'Bot Sessions',     sort:'botRec',     num:true},
+  {key:'artViewed',  label:'Art. Viewed',      sort:'artViewed',  num:true},
+  {key:'artInteract',label:'Art. Interacted',  sort:'artInteract',num:true},
+  {key:'aiInteract', label:'AI Interact.',     sort:'aiInteract', num:true},
+  {key:'pageviews',  label:'Pageviews',        sort:'pageviews',  num:true},
+];
+
+// ── Mode ─────────────────────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnInternal').classList.toggle('active', m==='internal');
+  document.getElementById('btnCustomer').classList.toggle('active', m==='customer');
+  if (currentUsers.length) reRender();
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+const apiKeyEl = document.getElementById('apiKeyInput');
+const authEl   = document.getElementById('authStatus');
+if (apiKey) { apiKeyEl.value = apiKey; verifyKey(apiKey); }
+
+apiKeyEl.addEventListener('input', () => {
+  const v = apiKeyEl.value.trim();
+  if (v.startsWith('phx_') && v.length > 20) {
+    clearTimeout(window._at);
+    window._at = setTimeout(() => verifyKey(v), 600);
+  } else setAS('idle');
+});
+
+async function verifyKey(k) {
+  setAS('checking');
+  try {
+    const r = await phGet('/api/users/@me/', k);
+    if (r.ok) { apiKey=k; localStorage.setItem(LS_KEY,k); setAS('ok','✓ '+(await r.json()).email); }
+    else setAS('err','✗ Invalid key');
+  } catch { setAS('err','✗ Connection failed'); }
+}
+
+function setAS(s,t) {
+  authEl.className = s==='ok'?'auth-ok':s==='err'?'auth-err':'auth-idle';
+  authEl.textContent = t||(s==='ok'?'✓ Connected':s==='checking'?'… Checking':'⬤ Not connected');
+}
+
+async function phGet(path, k) { return fetch(`${API}${path}`,{headers:{'Authorization':`Bearer ${k||apiKey}`}}); }
+
+async function phHogQL(query) {
+  const r = await fetch(`${API}/api/projects/${PID}/query/`,{
+    method:'POST',
+    headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
+    body: JSON.stringify({query:{
+      kind:'HogQLQuery', query,
+      modifiers:{
+        personsOnEventsMode:'person_id_override_properties_on_events',
+        optimizeProjections:true,
+      }
+    }})
+  });
+  if (!r.ok) throw new Error(`HogQL ${r.status}: ${await r.text()}`);
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return d;
+}
+
+// ── Company search ────────────────────────────────────────────────────────────
+const compEl = document.getElementById('companyInput');
+const suggEl = document.getElementById('sugg');
+
+compEl.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = compEl.value.trim();
+  if (!q||!apiKey) { hideSugg(); return; }
+  searchTimer = setTimeout(() => searchCo(q), 320);
+});
+compEl.addEventListener('keydown', e => {
+  if (e.key==='ArrowDown') { moveSugg(1); e.preventDefault(); }
+  else if (e.key==='ArrowUp') { moveSugg(-1); e.preventDefault(); }
+  else if (e.key==='Enter') { if (suggIdx>=0) selSugg(suggItems[suggIdx]); else if(selectedGroups.length) runReport(); }
+  else if (e.key==='Escape') hideSugg();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.company-wrap')) hideSugg();
+  if (!e.target.closest('#colMenu')) document.getElementById('colPanel').classList.remove('open');
+});
+
+async function searchCo(q) {
+  if (!apiKey) return;
+  try {
+    const r = await phGet(`/api/projects/${PID}/groups/?group_type_index=${GTI}&search=${encodeURIComponent(q)}&limit=10`);
+    if (!r.ok) return;
+    const d = await r.json();
+    showSugg(d.results||[]);
+  } catch {}
+}
+
+function showSugg(items) {
+  suggItems = items; suggIdx = -1;
+  if (!items.length) { hideSugg(); return; }
+  suggEl.innerHTML = items.map((g,i)=>`<div class="si-item" data-i="${i}">
+    <div class="si-name">${g.group_properties?.name||g.group_key}</div>
+    <div class="si-meta">${g.group_key} · ${g.group_properties?.primaryDomain||''}</div>
+  </div>`).join('');
+  suggEl.querySelectorAll('.si-item').forEach((el,i)=>el.addEventListener('click',()=>selSugg(items[i])));
+  suggEl.style.display='block';
+}
+function moveSugg(d) {
+  const items=suggEl.querySelectorAll('.si-item');
+  if(!items.length)return;
+  items[suggIdx]?.classList.remove('act');
+  suggIdx=Math.max(0,Math.min(items.length-1,suggIdx+d));
+  items[suggIdx].classList.add('act');
+}
+function hideSugg() { suggEl.style.display='none'; suggIdx=-1; }
+
+function selSugg(g) {
+  const name = g.group_properties?.name||g.group_key;
+  compEl.value = name; hideSugg();
+  selectedGroups = [g];
+  document.getElementById('runBtn').disabled = false;
+  findAllGroupsForName(name);
+}
+
+async function findAllGroupsForName(name) {
+  try {
+    const r = await phGet(`/api/projects/${PID}/groups/?group_type_index=${GTI}&search=${encodeURIComponent(name)}&limit=20`);
+    const d = await r.json();
+    const m = (d.results||[]).filter(g=>(g.group_properties?.name||'').toLowerCase()===name.toLowerCase());
+    if (m.length>1) { selectedGroups=m; toast(`Found ${m.length} workspaces for "${name}"`); }
+  } catch {}
+}
+
+// ── Recent companies ──────────────────────────────────────────────────────────
+function loadRecent() {
+  const items = JSON.parse(localStorage.getItem(LS_REC)||'[]');
+  const el = document.getElementById('recentChips');
+  el.innerHTML = items.length ? '<span style="font-size:10px;color:var(--muted)">Recent:</span>' : '';
+  items.slice(0,5).forEach(c=>{
+    const d=document.createElement('div'); d.className='rc'; d.textContent=c.name;
+    d.onclick=()=>{ compEl.value=c.name; selectedGroups=c.groups; document.getElementById('runBtn').disabled=false; runReport(); };
+    el.appendChild(d);
+  });
+}
+function saveRecent(name,groups) {
+  const items=JSON.parse(localStorage.getItem(LS_REC)||'[]').filter(i=>i.name!==name);
+  items.unshift({name,groups}); localStorage.setItem(LS_REC,JSON.stringify(items.slice(0,8))); loadRecent();
+}
+loadRecent();
+
+// ── Run report ────────────────────────────────────────────────────────────────
+async function runReport() {
+  if (!apiKey||!selectedGroups.length) { toast('Select a company first'); return; }
+  const btn = document.getElementById('runBtn');
+  btn.disabled=true; btn.textContent='Loading…';
+  document.getElementById('emptyState').style.display='none';
+  const ra = document.getElementById('reportArea');
+  ra.style.display='block';
+  renderSkel(ra);
+
+  try {
+    const gks    = selectedGroups.map(g=>g.group_key);
+    reportCompName = selectedGroups[0].group_properties?.name||compEl.value;
+    const dr     = document.getElementById('dateRange').value;
+    const dflt   = dr==='all' ? '' : `AND timestamp >= now() - INTERVAL ${dr} DAY`;
+    const gkStr  = gks.map(k=>`'${k}'`).join(',');
+
+    // Query 1: total platform users (all persons, all time)
+    const totalQ = `SELECT count(DISTINCT person.id) AS n FROM events WHERE $group_0 IN (${gkStr}) LIMIT 1`;
+
+    // Query 2: per-user activity metrics
+    // Filter covers BOTH old group key AND new workspaceId property (handles post-migration accounts)
+    const wsFilter = `($group_0 IN (${gkStr}) OR properties.workspaceId IN (${gks.map(k=>k.replace('id:','')).map(k=>`'${k}'`).join(',')}))`;
+    const actQ = `
+SELECT
+  person.properties.email           AS email,
+  person.properties.name            AS name,
+  person.properties.workspaceName   AS wksp,
+  person.properties.is_manager      AS is_mgr,
+  min(timestamp)                    AS first_active,
+  max(timestamp)                    AS last_active,
+  count(DISTINCT toDate(timestamp)) AS days_active,
+  countIf(event='workflows:run_completed')  AS meet_auto,
+  countIf(event='pipelines:run_completed')  AS meet_manual,
+  countIf(event IN ('pipelines:artifact_viewed','workflows:artifact_viewed'))                    AS art_viewed,
+  countIf(event IN ('pipelines:artifact_interacted_with','workflows:artifact_interacted_with'))  AS art_interacted,
+  countIf(event='conversation:message_sent') + countIf(event='chat_created')                    AS ai_interact,
+  countIf(event='recall:bot_done')          AS bot_rec,
+  countIf(event='conversation_created')     AS convos,
+  countIf(event='$pageview')                AS pageviews
+FROM events
+WHERE ${wsFilter}
+  AND person.properties.email IS NOT NULL
+  AND event NOT IN ('$feature_flag_called','$web_vitals','$set','$identify','$groupidentify')
+  ${dflt}
+GROUP BY email, name, wksp, is_mgr
+ORDER BY days_active DESC LIMIT 500`;
+
+    // Query 3: monthly trend for charts (last 12 months, stitched)
+    const trendQ = `
+SELECT
+  toStartOfMonth(timestamp)                                         AS month,
+  count(DISTINCT person.properties.email)                           AS active_users,
+  countIf(event IN ('workflows:run_completed','pipelines:run_completed')) AS meetings,
+  countIf(event='workflows:run_completed')                          AS workflows,
+  countIf(event='conversation:message_sent') + countIf(event='chat_created') AS ai_interactions
+FROM events
+WHERE ${wsFilter}
+  AND person.properties.email IS NOT NULL
+  AND timestamp >= now() - INTERVAL 12 MONTH
+  AND event NOT IN ('$feature_flag_called','$web_vitals','$set','$identify','$groupidentify')
+GROUP BY month ORDER BY month ASC`;
+
+    const [r1, r2, r3] = await Promise.all([phHogQL(totalQ), phHogQL(actQ), phHogQL(trendQ)]);
+
+    totalPlatformUsers = r1.results?.[0]?.[0] || 0;
+    currentUsers  = processActivity(r2);
+    monthlyData   = processMonthly(r3);
+    lastRunAt     = new Date();
+    saveRecent(reportCompName, selectedGroups);
+    renderReport(ra);
+
+  } catch(e) {
+    const isTO = e.message.includes('504')||e.message.includes('max execution');
+    const isCO = e.message.includes('Failed to fetch')||e.message.includes('NetworkError');
+    const hint = isCO
+      ? `Run via local server: <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">python -m http.server 8080</code> then open <a href="http://localhost:8080" style="color:var(--accent)">localhost:8080</a>`
+      : isTO
+      ? `Query timed out. Try a shorter date range (Last 90 days) or use the Python script: <code style="background:var(--surface2);padding:1px 5px;border-radius:3px">python generate-usage-report.py --company "Name"</code>`
+      : `Check your API key and try again.`;
+    ra.innerHTML=`<div style="padding:50px;text-align:center;max-width:560px;margin:0 auto">
+      <div style="font-size:28px;margin-bottom:10px">⚠️</div>
+      <strong style="color:var(--rose)">Query failed</strong>
+      <div style="color:var(--muted);font-size:11px;margin:8px 0 14px">${e.message}</div>
+      <div style="background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.18);border-radius:9px;padding:12px;font-size:11px;color:var(--muted);text-align:left;line-height:1.7">${hint}</div>
+    </div>`;
+  }
+  btn.disabled=false; btn.textContent='Run Report';
+}
+
+function reRender() {
+  const ra = document.getElementById('reportArea');
+  if (ra && currentUsers.length) renderReport(ra);
+}
+
+// ── Data processing ───────────────────────────────────────────────────────────
+const CUTOFF = (() => { const d=new Date(); d.setDate(d.getDate()-30); return d.toISOString().slice(0,10); })();
+
+function monthsBetween(f,l) {
+  if(!f||!l) return 1;
+  const [fy,fm]=f.split('-').map(Number); const [ly,lm]=l.split('-').map(Number);
+  return Math.max(1,(ly-fy)*12+(lm-fm)+1);
+}
+
+function processActivity(result) {
+  const c=result.columns||[]; const ci=Object.fromEntries(c.map((x,i)=>[x,i]));
+  const raw=(result.results||[]).map(r=>({
+    email:      r[ci.email]||'',
+    name:       r[ci.name]||'',
+    workspace:  r[ci.wksp]||'',
+    isManager:  r[ci.is_mgr]||null,
+    firstActive:(r[ci.first_active]||'').slice(0,10),
+    lastActive: (r[ci.last_active]||'').slice(0,10),
+    daysActive: +r[ci.days_active]||0,
+    meetAuto:   +r[ci.meet_auto]||0,
+    meetManual: +r[ci.meet_manual]||0,
+    artViewed:  +r[ci.art_viewed]||0,
+    artInteract:+r[ci.art_interacted]||0,
+    aiInteract: +r[ci.ai_interact]||0,
+    botRec:     +r[ci.bot_rec]||0,
+    convos:     +r[ci.convos]||0,
+    pageviews:  +r[ci.pageviews]||0,
+  }));
+
+  // Dedup by email
+  const byE={};
+  for (const u of raw) {
+    if (!u.email) continue;
+    if (!byE[u.email]||u.daysActive>byE[u.email].daysActive) byE[u.email]={...u};
+    byE[u.email].lastActive=[byE[u.email].lastActive,u.lastActive].sort().pop();
+    if (!byE[u.email].name&&u.name) byE[u.email].name=u.name;
+  }
+
+  return Object.values(byE).map(u=>{
+    const mo = monthsBetween(u.firstActive,u.lastActive);
+    u.meetTotal  = u.meetAuto+u.meetManual;
+    u.avgPerMo   = mo ? Math.round(u.meetTotal/mo*10)/10 : 0;
+    u.utilized   = u.lastActive>=CUTOFF ? 'Active' : 'Inactive';
+    return u;
+  }).sort((a,b)=>b.daysActive-a.daysActive);
+}
+
+function processMonthly(result) {
+  const c=result.columns||[]; const ci=Object.fromEntries(c.map((x,i)=>[x,i]));
+  return (result.results||[]).map(r=>({
+    month:    (r[ci.month]||'').slice(0,7),
+    users:    +r[ci.active_users]||0,
+    meetings: +r[ci.meetings]||0,
+    workflows:+r[ci.workflows]||0,
+    ai:       +r[ci.ai_interactions]||0,
+  }));
+}
+
+// ── Render skeleton ───────────────────────────────────────────────────────────
+function renderSkel(el) {
+  el.innerHTML=`<div class="stats-grid">${Array(7).fill(0).map(()=>`
+    <div class="stat-card">
+      <div class="skel" style="height:9px;width:70px;margin-bottom:8px"></div>
+      <div class="skel" style="height:26px;width:75px;margin-bottom:6px"></div>
+      <div class="skel" style="height:9px;width:110px"></div>
+    </div>`).join('')}</div>
+  <div class="charts-grid" style="margin-bottom:20px">${Array(4).fill(0).map(()=>`
+    <div class="chart-card"><div class="skel" style="height:160px"></div></div>`).join('')}</div>
+  <div class="tbl-wrap"><table><thead><tr>${COLS.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead>
+  <tbody>${Array(6).fill(0).map(()=>`<tr>${COLS.map(()=>`<td><div class="skel" style="height:12px;width:${50+Math.random()*70|0}px"></div></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+// ── Render full report ────────────────────────────────────────────────────────
+function renderReport(el) {
+  const u    = currentUsers;
+  const actU = u.filter(x=>x.utilized==='Active').length;
+  const totM = u.reduce((s,x)=>s+x.meetTotal,0);
+  const totB = u.reduce((s,x)=>s+x.botRec,0);
+  const totA = u.reduce((s,x)=>s+x.aiInteract,0);
+  const avgMo= u.length ? Math.round(u.reduce((s,x)=>s+x.avgPerMo,0)/u.length*10)/10 : 0;
+  const top  = u[0];
+  const dr   = document.getElementById('dateRange').value;
+  const drLbl= dr==='all'?'all time':`last ${dr==='365'?'12 months':dr==='180'?'6 months':'90 days'}`;
+
+  el.innerHTML=`
+  <div class="stats-grid" id="sGrid"></div>
+  <div class="charts-section" id="cSection"></div>
+  <div class="legend" id="metricLegend"></div>
+  <div id="dataNotes"></div>
+  <div class="toolbar" id="toolbar"></div>
+  <div class="tbl-wrap" id="tblWrap"></div>
+  <div class="rep-footer">
+    <span>PostHog project ${PID} · Groups: ${selectedGroups.map(g=>g.group_key).join(', ')}</span>
+    <span id="lastRefresh">Generated ${lastRunAt?.toLocaleTimeString()}</span>
+  </div>`;
+
+  buildStats(document.getElementById('sGrid'), u, actU, totM, totB, totA, avgMo, top, drLbl);
+  buildCharts(document.getElementById('cSection'));
+  buildLegend(document.getElementById('metricLegend'));
+  buildNotes(document.getElementById('dataNotes'), u);
+  buildToolbar(document.getElementById('toolbar'));
+  buildTable(document.getElementById('tblWrap'));
+}
+
+// ── Stats cards ───────────────────────────────────────────────────────────────
+function buildStats(el, u, actU, totM, totB, totA, avgMo, top, drLbl) {
+  const isInt = mode === 'internal';
+  const cards = [
+    {
+      lbl: 'Platform Users',
+      val: totalPlatformUsers || u.length,
+      sub: `${u.length} with identified email`,
+      note: 'Total distinct users in PostHog',
+      color: 'var(--accent)',
+    },
+    isInt ? {
+      lbl: 'Active Users (30d)',
+      val: actU,
+      sub: `${Math.round(actU/(u.length||1)*100)}% of identified users`,
+      note: 'Internal only — health indicator',
+      color: 'var(--green)',
+    } : null,
+    {
+      lbl: 'Avg Meetings / User / Month',
+      val: avgMo,
+      sub: `per identified user, ${drLbl}`,
+      color: 'var(--sky)',
+    },
+    {
+      lbl: 'Total Meeting Runs',
+      val: totM.toLocaleString(),
+      sub: `automated + manual workflows, ${drLbl}`,
+      note: 'Counts each pipeline/workflow execution',
+      color: 'var(--sky)',
+    },
+    {
+      lbl: 'Bot-Attended Meetings',
+      val: totB.toLocaleString(),
+      sub: `meetings where AE bot joined the call`,
+      note: 'recall:bot_done — bot successfully completed a recording session',
+      color: 'var(--amber)',
+    },
+    {
+      lbl: 'AI Interactions',
+      val: totA.toLocaleString(),
+      sub: `chat sessions + conversation messages`,
+      note: 'Includes both direct LLM chat and message exchanges in conversations',
+      color: 'var(--accent2)',
+    },
+    top ? {
+      lbl: 'Top User',
+      val: top.name||top.email,
+      sub: `${top.avgPerMo} mtgs/mo · ${top.daysActive} days active`,
+      color: 'var(--text2)',
+      small: true,
+    } : null,
+  ].filter(Boolean);
+
+  el.innerHTML = cards.map(c=>`
+    <div class="stat-card" title="${c.note||''}">
+      <div class="lbl">${c.lbl}</div>
+      <div class="val" style="color:${c.color};${c.small?'font-size:14px;padding-top:3px':''}">${c.val}</div>
+      <div class="sub">${c.sub}</div>
+      ${c.note?`<div class="stat-note">ℹ ${c.note}</div>`:''}
+    </div>`).join('');
+}
+
+// ── Trend charts ──────────────────────────────────────────────────────────────
+let chartInstances = [];
+
+function buildCharts(el) {
+  if (!monthlyData.length) {
+    el.innerHTML=`<div style="color:var(--muted);font-size:12px;padding:16px 0">No monthly trend data available for this period.</div>`;
+    return;
+  }
+
+  const labels = monthlyData.map(d => {
+    const [y,m] = d.month.split('-');
+    return new Date(+y,+m-1).toLocaleString('default',{month:'short',year:'2-digit'});
+  });
+
+  // Destroy previous charts
+  chartInstances.forEach(c=>c.destroy()); chartInstances=[];
+
+  el.innerHTML=`
+  <div class="charts-header">
+    <div><div class="charts-title">12-Month Trends — ${reportCompName}</div>
+    <div class="charts-sub">Monthly data over the last 12 months</div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-card"><div class="chart-title">Monthly Active Users</div><div class="chart-sub">Distinct users with any event per month</div><div class="chart-wrap"><canvas id="cUsers"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Avg Meeting Runs / Active User / Month</div><div class="chart-sub">Total meeting pipeline+workflow runs ÷ active users</div><div class="chart-wrap"><canvas id="cMeetings"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Avg AI Interactions / Active User / Month</div><div class="chart-sub">Chat sessions + conversation messages ÷ active users</div><div class="chart-wrap"><canvas id="cAI"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Avg Workflow Runs / Active User / Month</div><div class="chart-sub">Automated workflow executions ÷ active users</div><div class="chart-wrap"><canvas id="cWorkflows"></canvas></div></div>
+  </div>`;
+
+  const d = monthlyData;
+  const avgOrZero = (num, den) => den ? Math.round(num/den*10)/10 : 0;
+
+  const mkChart = (id, data, label, color) => {
+    const ctx = document.getElementById(id).getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,0,160);
+    grad.addColorStop(0, color+'40'); grad.addColorStop(1, color+'05');
+    const inst = new Chart(ctx, {
+      type:'line',
+      data:{
+        labels,
+        datasets:[{
+          label, data,
+          borderColor: color,
+          backgroundColor: grad,
+          borderWidth: 2,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: color,
+          tension: 0.3,
+          fill: true,
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:'rgba(26,29,39,.95)',
+            borderColor:'rgba(45,50,80,.8)',
+            borderWidth:1,
+            titleColor:'#e2e8f0',
+            bodyColor:'#94a3b8',
+            padding:10,
+            callbacks:{label:ctx=>`${label}: ${ctx.parsed.y}`}
+          }
+        },
+        scales:{
+          x:{grid:{color:'rgba(45,50,80,.5)'},ticks:{color:'#64748b',font:{size:10}}},
+          y:{grid:{color:'rgba(45,50,80,.5)'},ticks:{color:'#64748b',font:{size:10}},beginAtZero:true}
+        }
+      }
+    });
+    chartInstances.push(inst);
+  };
+
+  mkChart('cUsers',    d.map(x=>x.users),                             'Active Users',            '#38bdf8');
+  mkChart('cMeetings', d.map(x=>avgOrZero(x.meetings, x.users)),      'Avg Meetings/User',       '#6366f1');
+  mkChart('cAI',       d.map(x=>avgOrZero(x.ai, x.users)),            'Avg AI Interactions/User','#8b5cf6');
+  mkChart('cWorkflows',d.map(x=>avgOrZero(x.workflows, x.users)),     'Avg Workflows/User',      '#22c55e');
+}
+
+// ── Metric legend ─────────────────────────────────────────────────────────────
+function buildLegend(el) {
+  const defs = [
+    ['Days Active',    'Distinct calendar days with any tracked event'],
+    ['Avg Mtgs/Mo',    'Total meeting runs ÷ months active. Sub-label shows Automated (A) vs Manual (M) split'],
+    ['Meetings',       'Total pipeline + workflow executions (each run of an automated or manual workflow counts as 1)'],
+    ['Bot Sessions',   'Meetings where the AE recording bot joined and completed a session (recall:bot_done)'],
+    ['Art. Viewed',    'Artifact views (meeting summaries, call pages) opened by this user'],
+    ['Art. Interacted','Actions taken on artifacts: clicks, expansions, copies (can differ from viewed due to API/mobile paths)'],
+    ['AI Interact.',   'chat_created events + conversation:message_sent events — any direct AI query or message'],
+    ['Pageviews',      'Total app pageviews for this user — proxy for overall platform engagement'],
+  ];
+  el.innerHTML = defs.map(([n,d])=>`<div class="legend-item" title="${d}"><strong>${n}</strong> — ${d}</div>`).join('');
+}
+
+// ── Data quality notes ────────────────────────────────────────────────────────
+function buildNotes(el, u) {
+  const notes = [];
+
+  // Check for Art.Interacted > Art.Viewed
+  const weird = u.filter(x => x.artInteract > x.artViewed && x.artInteract > 0);
+  if (weird.length) {
+    notes.push(`<strong>⚠ Artifacts Interacted > Artifacts Viewed</strong> for ${weird.map(x=>x.name||x.email).slice(0,3).join(', ')}${weird.length>3?` +${weird.length-3} more`:''}.
+    This can occur when users interact with artifacts via the mobile app or API without triggering a browser artifact_viewed event. The metrics track different paths.`);
+  }
+
+  // Check bot > meetings
+  const botHigh = u.filter(x => x.botRec > x.meetTotal && x.botRec > 5);
+  if (botHigh.length) {
+    notes.push(`<strong>⚠ Bot Sessions > Meeting Runs</strong> for ${botHigh.map(x=>x.name||x.email).slice(0,3).join(', ')}.
+    Bot sessions count recall:bot_done events (one per recording session), while Meeting Runs count pipeline/workflow executions. Users who import meetings without bot may have 0 bot sessions; users who primarily use the bot recorder may show higher bot sessions than automated workflow runs.`);
+  }
+
+  if (notes.length) {
+    el.innerHTML = notes.map(n=>`<div class="data-note">${n}</div>`).join('');
+  }
+}
+
+// ── Toolbar ───────────────────────────────────────────────────────────────────
+function buildToolbar(el) {
+  const userCols = COLS.filter(c=>!c.always&&!(c.internal_only&&mode==='customer'));
+  el.innerHTML=`
+    <input class="tb-input" id="tbSearch" placeholder="Search name / email…" oninput="onSearch(this.value)" value="${searchQ}">
+    <select class="tb-sel" id="tbSeat" onchange="onSeatF(this.value)">
+      <option value="all">All users</option>
+      <option value="Active">Active (30d)</option>
+      ${mode==='internal'?'<option value="Inactive">Inactive</option>':''}
+    </select>
+    <select class="tb-sel" id="tbMeet" onchange="onMeetF(this.value)">
+      <option value="0">Any meeting count</option>
+      <option value="50">50+ meetings</option>
+      <option value="200">200+ meetings</option>
+      <option value="500">500+ meetings</option>
+      <option value="1000">1000+ meetings</option>
+    </select>
+    <div id="colMenu" style="position:relative">
+      <button class="col-btn" onclick="document.getElementById('colPanel').classList.toggle('open')">⊞ Columns</button>
+      <div id="colPanel">
+        ${userCols.map(c=>`<label class="cc">
+          <input type="checkbox" ${hiddenCols.has(c.key)?'':'checked'} onchange="toggleCol('${c.key}',this.checked)">
+          ${c.label}
+        </label>`).join('')}
+      </div>
+    </div>
+    <div class="tb-right">
+      <span id="rowCount"></span>
+      <button class="btn-exp" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>`;
+}
+
+function onSearch(v) { searchQ=v.toLowerCase(); buildTable(document.getElementById('tblWrap')); }
+function onSeatF(v)  { seatFilter=v; buildTable(document.getElementById('tblWrap')); }
+function onMeetF(v)  { meetMin=+v; buildTable(document.getElementById('tblWrap')); }
+function toggleCol(k,on) {
+  if(on) hiddenCols.delete(k); else hiddenCols.add(k);
+  localStorage.setItem(LS_COLS,JSON.stringify([...hiddenCols]));
+  buildTable(document.getElementById('tblWrap'));
+}
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+function buildTable(container) {
+  if (!container) return;
+  const visCols = COLS.filter(c => !hiddenCols.has(c.key) && !(c.internal_only && mode==='customer'));
+  const maxD = Math.max(...currentUsers.map(u=>u.daysActive),1);
+  const maxM = Math.max(...currentUsers.map(u=>u.meetTotal),1);
+
+  let filtered = currentUsers.filter(u => {
+    if (searchQ && !u.name.toLowerCase().includes(searchQ) && !u.email.toLowerCase().includes(searchQ)) return false;
+    const seatVal = (mode==='customer') ? 'Active' : u.utilized;
+    if (seatFilter!=='all' && seatVal!==seatFilter) return false;
+    if (meetMin && u.meetTotal<meetMin) return false;
+    return true;
+  });
+
+  filtered = [...filtered].sort((a,b)=>{
+    const av=a[sortState.col], bv=b[sortState.col];
+    if (typeof av==='string') return sortState.asc?av.localeCompare(bv):bv.localeCompare(av);
+    return sortState.asc?(av||0)-(bv||0):(bv||0)-(av||0);
+  });
+
+  const thead = visCols.map(c=>{
+    if (!c.sort) return `<th>${c.label}</th>`;
+    const cls = sortState.col===c.sort ? (sortState.asc?'sa':'sd') : '';
+    return `<th class="${cls}" onclick="doSort('${c.sort}')">${c.label}</th>`;
+  }).join('');
+
+  const tbody = filtered.map(u =>
+    `<tr>${visCols.map(c=>cellH(c,u,maxD,maxM)).join('')}</tr>`
+  ).join('') || `<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:36px">No users match the current filters</td></tr>`;
+
+  container.innerHTML=`<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+  const rc=document.getElementById('rowCount');
+  if(rc) rc.textContent=`${filtered.length} of ${currentUsers.length} users`;
+}
+
+function doSort(col) { sortState={col,asc:sortState.col===col?!sortState.asc:false}; buildTable(document.getElementById('tblWrap')); }
+
+function cellH(col, u, maxD, maxM) {
+  const k = col.key;
+  if (k==='name') {
+    const ini=(u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    return `<td><div class="uc"><div class="av">${ini}</div><div><div class="un">${u.name||'—'}</div><div class="ue">${u.email}</div></div></div></td>`;
+  }
+  if (k==='seat') {
+    const showActive = (mode==='customer') || u.utilized==='Active';
+    const pill = showActive
+      ? '<span class="pill p-green">● Active</span>'
+      : '<span class="pill p-rose">○ Inactive</span>';
+    return `<td>${pill}</td>`;
+  }
+  if (k==='lastActive') return `<td class="num">${u.lastActive||'—'}</td>`;
+  if (k==='daysActive') {
+    const p=Math.round(u.daysActive/maxD*100);
+    return `<td><div class="bw"><div class="br"><div class="bf" style="width:${p}%"></div></div><span class="num" style="min-width:32px">${u.daysActive||'—'}</span></div></td>`;
+  }
+  if (k==='avgPerMo') {
+    const c=u.avgPerMo>100?'var(--green)':u.avgPerMo>20?'var(--amber)':'inherit';
+    return `<td><div class="avgc"><span class="avgm" style="color:${c}">${u.avgPerMo||'—'}</span><span class="avgs">${u.meetAuto}A / ${u.meetManual}M</span></div></td>`;
+  }
+  if (k==='meetTotal') {
+    const p=Math.round(u.meetTotal/maxM*100);
+    return `<td><div class="bw"><div class="br"><div class="bf" style="width:${p}%"></div></div><span class="num" style="min-width:38px">${u.meetTotal||'—'}</span></div></td>`;
+  }
+  const n = u[k]||0;
+  if (!n) return `<td class="num" style="color:var(--muted)">—</td>`;
+  const c = n>200?'var(--green)':n>30?'var(--amber)':'inherit';
+  return `<td class="num" style="color:${c}">${n.toLocaleString()}</td>`;
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const h=['User Name','Email','Is Manager','Utilized Seat','First Active','Last Active','Days Active',
+    'Avg Meetings/User/Month','Meetings Total','Automated Meetings','Manual Meetings',
+    'Bot-Attended Sessions','Artifacts Viewed','Artifacts Interacted','AI Interactions',
+    'Conversations Created','Pageviews'];
+  const rows=currentUsers.map(u=>[u.name,u.email,u.isManager||'Unknown',
+    mode==='customer'?'Active':u.utilized, u.firstActive,
+    mode==='customer'?'':u.lastActive,
+    u.daysActive,u.avgPerMo,u.meetTotal,u.meetAuto,u.meetManual,u.botRec,
+    u.artViewed,u.artInteract,u.aiInteract,u.convos,u.pageviews]);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`${reportCompName.toLowerCase().replace(/\s+/g,'-')}-askelephant-${mode}-report.csv`;
+  a.click(); toast('CSV exported');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg,dur=2400) {
+  const el=document.getElementById('toast'); el.textContent=msg;
+  el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),dur);
+}
+
+// ── Enter key ─────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter'&&e.target===compEl&&selectedGroups.length) runReport();
+});
+</script>
+</body>
+</html>

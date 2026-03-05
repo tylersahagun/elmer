@@ -1,0 +1,483 @@
+{
+  "$schema": "pm-workspace-status-v1",
+  "generated_at": "2026-01-23T10:15:00.000000",
+  "health_score": 71,
+  "health_trend": null,
+  "summary": {
+    "total": 19,
+    "by_priority": {
+      "P0": 7,
+      "P1": 1,
+      "P2": 5,
+      "P3": 5,
+      "other": 1
+    },
+    "by_phase": {
+      "discovery": 2,
+      "define": 8,
+      "build": 6,
+      "validate": 3,
+      "launch": 0
+    },
+    "by_status": {
+      "on_track": 17,
+      "at_risk": 0,
+      "blocked": 0,
+      "stale": 2
+    },
+    "ready_to_advance": 2,
+    "need_attention": 3
+  },
+  "attention_required": [
+    {
+      "id": "crm-exp-ete",
+      "phase": "build",
+      "issue": "Jury pass rate 50%",
+      "days_in_phase": 6,
+      "action": "/iterate crm-exp-ete"
+    },
+    {
+      "id": "condorcet-jury-system",
+      "phase": "define",
+      "issue": "Stale (14d), missing design-brief",
+      "days_in_phase": 14,
+      "action": "/design condorcet-jury-system"
+    },
+    {
+      "id": "automated-metrics-observability",
+      "phase": "define",
+      "issue": "Stale (14d), missing design-brief",
+      "days_in_phase": 14,
+      "action": "/design automated-metrics-observability"
+    }
+  ],
+  "ready_to_advance": [
+    {
+      "id": "composio-agent-framework",
+      "current_phase": "validate",
+      "next_phase": "launch",
+      "criteria_met": 4,
+      "criteria_total": 5,
+      "blocker": "Stakeholder approval pending"
+    },
+    {
+      "id": "settings-redesign",
+      "current_phase": "validate",
+      "next_phase": "launch",
+      "criteria_met": 3,
+      "criteria_total": 5,
+      "blocker": "Missing GTM brief"
+    }
+  ],
+  "artifact_matrix": [
+    {
+      "id": "hubspot-agent-config-ui",
+      "phase": "validate",
+      "priority": "P0",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "complete"
+      },
+      "completeness": 0.71
+    },
+    {
+      "id": "condorcet-jury-system",
+      "phase": "define",
+      "priority": "P0",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "missing",
+        "gtm_brief": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "feature-availability-audit",
+      "phase": "define",
+      "priority": "P0",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "missing",
+        "gtm_brief": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 0.83
+    },
+    {
+      "id": "crm-exp-ete",
+      "phase": "build",
+      "priority": "P0",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "gtm_brief": "complete",
+        "jury": "failing"
+      },
+      "completeness": 0.86
+    },
+    {
+      "id": "universal-signal-tables",
+      "phase": "build",
+      "priority": "P0",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "gtm_brief": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "customer-journey-map",
+      "phase": "build",
+      "priority": "P0",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "release-lifecycle-process",
+      "phase": "build",
+      "priority": "P0",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "gtm_brief": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "composio-agent-framework",
+      "phase": "validate",
+      "priority": "P1",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "gtm_brief": "complete",
+        "jury": "complete"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "crm-readiness-diagnostic",
+      "phase": "discovery",
+      "priority": "P2",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "complete"
+      },
+      "completeness": 0.57
+    },
+    {
+      "id": "automated-metrics-observability",
+      "phase": "define",
+      "priority": "P2",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "missing",
+        "gtm_brief": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "call-import-engine",
+      "phase": "define",
+      "priority": "P2",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "missing",
+        "gtm_brief": "complete",
+        "jury": "not_required"
+      },
+      "completeness": 0.83
+    },
+    {
+      "id": "rep-workspace",
+      "phase": "build",
+      "priority": "high",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "complete"
+      },
+      "completeness": 0.71
+    },
+    {
+      "id": "design-system-workflow",
+      "phase": "build",
+      "priority": "P2",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "complete",
+        "engineering_spec": "complete",
+        "prototype": "complete",
+        "gtm_brief": "complete",
+        "jury": "complete"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "settings-redesign",
+      "phase": "validate",
+      "priority": "P2",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "complete"
+      },
+      "completeness": 0.57
+    },
+    {
+      "id": "internal-search",
+      "phase": "discovery",
+      "priority": "P3",
+      "artifacts": {
+        "research": "complete",
+        "prd": "missing",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "missing",
+        "gtm_brief": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 1.0
+    },
+    {
+      "id": "user-onboarding",
+      "phase": "define",
+      "priority": "P3",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "speaker-id-voiceprint",
+      "phase": "define",
+      "priority": "P3",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "product-usability",
+      "phase": "define",
+      "priority": "P3",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    },
+    {
+      "id": "admin-onboarding",
+      "phase": "define",
+      "priority": "P3",
+      "artifacts": {
+        "research": "complete",
+        "prd": "complete",
+        "design_brief": "missing",
+        "engineering_spec": "missing",
+        "prototype": "complete",
+        "gtm_brief": "missing",
+        "jury": "not_required"
+      },
+      "completeness": 0.67
+    }
+  ],
+  "action_queue": [
+    {
+      "rank": 1,
+      "action": "/iterate crm-exp-ete",
+      "initiative": "crm-exp-ete",
+      "impact": "P0 unblocked",
+      "reason": "Jury at 50%, needs improvement to advance"
+    },
+    {
+      "rank": 2,
+      "action": "/design condorcet-jury-system",
+      "initiative": "condorcet-jury-system",
+      "impact": "P0 progress",
+      "reason": "14 days stale, needs design-brief"
+    },
+    {
+      "rank": 3,
+      "action": "/design automated-metrics-observability",
+      "initiative": "automated-metrics-observability",
+      "impact": "P2 progress",
+      "reason": "14 days stale, needs design-brief"
+    },
+    {
+      "rank": 4,
+      "action": "/share composio-agent-framework",
+      "initiative": "composio-agent-framework",
+      "impact": "Launch ready",
+      "reason": "92% jury pass, awaiting final approval"
+    },
+    {
+      "rank": 5,
+      "action": "Add GTM brief",
+      "initiative": "settings-redesign",
+      "impact": "Launch blocker",
+      "reason": "Missing GTM brief for launch"
+    },
+    {
+      "rank": 6,
+      "action": "/validate release-lifecycle-process",
+      "initiative": "release-lifecycle-process",
+      "impact": "P0 advancement",
+      "reason": "Build complete, needs jury validation"
+    },
+    {
+      "rank": 7,
+      "action": "/validate universal-signal-tables",
+      "initiative": "universal-signal-tables",
+      "impact": "P0 advancement",
+      "reason": "Build complete, needs jury validation"
+    },
+    {
+      "rank": 8,
+      "action": "/proto feature-availability-audit",
+      "initiative": "feature-availability-audit",
+      "impact": "P0 progression",
+      "reason": "Has design+eng, needs prototype"
+    },
+    {
+      "rank": 9,
+      "action": "/proto call-import-engine",
+      "initiative": "call-import-engine",
+      "impact": "P2 progression",
+      "reason": "Has all docs, needs prototype"
+    },
+    {
+      "rank": 10,
+      "action": "/pm internal-search",
+      "initiative": "internal-search",
+      "impact": "P3 foundation",
+      "reason": "Discovery complete, needs PRD"
+    }
+  ],
+  "phase_distribution": {
+    "discovery": {
+      "count": 2,
+      "percentage": 11,
+      "ideal": "10-20%",
+      "status": "healthy"
+    },
+    "define": {
+      "count": 8,
+      "percentage": 42,
+      "ideal": "20-30%",
+      "status": "high"
+    },
+    "build": {
+      "count": 6,
+      "percentage": 32,
+      "ideal": "30-40%",
+      "status": "healthy"
+    },
+    "validate": {
+      "count": 3,
+      "percentage": 16,
+      "ideal": "10-20%",
+      "status": "healthy"
+    },
+    "launch": {
+      "count": 0,
+      "percentage": 0,
+      "ideal": "5-10%",
+      "status": "empty"
+    }
+  },
+  "health_breakdown": {
+    "no_blocked": { "score": 25, "max": 25, "notes": "0 blocked" },
+    "artifact_completeness": {
+      "score": 17,
+      "max": 25,
+      "notes": "~70% average"
+    },
+    "no_stale": { "score": 10, "max": 20, "notes": "2 stale (>14 days)" },
+    "phase_distribution": {
+      "score": 8,
+      "max": 15,
+      "notes": "Define heavy, no launches"
+    },
+    "jury_pass_rates": { "score": 11, "max": 15, "notes": "Average ~70%" }
+  },
+  "jury_summary": [
+    { "id": "composio-agent-framework", "pass_rate": 0.92, "verdict": "pass" },
+    { "id": "crm-exp-ete", "pass_rate": 0.5, "verdict": "needs_iteration" }
+  ],
+  "previous_snapshot": null
+}

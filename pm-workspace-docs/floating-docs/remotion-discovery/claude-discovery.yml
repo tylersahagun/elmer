@@ -1,0 +1,236 @@
+# .github/workflows/video-generation.yml
+#
+# Automatically generates PMM videos when PRs are merged to main.
+# Triggers on PRs with the "generate-video" label.
+
+name: Generate PMM Video
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      initiative:
+        description: "Initiative name (e.g., meeting-privacy-agent)"
+        required: true
+        type: string
+      video_type:
+        description: "Video type"
+        required: true
+        default: "announcement"
+        type: choice
+        options:
+          - announcement
+          - demo
+          - recap
+
+jobs:
+  check-trigger:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true && 
+       contains(github.event.pull_request.labels.*.name, 'generate-video'))
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      initiative: ${{ steps.extract.outputs.initiative }}
+      video_type: ${{ steps.extract.outputs.video_type }}
+    steps:
+      - name: Check if should run
+        id: check
+        run: echo "should_run=true" >> $GITHUB_OUTPUT
+
+      - name: Extract initiative from PR or input
+        id: extract
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "initiative=${{ github.event.inputs.initiative }}" >> $GITHUB_OUTPUT
+            echo "video_type=${{ github.event.inputs.video_type }}" >> $GITHUB_OUTPUT
+          else
+            # Extract from PR title: "[initiative-name] PR Title"
+            TITLE="${{ github.event.pull_request.title }}"
+            INITIATIVE=$(echo "$TITLE" | grep -oP '^\[\K[^\]]+' || echo "unknown")
+            echo "initiative=$INITIATIVE" >> $GITHUB_OUTPUT
+            echo "video_type=announcement" >> $GITHUB_OUTPUT
+          fi
+
+  generate-video:
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "remotion/package-lock.json"
+
+      - name: Install Remotion dependencies
+        working-directory: ./remotion
+        run: npm ci
+
+      - name: Check if composition exists
+        id: check-composition
+        working-directory: ./remotion
+        run: |
+          INITIATIVE="${{ needs.check-trigger.outputs.initiative }}"
+          # Convert to PascalCase for composition name
+          COMP_NAME=$(echo "$INITIATIVE" | sed -r 's/(^|-)(\w)/\U\2/g')
+          COMP_ID="${COMP_NAME}Announcement"
+
+          # Check if composition is registered
+          if grep -q "id=\"$COMP_ID\"" src/Root.tsx; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "composition_id=$COMP_ID" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::warning::Composition $COMP_ID not found. Skipping video generation."
+          fi
+
+      - name: Render video
+        if: steps.check-composition.outputs.exists == 'true'
+        working-directory: ./remotion
+        run: |
+          INITIATIVE="${{ needs.check-trigger.outputs.initiative }}"
+          COMP_ID="${{ steps.check-composition.outputs.composition_id }}"
+          VIDEO_TYPE="${{ needs.check-trigger.outputs.video_type }}"
+
+          mkdir -p ../videos/$INITIATIVE
+
+          # Check for props file
+          PROPS_ARG=""
+          if [ -f "../videos/$INITIATIVE/props.json" ]; then
+            PROPS_ARG="--props=../videos/$INITIATIVE/props.json"
+          fi
+
+          npx remotion render $COMP_ID \
+            ../videos/$INITIATIVE/$VIDEO_TYPE.mp4 \
+            $PROPS_ARG \
+            --log=verbose
+        env:
+          # Add any required env vars here
+          CI: true
+
+      - name: Generate video metadata
+        if: steps.check-composition.outputs.exists == 'true'
+        run: |
+          INITIATIVE="${{ needs.check-trigger.outputs.initiative }}"
+          VIDEO_TYPE="${{ needs.check-trigger.outputs.video_type }}"
+
+          # Get video duration and size
+          DURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 videos/$INITIATIVE/$VIDEO_TYPE.mp4 | cut -d. -f1)
+          SIZE=$(du -h videos/$INITIATIVE/$VIDEO_TYPE.mp4 | cut -f1)
+
+          cat > videos/$INITIATIVE/metadata.json << EOF
+          {
+            "initiative": "$INITIATIVE",
+            "type": "$VIDEO_TYPE",
+            "generated_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "pr_number": "${{ github.event.pull_request.number }}",
+            "pr_title": "${{ github.event.pull_request.title }}",
+            "commit_sha": "${{ github.sha }}",
+            "duration_seconds": $DURATION,
+            "file_size": "$SIZE"
+          }
+          EOF
+
+      - name: Upload video artifact
+        if: steps.check-composition.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmm-video-${{ needs.check-trigger.outputs.initiative }}
+          path: |
+            videos/${{ needs.check-trigger.outputs.initiative }}/*.mp4
+            videos/${{ needs.check-trigger.outputs.initiative }}/metadata.json
+          retention-days: 30
+
+      - name: Comment on PR with video link
+        if: |
+          steps.check-composition.outputs.exists == 'true' && 
+          github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const initiative = '${{ needs.check-trigger.outputs.initiative }}';
+            const videoType = '${{ needs.check-trigger.outputs.video_type }}';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## 🎬 PMM Video Generated!
+              
+              A **${videoType}** video has been generated for **${initiative}**.
+              
+              📥 [Download from Actions Artifacts](${runUrl})
+              
+              The video will be available for 30 days.
+              
+              ---
+              *Generated automatically by the video-generation workflow*`
+            });
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const initiative = '${{ needs.check-trigger.outputs.initiative }}';
+
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `## ⚠️ Video Generation Failed
+                
+                Failed to generate video for **${initiative}**.
+                
+                **Possible causes:**
+                - Composition not registered in Root.tsx
+                - Missing assets or screenshots
+                - Props file has invalid format
+                
+                Check the [workflow logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`
+              });
+            }
+
+  # Optional: Upload to cloud storage for longer retention
+  upload-to-storage:
+    needs: [check-trigger, generate-video]
+    if: |
+      needs.check-trigger.outputs.should_run == 'true' && 
+      success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download video artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pmm-video-${{ needs.check-trigger.outputs.initiative }}
+          path: ./video-output
+
+      # Uncomment and configure for S3 upload
+      # - name: Upload to S3
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: us-east-1
+      #
+      # - name: Sync to S3
+      #   run: |
+      #     aws s3 cp ./video-output/ s3://your-bucket/pmm-videos/ --recursive
+
+      - name: Log completion
+        run: |
+          echo "✅ Video generation complete for ${{ needs.check-trigger.outputs.initiative }}"
+          echo "Files generated:"
+          ls -la ./video-output/

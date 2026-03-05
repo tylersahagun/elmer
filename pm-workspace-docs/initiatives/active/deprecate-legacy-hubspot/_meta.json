@@ -1,0 +1,68 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "deprecate-legacy-hubspot",
+  "hypothesis_id": null,
+  "phase": "build",
+  "sub_phase": "prototyping",
+  "status": "on_track",
+  "priority": "P1",
+  "owner": "tyler",
+  "personas": [
+    "revops"
+  ],
+  "pillar": "customer-trust",
+  "created_at": "2026-01-30T00:00:00.000000",
+  "updated_at": "2026-02-09T00:00:00.000000",
+  "prototype_type": "standalone",
+  "prototype_location": "elephant-ai/apps/web/src/components/prototypes/DeprecatePipedream/",
+  "current_version": "v2",
+  "chromatic_url": "https://672502f3cbc6d0a63fdd76aa-saokbxhdql.chromatic.com/",
+  "chromatic_build": "https://www.chromatic.com/build?appId=672502f3cbc6d0a63fdd76aa&number=51",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-30T00:00:00.000000",
+      "exited": "2026-02-09T00:00:00.000000"
+    },
+    {
+      "phase": "build",
+      "entered": "2026-02-09T00:00:00.000000",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Woody design review; Ivan to validate migration flow; deprecation communication plan for Monday/Confluence/Sendoso",
+  "graduation_criteria": {},
+  "timeline": {
+    "started": "2026-01-30",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 2
+  },
+  "linear_project_id": "313bc3ff-9c2f-4a18-bb27-1d9e7c203eb3",
+  "linear_project_url": "https://linear.app/askelephant/project/deprecating-the-pipedream-70c7a6bf99aa",
+  "notion_project_id": "2fff79b2-c8ac-80a5-9cc4-d690ec69cbb3",
+  "notion_project_url": "https://www.notion.so/Deprecate-Legacy-Hubspot-Nodes-2fff79b2c8ac80a59cc4d690ec69cbb3",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "figjam_url": "https://www.figma.com/online-whiteboard/create-diagram/044499c9-39c5-40cf-8feb-53a1a3fd15c9?utm_source=other&utm_content=edit_in_figjam&oai_id=&request_id=a10c4e92-57fd-4e7f-b24b-57ed1319e6fd",
+  "figjam_generated": "2026-01-30",
+  "github_labels": [
+    "initiative:deprecate-pipedream"
+  ],
+  "github_branch_prefix": "feat/deprecate-pipedream",
+  "dev_activity": {
+    "last_synced": "2026-02-20T06:54:56Z",
+    "linear_issues_total": 3,
+    "linear_issues_completed": 0,
+    "linear_issues_in_progress": 3,
+    "github_prs_merged_30d": null
+  },
+  "notion_project_name": "Deprecate Legacy Hubspot Nodes",
+  "linear_project_name": "Deprecating the Pipedream"
+}

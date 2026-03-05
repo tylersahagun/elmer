@@ -12,6 +12,7 @@ import {
 } from "@/components/documents";
 import { MetricsDashboard } from "@/components/metrics";
 import { FilesSidebar, FileViewer, type FileNode } from "@/components/files";
+import { ProjectTasksPanel } from "@/components/tasks/ProjectTasksPanel";
 import { Badge } from "@/components/ui/badge";
 import { Window } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
@@ -39,6 +40,7 @@ import {
   Trash2,
   Link2,
   Ticket,
+  CheckSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -64,6 +66,9 @@ import { PrototypeFeedbackPanel } from "@/components/prototypes";
 import { SignalPickerModal } from "@/components/projects/SignalPickerModal";
 import { ProjectCommitHistory } from "@/components/projects/ProjectCommitHistory";
 import { useProjectFiles, fetchFileContent } from "@/hooks/useProjectFiles";
+import { useMutation as useConvexMutation } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
+import { InitiativeDashboardEmbed } from "@/components/agents/InitiativeDashboardEmbed";
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -77,6 +82,8 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isSignalPickerOpen, setIsSignalPickerOpen] = useState(false);
   const [ticketSyncing, setTicketSyncing] = useState<string | null>(null);
+
+  const createAndSchedule = useConvexMutation(api.jobs.createAndSchedule);
 
   // Fetch project data
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -454,6 +461,25 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                 )}
               </div>
             </div>
+            {project.metadata?.tldr && (
+              <div className="mt-2 px-1">
+                <p className="text-sm text-muted-foreground italic leading-relaxed">
+                  {project.metadata.tldr as string}
+                  <button
+                    onClick={() => createAndSchedule({
+                      workspaceId: project.workspaceId,
+                      projectId: project._id,
+                      type: "generate_tldr",
+                      input: { projectId: project._id },
+                    })}
+                    className="text-[10px] text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline ml-1"
+                  >
+                    Regenerate TL;DR
+                  </button>
+                </p>
+              </div>
+            )}
+            <InitiativeDashboardEmbed projectId={projectId} className="mt-3" />
           </Window>
         </motion.div>
 
@@ -541,6 +567,15 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                   <Ticket className="w-4 h-4" />
                   <span className="hidden sm:inline font-mono text-xs">
                     Tickets
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="tasks"
+                  className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">
+                    Tasks
                   </span>
                 </TabsTrigger>
                 <TabsTrigger
@@ -996,6 +1031,10 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                   </div>
                 </div>
               </Window>
+            </TabsContent>
+
+            <TabsContent value="tasks" className="mt-6">
+              <ProjectTasksPanel projectId={projectId} workspaceId={project.workspaceId ?? ""} />
             </TabsContent>
 
             <TabsContent value="commands" className="mt-6">

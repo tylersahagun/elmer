@@ -1,0 +1,161 @@
+{
+  "$schema": "pm-workspace-meta-v2",
+  "initiative": "meeting-summary",
+  "name": "Meeting Summary",
+  "parent_initiative": null,
+  "roadmap_theme": "Chief of Staff — 5-Agent Product Launch (May 4)",
+  "hypothesis_id": null,
+  "phase": "build",
+  "sub_phase": "event-page-redesign-and-prototype",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "owner_note": "Meeting Summary agent within Chief of Staff 5-agent product (CoS feeds 5 agents: Meeting Summary, Meeting Prep, Daily Brief, Weekly Brief, Action Items). Ships May 4 as part of full CoS launch. Standalone initiative — Meeting Prep is a separate initiative. Feeds back into Chief of Staff platform.",
+  "eng_lead": "palmer",
+  "design_lead": "skylar",
+  "revenue_lead": "robert",
+  "feedback_method": "interview-plan",
+  "feedback_status": "in-progress",
+  "personas": ["sales-rep", "sales-leader", "csm"],
+  "pillar": "customer-trust",
+  "created_at": "2026-03-04T17:00:00.000Z",
+  "updated_at": "2026-03-04T18:30:00.000Z",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-28T00:00:00.000Z",
+      "exited": "2026-02-17T00:00:00.000Z",
+      "notes": "Research from Tyler/Sam transcripts (2026-01-28/30), competitive analysis, customer signals"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-02-17T00:00:00.000Z",
+      "exited": "2026-02-28T00:00:00.000Z",
+      "notes": "PRD, design brief, eng spec, GTM brief complete. Jury score 65.5%. Prototype v4 built."
+    },
+    {
+      "phase": "build",
+      "entered": "2026-02-28T00:00:00.000Z",
+      "exited": null,
+      "notes": "Project Babar sprint: Palmer building meeting summary v1.1 + event page redesign. Skylar designing end-to-end flow with sharing. Robert running customer syncs."
+    }
+  ],
+  "blockers": [
+    "Meeting summary generation latency — Skylar flagged 'nothing should load if presaved/default template'",
+    "Event page redesign scope not fully locked — timeline for Palmer's event page redesign work",
+    "Release gates for Meeting Summary not yet defined (Tyler commitment from 2026-02-24)",
+    "Customer Outcome Metric for Chief of Staff not finalized"
+  ],
+  "next_action": "1. Define release gates for Meeting Summary (scoped commitment). 2. Lock artifact variant priority (Full view, In-line chat, Reference Chip). 3. Complete Skylar's end-to-end prototype for demo. 4. 3 customer syncs (Robert commitment).",
+  "graduation_criteria": {
+    "to_launch": [
+      "End-to-end meeting summary + sharing prototype demo-ready",
+      "Event page redesign complete",
+      "Release gates defined",
+      "Customer outcome metric baseline established"
+    ]
+  },
+  "timeline": {
+    "started": "2026-02-17",
+    "target_launch": "2026-05-04",
+    "target_open_beta": "2026-04-15"
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 4
+  },
+  "posthog": {
+    "dashboard_id": null,
+    "dashboard_url": "https://us.posthog.com/shared/TXZ6pyGjHhS3RNKsnK-i-K0q3Qr6ug",
+    "key_insights": [
+      {
+        "id": "IJlTns2B",
+        "name": "meeting_summary:viewed — 30d trend",
+        "type": "trend",
+        "status": "unsaved",
+        "note": "Temp insight created 2026-03-04; needs to be saved once event has context properties"
+      }
+    ],
+    "baseline_established": false,
+    "baseline_check_date": "2026-03-04",
+    "baseline_notes": "One event exists ('meeting_summary:viewed') and is firing with 100+ events / 21 unique users in last 30d — but all are internal AE employees under the first-class-meeting-summary beta flag, and the event captures zero context (no engagement_id, no workspace_id). The critical missing event is 'meeting_summary:generated' (backend, auto-generation pipeline has no PostHog capture), which blocks calculation of the North Star metric (view rate %). Baseline can be established after 3 instrumentation items are completed — see METRICS.md and pm-workspace-docs/research/instrumentation/meeting-summary-check.md.",
+    "instrumentation_status": {
+      "meeting_summary_viewed": "firing_no_context",
+      "meeting_summary_generated": "missing",
+      "meeting_summary_generation_failed": "missing",
+      "meeting_summary_returned": "missing"
+    }
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "slack_channel": "proj-babar",
+  "slack_channel_id": "C0AG7RM23GE",
+  "notion_project_id": "30af79b2-c8ac-8059-85a8-fad34b8d07da",
+  "notion_project_url": "https://www.notion.so/ask-elephant/Meeting-Summary-30af79b2c8ac805985a8fad34b8d07da",
+  "notion_artifacts": {
+    "documents": [],
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "milestones": [
+    {"name": "PRD + full spec suite", "target": "2026-02-18", "status": "done"},
+    {"name": "Prototype v4", "target": "2026-02-18", "status": "done"},
+    {"name": "Meeting summary v1.1 (Palmer)", "target": "2026-03-07", "status": "in-progress"},
+    {"name": "Event page redesign (Palmer)", "target": "2026-03-14", "status": "not-started"},
+    {"name": "End-to-end prototype with sharing (Skylar)", "target": "2026-03-07", "status": "in-progress"},
+    {"name": "Release gates defined", "target": "2026-03-07", "status": "not-started"},
+    {"name": "Focus group (internal)", "target": "2026-03-10", "status": "not-started"},
+    {"name": "3 customer syncs (Robert)", "target": "2026-03-14", "status": "in-progress"},
+    {"name": "Open Beta (feature flag)", "target": "2026-04-15", "status": "not-started"},
+    {"name": "GA / May 4 launch", "target": "2026-05-04", "status": "not-started"}
+  ],
+  "outcomes": {
+    "baseline": null,
+    "target": ">60% of users with recorded meetings view summary at least once per week (GA + 60 days)",
+    "actual": null,
+    "confidence": "Medium",
+    "target_date": "2026-07-04",
+    "status": "On Track"
+  },
+  "customer_requests": [
+    {"customer": "Neighbor", "request": "Summary template editing — Sarah manually edits recap emails due to unwanted sections", "source": "#customer-feedback 2026-02-13"},
+    {"customer": "Link-X (McKayla Kowallis)", "request": "Automate meeting recaps and sales-to-CS handoffs", "source": "#customer-feedback 2026-03-04"},
+    {"customer": "Guardian Health", "request": "Meeting notes to HubSpot automation", "source": "research.md"},
+    {"customer": "ObservePoint (Nic Suder)", "request": "Feedback on current meeting design — full session in #proj-babar", "source": "Notion: 2026-02-28"}
+  ],
+  "github_labels": ["initiative:meeting-summary"],
+  "github_branch_prefix": "feat/meeting-summary",
+  "competitive_landscape": {
+    "last_analyzed": "2026-02-18",
+    "competitors": ["Fathom", "Gong", "Fireflies.ai", "Avoma", "Chorus", "Granola", "Otter.ai"],
+    "differentiation_score": null
+  },
+  "visual_design": {
+    "directions_generated": 4,
+    "direction_chosen": "v4",
+    "mockup_validated": true,
+    "validated_at": "2026-02-18"
+  },
+  "dev_activity": {
+    "last_synced": "2026-03-04",
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "related_initiatives": [
+    "chief-of-staff-experience",
+    "global-chat",
+    "agent-command-center"
+  ],
+  "project_babar": {
+    "description": "Project Babar is the active product sprint combining Meeting Summary (redesigned event page) + Meeting Prep. Named after the children's elephant character. Target: May 4, 2026 launch.",
+    "team": ["tyler", "palmer", "skylar", "robert"],
+    "slack_channel": "proj-babar",
+    "launch_date": "2026-05-04",
+    "pr_lead": "tony"
+  },
+  "scope_notes": "Meeting Summary is one of 5 agents in the Chief of Staff product launching May 4. (The 5 agents: Meeting Summary, Meeting Prep, Daily Brief, Weekly Brief, Action Items.) This initiative covers the Meeting Summary agent only — Meeting Prep is a separate initiative. Key architectural decision: NO template picker — instead a learning agent that infers meeting type and user preferences from patterns and adjusts via chat input. This is the 'implicit configuration' model Palmer advocated for. Once shipped, feeds back into Chief of Staff platform. Event page redesign (Palmer) is in scope as the container experience for the Meeting Summary agent.",
+  "_generated": "Created 2026-03-04 by Tyler via /new-initiative. Research synthesized from Project Babar Slack signals, Chief of Staff archive, and customer feedback."
+}

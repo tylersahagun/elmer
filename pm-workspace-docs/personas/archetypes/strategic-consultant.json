@@ -1,0 +1,135 @@
+{
+  "archetype_id": "strategic-consultant",
+  "archetype_name": "Strategic Consultant / Subject Matter Expert",
+  "source_documents": [
+    ".pm-workspace/personas/Personas/Customer Personas/Hannah Keeling*.md",
+    ".pm-workspace/personas/Personas/Customer Personas/Richard Walsh*.md"
+  ],
+  "core_definition": {
+    "goal": "Create and deliver strategic intellectual property, scale expertise",
+    "pain": "Knowledge lives in brain, hard to capture and transfer, AI can't replace strategic thinking",
+    "success": "Team can access and apply expertise without bottlenecking through SME",
+    "key_workflows": ["Strategy development", "Client consulting", "Knowledge transfer", "Impromptu advisory"]
+  },
+  "why_this_persona_matters": {
+    "note": "This persona represents knowledge workers whose value is HARD TO AUTOMATE. They see AI as a 'starting point' for execution, not a replacement for strategic thinking. They are skeptical of overpromised AI capabilities but open to tools that amplify (not replace) their expertise.",
+    "decision_authority": "influencer",
+    "evaluation_focus": "Can this capture my brain dumps efficiently?"
+  },
+  "variation_dimensions": {
+    "company_size": {
+      "distribution": {
+        "1-50": 0.35,
+        "51-200": 0.35,
+        "201-1000": 0.20,
+        "1000+": 0.10
+      }
+    },
+    "tech_literacy": {
+      "distribution": {
+        "novice": 0.05,
+        "intermediate": 0.30,
+        "advanced": 0.45,
+        "expert": 0.20
+      }
+    },
+    "ai_adoption_stage": {
+      "distribution": {
+        "skeptic": 0.25,
+        "curious": 0.45,
+        "early-adopter": 0.25,
+        "power-user": 0.05
+      },
+      "note": "Higher skeptic ratio - they don't believe AI can replace strategic thinking"
+    },
+    "domain_expertise": {
+      "distribution": {
+        "sales_strategy": 0.25,
+        "marketing_strategy": 0.25,
+        "technical_architecture": 0.25,
+        "operations_consulting": 0.25
+      }
+    },
+    "seniority": {
+      "distribution": {
+        "senior-ic": 0.40,
+        "manager": 0.25,
+        "director": 0.25,
+        "vp": 0.10
+      }
+    }
+  },
+  "common_titles": [
+    "Strategy Lead",
+    "Solutions Architect",
+    "Principal Consultant",
+    "Head of Strategy",
+    "Director of Professional Services",
+    "Chief Strategy Officer",
+    "Technical Evangelist",
+    "AI Lead",
+    "Subject Matter Expert"
+  ],
+  "typical_pain_points": [
+    "Knowledge lives in my brain, not in systems",
+    "Team wants to scale my expertise but can't clone me",
+    "Impromptu strategy sessions don't get properly captured",
+    "AI outputs are just the 'base' - I add the strategic value",
+    "Capturing tacit knowledge is time-consuming",
+    "Context from past conversations doesn't transfer to team",
+    "Strategic recommendations are different from 'what the client said they wanted'"
+  ],
+  "typical_fears": [
+    "AI will produce generic output that misses strategic nuance",
+    "Team will rely on AI summaries instead of strategic thinking",
+    "Automation will reduce the perceived value of my expertise",
+    "Tool will oversimplify complex strategic decisions",
+    "My unique insights will get averaged away"
+  ],
+  "typical_voice_quotes": [
+    "A lot of the insights are coming from strategic recommendations, not just what the client said they wanted... That's coming from my brain.",
+    "I'm doing impromptu Zoom with people to talk about strategy stuff that comes up really quickly.",
+    "I'm open to trying it. I'm not sure... a lot of the insights are coming from strategic recommendations.",
+    "I'm an AI evangelist. I'm a huge data nerd. Comic books, data, and chocolate bars. That's my thing.",
+    "I like to know things, be prepared, and also help plan for GTM.",
+    "Understanding the technical side of what a project might entail... making sure we have enough information to create a build plan."
+  ],
+  "behavioral_patterns": {
+    "first_click_tendency": "Looks for how to extract insights from their conversations",
+    "error_response": "Critiques AI output and improves it manually",
+    "help_seeking": "Self-directed learning, then peer discussion",
+    "abandonment_trigger": "AI produces generic output without strategic depth",
+    "evaluation_style": "Quality-focused, tests whether AI captures nuance"
+  },
+  "ai_relationship": {
+    "view_of_ai": "AI as starting point, not replacement",
+    "expected_value": "Capture and organize my thinking, don't try to replicate it",
+    "evaluation_criteria": [
+      "Does it preserve the nuance of my strategic recommendations?",
+      "Can my team access context without asking me?",
+      "Does it make my expertise more scalable?"
+    ],
+    "red_flags": [
+      "Oversimplified summaries",
+      "Generic recommendations",
+      "Loss of strategic context"
+    ]
+  },
+  "real_customer_examples": [
+    {
+      "name": "Hannah Keeling",
+      "company": "Attack Interactive",
+      "domain": "SEO/AEO Strategy",
+      "key_trait": "Knowledge worker whose brain is the product",
+      "quote": "That's coming from my brain"
+    },
+    {
+      "name": "Richard Walsh",
+      "company": "1406 Consulting",
+      "domain": "Solutions Architecture / AI",
+      "key_trait": "AI evangelist with 25 years agency experience",
+      "quote": "I'm an AI evangelist. I'm a huge data nerd."
+    }
+  ]
+}
+

@@ -1,0 +1,69 @@
+{
+  "generation_config": {
+    "total_personas": 1000,
+    "batch_size": 20,
+    "model": "claude-3-haiku-20240307",
+    "temperature": 0.9,
+    "diversity_enforcement": {
+      "min_skeptics_percent": 15,
+      "max_same_combination": 3,
+      "verbalized_sampling": true
+    }
+  },
+  "archetype_distribution": {
+    "sales-rep": {
+      "count": 350,
+      "percent": 35,
+      "sub_types": null
+    },
+    "sales-leader": {
+      "count": 250,
+      "percent": 25,
+      "sub_types": {
+        "executive_leader": 0.25,
+        "sdr_leader": 0.50,
+        "small_team_leader": 0.25
+      }
+    },
+    "csm": {
+      "count": 150,
+      "percent": 15,
+      "sub_types": null
+    },
+    "operations": {
+      "count": 150,
+      "percent": 15,
+      "sub_types": {
+        "operations_manager": 0.50,
+        "technical_ops": 0.30,
+        "sdm_manager": 0.20
+      }
+    },
+    "strategic-consultant": {
+      "count": 100,
+      "percent": 10,
+      "sub_types": null
+    }
+  },
+  "dimension_distributions": {
+    "company_size": {
+      "1-50": 0.15,
+      "51-200": 0.35,
+      "201-1000": 0.35,
+      "1000+": 0.15
+    },
+    "tech_literacy": {
+      "novice": 0.20,
+      "intermediate": 0.45,
+      "advanced": 0.30,
+      "expert": 0.05
+    },
+    "ai_adoption_stage": {
+      "skeptic": 0.15,
+      "curious": 0.40,
+      "early-adopter": 0.35,
+      "power-user": 0.10
+    }
+  }
+}
+

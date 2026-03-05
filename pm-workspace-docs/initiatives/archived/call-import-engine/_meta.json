@@ -1,0 +1,50 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "call-import-engine",
+  "hypothesis_id": "hyp-call-import-engine",
+  "phase": "define",
+  "sub_phase": null,
+  "status": "on_track",
+  "priority": "P2",
+  "owner": "tyler",
+  "personas": ["sales-rep", "sales-leader", "csm", "revops"],
+  "pillar": "customer-trust",
+  "created_at": "2026-01-12T18:24:47.128294",
+  "updated_at": "2026-01-13T13:16:22.088800",
+  "phase_history": [
+    {
+      "phase": "define",
+      "entered": "2026-01-12T18:24:47.128294",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Review define phase status",
+  "graduation_criteria": {},
+  "timeline": {
+    "started": "2026-01-12",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 2,
+    "total_iterations": 0
+  },
+  "linear_project_id": "f4f924a8-568a-403c-8f48-50c05a225583",
+  "linear_project_url": "https://linear.app/askelephant/project/call-data-imports-f4f924a8568a",
+  "notion_project_id": "2e7f79b2-c8ac-81c7-a62d-d3b5bbfad5c8",
+  "notion_project_url": "https://www.notion.so/Call-Import-Engine-2e7f79b2c8ac81c7a62dd3b5bbfad5c8",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": ["initiative:call-import", "data-imports"],
+  "github_branch_prefix": "feat/call-import",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  }
+}

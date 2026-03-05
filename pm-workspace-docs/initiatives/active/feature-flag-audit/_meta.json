@@ -1,0 +1,81 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "feature-flag-audit",
+  "hypothesis_id": "hyp-feature-availability-audit",
+  "phase": "build",
+  "sub_phase": "audit-complete",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "personas": [
+    "sales-leader",
+    "sales-rep",
+    "csm",
+    "revops"
+  ],
+  "pillar": "data-knowledge",
+  "created_at": "2026-01-13T07:55:49.925423",
+  "updated_at": "2026-01-26T19:45:00.000000",
+  "phase_history": [
+    {
+      "phase": "define",
+      "entered": "2026-01-13T07:55:49.925423",
+      "exited": "2026-01-26T19:45:00.000000"
+    },
+    {
+      "phase": "build",
+      "entered": "2026-01-26T19:45:00.000000",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Review audit findings with Engineering; prioritize flag cleanup",
+  "progress_notes_20260126": {
+    "audit_completed": "Full PostHog audit of 126 feature flags",
+    "findings_summary": "13 inactive, 37 GA candidates (100% rollout), 55 internal-only, 10 at 0% (dead), 51 Early Access linked",
+    "key_issue": "51 flags linked to Early Access at 100% rollout - causes toggle confusion",
+    "audit_document": "posthog-audit-2026-01-26.md"
+  },
+  "audit_summary": {
+    "total_flags": 126,
+    "inactive_flags": 13,
+    "ga_candidates": 37,
+    "internal_only": 55,
+    "partial_rollout": 11,
+    "zero_rollout": 10,
+    "early_access_linked": 51
+  },
+  "graduation_criteria": {},
+  "timeline": {
+    "started": "2026-01-13",
+    "target_launch": "2026-03-01"
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 0
+  },
+  "artifacts_completed": {
+    "posthog_audit": "pm-workspace-docs/initiatives/feature-availability-audit/posthog-audit-2026-01-26.md"
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": "2e7f79b2-c8ac-81a4-bd34-c955b8d07595",
+  "notion_project_url": "https://www.notion.so/Feature-Flag-Audit-Cleanup-2e7f79b2c8ac81a4bd34c955b8d07595",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [
+    "initiative:feature-audit"
+  ],
+  "github_branch_prefix": "feat/feature-audit",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "notion_project_name": "Feature Flag Audit & Cleanup"
+}

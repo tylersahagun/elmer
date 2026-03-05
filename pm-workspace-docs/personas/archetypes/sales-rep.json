@@ -1,0 +1,116 @@
+{
+  "archetype_id": "sales-rep",
+  "archetype_name": "Sales Representative",
+  "source_documents": [
+    ".pm-workspace/company-context/personas.md",
+    ".pm-workspace/research/user-interviews/2026-01-06-hubspot-agent-configuration-james-hinkson.md"
+  ],
+  "core_definition": {
+    "goal": "Close deals faster with better preparation",
+    "pain": "Forgets details, manual CRM logging, missed follow-ups, no visibility into what AI did",
+    "success": "Prepared for every call, CRM always current, 100% confidence in automation",
+    "key_workflows": ["Call prep", "Note review", "CRM sync", "Follow-up reminders"]
+  },
+  "variation_dimensions": {
+    "company_size": {
+      "distribution": {
+        "1-50": 0.15,
+        "51-200": 0.35,
+        "201-1000": 0.35,
+        "1000+": 0.15
+      }
+    },
+    "tech_literacy": {
+      "distribution": {
+        "novice": 0.30,
+        "intermediate": 0.45,
+        "advanced": 0.20,
+        "expert": 0.05
+      }
+    },
+    "ai_adoption_stage": {
+      "distribution": {
+        "skeptic": 0.20,
+        "curious": 0.40,
+        "early-adopter": 0.30,
+        "power-user": 0.10
+      }
+    },
+    "sales_cycle_length": {
+      "distribution": {
+        "transactional": 0.20,
+        "short_1-3_months": 0.35,
+        "medium_3-6_months": 0.30,
+        "long_6_months_plus": 0.15
+      }
+    },
+    "seniority": {
+      "distribution": {
+        "sdr_bdr": 0.35,
+        "individual-contributor": 0.50,
+        "senior_ae": 0.15
+      }
+    }
+  },
+  "common_titles": [
+    "Account Executive",
+    "SDR",
+    "BDR",
+    "Sales Development Representative",
+    "Inside Sales Rep",
+    "Enterprise AE",
+    "Mid-Market AE",
+    "SMB Account Executive",
+    "Field Sales Representative"
+  ],
+  "typical_pain_points": [
+    "Zero visibility into what AI agent did and why",
+    "Can't find out why things were updated in CRM",
+    "Testing workflow changes is a nightmare (10PM-3AM sessions)",
+    "Configuration takes 100+ hours to get right",
+    "Spends 30+ min/day on manual CRM logging",
+    "Forgets important details from calls",
+    "Misses follow-up timing",
+    "CRM data is always out of date",
+    "Can't find past conversation context quickly"
+  ],
+  "typical_fears": [
+    "AI will log wrong info, embarrass me with manager",
+    "Will break my workflow that currently works",
+    "Learning curve will slow me down short-term",
+    "AI summary will miss the nuance I caught",
+    "Something will update incorrectly and I won't know why"
+  ],
+  "typical_voice_quotes": [
+    "There is zero confidence that an admin or rep can find out why things were updated the way they were in the CRM",
+    "Not seeing what happened is one of the bigger pains today",
+    "If I do get something built, testing is a nightmare. I have to build it, then trigger stuff en masse, which isn't great for my CRM hygiene",
+    "I'm probably like a hundred hours now of chatting with AskElephant to find out why something would or would not work every single time",
+    "My outcome is that I know 100% confidently that every field I want updated in HubSpot is updated after every call",
+    "I don't have time to learn another tool",
+    "If it breaks once, I'm going back to my spreadsheet",
+    "My manager just wants to see numbers in the CRM"
+  ],
+  "behavioral_patterns": {
+    "first_click_tendency": "Looks for the biggest, most obvious button",
+    "error_response": "Blames tool, asks colleague, then gives up or reverts to manual",
+    "help_seeking": "Asks a peer before reading any documentation",
+    "abandonment_trigger": "Second failure OR first time it makes them look bad to manager",
+    "trust_building": "Needs to see exactly what AI did and why before trusting it"
+  },
+  "trust_requirements": {
+    "visibility": "Must be able to see what happened and why at any time",
+    "auditability": "Needs audit history like any good workflow program",
+    "recoverability": "Must be able to fix anything that's broken quickly",
+    "quote": "Any good workflow program on Earth has an audit history of what enrolled in the workflow. Why? What did it change?"
+  },
+  "real_customer_examples": [
+    {
+      "name": "James Hinkson",
+      "company": "AskElephant (Internal)",
+      "role": "Sales Leader / Power User",
+      "key_trait": "100 hours invested, deeply understands configuration pain",
+      "quote": "My goal is that this should take five minutes per node"
+    }
+  ]
+}

@@ -1,0 +1,445 @@
+{
+  "$schema": "pm-workspace-roadmap-v1",
+  "generated_at": "2026-01-15T20:28:46.719602",
+  "summary": {
+    "total_initiatives": 9,
+    "by_phase": {
+      "discovery": 1,
+      "define": 4,
+      "build": 3,
+      "validate": 1,
+      "launch": 0,
+      "measure": 0,
+      "learn": 0
+    },
+    "health": {
+      "on_track": 9,
+      "at_risk": 0,
+      "blocked": 0,
+      "stale": 0
+    }
+  },
+  "initiatives": [
+    {
+      "id": "condorcet-jury-system",
+      "name": "Condorcet Jury System",
+      "hypothesis_id": "hyp-condorcet-jury-system",
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "csm",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-08",
+        "target_launch": null,
+        "phase_entered": "2026-01-08T20:17:18.050807",
+        "days_in_phase": 6
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review define phase status",
+      "metrics": {
+        "days_in_phase": 6,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "feature-availability-audit",
+      "name": "Feature Availability Audit",
+      "hypothesis_id": "hyp-feature-availability-audit",
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-leader",
+        "sales-rep",
+        "csm",
+        "revops"
+      ],
+      "pillar": "data-knowledge",
+      "timeline": {
+        "started": "2026-01-13",
+        "target_launch": null,
+        "phase_entered": "2026-01-13T07:55:49.925423",
+        "days_in_phase": 2
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review define phase status",
+      "metrics": {
+        "days_in_phase": 2,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "universal-signal-tables",
+      "name": "Universal Signal Tables",
+      "hypothesis_id": "hyp-universal-signal-tables",
+      "phase": "build",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-08",
+        "target_launch": null,
+        "phase_entered": "2026-01-08T09:09:35.408891",
+        "days_in_phase": 1
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review build phase status",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "customer-journey-map",
+      "name": "Customer Journey Map",
+      "hypothesis_id": "hyp-customer-journey-map",
+      "phase": "build",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "csm",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-13",
+        "target_launch": null,
+        "phase_entered": "2026-01-13T16:52:15.961627",
+        "days_in_phase": 1
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review build phase status",
+      "metrics": {
+        "days_in_phase": 1,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "release-lifecycle-process",
+      "name": "Release Lifecycle Process",
+      "hypothesis_id": "hyp-release-lifecycle-process",
+      "phase": "build",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-leader",
+        "csm",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-13",
+        "target_launch": null,
+        "phase_entered": "2026-01-13T12:23:43.552620",
+        "days_in_phase": 1
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review build phase status",
+      "metrics": {
+        "days_in_phase": 1,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "hubspot-agent-config-ui",
+      "name": "Hubspot Agent Config Ui",
+      "hypothesis_id": "hyp-hubspot-agent-config-ui",
+      "phase": "validate",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P0",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-07",
+        "target_launch": null,
+        "phase_entered": "2026-01-07T12:18:01.093543",
+        "days_in_phase": 1
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review validate phase status",
+      "metrics": {
+        "days_in_phase": 1,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "condorcet-jury-eval",
+      "name": "Condorcet Jury Eval",
+      "hypothesis_id": "hyp-condorcet-jury-eval",
+      "phase": "discovery",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P2",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep"
+      ],
+      "pillar": null,
+      "timeline": {
+        "started": "2026-01-15",
+        "target_launch": null,
+        "phase_entered": "2026-01-15T18:38:06.742955",
+        "days_in_phase": 0
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review discovery phase status",
+      "metrics": {
+        "days_in_phase": 0,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "automated-metrics-observability",
+      "name": "Automated Metrics Observability",
+      "hypothesis_id": "hyp-automated-metrics-observability",
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P2",
+      "owner": "tyler",
+      "personas": [
+        "sales-leader",
+        "revops"
+      ],
+      "pillar": "data-knowledge",
+      "timeline": {
+        "started": "2026-01-08",
+        "target_launch": null,
+        "phase_entered": "2026-01-08T09:46:14.509127",
+        "days_in_phase": 7
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review define phase status",
+      "metrics": {
+        "days_in_phase": 7,
+        "total_iterations": 0
+      }
+    },
+    {
+      "id": "call-import-engine",
+      "name": "Call Import Engine",
+      "hypothesis_id": "hyp-call-import-engine",
+      "phase": "define",
+      "sub_phase": null,
+      "status": "on_track",
+      "priority": "P2",
+      "owner": "tyler",
+      "personas": [
+        "sales-rep",
+        "sales-leader",
+        "csm",
+        "revops"
+      ],
+      "pillar": "customer-trust",
+      "timeline": {
+        "started": "2026-01-12",
+        "target_launch": null,
+        "phase_entered": "2026-01-12T18:24:47.128294",
+        "days_in_phase": 2
+      },
+      "progress": {
+        "discovery": {
+          "status": "in_progress"
+        },
+        "define": {
+          "status": "in_progress"
+        },
+        "build": {
+          "status": "in_progress"
+        },
+        "validate": {
+          "status": "in_progress"
+        },
+        "launch": {
+          "status": "in_progress"
+        }
+      },
+      "blockers": [],
+      "next_action": "Review define phase status",
+      "metrics": {
+        "days_in_phase": 2,
+        "total_iterations": 0
+      }
+    }
+  ],
+  "timeline_view": [],
+  "dependencies_graph": {
+    "nodes": [
+      "condorcet-jury-system",
+      "feature-availability-audit",
+      "universal-signal-tables",
+      "customer-journey-map",
+      "release-lifecycle-process",
+      "hubspot-agent-config-ui",
+      "condorcet-jury-eval",
+      "automated-metrics-observability",
+      "call-import-engine"
+    ],
+    "edges": []
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "observability-monitoring",
+  "hypothesis_id": "hyp-automated-metrics-observability",
+  "phase": "define",
+  "sub_phase": null,
+  "status": "on_track",
+  "priority": "P3",
+  "owner": "tyler",
+  "personas": [
+    "sales-leader",
+    "revops"
+  ],
+  "pillar": "data-knowledge",
+  "created_at": "2026-01-08T09:46:14.509127",
+  "updated_at": "2026-01-23T00:00:00.000000",
+  "phase_history": [
+    {
+      "phase": "define",
+      "entered": "2026-01-08T09:46:14.509127",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Deprioritized - revisit after P0 initiatives complete",
+  "graduation_criteria": {},
+  "timeline": {
+    "started": "2026-01-08",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 7,
+    "total_iterations": 0
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": "2c0f79b2-c8ac-8102-a30e-da8d8d8d602a",
+  "notion_project_url": "https://www.notion.so/Observability-Monitoring-2c0f79b2c8ac8102a30eda8d8d8d602a",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [
+    "initiative:metrics",
+    "observability"
+  ],
+  "github_branch_prefix": "feat/metrics",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "notion_project_name": "Observability & Monitoring"
+}

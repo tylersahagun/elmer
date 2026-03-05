@@ -1,0 +1,115 @@
+{
+  "id": "crm-update-artifact",
+  "name": "CRM Experience End-to-End",
+  "phase": "build",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "Tyler",
+  "team": [
+    "Tyler",
+    "Palmer",
+    "Bryan",
+    "Woody"
+  ],
+  "created_at": "2026-01-16T00:00:00.000Z",
+  "updated_at": "2026-01-16T17:00:00.000Z",
+  "strategic_pillar": "Customer Trust",
+  "strategic_initiative": "CRM Agent Upgrades",
+  "personas": [
+    "revops",
+    "sales-rep",
+    "sales-leader"
+  ],
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-16T00:00:00.000Z",
+      "exited": "2026-01-16T12:00:00.000Z"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-01-16T12:00:00.000Z",
+      "exited": "2026-01-16T16:00:00.000Z"
+    },
+    {
+      "phase": "build",
+      "entered": "2026-01-16T16:00:00.000Z",
+      "exited": null
+    }
+  ],
+  "graduation_criteria": {
+    "discovery_to_define": {
+      "research_complete": true,
+      "problem_validated": true,
+      "personas_identified": true,
+      "outcome_chain_clear": true
+    },
+    "define_to_build": {
+      "prd_complete": true,
+      "design_brief_complete": true,
+      "engineering_spec_complete": false,
+      "prototype_exists": true,
+      "stakeholder_signoff": false
+    }
+  },
+  "key_quotes": [
+    "I would put every penny towards experience of how someone interacts with workflows today.",
+    "Bad data is worse than no data because you're gonna double down on the wrong decision.",
+    "Every piece of data we push should be good enough to send to a board."
+  ],
+  "hypothesis_links": [],
+  "related_initiatives": [
+    "hubspot-agent-config-ui"
+  ],
+  "signals": [
+    "sig-2026-01-16-crm-exp-ete-planning"
+  ],
+  "priority_stack": [
+    "Epic 1: Workflow Visibility",
+    "Epic 2: Manual Enrollment/Test",
+    "Epic 3: AI Context for CRM",
+    "Epic 4: Property Creation"
+  ],
+  "prototype_type": "both",
+  "prototype_location": "elephant-ai/web/src/components/prototypes/CRMExperience/",
+  "metrics": {
+    "total_iterations": 2,
+    "jury_evaluations": 3,
+    "last_jury_pass_rate": 50
+  },
+  "iteration_history": [
+    {
+      "version": "v1",
+      "date": "2026-01-16T15:45:00.000Z",
+      "focus": "Core visibility and testing features"
+    },
+    {
+      "version": "v2",
+      "date": "2026-01-16T17:00:00.000Z",
+      "focus": "Skeptic-focused features (ROI, Rollback, Pilot Mode)",
+      "feedback_source": "Jury evaluation (25% skeptic pass rate)"
+    }
+  ],
+  "linear_project_id": "2f33a114-1968-4240-990b-ba3fe02c23be",
+  "linear_project_url": "https://linear.app/askelephant/project/crm-agent-upgrades-2f33a1141968",
+  "notion_project_id": "2fff79b2-c8ac-8025-903d-f71023208ed0",
+  "notion_project_url": "https://www.notion.so/CRM-Update-Artifact-on-Engagement-Pages-2fff79b2c8ac8025903df71023208ed0",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [
+    "initiative:crm-exp-ete",
+    "crm-agent"
+  ],
+  "github_branch_prefix": "feat/crm",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "notion_project_name": "CRM Update Artifact on Engagement Pages"
+}

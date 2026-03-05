@@ -1,0 +1,36 @@
+{
+  "$schema": "pm-workspace-roadmap-v1",
+  "generated_at": "2026-02-08T00:00:04.413391",
+  "summary": {
+    "total_initiatives": 0,
+    "by_phase": {
+      "discovery": 0,
+      "define": 0,
+      "build": 0,
+      "validate": 0,
+      "launch": 0,
+      "measure": 0,
+      "learn": 0
+    },
+    "health": {
+      "on_track": 0,
+      "at_risk": 0,
+      "blocked": 0,
+      "stale": 0
+    }
+  },
+  "initiatives": [],
+  "timeline_view": [],
+  "dependencies_graph": {
+    "nodes": [],
+    "edges": []
+  },
+  "context_updates": [
+    {
+      "note": "Board deck roadmap: Q1\u2013Q2 2026 Standard Agents (Chief of Staff, Coaching, Admin, Churn Alert); Q3\u2013Q4 2026 Seamless Integration (context\u2011aware unified interface); 2027 Platform Expansion (marketplace, enterprise controls).",
+      "source_signal": "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+      "candidate_id": "ctx-2026-01-29-004",
+      "added_at": "2026-01-29T12:30:34.434018"
+    }
+  ]
+}

@@ -368,6 +368,12 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         </div>
       </div>
 
+      {(project.metadata as any)?.tldr && (
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+          {((project.metadata as any).tldr as string).split('.')[0]}.
+        </p>
+      )}
+
       {/* Footer - compact */}
       <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/10">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -1,0 +1,1130 @@
+{
+  "$schema": "product-os-graph-projection-v1",
+  "generated_at": "2026-03-01T08:06:10.802808+00:00",
+  "nodes": [
+    {
+      "id": "admin-onboarding",
+      "type": "project",
+      "label": "Admin Onboarding",
+      "project_id": "admin-onboarding",
+      "metadata": {}
+    },
+    {
+      "id": "agent-command-center",
+      "type": "project",
+      "label": "Agent Command Center",
+      "project_id": "agent-command-center",
+      "metadata": {}
+    },
+    {
+      "id": "candidate:ac_013bfab0d1e0",
+      "type": "action_candidate",
+      "label": "[global-chat] Instrumentation gap: definition_incomplete",
+      "project_id": "global-chat",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_1bacc63102cf",
+      "type": "action_candidate",
+      "label": "[release-lifecycle-process] Instrumentation gap: definition_incomplete",
+      "project_id": "release-lifecycle-process",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_2473305a3777",
+      "type": "action_candidate",
+      "label": "[speaker-id-voiceprint] Instrumentation gap: definition_incomplete",
+      "project_id": "speaker-id-voiceprint",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_25d30141c391",
+      "type": "action_candidate",
+      "label": "[chief-of-staff-experience] Instrumentation gap: missing_property",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P2"
+      }
+    },
+    {
+      "id": "candidate:ac_302ca78bc363",
+      "type": "action_candidate",
+      "label": "[feedback-intelligence] Resolve blocker: Identity backfill quality depends on customer and contact source consi",
+      "project_id": "feedback-intelligence",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_453039309e5d",
+      "type": "action_candidate",
+      "label": "[composio-agent-framework] Instrumentation gap: definition_incomplete",
+      "project_id": "composio-agent-framework",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_54b770b0516e",
+      "type": "action_candidate",
+      "label": "[agent-command-center] Instrumentation gap: definition_incomplete",
+      "project_id": "agent-command-center",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_5d3a46628e78",
+      "type": "action_candidate",
+      "label": "[composio-agent-framework] Resolve blocker: {\"action_required\": \"Tyler + Kaden to decide on connection model and s",
+      "project_id": "composio-agent-framework",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_600e7527b978",
+      "type": "action_candidate",
+      "label": "[universal-signal-tables] Instrumentation gap: definition_incomplete",
+      "project_id": "universal-signal-tables",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_673875201dd2",
+      "type": "action_candidate",
+      "label": "[deprecate-legacy-hubspot] Instrumentation gap: definition_incomplete",
+      "project_id": "deprecate-legacy-hubspot",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_6843183380b1",
+      "type": "action_candidate",
+      "label": "[chief-of-staff-experience] Resolve blocker: Onboarding configuration complexity (24/25 users skip)",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_6fc94589fbab",
+      "type": "action_candidate",
+      "label": "[chief-of-staff-experience] Resolve blocker: Action item extraction quality \u2014 needs recap email prompt logic ported",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_701f9cf9ba0a",
+      "type": "action_candidate",
+      "label": "[feedback-intelligence] Resolve blocker: Notion schema migration not yet executed in production",
+      "project_id": "feedback-intelligence",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_770276be4509",
+      "type": "action_candidate",
+      "label": "[chief-of-staff-experience] Resolve blocker: Summary visual design rated 'stale' \u2014 needs refresh",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_81a605721bf0",
+      "type": "action_candidate",
+      "label": "[chief-of-staff-experience] Instrumentation gap: missing_insight",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_90a221f80e2a",
+      "type": "action_candidate",
+      "label": "[chief-of-staff-experience] Resolve blocker: Baseline instrumentation incomplete for action completion and approval",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_90c83817ec3c",
+      "type": "action_candidate",
+      "label": "[speaker-id-voiceprint] Resolve blocker: {\"added\": \"2026-01-24\", \"description\": \"Hard to estimate - tracking do",
+      "project_id": "speaker-id-voiceprint",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_9439ec8ea2d6",
+      "type": "action_candidate",
+      "label": "[admin-onboarding] Instrumentation gap: definition_incomplete",
+      "project_id": "admin-onboarding",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_9a7b30d29c45",
+      "type": "action_candidate",
+      "label": "[chief-of-staff-experience] Instrumentation gap: missing_dashboard",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_af43669d08d3",
+      "type": "action_candidate",
+      "label": "[settings-redesign] Instrumentation gap: definition_incomplete",
+      "project_id": "settings-redesign",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_bb4bcd5544b0",
+      "type": "action_candidate",
+      "label": "[chief-of-staff-experience] Resolve blocker: External customer validation for daily and weekly brief interactions p",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_cdb4193c0462",
+      "type": "action_candidate",
+      "label": "[structured-hubspot-agent-node] Instrumentation gap: definition_incomplete",
+      "project_id": "structured-hubspot-agent-node",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_cde06513528e",
+      "type": "action_candidate",
+      "label": "[settings-redesign] Resolve blocker: {\"action_required\": \"Rob to talk with Sam today\", \"added\": \"2026-01-24",
+      "project_id": "settings-redesign",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_cf347540eda9",
+      "type": "action_candidate",
+      "label": "[composio-agent-framework] Resolve blocker: {\"action_required\": \"Rob to clarify with revenue team\", \"added\": \"2026",
+      "project_id": "composio-agent-framework",
+      "metadata": {
+        "state": "extracted",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_d0b24b160e9a",
+      "type": "action_candidate",
+      "label": "[feature-flag-audit] Instrumentation gap: definition_incomplete",
+      "project_id": "feature-flag-audit",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_e954c37af4d1",
+      "type": "action_candidate",
+      "label": "[client-usage-metrics] Instrumentation gap: definition_incomplete",
+      "project_id": "client-usage-metrics",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_f48128cc92fd",
+      "type": "action_candidate",
+      "label": "[privacy-agent-v2] Instrumentation gap: definition_incomplete",
+      "project_id": "privacy-agent-v2",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_f6d1bbc3138a",
+      "type": "action_candidate",
+      "label": "[fga-engine] Instrumentation gap: definition_incomplete",
+      "project_id": "fga-engine",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "candidate:ac_f718595bddfd",
+      "type": "action_candidate",
+      "label": "[feedback-intelligence] Instrumentation gap: definition_incomplete",
+      "project_id": "feedback-intelligence",
+      "metadata": {
+        "state": "committed",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "chief-of-staff-experience",
+      "type": "project",
+      "label": "Chief Of Staff Experience",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {}
+    },
+    {
+      "id": "client-usage-metrics",
+      "type": "project",
+      "label": "Client Usage Metrics",
+      "project_id": "client-usage-metrics",
+      "metadata": {
+        "phase": "build",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    },
+    {
+      "id": "composio-agent-framework",
+      "type": "project",
+      "label": "Composio Agent Framework",
+      "project_id": "composio-agent-framework",
+      "metadata": {
+        "phase": "validate",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    },
+    {
+      "id": "deprecate-legacy-hubspot",
+      "type": "project",
+      "label": "Deprecate Legacy Hubspot",
+      "project_id": "deprecate-legacy-hubspot",
+      "metadata": {
+        "phase": "build",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    },
+    {
+      "id": "dossier:chief-of-staff-experience",
+      "type": "dossier",
+      "label": "dossier-2026-03-01.md",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "path": "pm-workspace-docs/status/projects/chief-of-staff-experience/dossier-2026-03-01.md"
+      }
+    },
+    {
+      "id": "feature-flag-audit",
+      "type": "project",
+      "label": "Feature Flag Audit",
+      "project_id": "feature-flag-audit",
+      "metadata": {
+        "phase": "build",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    },
+    {
+      "id": "feedback-intelligence",
+      "type": "project",
+      "label": "Feedback Intelligence",
+      "project_id": "feedback-intelligence",
+      "metadata": {
+        "phase": "define",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    },
+    {
+      "id": "fga-engine",
+      "type": "project",
+      "label": "Fga Engine",
+      "project_id": "fga-engine",
+      "metadata": {
+        "phase": "define",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    },
+    {
+      "id": "global-chat",
+      "type": "project",
+      "label": "Global Chat",
+      "project_id": "global-chat",
+      "metadata": {
+        "phase": "build",
+        "status": "on_track",
+        "owner": "skylar"
+      }
+    },
+    {
+      "id": "hubspot-agent-config-ui",
+      "type": "project",
+      "label": "Hubspot Agent Config Ui",
+      "project_id": "hubspot-agent-config-ui",
+      "metadata": {}
+    },
+    {
+      "id": "metric:admin-onboarding",
+      "type": "metric_contract",
+      "label": "Admin Onboarding North Star",
+      "project_id": "admin-onboarding",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:agent-command-center",
+      "type": "metric_contract",
+      "label": "Agent Command Center North Star",
+      "project_id": "agent-command-center",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:chief-of-staff-experience",
+      "type": "metric_contract",
+      "label": "Approval-complete action loop rate",
+      "project_id": "chief-of-staff-experience",
+      "metadata": {
+        "readiness": "partial"
+      }
+    },
+    {
+      "id": "metric:client-usage-metrics",
+      "type": "metric_contract",
+      "label": "Client Usage Metrics North Star",
+      "project_id": "client-usage-metrics",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:composio-agent-framework",
+      "type": "metric_contract",
+      "label": "Composio Agent Framework North Star",
+      "project_id": "composio-agent-framework",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:deprecate-legacy-hubspot",
+      "type": "metric_contract",
+      "label": "Deprecate Legacy Hubspot North Star",
+      "project_id": "deprecate-legacy-hubspot",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:feature-flag-audit",
+      "type": "metric_contract",
+      "label": "Feature Flag Audit North Star",
+      "project_id": "feature-flag-audit",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:feedback-intelligence",
+      "type": "metric_contract",
+      "label": "Feedback Intelligence North Star",
+      "project_id": "feedback-intelligence",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:fga-engine",
+      "type": "metric_contract",
+      "label": "Fga Engine North Star",
+      "project_id": "fga-engine",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:global-chat",
+      "type": "metric_contract",
+      "label": "Global Chat North Star",
+      "project_id": "global-chat",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:privacy-agent-v2",
+      "type": "metric_contract",
+      "label": "Privacy Agent V2 North Star",
+      "project_id": "privacy-agent-v2",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:release-lifecycle-process",
+      "type": "metric_contract",
+      "label": "Release Lifecycle Process North Star",
+      "project_id": "release-lifecycle-process",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:settings-redesign",
+      "type": "metric_contract",
+      "label": "Settings Redesign North Star",
+      "project_id": "settings-redesign",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:speaker-id-voiceprint",
+      "type": "metric_contract",
+      "label": "Speaker Id Voiceprint North Star",
+      "project_id": "speaker-id-voiceprint",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:structured-hubspot-agent-node",
+      "type": "metric_contract",
+      "label": "Structured Hubspot Agent Node North Star",
+      "project_id": "structured-hubspot-agent-node",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "metric:universal-signal-tables",
+      "type": "metric_contract",
+      "label": "Universal Signal Tables North Star",
+      "project_id": "universal-signal-tables",
+      "metadata": {
+        "readiness": "missing"
+      }
+    },
+    {
+      "id": "privacy-agent-v2",
+      "type": "project",
+      "label": "Privacy Agent V2",
+      "project_id": "privacy-agent-v2",
+      "metadata": {
+        "phase": "validate",
+        "status": "on_track",
+        "owner": null
+      }
+    },
+    {
+      "id": "release-lifecycle-process",
+      "type": "project",
+      "label": "Release Lifecycle Process",
+      "project_id": "release-lifecycle-process",
+      "metadata": {
+        "phase": "build",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    },
+    {
+      "id": "settings-redesign",
+      "type": "project",
+      "label": "Settings Redesign",
+      "project_id": "settings-redesign",
+      "metadata": {
+        "phase": "validate",
+        "status": "blocked",
+        "owner": "Rob"
+      }
+    },
+    {
+      "id": "speaker-id-voiceprint",
+      "type": "project",
+      "label": "Speaker Id Voiceprint",
+      "project_id": "speaker-id-voiceprint",
+      "metadata": {
+        "phase": "discovery",
+        "status": "in_progress",
+        "owner": "Delo"
+      }
+    },
+    {
+      "id": "structured-hubspot-agent-node",
+      "type": "project",
+      "label": "Structured Hubspot Agent Node",
+      "project_id": "structured-hubspot-agent-node",
+      "metadata": {
+        "phase": "validate",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    },
+    {
+      "id": "universal-signal-tables",
+      "type": "project",
+      "label": "Universal Signal Tables",
+      "project_id": "universal-signal-tables",
+      "metadata": {
+        "phase": "build",
+        "status": "on_track",
+        "owner": "tyler"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:admin-onboarding:metrics",
+      "source": "admin-onboarding",
+      "target": "metric:admin-onboarding",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/admin-onboarding/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:agent-command-center:metrics",
+      "source": "agent-command-center",
+      "target": "metric:agent-command-center",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/agent-command-center/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:agent-command-center:related:global-chat",
+      "source": "agent-command-center",
+      "target": "global-chat",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/agent-command-center/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:agent-command-center:related:composio-agent-framework",
+      "source": "agent-command-center",
+      "target": "composio-agent-framework",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/agent-command-center/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:agent-command-center:related:admin-onboarding",
+      "source": "agent-command-center",
+      "target": "admin-onboarding",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/agent-command-center/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:metrics",
+      "source": "chief-of-staff-experience",
+      "target": "metric:chief-of-staff-experience",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:dossier",
+      "source": "chief-of-staff-experience",
+      "target": "dossier:chief-of-staff-experience",
+      "type": "has_dossier",
+      "evidence_ids": [
+        "pm-workspace-docs/status/projects/chief-of-staff-experience/dossier-2026-03-01.md"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:related:agent-command-center",
+      "source": "chief-of-staff-experience",
+      "target": "agent-command-center",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:related:global-chat",
+      "source": "chief-of-staff-experience",
+      "target": "global-chat",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:related:structured-hubspot-agent-node",
+      "source": "chief-of-staff-experience",
+      "target": "structured-hubspot-agent-node",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:client-usage-metrics:metrics",
+      "source": "client-usage-metrics",
+      "target": "metric:client-usage-metrics",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/client-usage-metrics/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:composio-agent-framework:metrics",
+      "source": "composio-agent-framework",
+      "target": "metric:composio-agent-framework",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/composio-agent-framework/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:composio-agent-framework:related:hubspot-agent-config-ui",
+      "source": "composio-agent-framework",
+      "target": "hubspot-agent-config-ui",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/composio-agent-framework/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:deprecate-legacy-hubspot:metrics",
+      "source": "deprecate-legacy-hubspot",
+      "target": "metric:deprecate-legacy-hubspot",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/deprecate-legacy-hubspot/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:feature-flag-audit:metrics",
+      "source": "feature-flag-audit",
+      "target": "metric:feature-flag-audit",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feature-flag-audit/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:feedback-intelligence:metrics",
+      "source": "feedback-intelligence",
+      "target": "metric:feedback-intelligence",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:feedback-intelligence:related:chief-of-staff-experience",
+      "source": "feedback-intelligence",
+      "target": "chief-of-staff-experience",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:feedback-intelligence:related:structured-hubspot-agent-node",
+      "source": "feedback-intelligence",
+      "target": "structured-hubspot-agent-node",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:feedback-intelligence:related:agent-command-center",
+      "source": "feedback-intelligence",
+      "target": "agent-command-center",
+      "type": "related_to",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:fga-engine:metrics",
+      "source": "fga-engine",
+      "target": "metric:fga-engine",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/fga-engine/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:global-chat:metrics",
+      "source": "global-chat",
+      "target": "metric:global-chat",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/global-chat/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:privacy-agent-v2:metrics",
+      "source": "privacy-agent-v2",
+      "target": "metric:privacy-agent-v2",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/privacy-agent-v2/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:release-lifecycle-process:metrics",
+      "source": "release-lifecycle-process",
+      "target": "metric:release-lifecycle-process",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/release-lifecycle-process/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:settings-redesign:metrics",
+      "source": "settings-redesign",
+      "target": "metric:settings-redesign",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/settings-redesign/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:speaker-id-voiceprint:metrics",
+      "source": "speaker-id-voiceprint",
+      "target": "metric:speaker-id-voiceprint",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/speaker-id-voiceprint/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:structured-hubspot-agent-node:metrics",
+      "source": "structured-hubspot-agent-node",
+      "target": "metric:structured-hubspot-agent-node",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/structured-hubspot-agent-node/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:universal-signal-tables:metrics",
+      "source": "universal-signal-tables",
+      "target": "metric:universal-signal-tables",
+      "type": "has_metrics_contract",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/universal-signal-tables/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:admin-onboarding:candidate:ac_9439ec8ea2d6",
+      "source": "admin-onboarding",
+      "target": "candidate:ac_9439ec8ea2d6",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/admin-onboarding/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:agent-command-center:candidate:ac_54b770b0516e",
+      "source": "agent-command-center",
+      "target": "candidate:ac_54b770b0516e",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/agent-command-center/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:candidate:ac_9a7b30d29c45",
+      "source": "chief-of-staff-experience",
+      "target": "candidate:ac_9a7b30d29c45",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:candidate:ac_81a605721bf0",
+      "source": "chief-of-staff-experience",
+      "target": "candidate:ac_81a605721bf0",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:candidate:ac_6fc94589fbab",
+      "source": "chief-of-staff-experience",
+      "target": "candidate:ac_6fc94589fbab",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:candidate:ac_90a221f80e2a",
+      "source": "chief-of-staff-experience",
+      "target": "candidate:ac_90a221f80e2a",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:candidate:ac_bb4bcd5544b0",
+      "source": "chief-of-staff-experience",
+      "target": "candidate:ac_bb4bcd5544b0",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:candidate:ac_6843183380b1",
+      "source": "chief-of-staff-experience",
+      "target": "candidate:ac_6843183380b1",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:candidate:ac_770276be4509",
+      "source": "chief-of-staff-experience",
+      "target": "candidate:ac_770276be4509",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:client-usage-metrics:candidate:ac_e954c37af4d1",
+      "source": "client-usage-metrics",
+      "target": "candidate:ac_e954c37af4d1",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/client-usage-metrics/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:composio-agent-framework:candidate:ac_453039309e5d",
+      "source": "composio-agent-framework",
+      "target": "candidate:ac_453039309e5d",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/composio-agent-framework/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:composio-agent-framework:candidate:ac_cf347540eda9",
+      "source": "composio-agent-framework",
+      "target": "candidate:ac_cf347540eda9",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/composio-agent-framework/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:composio-agent-framework:candidate:ac_5d3a46628e78",
+      "source": "composio-agent-framework",
+      "target": "candidate:ac_5d3a46628e78",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/composio-agent-framework/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:deprecate-legacy-hubspot:candidate:ac_673875201dd2",
+      "source": "deprecate-legacy-hubspot",
+      "target": "candidate:ac_673875201dd2",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/deprecate-legacy-hubspot/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:feature-flag-audit:candidate:ac_d0b24b160e9a",
+      "source": "feature-flag-audit",
+      "target": "candidate:ac_d0b24b160e9a",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feature-flag-audit/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:feedback-intelligence:candidate:ac_f718595bddfd",
+      "source": "feedback-intelligence",
+      "target": "candidate:ac_f718595bddfd",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:feedback-intelligence:candidate:ac_302ca78bc363",
+      "source": "feedback-intelligence",
+      "target": "candidate:ac_302ca78bc363",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:feedback-intelligence:candidate:ac_701f9cf9ba0a",
+      "source": "feedback-intelligence",
+      "target": "candidate:ac_701f9cf9ba0a",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/feedback-intelligence/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:fga-engine:candidate:ac_f6d1bbc3138a",
+      "source": "fga-engine",
+      "target": "candidate:ac_f6d1bbc3138a",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/fga-engine/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:global-chat:candidate:ac_013bfab0d1e0",
+      "source": "global-chat",
+      "target": "candidate:ac_013bfab0d1e0",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/global-chat/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:privacy-agent-v2:candidate:ac_f48128cc92fd",
+      "source": "privacy-agent-v2",
+      "target": "candidate:ac_f48128cc92fd",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/privacy-agent-v2/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:release-lifecycle-process:candidate:ac_1bacc63102cf",
+      "source": "release-lifecycle-process",
+      "target": "candidate:ac_1bacc63102cf",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/release-lifecycle-process/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:settings-redesign:candidate:ac_af43669d08d3",
+      "source": "settings-redesign",
+      "target": "candidate:ac_af43669d08d3",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/settings-redesign/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:settings-redesign:candidate:ac_cde06513528e",
+      "source": "settings-redesign",
+      "target": "candidate:ac_cde06513528e",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/settings-redesign/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:speaker-id-voiceprint:candidate:ac_2473305a3777",
+      "source": "speaker-id-voiceprint",
+      "target": "candidate:ac_2473305a3777",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/speaker-id-voiceprint/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:speaker-id-voiceprint:candidate:ac_90c83817ec3c",
+      "source": "speaker-id-voiceprint",
+      "target": "candidate:ac_90c83817ec3c",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/speaker-id-voiceprint/_meta.json"
+      ]
+    },
+    {
+      "id": "edge:structured-hubspot-agent-node:candidate:ac_cdb4193c0462",
+      "source": "structured-hubspot-agent-node",
+      "target": "candidate:ac_cdb4193c0462",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/structured-hubspot-agent-node/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:universal-signal-tables:candidate:ac_600e7527b978",
+      "source": "universal-signal-tables",
+      "target": "candidate:ac_600e7527b978",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/universal-signal-tables/metrics-contract.json"
+      ]
+    },
+    {
+      "id": "edge:chief-of-staff-experience:candidate:ac_25d30141c391",
+      "source": "chief-of-staff-experience",
+      "target": "candidate:ac_25d30141c391",
+      "type": "has_candidate",
+      "evidence_ids": [
+        "pm-workspace-docs/initiatives/active/chief-of-staff-experience/metrics-contract.json"
+      ]
+    }
+  ],
+  "summary": {
+    "node_count": 63,
+    "edge_count": 56
+  }
+}

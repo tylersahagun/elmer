@@ -1,0 +1,75 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "settings-page-redesign",
+  "hypothesis_id": null,
+  "phase": "define",
+  "sub_phase": null,
+  "status": "in_progress",
+  "priority": "P2",
+  "owner": "Tyler Sahagun",
+  "personas": ["sales-rep", "sales-leader", "revops"],
+  "pillar": "customer-trust",
+  "created_at": "2026-02-02T00:00:00.000000Z",
+  "updated_at": "2026-02-03T09:40:00.000000Z",
+  "current_version": "v1",
+  "prototype_location": null,
+  "chromatic_url": null,
+  "figma_url": "https://www.figma.com/design/JGTWtD8UHTS5PkMF4a11MT/Settings-page?node-id=0-1",
+  "phase_history": [
+    {
+      "phase": "define",
+      "entered": "2026-02-02T00:00:00.000000Z",
+      "exited": null,
+      "notes": "Design/engineering handoff in progress for unified settings redesign"
+    }
+  ],
+  "blockers": [
+    "Final IA alignment with Design",
+    "Decision on Beta Features placement in Settings"
+  ],
+  "next_action": "Finalize settings IA mapping and kick off implementation tickets",
+  "graduation_criteria": {
+    "define_to_build": {
+      "prd_approved": false,
+      "design_brief_exists": true,
+      "engineering_alignment": false
+    }
+  },
+  "validation_history": [],
+  "timeline": {
+    "started": "2026-02-02",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 0,
+    "jury_evaluations": 0,
+    "last_jury_pass_rate": null
+  },
+  "linear_project_id": "69f2634c-06bd-40eb-9998-c3b4c8b740db",
+  "linear_project_url": "https://linear.app/askelephant/project/settings-page-and-early-access-revamp-fcb865bab325",
+  "notion_project_id": null,
+  "notion_project_url": null,
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [],
+  "github_branch_prefix": "feat/settings-page-redesign",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "signals": ["sig-2026-02-03-alpha-beta-feature-flags"],
+  "related_initiatives": [
+    "release-lifecycle-process",
+    "feature-availability-audit"
+  ],
+  "related_hypotheses": [],
+  "key_themes": ["settings-ia", "beta-features", "demo-mode", "trust"],
+  "visibility": "internal"
+}

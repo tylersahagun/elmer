@@ -1,0 +1,250 @@
+{
+  "total": 100,
+  "verdicts": {
+    "approve": 37,
+    "conditional": 20,
+    "reject": 43
+  },
+  "approval_rate": 37.0,
+  "conditional_rate": 20.0,
+  "rejection_rate": 43.0,
+  "by_archetype": {
+    "sales-rep": {
+      "approve": 14,
+      "conditional": 4,
+      "reject": 15
+    },
+    "sales-leader": {
+      "approve": 9,
+      "conditional": 6,
+      "reject": 10
+    },
+    "csm": {
+      "approve": 9,
+      "conditional": 2,
+      "reject": 9
+    },
+    "strategic-consultant": {
+      "approve": 1,
+      "conditional": 2,
+      "reject": 2
+    },
+    "operations": {
+      "approve": 4,
+      "conditional": 6,
+      "reject": 7
+    }
+  },
+  "by_adoption": {
+    "skeptic": {
+      "approve": 1,
+      "conditional": 0,
+      "reject": 19
+    },
+    "curious": {
+      "approve": 15,
+      "conditional": 8,
+      "reject": 12
+    },
+    "early-adopter": {
+      "approve": 14,
+      "conditional": 6,
+      "reject": 10
+    },
+    "power-user": {
+      "approve": 7,
+      "conditional": 6,
+      "reject": 2
+    }
+  },
+  "top_concerns": [
+    {
+      "theme": "How customizable is this?",
+      "count": 19
+    },
+    {
+      "theme": "Would love more advanced customization",
+      "count": 18
+    },
+    {
+      "theme": "The preview/testing feature is critical",
+      "count": 16
+    },
+    {
+      "theme": "What's the learning curve?",
+      "count": 15
+    },
+    {
+      "theme": "Need clearer onboarding guidance",
+      "count": 14
+    },
+    {
+      "theme": "Need better visibility into what it's doing",
+      "count": 13
+    },
+    {
+      "theme": "Integration depth could be improved",
+      "count": 13
+    },
+    {
+      "theme": "How long does it take to set up?",
+      "count": 12
+    },
+    {
+      "theme": "Need API access for custom workflows",
+      "count": 11
+    },
+    {
+      "theme": "Will this integrate with my existing workflow?",
+      "count": 10
+    }
+  ],
+  "top_suggestions": [
+    {
+      "theme": "Show me exactly what will sync before it syncs",
+      "count": 20
+    },
+    {
+      "theme": "One-click to pause/resume",
+      "count": 18
+    },
+    {
+      "theme": "Clear activity log I can review",
+      "count": 16
+    },
+    {
+      "theme": "Audit logs for compliance",
+      "count": 16
+    },
+    {
+      "theme": "ROI/time-savings metrics",
+      "count": 15
+    },
+    {
+      "theme": "Approval workflows for changes",
+      "count": 14
+    },
+    {
+      "theme": "Customer timeline view",
+      "count": 12
+    },
+    {
+      "theme": "Mobile-friendly status view",
+      "count": 12
+    },
+    {
+      "theme": "Bulk configuration management",
+      "count": 12
+    },
+    {
+      "theme": "Rollout visibility across reps",
+      "count": 11
+    }
+  ],
+  "friction_points": [
+    {
+      "theme": "Unclear feedback on sync status",
+      "count": 31
+    },
+    {
+      "theme": "Testing before go-live",
+      "count": 30
+    },
+    {
+      "theme": "Integration with existing tools",
+      "count": 28
+    },
+    {
+      "theme": "Rollback if something breaks",
+      "count": 24
+    },
+    {
+      "theme": "Training team on changes",
+      "count": 24
+    },
+    {
+      "theme": "Configuration complexity",
+      "count": 24
+    },
+    {
+      "theme": "Understanding what gets synced",
+      "count": 20
+    },
+    {
+      "theme": "Compliance/security concerns",
+      "count": 19
+    }
+  ],
+  "sample_feedback": [
+    {
+      "persona_id": "persona_0251",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "My team has tool fatigue. Unless this is absolutely seamless, they won't use it. And if they don't use it, it's worthless."
+    },
+    {
+      "persona_id": "persona_0082",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "My team has tool fatigue. Unless this is absolutely seamless, they won't use it. And if they don't use it, it's worthless."
+    },
+    {
+      "persona_id": "persona_0379",
+      "archetype": "sales-leader",
+      "ai_adoption": "skeptic",
+      "verdict": "approve",
+      "feedback": "Look, I've been burned by these AI tools before. I need to see exactly what it's doing before I trust it with my pipeline."
+    },
+    {
+      "persona_id": "persona_0284",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "I'm not opposed to AI, I'm opposed to hype. Show me the ROI, show me it works, then we can talk."
+    },
+    {
+      "persona_id": "persona_0873",
+      "archetype": "csm",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "My team has tool fatigue. Unless this is absolutely seamless, they won't use it. And if they don't use it, it's worthless."
+    },
+    {
+      "persona_id": "persona_0236",
+      "archetype": "strategic-consultant",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "Look, I've been burned by these AI tools before. I need to see exactly what it's doing before I trust it with my workflow."
+    },
+    {
+      "persona_id": "persona_0881",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "I'm not opposed to AI, I'm opposed to hype. Show me the ROI, show me it works, then we can talk."
+    },
+    {
+      "persona_id": "persona_0178",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "My team has tool fatigue. Unless this is absolutely seamless, they won't use it. And if they don't use it, it's worthless."
+    },
+    {
+      "persona_id": "persona_0836",
+      "archetype": "sales-leader",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "Look, I've been burned by these AI tools before. I need to see exactly what it's doing before I trust it with my workflow."
+    },
+    {
+      "persona_id": "persona_0723",
+      "archetype": "sales-leader",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "Look, I've been burned by these AI tools before. I need to see exactly what it's doing before I trust it with my customer data."
+    }
+  ]
+}

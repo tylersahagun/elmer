@@ -1,0 +1,69 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "crm-readiness-diagnostic",
+  "hypothesis_id": "hyp-crm-readiness-diagnostic",
+  "phase": "discovery",
+  "sub_phase": null,
+  "status": "on_track",
+  "priority": "P2",
+  "owner": null,
+  "personas": ["revops", "sales-leader", "implementation-partner"],
+  "pillar": "customer-trust",
+  "created_at": "2026-01-21T17:30:00.000000",
+  "updated_at": "2026-01-22T20:20:00.000000",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-21T17:30:00.000000",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Finalize positioning decision (customer-facing vs partner-only)",
+  "graduation_criteria": {},
+  "timeline": {
+    "started": "2026-01-21",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 1,
+    "total_iterations": 0
+  },
+  "strategic_alignment": {
+    "outcome_chain": "CRM Readiness Diagnostic surfaces HubSpot configuration gaps → so that customers understand what's blocking success → so that they fix issues or engage partners → so that implementations succeed → so that retention improves",
+    "principles_aligned": [
+      "trust_is_foundational",
+      "standardization_beats_intuition"
+    ]
+  },
+  "evidence_sources": [
+    "sig-2026-01-21-crispy-product-feedback",
+    "sig-2026-01-21-zipcio-ai-service-methodology"
+  ],
+  "tags": [
+    "hubspot",
+    "onboarding",
+    "retention",
+    "partner-enablement",
+    "crm-quality"
+  ],
+  "_migrated": "schema normalized by maintain fix 2026-01-22",
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": null,
+  "notion_project_url": null,
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": ["initiative:crm-readiness"],
+  "github_branch_prefix": "feat/crm-readiness",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  }
+}

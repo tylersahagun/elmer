@@ -1,0 +1,14 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "notification-engine",
+  "notion_project_id": "2c0f79b2-c8ac-8166-921a-ee14de6a33ab",
+  "notion_project_name": "Notification Engine",
+  "notion_project_url": "https://www.notion.so/Notification-Engine-2c0f79b2c8ac8166921aee14de6a33ab",
+  "phase": "launch",
+  "sub_phase": "done",
+  "status": "completed",
+  "priority": "P3",
+  "created_at": "2025-12-05T18:56:00.000000",
+  "updated_at": "2026-02-07T00:00:00.000000",
+  "linear_project_url": "https://linear.app/askelephant/project/notification-engine-f722df86bf9b"
+}

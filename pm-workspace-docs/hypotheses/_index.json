@@ -1,3 +1,163 @@
 {
-  "hypotheses": []
+  "$schema": "pm-workspace-hypotheses-index-v1",
+  "last_updated": "2026-02-01T23:55:00.000000",
+  "total": 25,
+  "by_status": {
+    "active": 16,
+    "validated": 1,
+    "committed": 8,
+    "retired": 0
+  },
+  "hypotheses": [
+    {
+      "id": "hyp-artifact-first-recap-alignment",
+      "name": "Artifact-First Recap Alignment",
+      "status": "active",
+      "created_at": "2026-02-01T23:55:00.000000"
+    },
+    {
+      "id": "hyp-workflow-templates-reduce-setup",
+      "name": "Workflow Templates Reduce Setup",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-automation-beats-gong-positioning",
+      "name": "Automation Beats Gong Positioning",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-one-seat-adoption-churn",
+      "name": "One Seat Adoption Churn",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-hubspot-sidebar-integration",
+      "name": "Hubspot Sidebar Integration",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-proactive-deal-intelligence",
+      "name": "Proactive Deal Intelligence",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-workflow-versioning-onboarding-gap",
+      "name": "Workflow Versioning Onboarding Gap",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-hubspot-positioning-vs-momentum",
+      "name": "Hubspot Positioning Vs Momentum",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-job-function-analytics-segmentation",
+      "name": "Job Function Analytics Segmentation",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-rep-workspace-viral-anchor",
+      "name": "Rep Workspace Viral Anchor",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-solo-rep-self-coaching",
+      "name": "Solo Rep Self Coaching",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-agent-skills-reduce-config",
+      "name": "Agent Skills Reduce Config",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-native-crm-integration-competitive",
+      "name": "Native Crm Integration Competitive",
+      "status": "active",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-chief-of-staff-daily-hub",
+      "name": "Chief Of Staff Daily Hub",
+      "status": "active",
+      "created_at": "2026-01-29T12:36:12.000000"
+    },
+    {
+      "id": "hyp-proactive-approval-hub",
+      "name": "Proactive Approval Hub",
+      "status": "active",
+      "created_at": "2026-01-29T12:36:12.000000"
+    },
+    {
+      "id": "hyp-chief-of-staff-recap-hub",
+      "name": "Chief Of Staff Recap Hub",
+      "status": "active",
+      "created_at": "2026-01-29T16:30:00.000000"
+    },
+    {
+      "id": "hyp-crm-readiness-diagnostic",
+      "name": "Crm Readiness Diagnostic",
+      "status": "validated",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-customer-journey-map",
+      "name": "Customer Journey Map",
+      "status": "committed",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-hubspot-agent-config-ui",
+      "name": "Hubspot Agent Config Ui",
+      "status": "committed",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-call-import-engine",
+      "name": "Call Import Engine",
+      "status": "committed",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-release-lifecycle-process",
+      "name": "Release Lifecycle Process",
+      "status": "committed",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-automated-metrics-observability",
+      "name": "Automated Metrics Observability",
+      "status": "committed",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-feature-availability-audit",
+      "name": "Feature Availability Audit",
+      "status": "committed",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-condorcet-jury-system",
+      "name": "Condorcet Jury System",
+      "status": "committed",
+      "created_at": "2026-01-27T02:03:27.670788"
+    },
+    {
+      "id": "hyp-universal-signal-tables",
+      "name": "Universal Signal Tables",
+      "status": "committed",
+      "created_at": "2026-01-27T02:03:27.670788"
+    }
+  ]
 }

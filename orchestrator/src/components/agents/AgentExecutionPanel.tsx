@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ContextSelector } from "./ContextSelector";
 import type { AgentDefinitionType } from "@/lib/db/schema";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type ContextType = "none" | "project" | "signal";
 
@@ -61,13 +64,14 @@ export function AgentExecutionPanel({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const createAndSchedule = useMutation(api.jobs.createAndSchedule);
 
   const badge = TYPE_BADGES[agent.type];
 
   const handleContextSelect = (type: ContextType, id: string | null) => {
     setContextType(type);
     setSelectedId(id);
-    setFeedback(null); // Clear feedback on context change
+    setFeedback(null);
   };
 
   const handleExecute = async () => {
@@ -75,47 +79,26 @@ export function AgentExecutionPanel({
     setFeedback(null);
 
     try {
-      const body: {
-        workspaceId: string;
-        agentDefinitionId: string;
-        projectId?: string;
-        signalId?: string;
-      } = {
-        workspaceId,
-        agentDefinitionId: agent.id,
-      };
-
-      // Add context based on selection
-      if (contextType === "project" && selectedId) {
-        body.projectId = selectedId;
-      } else if (contextType === "signal" && selectedId) {
-        body.signalId = selectedId;
-      }
-
-      const response = await fetch("/api/agents/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const jobId = await createAndSchedule({
+        workspaceId: workspaceId as Id<"workspaces">,
+        projectId: contextType === "project" && selectedId
+          ? selectedId as Id<"projects">
+          : undefined,
+        type: "execute_agent_definition",
+        input: {
+          agentDefinitionId: agent.id,
+          signalId: contextType === "signal" ? selectedId : undefined,
+        },
+        agentDefinitionId: agent.id as Id<"agentDefinitions">,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to execute agent");
-      }
-
-      const job = await response.json();
-
-      // Show success feedback
       setFeedback({
         type: "success",
-        message: `Job ${job.id.slice(0, 8)} created for ${agent.name}`,
-        jobId: job.id,
+        message: `Job ${String(jobId).slice(0, 8)}… started for ${agent.name}`,
+        jobId: String(jobId),
       });
 
-      // Call callback after short delay to show feedback
-      setTimeout(() => {
-        onExecute(job.id);
-      }, 1500);
+      setTimeout(() => { onExecute(String(jobId)); }, 1500);
     } catch (error) {
       console.error("Failed to execute agent:", error);
       setFeedback({

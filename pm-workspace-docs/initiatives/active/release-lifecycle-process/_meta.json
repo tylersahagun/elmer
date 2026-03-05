@@ -1,0 +1,116 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "release-lifecycle-process",
+  "hypothesis_id": "hyp-release-lifecycle-process",
+  "phase": "build",
+  "sub_phase": "implementation",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "personas": [
+    "sales-leader",
+    "csm",
+    "revops"
+  ],
+  "pillar": "customer-trust",
+  "created_at": "2026-01-13T12:23:43.552620",
+  "updated_at": "2026-02-03T09:40:00.000000",
+  "phase_history": [
+    {
+      "phase": "build",
+      "entered": "2026-01-13T12:23:43.552620",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "resolved_blockers": [
+    {
+      "type": "technical",
+      "description": "PostHog limitations discovered when adding early access features",
+      "impact": "Beta features UI reverted site to 3-month-old look",
+      "resolution": "Created PostHog guidelines document distinguishing Feature Flags from Early Access features. Built custom Beta Features UI (V4) to replace PostHog's built-in Early Access modal.",
+      "resolved": "2026-01-26"
+    },
+    {
+      "type": "process",
+      "description": "No clear graduation criteria defined for feature stages",
+      "impact": "Can't answer 'what is success criteria to move from alpha to beta?'",
+      "resolution": "Aligned on Alpha \u2192 Invite-only Beta \u2192 Open Beta \u2192 GA definitions. Documented graduation criteria in posthog-guidelines.md and system-integration-audit.md.",
+      "resolved": "2026-01-26"
+    }
+  ],
+  "next_action": "Enable beta-features-v4-ui flag for internal testing; review with Engineering team",
+  "progress_notes_20260126": {
+    "posthog_audit": "Completed audit of 126 feature flags - identified 51 Early Access linked, 55 internal-only, 37 GA candidates",
+    "guidelines_created": "posthog-guidelines.md defines when to use Feature Flags vs Early Access",
+    "ui_implemented": "V4 Beta Features UI copied to production codebase with Alpha/Beta visibility, personal/workspace scoping",
+    "demo_mode_added": "Demo Mode toggle for @askelephant.ai users to simulate new workspace experience",
+    "fallback_logic": "beta-features-v4-ui flag controls rollout; PostHog Early Access modal as fallback"
+  },
+  "council_notes_20260124": {
+    "key_quote": "The true clarity and delineations that we talked about last time that is the expectation for this isn't there yet.",
+    "posthog_meeting": "Meeting today to address limitations",
+    "status_note": "Bricks being laid daily but no features in defined alpha/beta stages yet"
+  },
+  "graduation_criteria": {
+    "alpha_to_invite_beta": [
+      "Feature works end-to-end",
+      "2+ weeks without critical bugs",
+      "Knowledge base article (draft)",
+      "Revenue team notified",
+      "Training prepared (if customer-facing)"
+    ],
+    "invite_beta_to_open_beta": [
+      "2+ weeks in Invite-only Beta without critical bugs",
+      "Knowledge base article published",
+      "Internal training complete",
+      "Customer feedback positive"
+    ],
+    "open_beta_to_ga": [
+      "2+ weeks in Open Beta without critical bugs",
+      "Beta badge removed",
+      "Feature flag removed from code",
+      "Customer feedback positive"
+    ]
+  },
+  "timeline": {
+    "started": "2026-01-13",
+    "target_launch": "2026-03-01"
+  },
+  "metrics": {
+    "days_in_phase": 13,
+    "total_iterations": 0
+  },
+  "signals": [
+    "sig-2026-02-03-alpha-beta-feature-flags"
+  ],
+  "artifacts_completed": {
+    "posthog_audit": "pm-workspace-docs/initiatives/feature-availability-audit/posthog-audit-2026-01-26.md",
+    "posthog_guidelines": "pm-workspace-docs/initiatives/release-lifecycle-process/posthog-guidelines.md",
+    "demo_mode_config": "elephant-ai/web/src/lib/demo-mode-defaults.ts",
+    "beta_features_ui": "elephant-ai/web/src/components/beta-features/",
+    "beta_features_route": "elephant-ai/web/src/routes/workspaces/$workspaceId/settings/beta-features.tsx"
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": "2f4f79b2-c8ac-815f-adec-da94b74ad879",
+  "notion_project_url": "https://www.notion.so/Release-Lifecycle-Process-2f4f79b2c8ac815fadecda94b74ad879",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [
+    "initiative:release-lifecycle",
+    "internal-process"
+  ],
+  "github_branch_prefix": "feat/release",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "notion_project_name": "Release Lifecycle Process"
+}

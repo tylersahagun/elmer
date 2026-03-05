@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AskElephant Weekly Digest - Week 4, 2026</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --blue: #0025ff;
+        --black: #000000;
+        --white: #ffffff;
+        --gray-light: #d0d0d0;
+        --gray-mid: #888888;
+        --gray-dark: #333333;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          sans-serif;
+        background: var(--black);
+        color: var(--white);
+        line-height: 1.4;
+        min-height: 100vh;
+      }
+
+      .mono {
+        font-family: "Space Mono", monospace;
+      }
+
+      /* Header */
+      .header {
+        background: var(--blue);
+        padding: 32px 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .logo-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--white);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .logo-icon svg {
+        width: 32px;
+        height: 32px;
+        fill: var(--blue);
+      }
+
+      .logo-text {
+        font-family: "Space Mono", monospace;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .date-badge {
+        font-family: "Space Mono", monospace;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* Hero Section */
+      .hero {
+        padding: 80px 48px;
+        border-bottom: 1px solid var(--gray-dark);
+      }
+
+      .hero-label {
+        font-family: "Space Mono", monospace;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--blue);
+        margin-bottom: 24px;
+      }
+
+      .hero-title {
+        font-family: "Space Mono", monospace;
+        font-size: 64px;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 24px;
+        max-width: 800px;
+      }
+
+      .hero-description {
+        font-size: 18px;
+        color: var(--gray-light);
+        max-width: 600px;
+        line-height: 1.6;
+      }
+
+      /* Stats Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-bottom: 1px solid var(--gray-dark);
+      }
+
+      .stat-card {
+        padding: 48px;
+        text-align: center;
+        border-right: 1px solid var(--gray-dark);
+      }
+
+      .stat-card:last-child {
+        border-right: none;
+      }
+
+      .stat-number {
+        font-family: "Space Mono", monospace;
+        font-size: 96px;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
+
+      .stat-number.features {
+        color: var(--blue);
+      }
+      .stat-number.improvements {
+        color: var(--white);
+      }
+      .stat-number.bugs {
+        color: var(--gray-light);
+      }
+
+      .stat-label {
+        font-family: "Space Mono", monospace;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--gray-mid);
+      }
+
+      /* Content Grid */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .content-section {
+        padding: 48px;
+        border-bottom: 1px solid var(--gray-dark);
+      }
+
+      .content-section:nth-child(odd) {
+        border-right: 1px solid var(--gray-dark);
+      }
+
+      .section-header {
+        font-family: "Space Mono", monospace;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--blue);
+        margin-bottom: 32px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .section-header::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--gray-dark);
+      }
+
+      /* Feature Groups */
+      .feature-group {
+        margin-bottom: 32px;
+      }
+
+      .feature-group:last-child {
+        margin-bottom: 0;
+      }
+
+      .feature-group-title {
+        font-family: "Space Mono", monospace;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--gray-mid);
+        margin-bottom: 12px;
+      }
+
+      .feature-list {
+        list-style: none;
+      }
+
+      .feature-list li {
+        padding: 8px 0;
+        font-size: 14px;
+        color: var(--gray-light);
+        border-bottom: 1px solid var(--gray-dark);
+      }
+
+      .feature-list li:last-child {
+        border-bottom: none;
+      }
+
+      /* Team Section - Full Width */
+      .team-section {
+        grid-column: 1 / -1;
+        padding: 48px;
+        border-bottom: 1px solid var(--gray-dark);
+      }
+
+      .team-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .team-member {
+        padding: 24px;
+        background: var(--gray-dark);
+        border-radius: 4px;
+      }
+
+      .team-member-name {
+        font-family: "Space Mono", monospace;
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .team-member-focus {
+        font-size: 13px;
+        color: var(--gray-mid);
+      }
+
+      /* Coming Next - Full Width */
+      .next-section {
+        grid-column: 1 / -1;
+        padding: 48px;
+        background: var(--blue);
+      }
+
+      .next-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .next-item {
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+
+      .next-item-title {
+        font-family: "Space Mono", monospace;
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .next-item-description {
+        font-size: 13px;
+        opacity: 0.8;
+      }
+
+      /* Footer */
+      .footer {
+        padding: 32px 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: "Space Mono", monospace;
+        font-size: 12px;
+        color: var(--gray-mid);
+      }
+
+      .footer-logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .footer-logo svg {
+        width: 20px;
+        height: 20px;
+        fill: var(--gray-mid);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 32 32">
+            <path
+              d="M28 12c0-1.1-.4-2.1-1-3-1.5-2.2-4.5-3-7-3-1.5 0-3 .3-4 1-1-.7-2.5-1-4-1-2.5 0-5.5.8-7 3-.6.9-1 1.9-1 3 0 1.5.5 3 1.5 4C4 18 3 20.5 3 23c0 3.9 3.1 7 7 7 2.5 0 4.7-1.3 6-3.3 1.3 2 3.5 3.3 6 3.3 3.9 0 7-3.1 7-7 0-2.5-1-5-2.5-7 1-.9 1.5-2.5 1.5-4zM10 26c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm12 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z"
+            />
+          </svg>
+        </div>
+        <span class="logo-text">AskElephant</span>
+      </div>
+      <div class="date-badge">Week 04 · Jan 20–24, 2026</div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-label">Week's Headline</div>
+      <h1 class="hero-title">Dialpad Integration Now Live</h1>
+      <p class="hero-description">
+        Customers using Dialpad can now connect their telephony directly to
+        AskElephant, bringing automatic call recording and AI insights to
+        another major platform.
+      </p>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number features">21</div>
+        <div class="stat-label">Features</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number improvements">06</div>
+        <div class="stat-label">Improvements</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number bugs">14</div>
+        <div class="stat-label">Bugs Fixed</div>
+      </div>
+    </section>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+      <!-- New Features -->
+      <section class="content-section">
+        <div class="section-header">New Features</div>
+
+        <div class="feature-group">
+          <div class="feature-group-title">CRM Integrations</div>
+          <ul class="feature-list">
+            <li>Dialpad direct integration — full telephony support</li>
+            <li>HubSpot workflow testing — test triggers before going live</li>
+            <li>HubSpot app card POC — new CRM surface</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <div class="feature-group-title">Recording & Capture</div>
+          <ul class="feature-list">
+            <li>Desktop MP4 audio — higher quality recordings</li>
+            <li>Web recording visual feedback — active indicators</li>
+            <li>Voiceprint candidate timestamps — speaker ID groundwork</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- More Features -->
+      <section class="content-section">
+        <div class="section-header">More Features</div>
+
+        <div class="feature-group">
+          <div class="feature-group-title">Workflows & Automation</div>
+          <ul class="feature-list">
+            <li>Variable extraction node — new data extraction</li>
+            <li>Workflow builder quick edit — rename inline</li>
+            <li>Recipe creation flow improvements</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <div class="feature-group-title">Platform</div>
+          <ul class="feature-list">
+            <li>Admin onboarding — streamlined workspace setup</li>
+            <li>First login tracking — better new user analytics</li>
+            <li>Project UI components — new org features</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Improvements -->
+      <section class="content-section">
+        <div class="section-header">Improvements</div>
+
+        <div class="feature-group">
+          <div class="feature-group-title">Performance</div>
+          <ul class="feature-list">
+            <li>Page load time optimizations</li>
+            <li>Instrumented dataloaders for engagement</li>
+            <li>Scalable seeder infrastructure</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <div class="feature-group-title">Mobile & Desktop</div>
+          <ul class="feature-list">
+            <li>Mobile pipeline updates</li>
+            <li>Desktop build optimizations</li>
+            <li>Mobile version display updates</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Bugs Fixed -->
+      <section class="content-section">
+        <div class="section-header">Bugs Fixed</div>
+
+        <div class="feature-group">
+          <div class="feature-group-title">Customer-Impacting</div>
+          <ul class="feature-list">
+            <li>Auto logout toggle restored</li>
+            <li>Mobile login issues resolved</li>
+            <li>HubSpot agent project recognition</li>
+            <li>Workflow assistant tool execution</li>
+            <li>Percentage discounts with decimals</li>
+          </ul>
+        </div>
+
+        <div class="feature-group">
+          <div class="feature-group-title">Platform Stability</div>
+          <ul class="feature-list">
+            <li>Desktop recording stop/start reliability</li>
+            <li>Dialpad event deduplication</li>
+            <li>Resend webhook processing</li>
+            <li>Inactive user recording prevention</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Team -->
+      <section class="team-section">
+        <div class="section-header">Team Contributions</div>
+
+        <div class="team-grid">
+          <div class="team-member">
+            <div class="team-member-name">Eduardo</div>
+            <div class="team-member-focus">
+              Dialpad integration, desktop app, mobile pipeline
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="team-member-name">Matt Noxon</div>
+            <div class="team-member-focus">
+              Performance, infrastructure, workflow improvements
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="team-member-name">Palmer</div>
+            <div class="team-member-focus">
+              HubSpot features, workflow builder, projects
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="team-member-name">Bryan</div>
+            <div class="team-member-focus">
+              AI capabilities, conversation features
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="team-member-name">Jason</div>
+            <div class="team-member-focus">
+              Billing, notifications, analytics
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="team-member-name">Dylan</div>
+            <div class="team-member-focus">
+              Voiceprint, embeddings architecture
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="team-member-name">Kaden</div>
+            <div class="team-member-focus">Core platform features</div>
+          </div>
+          <div class="team-member">
+            <div class="team-member-name">Adam</div>
+            <div class="team-member-focus">
+              Engagement cards, UI polish, onboarding
+            </div>
+          </div>
+          <div class="team-member">
+            <div class="team-member-name">Skylar</div>
+            <div class="team-member-focus">
+              Global Chat first-time experience
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Coming Next -->
+      <section class="next-section">
+        <div class="section-header" style="color: white">Coming Next</div>
+
+        <div class="next-grid">
+          <div class="next-item">
+            <div class="next-item-title">Global Chat Onboarding</div>
+            <div class="next-item-description">
+              First-time user experience launching
+            </div>
+          </div>
+          <div class="next-item">
+            <div class="next-item-title">HubSpot App Card</div>
+            <div class="next-item-description">New CRM integration surface</div>
+          </div>
+          <div class="next-item">
+            <div class="next-item-title">Voiceprint Phase 2</div>
+            <div class="next-item-description">
+              Speaker identification continues
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-logo">
+        <svg viewBox="0 0 32 32">
+          <path
+            d="M28 12c0-1.1-.4-2.1-1-3-1.5-2.2-4.5-3-7-3-1.5 0-3 .3-4 1-1-.7-2.5-1-4-1-2.5 0-5.5.8-7 3-.6.9-1 1.9-1 3 0 1.5.5 3 1.5 4C4 18 3 20.5 3 23c0 3.9 3.1 7 7 7 2.5 0 4.7-1.3 6-3.3 1.3 2 3.5 3.3 6 3.3 3.9 0 7-3.1 7-7 0-2.5-1-5-2.5-7 1-.9 1.5-2.5 1.5-4zM10 26c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm12 0c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z"
+          />
+        </svg>
+        AskElephant
+      </div>
+      <div>Week 4 of 2026 · For the AskElephant team</div>
+    </footer>
+  </body>
+</html>

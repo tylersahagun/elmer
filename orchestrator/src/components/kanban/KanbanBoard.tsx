@@ -229,7 +229,7 @@ export function KanbanBoard() {
       console.log(`✅ Job completed: ${job.type} for project ${job.projectId}`);
     },
     onJobFailed: (job) => {
-      console.error(`❌ Job failed: ${job.type} - ${job.error}`);
+      console.error(`❌ Job failed: ${job.type} - ${job.errorMessage}`);
     },
   });
 

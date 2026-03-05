@@ -37,56 +37,67 @@ Each command file follows this structure:
 ### Required Sections
 
 #### 1. Title (`# [Command Name]`)
+
 - **Type**: H1 heading
 - **Required**: Yes
 - **Format**: Command name in title case
 - **Example**: `# Prototype Command`, `# Research Command`
 
 #### 2. Description
+
 - **Type**: Paragraph(s) immediately after title
 - **Required**: Yes
 - **Format**: 1-3 sentences describing the command's purpose
 - **Example**: "Build interactive Storybook prototypes with multiple creative directions."
 
 #### 3. Usage Section (`## Usage`)
+
 - **Type**: Code block(s) showing command syntax
 - **Required**: Yes
-- **Format**: 
+- **Format**:
   - Basic usage: `` `/command [required-param]` ``
   - With options: `` `/command [param] --option value` ``
   - With subcommands: `` `/command subcommand [param]` ``
 - **Example**:
+
   ```markdown
   ## Usage
-  
   ```
+
   /proto [initiative-name]
+
   ```
-  
+
   Optionally include specific instructions:
   ```
+
   /proto hubspot-config add validation toggle
+
   ```
+
   ```
 
 #### 4. Behavior Section (`## Behavior`)
+
 - **Type**: Paragraph(s) describing execution flow
 - **Required**: Yes
-- **Format**: 
+- **Format**:
   - **Delegation statement**: "**Delegates to**: `[subagent-name]`" or "**Uses**: `[skill-name]`"
   - Numbered list of steps the handler performs
 - **Example**:
+
   ```markdown
   ## Behavior
-  
+
   **Delegates to**: `proto-builder` subagent
-  
+
   The subagent will:
+
   1. Load PRD and Design Brief from initiative folder
   2. Load design system from `.interface-design/system.md`
   3. Create 2-3 creative options (Max Control, Balanced, Efficient)
   4. Implement all required AI states (Loading, Success, Error, etc.)
-  5. Create interactive Flow_* stories for user journeys
+  5. Create interactive Flow\_\* stories for user journeys
   6. Build and deploy to Chromatic
   7. Document in prototype-notes.md
   8. Commit and push changes
@@ -95,53 +106,64 @@ Each command file follows this structure:
 ### Optional Sections
 
 #### 5. Prerequisites (`## Prerequisites`)
+
 - **Type**: Bullet list or paragraph
 - **Required**: No
 - **Format**: List of required files, commands, or conditions
 - **Example**:
+
   ```markdown
   ## Prerequisites
-  
+
   - PRD should exist at `pm-workspace-docs/initiatives/[name]/prd.md`
   - Design Brief should exist at `pm-workspace-docs/initiatives/[name]/design-brief.md`
-  
+
   If these don't exist, run `/pm [name]` first.
   ```
 
 #### 6. Output (`## Output` or `## Output Location`)
+
 - **Type**: Bullet list, table, or paragraph
 - **Required**: No (but recommended)
 - **Format**: Files, directories, or artifacts created/modified
 - **Example**:
+
   ```markdown
   ## Output
-  
+
   - Components: `elephant-ai/web/src/components/prototypes/[Initiative]/v1/`
-  - Stories: All options + all states + Flow_* journeys
+  - Stories: All options + all states + Flow\_\* journeys
   - Notes: `pm-workspace-docs/initiatives/[name]/prototype-notes.md`
   - Chromatic URL for sharing
   ```
 
 #### 7. Examples (`## Examples`)
+
 - **Type**: Code blocks showing usage scenarios
 - **Required**: No
 - **Format**: Multiple usage examples with context
 - **Example**:
+
   ```markdown
   ## Examples
-  
   ```
+
   /research hubspot-config
   [paste transcript]
+
   ```
-  
+
   ```
+
   /research crm-sync
   @pm-workspace-docs/meeting-notes/2026-01-23-customer-call.md
+
   ```
+
   ```
 
 #### 8. Options/Flags (`## Options` or within Usage)
+
 - **Type**: Table or list
 - **Required**: No
 - **Format**: Command-line flags and their meanings
@@ -149,20 +171,24 @@ Each command file follows this structure:
   ```markdown
   Options:
   ```
-  /validate [name] --phase [phase]     # Validate specific phase
-  /validate [name] --criteria-only     # Skip jury, just check criteria
+  /validate [name] --phase [phase] # Validate specific phase
+  /validate [name] --criteria-only # Skip jury, just check criteria
   ```
+
   ```
 
 #### 9. Next Steps (`## Next Steps`)
+
 - **Type**: Bullet list or paragraph
 - **Required**: No (but recommended)
 - **Format**: Suggested follow-up commands or actions
 - **Example**:
+
   ```markdown
   ## Next Steps
-  
+
   After prototype is complete:
+
   - Ready for validation? Run `/validate [name]`
   - Need feedback? Share Chromatic URL with stakeholders
   - Need iteration? Run `/iterate [name]` after gathering feedback
@@ -171,29 +197,35 @@ Each command file follows this structure:
 ## Delegation Patterns
 
 ### Subagent Delegation
+
 ```markdown
 **Delegates to**: `[subagent-name]` subagent
 
 The subagent will:
+
 1. [Step 1]
 2. [Step 2]
 3. [Step 3]
 ```
 
 ### Skill Delegation
+
 ```markdown
 **Uses**: `[skill-name]` skill
 
 This command will:
+
 1. [Step 1]
 2. [Step 2]
 ```
 
 ### Direct Execution
+
 ```markdown
 **Executes**: [Description of direct execution]
 
 This command will:
+
 1. [Step 1]
 2. [Step 2]
 ```
@@ -201,18 +233,22 @@ This command will:
 ## Parameter Patterns
 
 ### Required Parameters
+
 - Format: `[param-name]` in usage examples
 - Example: `` `/command [initiative-name]` ``
 
 ### Optional Parameters
+
 - Format: `[param-name]` with "Optionally" prefix
 - Example: "Optionally include specific instructions: `` `/command [name] [instructions]` ``"
 
 ### Subcommands
+
 - Format: `` `/command subcommand [param]` ``
 - Example: `` `/ingest transcript` ``, `` `/ingest ticket` ``
 
 ### Flags/Options
+
 - Format: `` `--flag-name [value]` ``
 - Example: `` `/validate [name] --phase [phase]` ``
 
@@ -224,15 +260,18 @@ This command will:
 Run jury evaluation and check graduation criteria for an initiative.
 
 ## Usage
-
 ```
+
 /validate [initiative-name]
+
 ```
 
 Options:
 ```
-/validate [name] --phase [phase]     # Validate specific phase
-/validate [name] --criteria-only     # Skip jury, just check criteria
+
+/validate [name] --phase [phase] # Validate specific phase
+/validate [name] --criteria-only # Skip jury, just check criteria
+
 ```
 
 ## Behavior
@@ -426,37 +465,45 @@ For building a parser, here's a JSON schema representation:
 ## Parsing Rules
 
 ### 1. Title Extraction
+
 - Extract H1 heading (`# [Command Name]`)
 - Remove "Command" suffix if present for normalized name
 
 ### 2. Description Extraction
+
 - Extract paragraph(s) immediately following title
 - Stop at first `##` heading
 
 ### 3. Usage Extraction
+
 - Find `## Usage` section
 - Extract all code blocks (```)
 - Parse first code block as basic syntax
 - Additional code blocks are examples or options
 
 ### 4. Behavior Extraction
+
 - Find `## Behavior` section
 - Extract delegation pattern: `**Delegates to**:` or `**Uses**:`
 - Extract numbered list items as steps
 
 ### 5. Prerequisites Extraction
+
 - Find `## Prerequisites` section (if exists)
 - Extract bullet list items or paragraphs
 
 ### 6. Output Extraction
+
 - Find `## Output` or `## Output Location` section (if exists)
 - Extract bullet list items, table rows, or paragraphs
 
 ### 7. Examples Extraction
+
 - Find `## Examples` section (if exists)
 - Extract code blocks and their context
 
 ### 8. Next Steps Extraction
+
 - Find `## Next Steps` section (if exists)
 - Extract bullet list items or paragraphs
 
@@ -470,61 +517,75 @@ For building a parser, here's a JSON schema representation:
 ## Common Patterns
 
 ### Pattern 1: Simple Command with Subagent
+
 ```markdown
 # [Command]
 
 [Description]
 
 ## Usage
+
 `/[command] [param]`
 
 ## Behavior
+
 **Delegates to**: `[subagent]` subagent
 [Steps]
 
 ## Output
+
 [Files/locations]
 
 ## Next Steps
+
 [Follow-ups]
 ```
 
 ### Pattern 2: Command with Options
+
 ```markdown
 # [Command]
 
 [Description]
 
 ## Usage
+
 `/[command] [param]`
 Options:
 `/[command] [param] --option value`
 
 ## Behavior
+
 **Uses**: `[skill]` skill
 [Steps]
 
 ## Prerequisites
+
 [Requirements]
 
 ## Output
+
 [Files/locations]
 ```
 
 ### Pattern 3: Command with Subcommands
+
 ```markdown
 # [Command]
 
 [Description]
 
 ## Usage
+
 `/[command] subcommand [param]`
 
 ## Behavior
+
 **Delegates to**: `[subagent]` subagent
 [Steps]
 
 ## Examples
+
 [Usage examples]
 ```
 

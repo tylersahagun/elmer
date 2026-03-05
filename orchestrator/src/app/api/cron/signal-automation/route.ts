@@ -1,101 +1,28 @@
 /**
- * GET /api/cron/signal-automation
+ * GET /api/cron/signal-automation — MIGRATED TO CONVEX
  *
- * Cron endpoint for periodic signal automation checks.
- * Runs hourly to catch any missed triggers from event-driven flow.
+ * Signal automation (auto-processing, classification, linking) will be
+ * re-implemented as a Convex scheduled function in Phase 1 (GTM-43):
  *
- * Protected by CRON_SECRET header (Vercel sets this automatically).
+ *   crons.hourly("signal-automation", { minuteUTC: 0 }, internal.signals.runAutomation)
  *
- * Configure in vercel.json:
- * {
- *   "crons": [{
- *     "path": "/api/cron/signal-automation",
- *     "schedule": "0 * * * *"
- *   }]
- * }
+ * This stub exists so any existing Vercel cron config pointing here doesn't error.
+ * Remove this file and the vercel.json cron entry once convex/crons.ts is live.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { workspaces } from "@/lib/db/schema";
-import { checkSignalAutomation, type AutomationCheckResult } from "@/lib/automation/signal-automation";
 
-export const maxDuration = 300; // 5 minutes max
 export const dynamic = "force-dynamic";
-
-interface WorkspaceResult {
-  workspaceId: string;
-  result?: AutomationCheckResult;
-  error?: string;
-}
+export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret (Vercel sets this automatically for cron jobs)
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  // In development, allow without secret
-  if (process.env.NODE_ENV === "production" && cronSecret) {
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  const secret = request.headers.get("authorization");
+  if (secret !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const startTime = Date.now();
-
-  // Get all workspaces
-  const workspaceList = await db
-    .select({ id: workspaces.id, name: workspaces.name })
-    .from(workspaces);
-
-  const results: WorkspaceResult[] = [];
-
-  // Process each workspace
-  for (const workspace of workspaceList) {
-    try {
-      const result = await checkSignalAutomation(workspace.id);
-      results.push({
-        workspaceId: workspace.id,
-        result,
-      });
-
-      // Log if any actions were triggered
-      if (result.actionsTriggered.length > 0) {
-        console.log(
-          `[Cron] Workspace ${workspace.name}: ${result.actionsTriggered.length} actions triggered`
-        );
-      }
-    } catch (error) {
-      console.error(
-        `[Cron] Automation check failed for workspace ${workspace.id}:`,
-        error
-      );
-      results.push({
-        workspaceId: workspace.id,
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  }
-
-  const duration = Date.now() - startTime;
-
-  // Calculate summary
-  const totalActions = results.reduce(
-    (sum, r) => sum + (r.result?.actionsTriggered.length ?? 0),
-    0
-  );
-  const errors = results.filter((r) => r.error).length;
 
   return NextResponse.json({
-    success: true,
-    timestamp: new Date().toISOString(),
-    durationMs: duration,
-    workspacesChecked: workspaceList.length,
-    totalActionsTriggered: totalActions,
-    errors,
-    results,
+    ok: true,
+    message: "Signal automation migrated to Convex cron (Phase 1, GTM-43). No-op until convex/crons.ts is deployed.",
   });
 }

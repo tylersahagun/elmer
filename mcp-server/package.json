@@ -8,23 +8,29 @@
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:apps": "for app in initiative-dashboard signal-map agent-monitor pm-navigator jury-viewer; do APP_NAME=$app npx vite build; done",
+    "build:app:initiative-dashboard": "APP_NAME=initiative-dashboard npx vite build",
+    "build:app:signal-map": "APP_NAME=signal-map npx vite build",
+    "build:app:agent-monitor": "APP_NAME=agent-monitor npx vite build",
+    "build:app:pm-navigator": "APP_NAME=pm-navigator npx vite build",
+    "build:app:jury-viewer": "APP_NAME=jury-viewer npx vite build"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.2",
+    "@modelcontextprotocol/ext-apps": "^1.1.2",
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^12.6.2",
-    "drizzle-orm": "^0.45.1",
-    "execa": "^9.5.2",
-    "p-map": "^7.0.3",
-    "uuid": "^13.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "zod": "^3.25.28"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
-    "@types/uuid": "^10.0.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
     "tsx": "^4.19.4",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vite": "^7.3.1",
+    "vite-plugin-singlefile": "^2.3.0"
   }
 }

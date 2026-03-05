@@ -24,6 +24,7 @@ export interface ProjectCard {
   metadata?: {
     gitBranch?: string;
     baseBranch?: string;
+    tldr?: string;
     stageQuality?: Record<
       string,
       {

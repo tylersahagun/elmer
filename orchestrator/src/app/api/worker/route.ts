@@ -1,68 +1,28 @@
 /**
- * Worker Control API
- * 
- * Start, stop, and check status of the background job worker.
+ * Worker Control API — MIGRATED TO CONVEX
+ *
+ * The background job worker has been replaced by Convex Actions.
+ * Agent execution is now scheduled via ctx.scheduler (Phase 1, GTM-38).
+ *
+ * This route returns the new worker status model so any UI components
+ * polling /api/worker continue to work without errors.
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { getWorker, startWorker, stopWorker } from "@/lib/agent";
+import { NextResponse } from "next/server";
+
+const MIGRATED_STATUS = {
+  running: true,
+  engine: "convex",
+  message: "Agent execution handled by Convex Actions — no local worker process needed.",
+};
 
 export async function GET() {
-  try {
-    const worker = getWorker();
-    const status = worker.getStatus();
-    return NextResponse.json(status);
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to get worker status" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(MIGRATED_STATUS);
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { action, workspaceId, config } = body;
-
-    switch (action) {
-      case "start": {
-        const worker = startWorker(workspaceId, config);
-        const status = worker.getStatus();
-        return NextResponse.json({
-          success: true,
-          message: "Worker started",
-          status,
-        });
-      }
-
-      case "stop": {
-        await stopWorker();
-        return NextResponse.json({
-          success: true,
-          message: "Worker stopped",
-        });
-      }
-
-      case "status": {
-        const worker = getWorker();
-        const status = worker.getStatus();
-        return NextResponse.json({
-          success: true,
-          status,
-        });
-      }
-
-      default:
-        return NextResponse.json(
-          { error: `Unknown action: ${action}. Use 'start', 'stop', or 'status'.` },
-          { status: 400 }
-        );
-    }
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Worker operation failed" },
-      { status: 500 }
-    );
-  }
+export async function POST() {
+  return NextResponse.json({
+    success: true,
+    ...MIGRATED_STATUS,
+  });
 }

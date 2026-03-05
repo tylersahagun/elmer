@@ -1,0 +1,99 @@
+[
+  {
+    "id": "persona_csm001",
+    "archetype_id": "csm",
+    "demographics": {"name": "Nicole Torres", "age": 32, "location": "San Francisco, CA", "years_experience": 8},
+    "role": {"title": "Senior Customer Success Manager", "department": "customer-success", "seniority": "individual-contributor", "decision_authority": "end-user"},
+    "firmographics": {"company_size": "201-1000", "industry": "B2B SaaS", "tech_stack": ["Salesforce", "Gainsight", "Zoom", "Slack"], "funding_stage": "series-c+"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "early-adopter", "trust_in_ai": 0.75, "patience_for_learning": 0.6, "tool_fatigue": 0.5, "migration_sensitivity": 0.4, "complexity_tolerance": 0.7, "communication_style": "amiable"},
+    "context": {"primary_pain": "Managing 50+ accounts means I miss risk signals", "secondary_pains": ["QBR prep takes entire days", "Executive sponsors go dark"], "current_workarounds": ["Health score spreadsheet", "Calendar reminders for check-ins"], "success_looks_like": "Early warning system for at-risk accounts and auto-generated QBR decks", "fear": "AI flagging false positives that waste my time"},
+    "behavioral_heuristics": {"first_click_tendency": "Health score/risk dashboard", "error_response": "Verifies manually, adjusts threshold", "abandonment_trigger": "Too many false alerts"},
+    "voice_quotes": ["I can't be surprised by churn - I need to know 90 days before", "My QBRs need to be strategic, not just data dumps"],
+    "decision_context": {"decision_authority": "end-user", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["VP CS"]}
+  },
+  {
+    "id": "persona_csm002",
+    "archetype_id": "csm",
+    "demographics": {"name": "Michael Chang", "age": 28, "location": "New York, NY", "years_experience": 4},
+    "role": {"title": "Customer Success Manager", "department": "customer-success", "seniority": "individual-contributor", "decision_authority": "end-user"},
+    "firmographics": {"company_size": "51-200", "industry": "Fintech", "tech_stack": ["HubSpot", "ChurnZero", "Calendly"], "funding_stage": "series-b"},
+    "psychographics": {"tech_literacy": "intermediate", "ai_adoption_stage": "curious", "trust_in_ai": 0.6, "patience_for_learning": 0.7, "tool_fatigue": 0.55, "migration_sensitivity": 0.45, "complexity_tolerance": 0.5, "communication_style": "expressive"},
+    "context": {"primary_pain": "Expansion opportunities hidden in call conversations", "secondary_pains": ["Can't remember every customer request", "Hand-off from sales is messy"], "current_workarounds": ["Post-call notes in CRM", "Monthly expansion review meetings"], "success_looks_like": "AI surfaces expansion signals from every conversation automatically", "fear": "Pushing expansion when customer is unhappy"},
+    "behavioral_heuristics": {"first_click_tendency": "Expansion/upsell signals", "error_response": "Cross-references with CRM data", "abandonment_trigger": "Misses obvious customer context"},
+    "voice_quotes": ["I know there's expansion potential buried in my call recordings somewhere", "I need context from sales before I take over - what did they promise?"],
+    "decision_context": {"decision_authority": "end-user", "evaluation_role": "secondary", "competitive_evaluation": false, "stakeholders_to_convince": ["CS Manager"]}
+  },
+  {
+    "id": "persona_csm003",
+    "archetype_id": "csm",
+    "demographics": {"name": "Ashley Williams", "age": 35, "location": "Chicago, IL", "years_experience": 10},
+    "role": {"title": "VP of Customer Success", "department": "customer-success", "seniority": "vp", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "201-1000", "industry": "HR Tech", "tech_stack": ["Salesforce", "Gainsight", "Gong", "Tableau"], "funding_stage": "series-c+"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "skeptic", "trust_in_ai": 0.4, "patience_for_learning": 0.3, "tool_fatigue": 0.75, "migration_sensitivity": 0.7, "complexity_tolerance": 0.6, "communication_style": "analytical"},
+    "context": {"primary_pain": "Net revenue retention is below target and I can't pinpoint why", "secondary_pains": ["CSMs are reactive not proactive", "Renewal conversations start too late"], "current_workarounds": ["Weekly risk reviews", "Customer sentiment surveys"], "success_looks_like": "Predictive churn model with actionable interventions", "fear": "AI giving me another dashboard I don't trust"},
+    "behavioral_heuristics": {"first_click_tendency": "NRR and churn prediction analytics", "error_response": "Demands data validation", "abandonment_trigger": "Predictions don't match actual outcomes"},
+    "voice_quotes": ["We've had 3 churn surprises this quarter - never again", "I need prediction, not just reporting on what already happened"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["CEO", "CFO", "Board"]}
+  },
+  {
+    "id": "persona_csm004",
+    "archetype_id": "csm",
+    "demographics": {"name": "David Brown", "age": 26, "location": "Austin, TX", "years_experience": 2},
+    "role": {"title": "Customer Success Associate", "department": "customer-success", "seniority": "individual-contributor", "decision_authority": "end-user"},
+    "firmographics": {"company_size": "1-50", "industry": "MarTech", "tech_stack": ["HubSpot", "Intercom", "Notion"], "funding_stage": "seed"},
+    "psychographics": {"tech_literacy": "intermediate", "ai_adoption_stage": "early-adopter", "trust_in_ai": 0.8, "patience_for_learning": 0.85, "tool_fatigue": 0.25, "migration_sensitivity": 0.2, "complexity_tolerance": 0.6, "communication_style": "expressive"},
+    "context": {"primary_pain": "I'm the only CSM covering 100+ SMB accounts", "secondary_pains": ["No time for proactive outreach", "Tech touch feels impersonal"], "current_workarounds": ["Bulk email campaigns", "Usage alerts in Slack"], "success_looks_like": "AI-powered personalized outreach at scale", "fear": "Automated messages feeling robotic to customers"},
+    "behavioral_heuristics": {"first_click_tendency": "Automation/playbook features", "error_response": "Adjusts automation rules", "abandonment_trigger": "Customers notice automation"},
+    "voice_quotes": ["I need to be 10 people - AI is my only option", "Personalized at scale sounds impossible but I need it to work"],
+    "decision_context": {"decision_authority": "end-user", "evaluation_role": "none", "competitive_evaluation": false, "stakeholders_to_convince": []}
+  },
+  {
+    "id": "persona_csm005",
+    "archetype_id": "csm",
+    "demographics": {"name": "Patricia Martinez", "age": 40, "location": "Miami, FL", "years_experience": 15},
+    "role": {"title": "Enterprise Customer Success Manager", "department": "customer-success", "seniority": "individual-contributor", "decision_authority": "influencer-champion"},
+    "firmographics": {"company_size": "1000+", "industry": "Healthcare IT", "tech_stack": ["Salesforce", "Gainsight", "Teams"], "funding_stage": "public"},
+    "psychographics": {"tech_literacy": "intermediate", "ai_adoption_stage": "skeptic", "trust_in_ai": 0.3, "patience_for_learning": 0.35, "tool_fatigue": 0.85, "migration_sensitivity": 0.8, "complexity_tolerance": 0.4, "communication_style": "amiable"},
+    "context": {"primary_pain": "Enterprise relationships are too complex for AI to understand", "secondary_pains": ["Multi-stakeholder dynamics are nuanced", "Compliance requirements limit what AI can do"], "current_workarounds": ["Detailed relationship maps in docs", "Regular executive sponsor calls"], "success_looks_like": "AI that supports without overstepping - meeting prep, not customer contact", "fear": "AI misreading a sensitive political situation"},
+    "behavioral_heuristics": {"first_click_tendency": "Privacy/compliance settings", "error_response": "Disables feature, escalates", "abandonment_trigger": "Any compliance or relationship risk"},
+    "voice_quotes": ["My $5M enterprise accounts need human touch, not automation", "AI can prep me but it better not talk to my customer"],
+    "decision_context": {"decision_authority": "influencer-champion", "evaluation_role": "secondary", "competitive_evaluation": true, "stakeholders_to_convince": ["VP CS", "Legal"]}
+  },
+  {
+    "id": "persona_csm006",
+    "archetype_id": "csm",
+    "demographics": {"name": "Ryan Thompson", "age": 31, "location": "Seattle, WA", "years_experience": 6},
+    "role": {"title": "Customer Success Manager", "department": "customer-success", "seniority": "individual-contributor", "decision_authority": "end-user"},
+    "firmographics": {"company_size": "201-1000", "industry": "E-commerce SaaS", "tech_stack": ["Salesforce", "Vitally", "Zoom"], "funding_stage": "series-b"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "power-user", "trust_in_ai": 0.85, "patience_for_learning": 0.7, "tool_fatigue": 0.35, "migration_sensitivity": 0.25, "complexity_tolerance": 0.8, "communication_style": "driver"},
+    "context": {"primary_pain": "Customer requests get lost across Slack, email, and calls", "secondary_pains": ["No single view of customer communication", "Follow-up commitments slip through cracks"], "current_workarounds": ["Personal Notion tracker", "End-of-day commitment review"], "success_looks_like": "Unified inbox with AI-extracted action items and follow-ups", "fear": "Missing integration with my existing workflow"},
+    "behavioral_heuristics": {"first_click_tendency": "Integration and workflow automation", "error_response": "Builds custom workaround", "abandonment_trigger": "Doesn't integrate with key tools"},
+    "voice_quotes": ["I want every customer commitment tracked automatically, zero manual work", "If it doesn't sync with Slack and Salesforce seamlessly, forget it"],
+    "decision_context": {"decision_authority": "end-user", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["CS Manager"]}
+  },
+  {
+    "id": "persona_csm007",
+    "archetype_id": "csm",
+    "demographics": {"name": "Lauren Davis", "age": 29, "location": "Denver, CO", "years_experience": 5},
+    "role": {"title": "Customer Success Manager", "department": "customer-success", "seniority": "individual-contributor", "decision_authority": "end-user"},
+    "firmographics": {"company_size": "51-200", "industry": "Cybersecurity", "tech_stack": ["HubSpot", "ChurnZero", "Slack"], "funding_stage": "series-a"},
+    "psychographics": {"tech_literacy": "intermediate", "ai_adoption_stage": "curious", "trust_in_ai": 0.55, "patience_for_learning": 0.65, "tool_fatigue": 0.5, "migration_sensitivity": 0.5, "complexity_tolerance": 0.5, "communication_style": "amiable"},
+    "context": {"primary_pain": "Onboarding is inconsistent and customers drop off", "secondary_pains": ["No visibility into onboarding progress across team", "Different CSMs do onboarding differently"], "current_workarounds": ["Onboarding checklist template", "Weekly onboarding review meeting"], "success_looks_like": "AI-guided onboarding with consistent quality across all CSMs", "fear": "Losing the personal touch that makes onboarding successful"},
+    "behavioral_heuristics": {"first_click_tendency": "Onboarding playbooks and templates", "error_response": "Compares to template, adjusts", "abandonment_trigger": "Too rigid for customer-specific needs"},
+    "voice_quotes": ["Onboarding is where we win or lose - it needs to be perfect every time", "I want guidance but not a script - every customer is different"],
+    "decision_context": {"decision_authority": "end-user", "evaluation_role": "secondary", "competitive_evaluation": false, "stakeholders_to_convince": ["CS Manager"]}
+  },
+  {
+    "id": "persona_csm008",
+    "archetype_id": "csm",
+    "demographics": {"name": "Kevin Patel", "age": 33, "location": "Boston, MA", "years_experience": 7},
+    "role": {"title": "Director of Customer Success", "department": "customer-success", "seniority": "director", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "201-1000", "industry": "EdTech", "tech_stack": ["Salesforce", "Gainsight", "Gong"], "funding_stage": "series-b"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "early-adopter", "trust_in_ai": 0.7, "patience_for_learning": 0.5, "tool_fatigue": 0.45, "migration_sensitivity": 0.4, "complexity_tolerance": 0.7, "communication_style": "driver"},
+    "context": {"primary_pain": "CS team is working in silos - no knowledge sharing", "secondary_pains": ["Best practices don't scale across team", "New CSM ramp is too slow"], "current_workarounds": ["Monthly knowledge share sessions", "Documentation in wiki"], "success_looks_like": "AI captures institutional knowledge and surfaces it when needed", "fear": "Team seeing AI as replacement rather than augmentation"},
+    "behavioral_heuristics": {"first_click_tendency": "Team analytics and knowledge base", "error_response": "Pilots with high-trust CSM first", "abandonment_trigger": "Team resistance or negative perception"},
+    "voice_quotes": ["When my best CSM is on vacation, everyone else should have access to their playbook", "This needs to make my team better, not make them feel surveilled"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["VP CS", "Finance"]}
+  }
+]
+

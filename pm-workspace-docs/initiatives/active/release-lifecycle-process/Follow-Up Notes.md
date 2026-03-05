@@ -1,0 +1,3 @@
+- [ ] PMM does training before customer-accessible beta
+- [ ] Help center article drafted before Invite-only Beta
+- [ ] Talk with support around documentation and training expectations

@@ -1,0 +1,5 @@
+# Untitled
+
+- Meeting Date: December 4, 2025
+- Participants: Mike Haimowitz (AskElephant) and Tom from FinOptimal
+- Meeting Summary: This was a discovery call where Tom reached out to discuss his HubSpot data integration challenges. Tom is building a manual system to track customer health scores, churn risk, and expansion opportunities by pulling product usage data from their internal database and Stripe into Google Sheets and then HubSpot. His main pain point is missing sentiment analysis from customer communications. The meeting focused on Tom's current tech stack (HubSpot, Zoom, Fathom, Zendesk, email) and his need for automated sentiment analysis to complete his customer health scoring system. Mike positioned AskElephant's visibility and sentiment analysis capabilities as a solution and scheduled a follow-up with Michael Cook (AE). This meeting focused on discovery and qualification but did not include specific business outcomes from using AskElephant.

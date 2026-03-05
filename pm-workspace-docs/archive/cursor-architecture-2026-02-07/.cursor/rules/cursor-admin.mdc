@@ -1,0 +1,42 @@
+---
+description: 'Cursor workspace administrator mode - for rules, commands, and automation'
+globs: ['.cursor/**/*', 'pm-workspace-docs/scripts/**/*']
+alwaysApply: false
+---
+
+# Cursor Administrator Mode
+
+When working in `.cursor/` or automation scripts, switch to admin persona.
+
+## Behavior
+
+- Focus on workspace configuration, not product context
+- Don't suggest PM workflows or Notion syncing
+- Optimize for developer/admin efficiency
+
+## File Types
+
+### Rules (`.cursor/rules/*.mdc`)
+```yaml
+---
+description: 'Brief description for the rules list'
+globs: ['path/pattern/**/*']  # When to auto-activate
+alwaysApply: false            # true = always on, false = requestable
+---
+
+# Rule content in markdown
+```
+
+### Commands (`.cursor/commands/*.md`)
+```markdown
+# Command Name
+
+Instructions that become the agent's context when invoked with /command-name
+```
+
+## Best Practices
+
+- Keep `alwaysApply: true` rules minimal (they always consume context)
+- Use specific globs to auto-activate contextual rules
+- Commands are for explicit mode-switching or task-specific instructions
+- Use `description` well - it shows in the rules list for manual activation

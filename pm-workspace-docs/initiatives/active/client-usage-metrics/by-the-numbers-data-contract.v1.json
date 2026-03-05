@@ -1,0 +1,539 @@
+{
+  "contract_version": "v1",
+  "initiative": "client-usage-metrics",
+  "view": "askelephant-by-numbers",
+  "updated_at": "2026-02-11T00:00:00Z",
+  "defaults": {
+    "default_scope": "workspace",
+    "default_time_range": "all_time",
+    "refresh_seconds_live_mode": 15,
+    "refresh_seconds_standard_mode": 300
+  },
+  "supported_scopes": ["workspace", "team", "user"],
+  "time_ranges": ["live", "24h", "7d", "30d", "90d", "all_time"],
+  "metrics": [
+    {
+      "id": "words_transcribed_total",
+      "label": "Words Transcribed",
+      "category": "core_counter",
+      "definition": "Total words transcribed from recorded or imported meeting audio.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires canonical transcription completion event with word_count."
+    },
+    {
+      "id": "minutes_recorded_total",
+      "label": "Minutes Recorded",
+      "category": "core_counter",
+      "definition": "Total minutes of recorded meeting audio.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires recording completion event with duration_minutes."
+    },
+    {
+      "id": "meetings_recorded_total",
+      "label": "Meetings Recorded",
+      "category": "core_counter",
+      "definition": "Count of meetings successfully recorded or processed.",
+      "status": "available_now",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": ["meeting:processed"],
+      "notes": "Team/user breakouts depend on consistent actor attribution."
+    },
+    {
+      "id": "queries_answered_total",
+      "label": "Queries Answered",
+      "category": "core_counter",
+      "definition": "Count of user queries that received successful assistant response.",
+      "status": "definition_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Needs canonical event contract for submit + answer success."
+    },
+    {
+      "id": "workflows_run_total",
+      "label": "Workflows Run",
+      "category": "core_counter",
+      "definition": "Count of completed workflow runs.",
+      "status": "available_now",
+      "confidence": "high",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": ["workflows:run:completed"],
+      "notes": "Primary reliable counter for V1 launch."
+    },
+    {
+      "id": "hubspot_workflows_run_total",
+      "label": "HubSpot Workflows Run",
+      "category": "agent_counter",
+      "definition": "Count of completed workflow runs where HubSpot agent/tool was used.",
+      "status": "partial",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": ["workflows:run:completed", "hubspot_agent:enabled"],
+      "notes": "Needs direct linkage between run and hubspot tool usage."
+    },
+    {
+      "id": "hubspot_properties_updated_total",
+      "label": "HubSpot Properties Updated",
+      "category": "tool_impact",
+      "definition": "Count of successful HubSpot property update operations.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "not_supported",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": ["hubspot:property_update:completed"],
+      "notes": "Event proposed in instrumentation plan but not confirmed live."
+    },
+    {
+      "id": "slack_actions_total",
+      "label": "Slack Actions",
+      "category": "tool_impact",
+      "definition": "Count of successful Slack outputs triggered by AskElephant automation.",
+      "status": "definition_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Requires canonical event mapping for Slack send/post/update operations."
+    },
+    {
+      "id": "hubspot_deals_created_total",
+      "label": "HubSpot Deals Created",
+      "category": "tool_impact",
+      "definition": "Count of deals created in HubSpot via AskElephant workflow or agent actions.",
+      "status": "partial",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Requires canonical mapping for workflow-created and agent-created deal records."
+    },
+    {
+      "id": "hubspot_deal_properties_filled_total",
+      "label": "HubSpot Deal Properties Filled",
+      "category": "tool_impact",
+      "definition": "Count of deal property fields populated or updated by AskElephant.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires granular deal-property update event model."
+    },
+    {
+      "id": "hubspot_companies_created_total",
+      "label": "HubSpot Companies Created",
+      "category": "tool_impact",
+      "definition": "Count of companies created in HubSpot through AskElephant automation.",
+      "status": "partial",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Needs event mapping parity with deal creation metrics."
+    },
+    {
+      "id": "hubspot_company_properties_filled_total",
+      "label": "HubSpot Company Properties Filled",
+      "category": "tool_impact",
+      "definition": "Count of company property fields populated or updated by AskElephant.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires granular company-property update event model."
+    },
+    {
+      "id": "hubspot_contacts_created_total",
+      "label": "HubSpot Contacts Created",
+      "category": "tool_impact",
+      "definition": "Count of contacts created in HubSpot by AskElephant workflows or agents.",
+      "status": "partial",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Needs canonical contact-create event mapping."
+    },
+    {
+      "id": "hubspot_contact_properties_filled_total",
+      "label": "HubSpot Contact Properties Filled",
+      "category": "tool_impact",
+      "definition": "Count of contact property fields populated or updated by AskElephant.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires granular contact-property update event model."
+    },
+    {
+      "id": "slack_messages_read_total",
+      "label": "Slack Messages Read",
+      "category": "tool_impact",
+      "definition": "Count of Slack messages parsed or processed by AskElephant workflows and agents.",
+      "status": "definition_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Requires exact semantics for 'read' versus 'fetched'."
+    },
+    {
+      "id": "slack_messages_sent_total",
+      "label": "Slack Messages Sent",
+      "category": "tool_impact",
+      "definition": "Count of Slack messages sent by AskElephant actions.",
+      "status": "definition_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Requires canonical Slack send event."
+    },
+    {
+      "id": "slack_messages_updated_total",
+      "label": "Slack Messages Updated",
+      "category": "tool_impact",
+      "definition": "Count of Slack messages updated or edited by AskElephant actions.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Needs explicit update/edit event emission."
+    },
+    {
+      "id": "emails_read_total",
+      "label": "Emails Read",
+      "category": "tool_impact",
+      "definition": "Count of emails read or processed by AskElephant email workflows.",
+      "status": "definition_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Requires canonical event mapping for Gmail read/fetch actions."
+    },
+    {
+      "id": "emails_sent_total",
+      "label": "Emails Sent",
+      "category": "tool_impact",
+      "definition": "Count of emails sent by AskElephant-assisted workflows.",
+      "status": "partial",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Needs confirmation of send event consistency across flows."
+    },
+    {
+      "id": "emails_analyzed_total",
+      "label": "Emails Analyzed",
+      "category": "tool_impact",
+      "definition": "Count of emails analyzed for sentiment, intent, risk, or action extraction.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires analysis-complete event with classification metadata."
+    },
+    {
+      "id": "meetings_attended_total",
+      "label": "Meetings Attended",
+      "category": "core_counter",
+      "definition": "Count of meetings attended by users where AskElephant captured or processed context.",
+      "status": "partial",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [
+        "meeting:processed"
+      ],
+      "notes": "Requires attendee identity normalization for team and user scope."
+    },
+    {
+      "id": "hours_video_recorded_total",
+      "label": "Hours of Video Recorded",
+      "category": "core_counter",
+      "definition": "Total hours of recorded meeting video associated with AskElephant capture.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires recording completion events with duration in seconds."
+    },
+    {
+      "id": "summaries_generated_total",
+      "label": "Summaries Generated",
+      "category": "core_counter",
+      "definition": "Count of AI summaries generated from meetings, conversations, or threads.",
+      "status": "partial",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Needs unified summary-generated event across product surfaces."
+    },
+    {
+      "id": "coaching_gained_total",
+      "label": "Coaching Gained",
+      "category": "insight_counter",
+      "definition": "Count of coaching insights delivered and acknowledged by managers or reps.",
+      "status": "definition_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Needs clear metric model for generated versus acted-on coaching."
+    },
+    {
+      "id": "close_percent_increase",
+      "label": "Close % Increase",
+      "category": "business_outcome",
+      "definition": "Relative increase in close rate for AskElephant-assisted cohorts versus baseline or control.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires cohorting and attribution model; avoid showing as exact without confidence."
+    },
+    {
+      "id": "churn_percent_reduced",
+      "label": "Churn % Reduced",
+      "category": "business_outcome",
+      "definition": "Relative reduction in churn risk or realized churn for assisted cohorts.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "not_supported",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires account-level outcome linkage and confidence framework."
+    },
+    {
+      "id": "total_revenue_generated",
+      "label": "Total Revenue Generated",
+      "category": "business_outcome",
+      "definition": "Revenue created or influenced by AskElephant-assisted deal motion.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires explicit attribution model and confidence scoring."
+    },
+    {
+      "id": "deals_closed_with_askelephant_total",
+      "label": "Deals Closed with AskElephant",
+      "category": "business_outcome",
+      "definition": "Count of closed-won deals with qualifying AskElephant involvement during opportunity lifecycle.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires opportunity-level linkage between AskElephant actions and close outcome."
+    },
+    {
+      "id": "chats_generated_total",
+      "label": "Chats Generated",
+      "category": "core_counter",
+      "definition": "Count of chat responses generated by AskElephant across supported chat surfaces.",
+      "status": "partial",
+      "confidence": "medium",
+      "scope_support": {
+        "workspace": "supported",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Needs canonical merge for all chat endpoints."
+    },
+    {
+      "id": "questions_asked_total",
+      "label": "Questions Asked",
+      "category": "insight_counter",
+      "definition": "Count of user questions asked to AskElephant chat and assistant surfaces.",
+      "status": "definition_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Needs canonical question-submitted event definition."
+    },
+    {
+      "id": "most_common_question",
+      "label": "Most Common Question Asked",
+      "category": "insight_counter",
+      "definition": "Top recurring normalized user question over selected time range.",
+      "status": "definition_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "partial"
+      },
+      "source_events": [],
+      "notes": "Requires semantic clustering and deduplication pipeline."
+    },
+    {
+      "id": "most_common_objection",
+      "label": "Most Common Objection Received",
+      "category": "insight_counter",
+      "definition": "Top recurring objection theme detected across meetings, chats, and communication channels.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires objection classification pipeline with confidence model."
+    },
+    {
+      "id": "most_common_customer_quote",
+      "label": "Most Common Customer Quote",
+      "category": "insight_counter",
+      "definition": "Most frequently cited customer quote cluster over selected time range.",
+      "status": "instrumentation_required",
+      "confidence": "low",
+      "scope_support": {
+        "workspace": "partial",
+        "team": "partial",
+        "user": "not_supported"
+      },
+      "source_events": [],
+      "notes": "Requires quote extraction and canonical clustering."
+    }
+  ],
+  "agent_cards": [
+    {
+      "agent_id": "hubspot",
+      "display_name": "HubSpot Agent",
+      "primary_metric_id": "hubspot_workflows_run_total",
+      "secondary_metric_id": "hubspot_properties_updated_total",
+      "status_metric_id": "workflows_run_total"
+    },
+    {
+      "agent_id": "slack",
+      "display_name": "Slack Agent",
+      "primary_metric_id": "slack_actions_total",
+      "secondary_metric_id": "workflows_run_total",
+      "status_metric_id": "workflows_run_total"
+    }
+  ],
+  "ui_rules": {
+    "show_limited_data_callout_when_status_in": [
+      "instrumentation_required",
+      "definition_required",
+      "partial"
+    ],
+    "show_confidence_badge": true,
+    "show_data_freshness_badge": true,
+    "allow_animation_only_for_status_in": ["available_now", "partial"]
+  }
+}

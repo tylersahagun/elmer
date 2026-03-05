@@ -1,0 +1,31 @@
+version: 1
+gates:
+  alpha_gate:
+    description: Early adoption and stability threshold.
+    posthog:
+      event: feature_viewed
+      min_unique_users: 20
+      min_conversion_rate: 0.10
+    errors:
+      max_error_rate: 0.02
+    observation_window_days: 7
+
+  beta_gate:
+    description: Product-market signal and reliability threshold.
+    posthog:
+      event: feature_used
+      min_unique_users: 100
+      min_conversion_rate: 0.20
+    errors:
+      max_error_rate: 0.01
+    observation_window_days: 14
+
+  ga_gate:
+    description: General availability threshold.
+    posthog:
+      event: feature_adopted
+      min_unique_users: 500
+      min_conversion_rate: 0.35
+    errors:
+      max_error_rate: 0.005
+    observation_window_days: 28

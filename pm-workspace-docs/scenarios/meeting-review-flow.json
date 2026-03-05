@@ -1,0 +1,62 @@
+{
+  "$schema": "../personas/scenario-schema.json",
+  "id": "scenario_meeting_review",
+  "name": "Post-meeting action item review",
+  "description": "User returns to review AI-generated action items from a customer call and push to CRM",
+  "applicable_archetypes": ["sales-rep", "sales-leader", "csm"],
+  "task": {
+    "primary_goal": "Verify AI-extracted action items are accurate and sync to CRM",
+    "steps": [
+      "Open meeting recording from notification",
+      "Review AI-generated summary",
+      "Verify action items are correct",
+      "Edit any incorrect items",
+      "Push to CRM with one click"
+    ],
+    "expected_duration": "2-3 minutes",
+    "difficulty": "easy"
+  },
+  "context": {
+    "time_of_day": "Between back-to-back meetings",
+    "device_type": "desktop",
+    "environment": "Open office, some distractions",
+    "interruption_level": "occasional",
+    "prior_experience": "Has used product for 2 weeks"
+  },
+  "success_criteria": [
+    {
+      "criterion": "Task completion",
+      "measurement": "Can complete full flow",
+      "threshold": "100% of steps achievable"
+    },
+    {
+      "criterion": "Time efficiency",
+      "measurement": "Perceived time to complete",
+      "threshold": "Under 3 minutes"
+    },
+    {
+      "criterion": "Confidence",
+      "measurement": "Trust in AI accuracy",
+      "threshold": "Would use without double-checking source"
+    }
+  ],
+  "relevant_persona_attributes": [
+    "psychographics.tech_literacy",
+    "psychographics.ai_adoption_stage",
+    "psychographics.trust_in_ai",
+    "context.time_constraints"
+  ],
+  "evaluation_focus": {
+    "heuristics_to_emphasize": [
+      "visibility_of_status",
+      "match_with_expectations",
+      "error_prevention"
+    ],
+    "key_questions": [
+      "Can you tell what the AI did vs. what you need to verify?",
+      "Would you trust this summary without checking the recording?",
+      "Is it obvious how to fix something that's wrong?"
+    ]
+  }
+}
+

@@ -1,0 +1,124 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "structured-hubspot-agent-node",
+  "hypothesis_id": "hyp-hubspot-agent-config-ui",
+  "phase": "validate",
+  "sub_phase": null,
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "personas": [
+    "sales-rep",
+    "sales-leader",
+    "revops"
+  ],
+  "pillar": "customer-trust",
+  "created_at": "2026-01-07T12:18:01.093543",
+  "updated_at": "2026-02-12T00:00:00.000000",
+  "current_version": "v1",
+  "phase_history": [
+    {
+      "phase": "validate",
+      "entered": "2026-01-07T12:18:01.093543",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Review validate phase status; explore HubSpot sidebar/widget integration",
+  "related_hypotheses": [
+    "hyp-hubspot-sidebar-integration"
+  ],
+  "council_notes_20260124": {
+    "exploration": "Palmer doing initial work on HubSpot widget",
+    "customer_request": "Chris (partner) wants widget inside HubSpot for internal search",
+    "technical_options": [
+      "Custom HubSpot CRM Card",
+      "Breeze Agent Integration"
+    ],
+    "key_quote": "A lot of us actually just want a widget inside of HubSpot that can use internal search to ask questions."
+  },
+  "shipped_features_20260126": {
+    "source": "signals/transcripts/2026-01-26-hubspot-salesforce-update.md",
+    "documented_by": "Palmer",
+    "features": [
+      {
+        "name": "AskElephant HubSpot App Card",
+        "status": "shipped",
+        "location": "Contact and Company pages in HubSpot",
+        "capabilities": [
+          "Company info with links to AskElephant",
+          "Recent meetings display",
+          "Chat with HubSpot agent",
+          "Internal search activated"
+        ]
+      },
+      {
+        "name": "Structured HubSpot Agent Workflow Action",
+        "status": "shipped",
+        "capabilities": [
+          "Multi-object updates",
+          "Property configuration",
+          "Human-in-the-loop option",
+          "Create if not found",
+          "Append vs replace"
+        ]
+      },
+      {
+        "name": "Salesforce Agent",
+        "status": "in_progress",
+        "note": "Open PR - feature parity with HubSpot Agent"
+      }
+    ]
+  },
+  "competitive_landscape": {
+    "last_analyzed": "2026-02-12",
+    "competitors": [
+      "fathom",
+      "fireflies",
+      "gong",
+      "momentum",
+      "avoma",
+      "salesloft"
+    ],
+    "differentiation_score": "strong"
+  },
+  "visual_design": {
+    "directions_generated": 3,
+    "direction_chosen": null,
+    "mockup_validated": false,
+    "validated_at": null
+  },
+  "graduation_criteria": {},
+  "timeline": {
+    "started": "2026-01-07",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 1,
+    "total_iterations": 0
+  },
+  "linear_project_id": "a647b6d3-7a49-4cad-9c64-708897016408",
+  "linear_project_url": "https://linear.app/askelephant/project/hubspot-integration-d79d588493b9",
+  "notion_project_id": "2c0f79b2-c8ac-81a1-935f-c59c6e634170",
+  "notion_project_url": "https://www.notion.so/Structured-Hubspot-Agent-Node-2c0f79b2c8ac81a1935fc59c6e634170",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [
+    "initiative:hubspot-agent",
+    "hubspot",
+    "crm-integration"
+  ],
+  "github_branch_prefix": "feat/hubspot",
+  "dev_activity": {
+    "last_synced": "2026-02-20T06:54:56Z",
+    "linear_issues_total": 10,
+    "linear_issues_completed": 0,
+    "linear_issues_in_progress": 0,
+    "github_prs_merged_30d": null
+  },
+  "notion_project_name": "Structured Hubspot Agent Node",
+  "linear_project_name": "HubSpot Integration"
+}

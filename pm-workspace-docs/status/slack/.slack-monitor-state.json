@@ -1,0 +1,19 @@
+{
+  "last_check": "2026-02-11T22:01:10Z",
+  "last_check_unix": 1770933670,
+  "channels_checked": [
+    "product-forum",
+    "product-issues",
+    "churn-alert",
+    "customer-feedback",
+    "team-dev",
+    "mpdm-skylar--tyler.sahagun--dylan-1",
+    "mpdm-parker--tyler.sahagun--matt.bennett-1"
+  ],
+  "messages_found": 45,
+  "action_required": 3,
+  "decide": 2,
+  "aware": 4,
+  "capture": 2,
+  "follow_up": 0
+}

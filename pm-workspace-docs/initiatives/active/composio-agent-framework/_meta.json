@@ -1,0 +1,283 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "composio-agent-framework",
+  "hypothesis_id": null,
+  "phase": "validate",
+  "sub_phase": "design-handoff",
+  "status": "on_track",
+  "priority": "P1",
+  "owner": "tyler",
+  "personas": [
+    "revops",
+    "sales-leader",
+    "csm",
+    "sales-rep"
+  ],
+  "pillar": "data-knowledge",
+  "created_at": "2026-01-22T00:00:00.000000",
+  "updated_at": "2026-01-24T10:30:00.000000",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-22T00:00:00.000000",
+      "exited": "2026-01-22T00:00:00.000000"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-01-22T00:00:00.000000",
+      "exited": "2026-01-22T00:00:00.000000"
+    },
+    {
+      "phase": "build",
+      "entered": "2026-01-22T00:00:00.000000",
+      "exited": "2026-01-22T00:00:00.000000"
+    },
+    {
+      "phase": "validate",
+      "entered": "2026-01-22T00:00:00.000000",
+      "exited": null
+    }
+  ],
+  "blockers": [
+    {
+      "type": "internal-communication",
+      "description": "Revenue team confused about Composio availability - NOT customer-ready yet",
+      "action_required": "Rob to clarify with revenue team",
+      "added": "2026-01-24"
+    },
+    {
+      "type": "ux-gap",
+      "description": "Connection management UX: 3 disconnected surfaces (chat, workspace, node), no permission visibility, no search for toolkits",
+      "action_required": "Tyler + Kaden to decide on connection model and ship minimum viable credential UX with Phase 1",
+      "added": "2026-02-09"
+    }
+  ],
+  "customer_ready": false,
+  "customer_ready_note": "Council of Product 2026-01-24: Composio is NOT live to customers. Revenue team needs clarification that 877 toolkits != 877 working integrations.",
+  "next_action": "Meeting with Kaden: decide connection model (3-surface consolidation), define Phase 1 credential UX, unblock Kaden",
+  "graduation_criteria": {
+    "discovery_to_define": {
+      "user_problems_documented": true,
+      "outcome_chain_clear": true,
+      "personas_identified": true,
+      "strategic_alignment_checked": true
+    },
+    "define_to_build": {
+      "prd_complete": true,
+      "design_brief_complete": true,
+      "engineering_spec_complete": true,
+      "placement_research_complete": true
+    },
+    "build_to_validate": {
+      "prototype_complete": true,
+      "jury_validation_complete": true
+    },
+    "validate_to_launch": {
+      "jury_pass_rate": 0.92,
+      "jury_approval_rate": 0.78,
+      "stakeholder_approval": false,
+      "no_p0_blockers": true,
+      "gtm_brief_complete": true
+    }
+  },
+  "jury_results": {
+    "date": "2026-01-22",
+    "version": "v3",
+    "jury_size": 100,
+    "approval_rate": 0.78,
+    "conditional_rate": 0.14,
+    "rejection_rate": 0.08,
+    "combined_pass_rate": 0.92,
+    "by_persona": {
+      "operations": {
+        "pass_rate": 0.94,
+        "approval_rate": 0.82
+      },
+      "sales_rep": {
+        "pass_rate": 0.9,
+        "approval_rate": 0.74
+      },
+      "sales_leader": {
+        "pass_rate": 0.96,
+        "approval_rate": 0.84
+      },
+      "csm": {
+        "pass_rate": 0.89,
+        "approval_rate": 0.72
+      }
+    },
+    "recommended_option": "B",
+    "option_d_preference": 0.31,
+    "top_concerns": [
+      "Agent conflict resolution (multiple agents, same field) - ADDRESSED v4",
+      "Template versioning policy",
+      "Team adoption reporting"
+    ],
+    "previous_concerns_resolved": [
+      "Audit trail / visibility - RESOLVED (v2 ActivityLog)",
+      "Error handling / recovery - RESOLVED (v2 TestPreview)",
+      "Rollback / undo - RESOLVED (v3 RollbackPanel)",
+      "Agent conflict resolution - RESOLVED (v4 ConflictDetector + ConflictWarning)"
+    ]
+  },
+  "handoff": {
+    "workflow": "A",
+    "status": "awaiting_design",
+    "prototype_url": "elephant-ai/web/src/components/prototypes/ComposioAgentFramework/",
+    "figma_url": null,
+    "designer": "woody",
+    "handoff_date": "2026-01-22",
+    "notes": "v6 Unified Framework ready for visual polish. Conversational setup (Option D) is primary flow. Key areas: dashboard layout, motion timing, micro-copy, empty/error states."
+  },
+  "timeline": {
+    "started": "2026-01-22",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 6
+  },
+  "dependencies": [
+    "composio-integration"
+  ],
+  "related_initiatives": [
+    "hubspot-agent-config-ui"
+  ],
+  "prototype_type": "both",
+  "prototype_location": "elephant-ai/web/src/components/prototypes/ComposioAgentFramework/",
+  "current_version": "v6",
+  "last_signals_processed": "2026-02-09T15:00:00.000000",
+  "signals_consumed": [
+    "sig-2026-01-22-adam-composio-agent-feedback",
+    "sig-2026-01-22-composio-figma-make-chat-interface",
+    "sig-2026-01-22-composio-agent-architecture-deep-dive",
+    "sig-2026-01-30-weekly-development-progress-update",
+    "sig-2026-01-30-weekly-team-end-of-week-report"
+  ],
+  "iteration_history": [
+    {
+      "version": "v2",
+      "date": "2026-01-22T18:00:00.000000",
+      "prototype_type": "both",
+      "focus": "Activity log (jury concern #1), Test preview (jury suggestion #2), Error recovery UX",
+      "feedback_source": "jury-evaluation + adam-design-review + figma-make-spec",
+      "signals_consumed": [
+        "sig-2026-01-22-adam-composio-agent-feedback",
+        "sig-2026-01-22-composio-figma-make-chat-interface"
+      ],
+      "changes": [
+        "Added ActivityLog component (v2/components/ActivityLog.tsx)",
+        "Added TestPreview component (v2/components/TestPreview.tsx)",
+        "Updated PRD with auth scope problem and jury results",
+        "Updated Design Brief with error handling UX and conversational flow",
+        "Updated prototype-notes.md with v2 iteration details"
+      ]
+    },
+    {
+      "version": "v3",
+      "date": "2026-01-22T20:00:00.000000",
+      "prototype_type": "both",
+      "focus": "Conversational setup (Option D), Auth scope controls, Rollback/undo capability",
+      "feedback_source": "v2 open items: adam-preference + jury-concern-3",
+      "signals_consumed": [],
+      "changes": [
+        "Added ConversationalSetup component - Option D chat-based configuration",
+        "Added AuthScopeSelector component - Workspace vs personal auth with warnings",
+        "Added RollbackPanel component - Action history with undo capability",
+        "Created V3Iteration.stories.tsx with all new component demos",
+        "Updated index.ts to export v3 components"
+      ],
+      "jury_results": {
+        "pass_rate": 0.92,
+        "approval_rate": 0.78,
+        "improvement": "+10% approval, +5% pass rate vs v1"
+      }
+    },
+    {
+      "version": "v4",
+      "date": "2026-01-22T22:00:00.000000",
+      "prototype_type": "both",
+      "focus": "Agent conflict resolution (v3 jury top concern - 9 mentions, High severity)",
+      "feedback_source": "v3 jury evaluation - new top concern",
+      "signals_consumed": [],
+      "changes": [
+        "Added ConflictDetector component - Detect field conflicts during agent creation",
+        "Added ConflictWarning component - Show conflict outcomes in activity log",
+        "Resolution strategies: Priority (overwrite), Merge (append), Skip (defer)",
+        "Created V4Iteration.stories.tsx with complete conflict flow demos"
+      ]
+    },
+    {
+      "version": "v5",
+      "date": "2026-01-22T22:30:00.000000",
+      "prototype_type": "both",
+      "focus": "Skills Layer (Phase 3) - Reduce config friction with domain expertise",
+      "feedback_source": "agent-skills-reduce-config hypothesis + adam-feedback",
+      "signals_consumed": [
+        "sig-2026-01-22-internal-composio-agent-architecture"
+      ],
+      "changes": [
+        "Added SkillsSelector component - Select domain expertise skills",
+        "Built-in skills: RevOps Expert, Follow-up Best Practices, Deal Intelligence",
+        "Auto-discovery based on agent instructions",
+        "Added AgentFrameworkDashboard component (initial version)"
+      ]
+    },
+    {
+      "version": "v6",
+      "date": "2026-01-22T23:30:00.000000",
+      "prototype_type": "both",
+      "focus": "Unified Framework - Full interactive experience with all v1-v5 features",
+      "feedback_source": "Integration of all previous iterations",
+      "signals_consumed": [],
+      "changes": [
+        "Created AgentSkillsFramework - unified full-page dashboard",
+        "Dashboard view with metrics, quick actions, recent agents, activity feed",
+        "Agents view with search, filter, CRUD operations",
+        "Skills view with built-in and workspace skills",
+        "Activity view with complete audit trail",
+        "Create Wizard: Conversational Setup \u2192 Skills \u2192 Auth \u2192 Test \u2192 Review",
+        "Integrated all v2-v5 components into cohesive experience",
+        "Created comprehensive Storybook stories with all creative options"
+      ]
+    }
+  ],
+  "linear_project_id": "313bc3ff-9c2f-4a18-bb27-1d9e7c203eb3",
+  "linear_project_url": "https://linear.app/askelephant/project/deprecating-the-pipedream-70c7a6bf99aa",
+  "notion_project_id": "2f4f79b2-c8ac-814f-944b-fd2d8d857425",
+  "notion_project_url": "https://www.notion.so/Composio-Agent-Framework-2f4f79b2c8ac814f944bfd2d8d857425",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [
+    "initiative:composio-agent",
+    "agent-framework"
+  ],
+  "github_branch_prefix": "feat/composio-agent",
+  "dev_activity": {
+    "last_synced": "2026-02-20T06:54:56Z",
+    "linear_issues_total": 3,
+    "linear_issues_completed": 0,
+    "linear_issues_in_progress": 3,
+    "github_prs_merged_30d": null,
+    "linear_projects": [
+      {
+        "id": "313bc3ff-9c2f-4a18-bb27-1d9e7c203eb3",
+        "name": "Deprecating the Pipedream",
+        "url": "https://linear.app/askelephant/project/deprecating-the-pipedream-70c7a6bf99aa",
+        "role": "primary"
+      }
+    ],
+    "key_issues": [
+      "ASK-4996: Chat migration to Composio (Ivan, In Code Review)",
+      "ASK-4997: Workflow migration to Composio (Ivan, In Progress)",
+      "ASK-4998: PostHog migration flags (Ivan, Todo)",
+      "ASK-4602: Composio agent configuration POC (Adam, In Progress)",
+      "ASK-5020: Migrate workflow nodes to shared package (Matt, In Code Review)"
+    ]
+  },
+  "notion_project_name": "Composio Agent Framework",
+  "linear_project_name": "Deprecating the Pipedream"
+}

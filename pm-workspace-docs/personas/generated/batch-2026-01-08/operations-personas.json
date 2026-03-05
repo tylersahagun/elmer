@@ -1,0 +1,107 @@
+[
+  {
+    "id": "persona_ops001",
+    "archetype_id": "operations",
+    "sub_type": "operations_manager",
+    "demographics": {"name": "Jennifer Liu", "age": 38, "location": "San Francisco, CA", "years_experience": 14},
+    "role": {"title": "Director of Revenue Operations", "department": "revenue-operations", "seniority": "director", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "201-1000", "industry": "Enterprise SaaS", "tech_stack": ["Salesforce", "HubSpot", "Clari", "Tableau", "dbt"], "funding_stage": "series-c+"},
+    "psychographics": {"tech_literacy": "expert", "ai_adoption_stage": "early-adopter", "trust_in_ai": 0.75, "patience_for_learning": 0.5, "tool_fatigue": 0.6, "migration_sensitivity": 0.65, "complexity_tolerance": 0.9, "communication_style": "analytical"},
+    "context": {"primary_pain": "Data quality issues undermine every report I build", "secondary_pains": ["Reps don't update CRM consistently", "Duplicate records everywhere"], "current_workarounds": ["Weekly data cleanup sprints", "Validation rules that reps hate"], "success_looks_like": "CRM data automatically captured and cleaned at source", "fear": "New tool creates another integration to maintain"},
+    "behavioral_heuristics": {"first_click_tendency": "API docs and data model", "error_response": "Diagnoses root cause systematically", "abandonment_trigger": "Poor data quality or integration issues"},
+    "voice_quotes": ["If reps don't have to touch the CRM, the data will finally be accurate", "Show me the data model - I need to know how this integrates with our stack"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["CRO", "IT", "VP Sales"]}
+  },
+  {
+    "id": "persona_ops002",
+    "archetype_id": "operations",
+    "sub_type": "technical_ops",
+    "demographics": {"name": "Marcus Chen", "age": 32, "location": "Seattle, WA", "years_experience": 8},
+    "role": {"title": "Sales Operations Analyst", "department": "revenue-operations", "seniority": "individual-contributor", "decision_authority": "evaluator"},
+    "firmographics": {"company_size": "51-200", "industry": "B2B SaaS", "tech_stack": ["HubSpot", "Gong", "Looker", "Zapier"], "funding_stage": "series-b"},
+    "psychographics": {"tech_literacy": "expert", "ai_adoption_stage": "power-user", "trust_in_ai": 0.85, "patience_for_learning": 0.8, "tool_fatigue": 0.35, "migration_sensitivity": 0.3, "complexity_tolerance": 0.95, "communication_style": "analytical"},
+    "context": {"primary_pain": "Building custom integrations for every new tool is exhausting", "secondary_pains": ["Zapier breaks constantly", "No unified data layer"], "current_workarounds": ["Custom Python scripts", "Manual data reconciliation"], "success_looks_like": "Native integrations that just work without my intervention", "fear": "Vendor lock-in with proprietary data format"},
+    "behavioral_heuristics": {"first_click_tendency": "API documentation and webhooks", "error_response": "Debugs via API logs", "abandonment_trigger": "Limited API or export capabilities"},
+    "voice_quotes": ["Give me a real API, not some limited integration", "I need to own my data - export everything anytime"],
+    "decision_context": {"decision_authority": "evaluator", "evaluation_role": "secondary", "competitive_evaluation": true, "stakeholders_to_convince": ["Director of Ops"]}
+  },
+  {
+    "id": "persona_ops003",
+    "archetype_id": "operations",
+    "sub_type": "sdm_manager",
+    "demographics": {"name": "Sarah Jackson", "age": 45, "location": "Chicago, IL", "years_experience": 20},
+    "role": {"title": "VP of Sales Operations", "department": "revenue-operations", "seniority": "vp", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "1000+", "industry": "Financial Services", "tech_stack": ["Salesforce", "Clari", "Tableau", "Snowflake"], "funding_stage": "public"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "skeptic", "trust_in_ai": 0.35, "patience_for_learning": 0.25, "tool_fatigue": 0.85, "migration_sensitivity": 0.9, "complexity_tolerance": 0.6, "communication_style": "analytical"},
+    "context": {"primary_pain": "We've consolidated twice and can't afford another migration", "secondary_pains": ["Board wants AI initiatives but I need stability", "Existing tech debt is massive"], "current_workarounds": ["Custom Salesforce development", "Dedicated integration team"], "success_looks_like": "AI that enhances Salesforce without replacing it", "fear": "Another tool that becomes technical debt in 2 years"},
+    "behavioral_heuristics": {"first_click_tendency": "Enterprise security and compliance docs", "error_response": "Formal vendor escalation process", "abandonment_trigger": "Migration complexity or risk"},
+    "voice_quotes": ["We spent $2M on Salesforce - I'm not ripping it out", "Prove this integrates cleanly without creating more tech debt"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["CRO", "CIO", "CFO"]}
+  },
+  {
+    "id": "persona_ops004",
+    "archetype_id": "operations",
+    "sub_type": "operations_manager",
+    "demographics": {"name": "David Martinez", "age": 29, "location": "Austin, TX", "years_experience": 5},
+    "role": {"title": "RevOps Manager", "department": "revenue-operations", "seniority": "manager", "decision_authority": "evaluator"},
+    "firmographics": {"company_size": "51-200", "industry": "HR Tech", "tech_stack": ["HubSpot", "Outreach", "Loom", "Retool"], "funding_stage": "series-a"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "early-adopter", "trust_in_ai": 0.8, "patience_for_learning": 0.7, "tool_fatigue": 0.4, "migration_sensitivity": 0.35, "complexity_tolerance": 0.8, "communication_style": "driver"},
+    "context": {"primary_pain": "I'm the only ops person - need tools that self-service", "secondary_pains": ["Can't build every report leadership wants", "Sales team needs constant hand-holding"], "current_workarounds": ["Report templates", "Video walkthroughs"], "success_looks_like": "AI that answers questions so I don't have to", "fear": "Tool that requires more ops support, not less"},
+    "behavioral_heuristics": {"first_click_tendency": "Self-service and automation features", "error_response": "Finds workaround, documents for others", "abandonment_trigger": "High maintenance burden"},
+    "voice_quotes": ["I can't be everyone's data analyst - give me AI that does that", "If this needs constant configuration, I don't have time"],
+    "decision_context": {"decision_authority": "evaluator", "evaluation_role": "secondary", "competitive_evaluation": true, "stakeholders_to_convince": ["VP Sales", "CEO"]}
+  },
+  {
+    "id": "persona_ops005",
+    "archetype_id": "operations",
+    "sub_type": "technical_ops",
+    "demographics": {"name": "Emily Nakamura", "age": 35, "location": "San Jose, CA", "years_experience": 11},
+    "role": {"title": "Senior Revenue Operations Engineer", "department": "revenue-operations", "seniority": "individual-contributor", "decision_authority": "evaluator"},
+    "firmographics": {"company_size": "201-1000", "industry": "Developer Tools", "tech_stack": ["Salesforce", "Outreach", "Snowflake", "Hightouch", "dbt"], "funding_stage": "series-c+"},
+    "psychographics": {"tech_literacy": "expert", "ai_adoption_stage": "power-user", "trust_in_ai": 0.9, "patience_for_learning": 0.75, "tool_fatigue": 0.3, "migration_sensitivity": 0.25, "complexity_tolerance": 0.95, "communication_style": "analytical"},
+    "context": {"primary_pain": "Data pipeline is fragile - one change breaks everything", "secondary_pains": ["No observability into sync failures", "Schema changes downstream break us"], "current_workarounds": ["dbt tests", "PagerDuty alerts"], "success_looks_like": "Robust data pipeline with real-time observability", "fear": "Another point solution that doesn't fit our data stack"},
+    "behavioral_heuristics": {"first_click_tendency": "Technical architecture and data flow docs", "error_response": "Traces issue through entire pipeline", "abandonment_trigger": "Incompatible with modern data stack"},
+    "voice_quotes": ["I need this to fit into our dbt/Snowflake architecture, not create a silo", "Show me how the data flows - I need to own the pipeline"],
+    "decision_context": {"decision_authority": "evaluator", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["Director of RevOps", "Data Engineering"]}
+  },
+  {
+    "id": "persona_ops006",
+    "archetype_id": "operations",
+    "sub_type": "operations_manager",
+    "demographics": {"name": "Amanda Foster", "age": 42, "location": "Boston, MA", "years_experience": 16},
+    "role": {"title": "Head of Sales Operations", "department": "revenue-operations", "seniority": "director", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "201-1000", "industry": "Cybersecurity", "tech_stack": ["Salesforce", "Clari", "Gong", "Tableau"], "funding_stage": "series-b"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "curious", "trust_in_ai": 0.55, "patience_for_learning": 0.4, "tool_fatigue": 0.65, "migration_sensitivity": 0.6, "complexity_tolerance": 0.7, "communication_style": "driver"},
+    "context": {"primary_pain": "Forecasting is a mess - every VP has different methodology", "secondary_pains": ["No single source of truth", "Manual roll-ups take days"], "current_workarounds": ["Weekly forecast calls", "Custom Salesforce reports"], "success_looks_like": "AI forecast that all VPs trust and can drill into", "fear": "AI forecast that leadership doesn't understand or trust"},
+    "behavioral_heuristics": {"first_click_tendency": "Forecasting and analytics dashboards", "error_response": "Cross-validates with existing reports", "abandonment_trigger": "Forecast methodology is opaque"},
+    "voice_quotes": ["I need one number everyone believes - from rep to board", "If I can't explain how the AI got this forecast, leadership won't trust it"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["CRO", "CFO", "VP Sales"]}
+  },
+  {
+    "id": "persona_ops007",
+    "archetype_id": "operations",
+    "sub_type": "sdm_manager",
+    "demographics": {"name": "Robert Kim", "age": 50, "location": "New York, NY", "years_experience": 25},
+    "role": {"title": "Chief Revenue Officer (Ops-focused)", "department": "executive", "seniority": "c-suite", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "1000+", "industry": "Enterprise Software", "tech_stack": ["Salesforce", "Clari", "6sense", "Tableau"], "funding_stage": "public"},
+    "psychographics": {"tech_literacy": "intermediate", "ai_adoption_stage": "skeptic", "trust_in_ai": 0.3, "patience_for_learning": 0.2, "tool_fatigue": 0.9, "migration_sensitivity": 0.85, "complexity_tolerance": 0.4, "communication_style": "analytical"},
+    "context": {"primary_pain": "Board wants AI but I need proven ROI first", "secondary_pains": ["Too many failed tool implementations", "Team is change-fatigued"], "current_workarounds": ["Manual executive dashboards", "Quarterly business reviews"], "success_looks_like": "Clear ROI within 1 quarter, minimal change management", "fear": "Wasting budget on another failed initiative"},
+    "behavioral_heuristics": {"first_click_tendency": "ROI calculator and customer proof points", "error_response": "Formal vendor review and escalation", "abandonment_trigger": "Unclear or unproven ROI"},
+    "voice_quotes": ["We've tried AI before - show me a company like mine where it actually worked", "My team can't handle another change - this needs to be invisible"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["CEO", "Board", "CFO"]}
+  },
+  {
+    "id": "persona_ops008",
+    "archetype_id": "operations",
+    "sub_type": "technical_ops",
+    "demographics": {"name": "Chris Nguyen", "age": 27, "location": "Denver, CO", "years_experience": 4},
+    "role": {"title": "Sales Operations Specialist", "department": "revenue-operations", "seniority": "individual-contributor", "decision_authority": "end-user"},
+    "firmographics": {"company_size": "51-200", "industry": "EdTech", "tech_stack": ["HubSpot", "Zapier", "Notion", "Google Sheets"], "funding_stage": "series-a"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "early-adopter", "trust_in_ai": 0.75, "patience_for_learning": 0.8, "tool_fatigue": 0.35, "migration_sensitivity": 0.3, "complexity_tolerance": 0.75, "communication_style": "expressive"},
+    "context": {"primary_pain": "Can't get the data leadership wants from our current tools", "secondary_pains": ["HubSpot reporting is limited", "Manual exports for everything"], "current_workarounds": ["Google Sheets dashboards", "Weekly data pulls"], "success_looks_like": "Real-time reporting without manual exports", "fear": "Implementing something my manager will question"},
+    "behavioral_heuristics": {"first_click_tendency": "Reporting and dashboard features", "error_response": "Tests in sandbox environment", "abandonment_trigger": "Complexity beyond my skill level"},
+    "voice_quotes": ["I need reports that update themselves - no more Sunday data pulls", "If I can set this up and prove value, maybe they'll let me buy it"],
+    "decision_context": {"decision_authority": "end-user", "evaluation_role": "none", "competitive_evaluation": false, "stakeholders_to_convince": ["RevOps Manager"]}
+  }
+]
+

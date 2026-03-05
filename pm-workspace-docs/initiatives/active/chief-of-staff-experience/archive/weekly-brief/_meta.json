@@ -1,0 +1,56 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "weekly-brief",
+  "name": "Chief of Staff - Weekly Brief",
+  "parent_initiative": "chief-of-staff-experience",
+  "hypothesis_id": "hyp-chief-of-staff-cross-signal-brief",
+  "phase": "define",
+  "status": "on_track",
+  "priority": "P1",
+  "owner": "tyler",
+  "feedback_method": "interview-plan",
+  "feedback_status": "planned",
+  "personas": [
+    "sales-leader",
+    "revops",
+    "csm",
+    "sales-rep"
+  ],
+  "pillar": "trend-visibility",
+  "created_at": "2026-02-17T10:00:00.000Z",
+  "updated_at": "2026-02-17T10:00:00.000Z",
+  "next_action": "Define weekly trend blocks, carry-forward logic, and decision sections",
+  "timeline": {
+    "started": "2026-02-17",
+    "target_launch": null
+  },
+  "visibility": "internal",
+  "competitive_landscape": {
+    "last_analyzed": "2026-02-17",
+    "competitors": [
+      "Gong",
+      "Clari",
+      "Chorus",
+      "Avoma",
+      "Fathom",
+      "Fireflies.ai",
+      "Salesforce Agentforce",
+      "HubSpot Breeze",
+      "Salesloft",
+      "Outreach",
+      "Relay.app",
+      "Lindy.ai",
+      "StackAI",
+      "Gumloop",
+      "Zapier",
+      "Make"
+    ],
+    "differentiation_points": [
+      "Explicit carry-forward mechanism",
+      "Weekly trend narrative",
+      "Decision sections (commit/defer/drop)",
+      "Action handoff from brief",
+      "Historical weekly visibility"
+    ]
+  }
+}

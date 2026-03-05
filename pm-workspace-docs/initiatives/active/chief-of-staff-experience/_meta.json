@@ -1,0 +1,161 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "chief-of-staff-experience",
+  "name": "Chief of Staff Experience",
+  "hypothesis_id": "hyp-chief-of-staff-platform",
+  "phase": "define",
+  "sub_phase": "taxonomy-and-scope",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "eng_lead": null,
+  "design_lead": null,
+  "feedback_method": "interview-plan",
+  "feedback_status": "in-progress",
+  "personas": ["sales-rep", "sales-leader", "revops", "csm"],
+  "pillar": "customer-trust",
+  "strategic_initiative": "Global Chat + CRM Agent Upgrades + AI-First UX",
+  "created_at": "2026-02-17T10:00:00.000Z",
+  "updated_at": "2026-02-18T18:00:00.000Z",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-29T00:00:00.000Z",
+      "exited": "2026-02-17T10:00:00.000Z",
+      "notes": "Evidence merged from archived chief-of-staff-recap-hub and active agent-command-center research"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-02-17T10:00:00.000Z",
+      "exited": null,
+      "notes": "Parent initiative and five sub-initiatives established in Notion and local workspace"
+    }
+  ],
+  "blockers": [
+    "External customer validation for daily and weekly brief interactions pending",
+    "Baseline instrumentation incomplete for action completion and approval completion",
+    "Action item extraction quality — needs recap email prompt logic ported",
+    "Onboarding configuration complexity (24/25 users skip)",
+    "Summary visual design rated 'stale' — needs refresh"
+  ],
+  "next_action": "Execute Week 1 quick wins: (1) Surface TLDR on My Meetings, (2) Add checkboxes to action items, (3) Audit recap email prompt for extraction logic",
+  "prototype_feedback": {
+    "session_date": "2026-02-20",
+    "signal_doc": "pm-workspace-docs/signals/sig-2026-02-20-prototype-feedback-chief-of-staff.md",
+    "analysis_doc": "key-user-pain-points-2026-02-20.md",
+    "key_findings": [
+      "Action items broken — working extraction logic exists in recap email",
+      "No checkboxes = no accountability",
+      "24/25 users skip onboarding (configuration overload)",
+      "TLDR extracted but not surfaced (quick win)",
+      "Summary visual design is 'super stale'",
+      "Sentiment-unaware distribution creates blame risk"
+    ],
+    "design_principle": "Overwatch model (opinionated defaults) > Diablo model (infinite customization)"
+  },
+  "validation": {
+    "last_run": "2026-02-18",
+    "phase_gate": "define-to-build",
+    "verdict": "conditional-pass",
+    "jury_result": {
+      "parent_story": { "pass_rate": 0.625, "verdict": "validated" },
+      "action_items": { "pass_rate": 0.695, "verdict": "validated" },
+      "daily_brief": { "pass_rate": 0.665, "verdict": "validated" },
+      "meeting_summary": { "pass_rate": 0.655, "verdict": "validated" },
+      "meeting_prep": { "pass_rate": 0.615, "verdict": "validated" },
+      "weekly_brief": { "pass_rate": 0.56, "verdict": "contested" }
+    },
+    "blockers_to_advance": [
+      "3+ external customer interviews not completed",
+      "Weekly Brief rep relevance below threshold (56% vs 60%)",
+      "Trust/accountability criteria missing from parent PRD"
+    ],
+    "report": "jury-evaluations/validation-report-20260218.md"
+  },
+  "timeline": {
+    "started": "2026-02-17",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 1
+  },
+  "posthog": {
+    "dashboard_id": null,
+    "dashboard_url": null,
+    "key_insights": [],
+    "baseline_established": false
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": "30af79b2-c8ac-8125-b850-d5df42f68e76",
+  "notion_project_url": "https://www.notion.so/ask-elephant/Chief-of-Staff-Experience-30af79b2c8ac8125b850d5df42f68e76",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": ["initiative:chief-of-staff-experience"],
+  "github_branch_prefix": "feat/chief-of-staff-experience",
+  "related_initiatives": [
+    "agent-command-center",
+    "global-chat",
+    "structured-hubspot-agent-node"
+  ],
+  "sub_initiatives": [
+    "meeting-summary",
+    "meeting-prep",
+    "daily-brief",
+    "weekly-brief",
+    "action-items"
+  ],
+  "visibility": "internal",
+  "prototypes": {
+    "location": "elephant-ai/apps/web/src/components/prototypes/ChiefOfStaff/",
+    "sub_initiatives": {
+      "daily-brief": "DailyBrief/v1",
+      "weekly-brief": "WeeklyBrief/v1",
+      "meeting-summary": "MeetingSummary/v1",
+      "meeting-prep": "MeetingPrep/v1",
+      "action-items": "ActionItems/v1"
+    },
+    "storybook_title_prefix": "Prototypes/ChiefOfStaff/",
+    "created_at": "2026-02-18"
+  },
+  "placement_research": {
+    "completed_at": "2026-02-18",
+    "document": "placement-research.md",
+    "decisions": {
+      "meeting-summary": "embedded-tab",
+      "meeting-prep": "enhanced-panel",
+      "daily-brief": "new-page",
+      "weekly-brief": "new-page",
+      "action-items": "enhance-existing"
+    }
+  },
+  "competitive_landscape": {
+    "last_analyzed": "2026-02-18",
+    "competitors": [
+      "Gong",
+      "Clari",
+      "Chorus",
+      "Avoma",
+      "Fathom",
+      "Fireflies.ai",
+      "Salesforce Agentforce",
+      "HubSpot Breeze",
+      "Relay.app",
+      "Lindy.ai",
+      "StackAI",
+      "Gumloop",
+      "Zapier",
+      "Make"
+    ],
+    "differentiation_points": [
+      "Artifact-first entry",
+      "Editable summary with template + section-level AI edit",
+      "Cross-signal daily/weekly brief",
+      "Approval-by-exception"
+    ]
+  }
+}

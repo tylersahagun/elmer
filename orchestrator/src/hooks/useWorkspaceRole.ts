@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { WorkspaceRole } from "@/lib/db/schema";
 
 interface WorkspaceMember {
@@ -29,7 +29,7 @@ interface UseWorkspaceRoleResult {
  * and provide permission helpers
  */
 export function useWorkspaceRole(workspaceId: string | null): UseWorkspaceRoleResult {
-  const { data: session } = useSession();
+  const { user, isSignedIn } = useCurrentUser();
 
   const { data: members, isLoading } = useQuery<WorkspaceMember[]>({
     queryKey: ["workspace-members", workspaceId],
@@ -42,11 +42,11 @@ export function useWorkspaceRole(workspaceId: string | null): UseWorkspaceRoleRe
       }
       return res.json();
     },
-    enabled: !!workspaceId && !!session?.user?.id,
+    enabled: !!workspaceId && isSignedIn,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  const membership = members?.find((m) => m.userId === session?.user?.id) || null;
+  const membership = members?.find((m) => m.userId === user?.id) || null;
   const role = membership?.role || null;
 
   return {

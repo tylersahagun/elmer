@@ -1,0 +1,112 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "chief-of-staff-recap-hub",
+  "hypothesis_id": "hyp-chief-of-staff-recap-hub",
+  "phase": "build",
+  "sub_phase": null,
+  "status": "on_track",
+  "priority": "P2",
+  "owner": "Tyler Sahagun",
+  "personas": ["sales-rep", "sales-leader", "revops", "csm"],
+  "pillar": "customer-trust",
+  "created_at": "2026-01-29T16:30:00.000000",
+  "updated_at": "2026-02-01T00:00:00.000000Z",
+  "current_version": "v2",
+  "prototype_location": "elephant-ai/web/src/components/prototypes/ChiefOfStaffRecapHub/v2/",
+  "chromatic_url": "https://672502f3cbc6d0a63fdd76aa-tezfdjlsxv.chromatic.com/",
+  "figjam_url": "https://www.figma.com/online-whiteboard/create-diagram/5d87e33b-6ecf-400d-9c3b-01f2899c8777?utm_source=other&utm_content=edit_in_figjam&oai_id=&request_id=07699f5e-1b1a-4116-9116-68984ddc0f0b",
+  "figjam_generated": "2026-01-29",
+  "phase_history": [
+    {
+      "phase": "define",
+      "entered": "2026-01-29T16:30:00.000000",
+      "exited": "2026-01-30T06:15:46.000000Z",
+      "notes": "Combined initiative from chief-of-staff hub and flagship recap signals"
+    },
+    {
+      "phase": "build",
+      "entered": "2026-01-30T06:15:46.000000Z",
+      "exited": null,
+      "notes": "Prototype v2 consolidated with flagship recap artifacts and hub approvals"
+    }
+  ],
+  "blockers": [
+    "Engineering alignment not confirmed",
+    "Primary persona validation pending",
+    "Baseline metrics not set"
+  ],
+  "next_action": "Iterate on approval thresholds and action accuracy; validate primary persona with customers",
+  "graduation_criteria": {
+    "define_to_build": {
+      "prd_approved": false,
+      "design_brief_exists": true,
+      "engineering_alignment": false
+    }
+  },
+  "validation_history": [
+    {
+      "date": "2026-01-29",
+      "type": "jury",
+      "phase": "define",
+      "result": "blocked",
+      "pass_rate": null,
+      "jury_size": null,
+      "report_file": "jury-evaluations/define-report-20260129.md",
+      "notes": "Jury not run; missing prototype-notes.md."
+    },
+    {
+      "date": "2026-02-01",
+      "type": "jury",
+      "phase": "build",
+      "result": "contested",
+      "pass_rate": 0.62,
+      "jury_size": 200,
+      "report_file": "jury-evaluations/jury-evaluation-2026-02-01.md",
+      "notes": "Approval rate met threshold but combined pass below 70; iterate on trust and persona clarity."
+    }
+  ],
+  "timeline": {
+    "started": "2026-01-29",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 1,
+    "jury_evaluations": 1,
+    "last_jury_pass_rate": 0.62
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": null,
+  "notion_project_url": null,
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [],
+  "github_branch_prefix": "feat/chief-of-staff-recap-hub",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "signals": [
+    "sig-2026-01-29-product-vision-robert-henderson",
+    "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+    "sig-2026-01-28-tyler-sam-flagship-meeting-recap-ux",
+    "sig-2026-01-26-14day-slack-synthesis"
+  ],
+  "related_initiatives": ["chief-of-staff-hub", "flagship-meeting-recap"],
+  "related_hypotheses": ["hyp-artifact-first-recap-alignment"],
+  "key_themes": [
+    "proactive-hub",
+    "flagship-recap",
+    "ai-first-ux",
+    "approval-by-exception",
+    "time-to-value"
+  ],
+  "visibility": "internal"
+}

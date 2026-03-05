@@ -1,0 +1,53 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#E8F1FF",
+    "primaryTextColor": "#1B2A4A",
+    "primaryBorderColor": "#7AA2FF",
+    "lineColor": "#6C7A89",
+    "secondaryColor": "#F7F9FC",
+    "tertiaryColor": "#FFF4E6",
+    "fontFamily": "Inter, Segoe UI, Arial",
+    "fontSize": "14px",
+    "nodeBorder": "1px",
+    "clusterBkg": "#F7F9FC",
+    "clusterBorder": "#C9D4E5"
+  }
+}%%
+flowchart TD
+  A[User Query in Chat] --> B[Intent + Entity Parsing]
+  B --> C{Permission Scope}
+  C -->|Allowed| D[Context Retrieval]
+  C -->|Denied| X[Return Access-Limited Response]
+
+  subgraph Retrieval[Context Retrieval]
+    D1[Meetings + Transcripts]
+    D2[Companies + Contacts]
+    D3[Signals + Workflow Outputs]
+    D4[Team Members]
+  end
+
+  D --> D1
+  D --> D2
+  D --> D3
+  D --> D4
+
+  B --> E1[Query Normalization + Intent Hints]
+  E1 --> E2[Synonym Expansion + Entity Resolution]
+  E2 --> E3[Filter Extraction (Time, People, Entities)]
+  E3 --> E4[Semantic Similarity Search]
+  D1 --> E4
+  D2 --> E4
+  D3 --> E4
+  D4 --> E4
+  E4 --> E5[Hybrid Scoring (Semantic + Filters)]
+  E5 --> F[Ranking + De-duplication]
+  F --> G[Context Assembly + Source Links]
+  G --> H[Response in Chat]
+
+  classDef user fill:#E8F1FF,stroke:#7AA2FF,color:#1B2A4A;
+  classDef system fill:#F7F9FC,stroke:#C9D4E5,color:#2B3A55;
+  classDef warn fill:#FFF4E6,stroke:#FFB36B,color:#6B3F00;
+  class A,H user;
+  class B,C,D,E1,E2,E3,E4,E5,F,G,D1,D2,D3,D4 system;
+  class X warn;

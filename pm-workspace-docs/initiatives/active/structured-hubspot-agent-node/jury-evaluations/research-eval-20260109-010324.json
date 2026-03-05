@@ -1,0 +1,250 @@
+{
+  "total": 1000,
+  "verdicts": {
+    "approve": 346,
+    "conditional": 160,
+    "reject": 494
+  },
+  "approval_rate": 34.6,
+  "conditional_rate": 16.0,
+  "rejection_rate": 49.4,
+  "by_archetype": {
+    "strategic-consultant": {
+      "approve": 34,
+      "conditional": 16,
+      "reject": 50
+    },
+    "sales-leader": {
+      "approve": 83,
+      "conditional": 44,
+      "reject": 123
+    },
+    "sales-rep": {
+      "approve": 121,
+      "conditional": 56,
+      "reject": 173
+    },
+    "csm": {
+      "approve": 61,
+      "conditional": 19,
+      "reject": 70
+    },
+    "operations": {
+      "approve": 47,
+      "conditional": 25,
+      "reject": 78
+    }
+  },
+  "by_adoption": {
+    "skeptic": {
+      "approve": 44,
+      "conditional": 20,
+      "reject": 287
+    },
+    "curious": {
+      "approve": 83,
+      "conditional": 27,
+      "reject": 98
+    },
+    "early-adopter": {
+      "approve": 86,
+      "conditional": 49,
+      "reject": 69
+    },
+    "power-user": {
+      "approve": 133,
+      "conditional": 64,
+      "reject": 40
+    }
+  },
+  "top_concerns": [
+    {
+      "theme": "Want more granular control",
+      "count": 132
+    },
+    {
+      "theme": "Too much automation too fast",
+      "count": 128
+    },
+    {
+      "theme": "My current process works fine",
+      "count": 123
+    },
+    {
+      "theme": "Need better debugging tools",
+      "count": 120
+    },
+    {
+      "theme": "How do I know the AI won't make mistakes?",
+      "count": 119
+    },
+    {
+      "theme": "Need API access for custom workflows",
+      "count": 118
+    },
+    {
+      "theme": "This seems like another tool I'll have to learn",
+      "count": 115
+    },
+    {
+      "theme": "I need to see proof it works before committing",
+      "count": 114
+    },
+    {
+      "theme": "The preview/testing feature is critical",
+      "count": 113
+    },
+    {
+      "theme": "Advanced features seem limited",
+      "count": 104
+    }
+  ],
+  "top_suggestions": [
+    {
+      "theme": "Mobile-friendly status view",
+      "count": 185
+    },
+    {
+      "theme": "Clear activity log I can review",
+      "count": 180
+    },
+    {
+      "theme": "Show me exactly what will sync before it syncs",
+      "count": 174
+    },
+    {
+      "theme": "One-click to pause/resume",
+      "count": 161
+    },
+    {
+      "theme": "Approval workflows for changes",
+      "count": 141
+    },
+    {
+      "theme": "ROI/time-savings metrics",
+      "count": 131
+    },
+    {
+      "theme": "Team-wide configuration templates",
+      "count": 115
+    },
+    {
+      "theme": "Rollout visibility across reps",
+      "count": 113
+    },
+    {
+      "theme": "Automatic QBR prep",
+      "count": 88
+    },
+    {
+      "theme": "Data quality monitoring",
+      "count": 88
+    }
+  ],
+  "friction_points": [
+    {
+      "theme": "Rollback if something breaks",
+      "count": 282
+    },
+    {
+      "theme": "Integration with existing tools",
+      "count": 274
+    },
+    {
+      "theme": "Compliance/security concerns",
+      "count": 250
+    },
+    {
+      "theme": "Configuration complexity",
+      "count": 248
+    },
+    {
+      "theme": "Testing before go-live",
+      "count": 248
+    },
+    {
+      "theme": "Training team on changes",
+      "count": 240
+    },
+    {
+      "theme": "Unclear feedback on sync status",
+      "count": 235
+    },
+    {
+      "theme": "Understanding what gets synced",
+      "count": 223
+    }
+  ],
+  "sample_feedback": [
+    {
+      "persona_id": "persona_0130",
+      "archetype": "strategic-consultant",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "Look, I've been burned by these AI tools before. I need to see exactly what it's doing before I trust it with my customer data."
+    },
+    {
+      "persona_id": "persona_0018",
+      "archetype": "sales-leader",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "I'm not opposed to AI, I'm opposed to hype. Show me the ROI, show me it works, then we can talk."
+    },
+    {
+      "persona_id": "persona_0081",
+      "archetype": "sales-leader",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "I'm not opposed to AI, I'm opposed to hype. Show me the ROI, show me it works, then we can talk."
+    },
+    {
+      "persona_id": "persona_0096",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "conditional",
+      "feedback": "Look, I've been burned by these AI tools before. I need to see exactly what it's doing before I trust it with my workflow."
+    },
+    {
+      "persona_id": "persona_0706",
+      "archetype": "csm",
+      "ai_adoption": "skeptic",
+      "verdict": "approve",
+      "feedback": "Look, I've been burned by these AI tools before. I need to see exactly what it's doing before I trust it with my workflow."
+    },
+    {
+      "persona_id": "persona_0066",
+      "archetype": "sales-leader",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "My team has tool fatigue. Unless this is absolutely seamless, they won't use it. And if they don't use it, it's worthless."
+    },
+    {
+      "persona_id": "persona_0480",
+      "archetype": "sales-leader",
+      "ai_adoption": "skeptic",
+      "verdict": "conditional",
+      "feedback": "I'm not opposed to AI, I'm opposed to hype. Show me the ROI, show me it works, then we can talk."
+    },
+    {
+      "persona_id": "persona_0404",
+      "archetype": "sales-rep",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "I'm not opposed to AI, I'm opposed to hype. Show me the ROI, show me it works, then we can talk."
+    },
+    {
+      "persona_id": "persona_0146",
+      "archetype": "strategic-consultant",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "My team has tool fatigue. Unless this is absolutely seamless, they won't use it. And if they don't use it, it's worthless."
+    },
+    {
+      "persona_id": "persona_0514",
+      "archetype": "csm",
+      "ai_adoption": "skeptic",
+      "verdict": "reject",
+      "feedback": "I'm not opposed to AI, I'm opposed to hype. Show me the ROI, show me it works, then we can talk."
+    }
+  ]
+}

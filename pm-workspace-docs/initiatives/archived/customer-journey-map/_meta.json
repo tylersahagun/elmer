@@ -1,0 +1,50 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "customer-journey-map",
+  "hypothesis_id": "hyp-customer-journey-map",
+  "phase": "build",
+  "sub_phase": null,
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "personas": ["sales-rep", "sales-leader", "csm", "revops"],
+  "pillar": "customer-trust",
+  "created_at": "2026-01-13T16:52:15.961627",
+  "updated_at": "2026-01-14T17:16:38.650679",
+  "phase_history": [
+    {
+      "phase": "build",
+      "entered": "2026-01-13T16:52:15.961627",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Review build phase status",
+  "graduation_criteria": {},
+  "timeline": {
+    "started": "2026-01-13",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 1,
+    "total_iterations": 0
+  },
+  "linear_project_id": "b1452a74-a6a3-4fa6-8920-936a3b181590",
+  "linear_project_url": "https://linear.app/askelephant/project/customers-crm-b1452a74a6a3",
+  "notion_project_id": null,
+  "notion_project_url": null,
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": ["initiative:customer-journey"],
+  "github_branch_prefix": "feat/customer-journey",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  }
+}

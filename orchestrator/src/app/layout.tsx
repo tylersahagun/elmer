@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { ClerkProvider } from "@clerk/nextjs";
+import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
 import {
   ThemeProvider,
   SessionProvider,
@@ -45,22 +47,26 @@ export default function RootLayout({
       <body
         className={`${chillax.variable} ${synonym.variable} antialiased min-h-screen`}
       >
-        <SessionProvider>
-          <ThemeProvider>
-            <TourProvider>
-              <AuroraBackground />
-              <GridBackground />
-              <div className="relative z-10 min-h-screen">{children}</div>
-              <Toaster
-                theme="dark"
-                position="bottom-right"
-                toastOptions={{
-                  className: "bg-card border-border",
-                }}
-              />
-            </TourProvider>
-          </ThemeProvider>
-        </SessionProvider>
+        <ClerkProvider>
+          <ConvexClientProvider>
+            <SessionProvider>
+              <ThemeProvider>
+                <TourProvider>
+                  <AuroraBackground />
+                  <GridBackground />
+                  <div className="relative z-10 min-h-screen">{children}</div>
+                  <Toaster
+                    theme="dark"
+                    position="bottom-right"
+                    toastOptions={{
+                      className: "bg-card border-border",
+                    }}
+                  />
+                </TourProvider>
+              </ThemeProvider>
+            </SessionProvider>
+          </ConvexClientProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

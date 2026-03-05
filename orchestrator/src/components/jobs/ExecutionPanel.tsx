@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -18,29 +18,16 @@ import {
 } from "lucide-react";
 import { GlassCard } from "@/components/glass";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { QuestionModal, type PendingQuestionView } from "./QuestionModal";
+import { useJobLogs } from "@/hooks/useJobLogs";
 
 interface LogEntry {
+  id: string;
   timestamp: string;
   level: "info" | "warn" | "error" | "debug";
   message: string;
   data?: Record<string, unknown>;
-}
-
-interface JobSnapshot {
-  id: string;
-  type: string;
-  status: "pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled";
-  progress?: number | null;
-  error?: string | null;
-  input?: Record<string, unknown> | null;
-  output?: Record<string, unknown> | null;
-  projectId?: string | null;
-  workspaceId?: string;
-  createdAt?: string;
-  completedAt?: string | null;
 }
 
 interface ExecutionPanelProps {
@@ -62,17 +49,11 @@ export function ExecutionPanel({
   onCancel,
   className,
 }: ExecutionPanelProps) {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [status, setStatus] = useState<"pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled">("pending");
-  const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [jobSnapshot, setJobSnapshot] = useState<JobSnapshot | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const { logs: rawLogs, job } = useJobLogs(jobId);
   const [isExpanded, setIsExpanded] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
   const [questionModalOpen, setQuestionModalOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
 
   const { data: questionData, refetch: refetchQuestions } = useQuery<{
     questions: PendingQuestionView[];
@@ -83,8 +64,8 @@ export function ExecutionPanel({
       if (!response.ok) throw new Error("Failed to load job questions");
       return response.json();
     },
-    enabled: !!jobId && status === "waiting_input",
-    refetchInterval: status === "waiting_input" ? 10000 : false,
+    enabled: !!jobId && job?.status === "waiting_input",
+    refetchInterval: job?.status === "waiting_input" ? 10000 : false,
   });
 
   const activeQuestion = questionData?.questions?.[0] ?? null;
@@ -113,7 +94,6 @@ export function ExecutionPanel({
     },
     onSuccess: () => {
       setQuestionModalOpen(false);
-      setStatus("pending");
       void refetchQuestions();
     },
   });
@@ -135,100 +115,22 @@ export function ExecutionPanel({
     },
     onSuccess: () => {
       setQuestionModalOpen(false);
-      setStatus("pending");
       void refetchQuestions();
     },
   });
-
-  // Connect to SSE endpoint
-  useEffect(() => {
-    if (!jobId) return;
-
-    const connect = () => {
-      const eventSource = new EventSource(`/api/jobs/${jobId}/logs`);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        setIsConnected(true);
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          switch (data.type) {
-            case "initial":
-              setStatus(data.job.status);
-              setProgress(data.job.progress || 0);
-              if (data.job.error) setError(data.job.error);
-              setJobSnapshot(data.job);
-              break;
-
-            case "log":
-              setLogs((prev) => [
-                ...prev,
-                {
-                  timestamp: data.timestamp,
-                  level: data.level,
-                  message: data.message,
-                  data: data.data,
-                },
-              ]);
-              break;
-
-            case "status":
-              setStatus(data.status);
-              setProgress(data.progress || 0);
-              setJobSnapshot((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      status: data.status,
-                      progress: data.progress || 0,
-                      output: data.output ?? prev.output,
-                      error: data.error ?? prev.error,
-                    }
-                  : prev,
-              );
-              break;
-
-            case "finished":
-              setStatus(data.status);
-              if (data.error) setError(data.error);
-              setJobSnapshot((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      status: data.status,
-                      output: data.output ?? prev.output,
-                      error: data.error ?? prev.error,
-                    }
-                  : prev,
-              );
-              eventSource.close();
-              break;
-          }
-        } catch {
-          console.error("Failed to parse SSE message");
-        }
-      };
-
-      eventSource.onerror = () => {
-        setIsConnected(false);
-        eventSource.close();
-        // Reconnect after 3 seconds if job is still running
-        if (status === "running" || status === "pending") {
-          setTimeout(connect, 3000);
-        }
-      };
-    };
-
-    connect();
-
-    return () => {
-      eventSourceRef.current?.close();
-    };
-  }, [jobId, status]);
+  // Map Convex log entries to display shape
+  const logs = rawLogs.map((l) => ({
+    id: l._id,
+    timestamp: new Date(l._creationTime).toISOString(),
+    level: l.level as "info" | "warn" | "error" | "debug",
+    message: l.message,
+    data: l.meta as Record<string, unknown> | undefined,
+  }));
+  const status = job?.status ?? "pending";
+  const progress = job?.progress ?? 0;
+  const error = job?.errorMessage ?? null;
+  const isConnected = job !== null;
+  const jobSnapshot = job;
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -237,11 +139,11 @@ export function ExecutionPanel({
     }
   }, [logs, autoScroll]);
 
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
     setAutoScroll(isAtBottom);
-  }, []);
+  };
 
   const formatJobType = (type: string) => {
     return type
@@ -382,7 +284,7 @@ export function ExecutionPanel({
         {status === "running" && (
           <div className="h-1 bg-white/5">
             <motion.div
-              className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+              className="h-full bg-linear-to-r from-purple-500 to-pink-500"
               initial={{ width: 0 }}
               animate={{ width: `${progress * 100}%` }}
               transition={{ duration: 0.3 }}
@@ -464,9 +366,9 @@ export function ExecutionPanel({
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    {logs.map((log, i) => (
+                    {logs.map((log) => (
                       <motion.div
-                        key={i}
+                        key={log.id}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         className="flex gap-2"
@@ -570,36 +472,9 @@ export function ExecutionBadge({
   jobType: string;
   className?: string;
 }) {
-  const [status, setStatus] = useState<"pending" | "running" | "waiting_input" | "completed" | "failed">("pending");
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    if (!jobId) return;
-
-    const eventSource = new EventSource(`/api/jobs/${jobId}/logs`);
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "initial" || data.type === "status") {
-          setStatus(data.job?.status || data.status);
-          setProgress(data.job?.progress || data.progress || 0);
-        }
-        if (data.type === "finished") {
-          setStatus(data.status);
-          eventSource.close();
-        }
-      } catch {
-        // Ignore parse errors
-      }
-    };
-
-    eventSource.onerror = () => {
-      eventSource.close();
-    };
-
-    return () => eventSource.close();
-  }, [jobId]);
+  const { job } = useJobLogs(jobId);
+  const status = job?.status ?? "pending";
+  const progress = job?.progress ?? 0;
 
   const formatJobType = (type: string) => {
     return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());

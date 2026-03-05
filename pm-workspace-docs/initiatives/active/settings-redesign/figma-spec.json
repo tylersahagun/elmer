@@ -1,0 +1,224 @@
+{
+  "name": "SettingsRedesign",
+  "figmaFile": "JGTWtD8UHTS5PkMF4a11MT",
+  "generatedAt": "2026-01-20",
+  "mode": "exact",
+  "nodes": {
+    "1-2836": {
+      "name": "Settings (Desktop)",
+      "type": "full-page",
+      "url": "https://www.figma.com/design/JGTWtD8UHTS5PkMF4a11MT/Settings-page?node-id=1-2836",
+      "components": [
+        "SettingsPageFigma",
+        "SettingsWorkspace",
+        "MeetingRecapSection",
+        "ProBlocksSidebarLink",
+        "Switch"
+      ],
+      "outputFiles": [
+        "SettingsFigma.tsx",
+        "SettingsFigma.stories.tsx"
+      ]
+    },
+    "1-15579": {
+      "name": "_Settings components",
+      "type": "component-variants",
+      "url": "https://www.figma.com/design/JGTWtD8UHTS5PkMF4a11MT/Settings-page?node-id=1-15579",
+      "components": [
+        "SettingsFormField",
+        "TextInput",
+        "TextArea",
+        "Select",
+        "SelectWithCallout",
+        "SwitchField",
+        "Switch"
+      ],
+      "variants": {
+        "SettingsFormField": {
+          "type": {
+            "Long input": "Basic text input with clear button",
+            "Type5": "Text input with description",
+            "Textarea": "Multi-line text area",
+            "Select": "Dropdown selector",
+            "Select - callout": "Dropdown with warning note",
+            "Switch": "Toggle switch"
+          },
+          "hasDescription": {
+            "true": "Shows description below label",
+            "false": "No description"
+          }
+        },
+        "TextInput": {
+          "description": {
+            "present": "Type5 variant",
+            "absent": "Long input variant"
+          }
+        },
+        "TextArea": {
+          "description": {
+            "present": "With description",
+            "absent": "Without description"
+          }
+        },
+        "Select": {
+          "description": {
+            "present": "With description",
+            "absent": "Without description"
+          }
+        },
+        "SelectWithCallout": {
+          "calloutMessage": "Warning/note callout below select"
+        },
+        "SwitchField": {
+          "description": {
+            "present": "With description",
+            "absent": "Without description"
+          }
+        },
+        "Switch": {
+          "active": {
+            "true": "On state (green, knob right)",
+            "false": "Off state (gray, knob left)"
+          },
+          "showText": {
+            "true": "Shows label text",
+            "false": "No label text"
+          },
+          "showDescription": {
+            "true": "Shows description",
+            "false": "No description"
+          }
+        }
+      },
+      "outputFiles": [
+        "SettingsFormFields.tsx",
+        "SettingsFormFields.stories.tsx"
+      ]
+    }
+  },
+  "props": {
+    "SettingsFormField": {
+      "type": {
+        "type": "'Long input' | 'Type5' | 'Textarea' | 'Select' | 'Select - callout' | 'Switch'",
+        "required": true,
+        "description": "Form field variant type"
+      },
+      "label": {
+        "type": "string",
+        "required": true,
+        "description": "Field label"
+      },
+      "value": {
+        "type": "string",
+        "required": false,
+        "description": "Field value"
+      },
+      "description": {
+        "type": "string",
+        "required": false,
+        "description": "Field description"
+      },
+      "hasDescription": {
+        "type": "boolean",
+        "required": false,
+        "description": "Whether to show description"
+      },
+      "options": {
+        "type": "Array<{ value: string, label: string }>",
+        "required": false,
+        "description": "Options for select fields"
+      },
+      "checked": {
+        "type": "boolean",
+        "required": false,
+        "description": "Switch checked state"
+      },
+      "onChange": {
+        "type": "(value: any) => void",
+        "required": false,
+        "description": "Change handler"
+      },
+      "calloutTitle": {
+        "type": "string",
+        "required": false,
+        "description": "Callout title for Select - callout type"
+      },
+      "calloutMessage": {
+        "type": "ReactNode",
+        "required": false,
+        "description": "Callout content for Select - callout type"
+      }
+    },
+    "Switch": {
+      "active": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether switch is active (on)"
+      },
+      "showText": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to show label text"
+      },
+      "showDescription": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Whether to show description"
+      },
+      "switchText": {
+        "type": "string",
+        "required": false,
+        "description": "Label text content"
+      },
+      "descriptionText": {
+        "type": "string",
+        "required": false,
+        "description": "Description text content"
+      }
+    }
+  },
+  "tokens": {
+    "colors": {
+      "primary": "#10b981",
+      "primaryHover": "#059669",
+      "background": "#ffffff",
+      "border": "#e5e7eb",
+      "borderFocus": "#d1d5db",
+      "text": "#111827",
+      "textMuted": "#6b7280",
+      "textLight": "#9ca3af",
+      "calloutBackground": "#fef3c7",
+      "calloutText": "#92400e"
+    },
+    "typography": {
+      "labelSize": "14px",
+      "labelWeight": "500",
+      "labelColor": "#111827",
+      "descriptionSize": "14px",
+      "descriptionColor": "#6b7280",
+      "inputSize": "16px",
+      "inputColor": "#111827"
+    },
+    "spacing": {
+      "fieldGap": "8px",
+      "sectionGap": "24px",
+      "inputPadding": "12px 16px"
+    },
+    "borders": {
+      "radius": "8px",
+      "color": "#e5e7eb",
+      "colorFocus": "#d1d5db"
+    }
+  },
+  "assets": {
+    "icons": {
+      "circleX": "https://www.figma.com/api/mcp/asset/431883c1-80a4-46ab-b41f-8e19d9288c23",
+      "copy": "https://www.figma.com/api/mcp/asset/6b6e342d-9615-4f36-97bc-7a28bbdc65bd",
+      "chevronDown": "https://www.figma.com/api/mcp/asset/e6893fad-24f6-447f-9dde-3e1742729590"
+    },
+    "note": "Asset URLs expire after 7 days. Regenerate or replace with local assets."
+  }
+}

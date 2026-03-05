@@ -1,0 +1,159 @@
+{
+  "archetype_id": "sales-leader",
+  "archetype_name": "Sales Leader",
+  "source_documents": [
+    ".pm-workspace/company-context/personas.md",
+    ".pm-workspace/personas/Personas/Customer Personas/Alex Talentire*.md",
+    ".pm-workspace/personas/Personas/Customer Personas/Payton Vallee*.md",
+    ".pm-workspace/personas/Personas/Customer Personas/Aaron Allan*.md"
+  ],
+  "core_definition": {
+    "goal": "Coach effectively, forecast accurately, hit team quota",
+    "pain": "Can't be on every call, reactive coaching, tool complexity, data fragmentation",
+    "success": "Spots issues early, targeted coaching, team at 100% quota",
+    "key_workflows": ["Call reviews", "Pipeline analysis", "Coaching sessions", "Tool evaluation"]
+  },
+  "sub_types": {
+    "executive_leader": {
+      "description": "C-Suite or VP with budget authority, delegates evaluation",
+      "distribution": 0.25,
+      "distinguishing_traits": {
+        "decision_authority": "decision-maker",
+        "evaluation_involvement": "light",
+        "primary_focus": "ROI and strategic outcomes",
+        "quote_example": "The real question is, what does that whole lot of sense cost?"
+      }
+    },
+    "sdr_leader": {
+      "description": "Head of SDR/BDR, built function from ground up, hands-on",
+      "distribution": 0.50,
+      "distinguishing_traits": {
+        "decision_authority": "influencer-champion",
+        "evaluation_involvement": "heavy",
+        "primary_focus": "Team performance, process optimization",
+        "quote_example": "We have like 200 tools. Do any of them talk to each other? Sort of."
+      }
+    },
+    "small_team_leader": {
+      "description": "Leads small team with no RevOps support, does everything",
+      "distribution": 0.25,
+      "distinguishing_traits": {
+        "decision_authority": "decision-maker",
+        "evaluation_involvement": "heavy-but-time-constrained",
+        "primary_focus": "Simplicity over features",
+        "quote_example": "I'm just not gonna do anything and probably overpay because I don't have the time"
+      }
+    }
+  },
+  "variation_dimensions": {
+    "company_size": {
+      "distribution": {
+        "1-50": 0.15,
+        "51-200": 0.35,
+        "201-1000": 0.35,
+        "1000+": 0.15
+      }
+    },
+    "tech_literacy": {
+      "distribution": {
+        "novice": 0.10,
+        "intermediate": 0.50,
+        "advanced": 0.35,
+        "expert": 0.05
+      }
+    },
+    "ai_adoption_stage": {
+      "distribution": {
+        "skeptic": 0.10,
+        "curious": 0.35,
+        "early-adopter": 0.40,
+        "power-user": 0.15
+      }
+    },
+    "revops_support": {
+      "distribution": {
+        "none": 0.40,
+        "shared": 0.35,
+        "dedicated": 0.25
+      }
+    },
+    "seniority": {
+      "distribution": {
+        "manager": 0.40,
+        "director": 0.35,
+        "vp": 0.20,
+        "c-suite": 0.05
+      }
+    }
+  },
+  "common_titles": [
+    "Sales Manager",
+    "Director of Sales",
+    "VP of Sales",
+    "Head of Sales Development",
+    "Head of Revenue",
+    "CRO",
+    "Regional Sales Manager",
+    "Director of Marketing (with revenue ownership)"
+  ],
+  "typical_pain_points": [
+    "Tool proliferation - 200 tools that don't talk to each other",
+    "Data fragmentation across HubSpot, Outreach, Gong, etc.",
+    "Closed-lost deal re-engagement is manual nightmare",
+    "AE to CS handoff loses critical context",
+    "CRM hygiene on SDR front is horrible",
+    "Can't listen to every call to coach effectively",
+    "Forecast accuracy suffers from inconsistent rep data",
+    "Migration pain prevents evaluating better solutions"
+  ],
+  "typical_fears": [
+    "Migration will be too painful and time-consuming",
+    "Another tool that doesn't integrate with existing stack",
+    "Will have to support this on top of everything else",
+    "AI will add complexity without delivering value",
+    "Tool won't be simple enough for team adoption"
+  ],
+  "typical_voice_quotes": [
+    "We have like 200 tools. Do any of them talk to each other? Sort of.",
+    "The real question is, what does that whole lot of sense cost?",
+    "If that is too painful or too lengthy, I'm just not gonna do anything and probably overpay",
+    "I don't have anybody in rev ops or anything like that",
+    "That AE to CS handoff is huge because all of that can get lost in an instant",
+    "On the SDR front, CRM hygiene is horrible. I mean, it's not heinous, but definitely not great.",
+    "Make our guys sell better",
+    "I know they're not happy with recruiting, which is why that's the lowest hanging fruit for me"
+  ],
+  "behavioral_patterns": {
+    "first_click_tendency": "Looks for dashboards, summaries, aggregates",
+    "error_response": "Escalates or assigns someone to figure it out",
+    "help_seeking": "Delegates to team member or ops person",
+    "abandonment_trigger": "ROI unclear after first month OR migration too painful",
+    "evaluation_style": "Consensus-builder for SDR leaders; quick ROI decision for executives"
+  },
+  "decision_dynamics": {
+    "typical_stakeholders": ["SVP of Sales", "Head of Sales", "RevOps if exists"],
+    "budget_cycle_awareness": "January budget unlock common",
+    "tool_freeze_periods": "November-December common",
+    "competitive_evaluation": "Typically 2-5 vendors compared systematically"
+  },
+  "real_customer_examples": [
+    {
+      "name": "Alex Talentire",
+      "company": "Remsys",
+      "sub_type": "small_team_leader",
+      "key_trait": "Migration concerns trump features"
+    },
+    {
+      "name": "Payton Vallee",
+      "company": "UpGuard",
+      "sub_type": "sdr_leader",
+      "key_trait": "Grassroots leader, consensus-builder"
+    },
+    {
+      "name": "Aaron Allan",
+      "company": "Agent Boost",
+      "sub_type": "executive_leader",
+      "key_trait": "Marketing title but revenue ownership"
+    }
+  ]
+}

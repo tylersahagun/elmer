@@ -1,0 +1,59 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "universal-signal-tables",
+  "hypothesis_id": "hyp-universal-signal-tables",
+  "phase": "build",
+  "sub_phase": null,
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "personas": [
+    "sales-rep",
+    "sales-leader",
+    "revops"
+  ],
+  "pillar": "customer-trust",
+  "created_at": "2026-01-08T09:09:35.408891",
+  "updated_at": "2026-01-14T20:05:31.625729",
+  "phase_history": [
+    {
+      "phase": "build",
+      "entered": "2026-01-08T09:09:35.408891",
+      "exited": null
+    }
+  ],
+  "blockers": [],
+  "next_action": "Review build phase status",
+  "graduation_criteria": {},
+  "timeline": {
+    "started": "2026-01-08",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 0
+  },
+  "linear_project_id": "978cd60b-ee1c-48ed-bb70-8ca951e37329",
+  "linear_project_url": "https://linear.app/askelephant/project/universal-signals-12c493778b42",
+  "notion_project_id": "2e2f79b2-c8ac-81e0-9481-e3a196a216ea",
+  "notion_project_url": "https://www.notion.so/Universal-Signal-Tables-2e2f79b2c8ac81e09481e3a196a216ea",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [
+    "initiative:signal-tables",
+    "signals"
+  ],
+  "github_branch_prefix": "feat/signals",
+  "dev_activity": {
+    "last_synced": "2026-02-20T06:54:56Z",
+    "linear_issues_total": 2,
+    "linear_issues_completed": 0,
+    "linear_issues_in_progress": 0,
+    "github_prs_merged_30d": null
+  },
+  "notion_project_name": "Universal Signal Tables",
+  "linear_project_name": "Universal Signals"
+}

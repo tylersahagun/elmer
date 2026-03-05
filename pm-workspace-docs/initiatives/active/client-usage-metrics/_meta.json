@@ -1,0 +1,59 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "client-usage-metrics",
+  "notion_project_id": "2fff79b2-c8ac-807f-8ff0-c6a9ff7e2ed3",
+  "notion_project_name": "How do we get client specific usage metrics",
+  "notion_project_url": "https://www.notion.so/How-do-we-get-client-specific-usage-metrics-2fff79b2c8ac807f8ff0c6a9ff7e2ed3",
+  "hypothesis_id": null,
+  "phase": "build",
+  "sub_phase": "prototyping",
+  "status": "on_track",
+  "priority": "P2",
+  "owner": "tyler",
+  "owner_note": "Tyler owns PM; partner with Dylan (data eng) and Ben Harrison (CS) for validation",
+  "eng_lead": null,
+  "design_lead": null,
+  "feedback_method": "usage-analytics",
+  "feedback_status": "planned",
+  "personas": ["csm", "sales-leader", "revops"],
+  "pillar": "customer-trust",
+  "current_version": "v10",
+  "created_at": "2026-02-06T02:44:00.000000",
+  "updated_at": "2026-02-12T00:00:00.000000",
+  "competitive_landscape": {
+    "last_analyzed": "2026-02-13",
+    "competitors": [
+      "gainsight",
+      "vitally",
+      "churnzero",
+      "totango-catalyst",
+      "gong",
+      "clari",
+      "day-ai",
+      "pendo",
+      "mixpanel-amplitude"
+    ],
+    "differentiation_score": "strong"
+  },
+  "posthog": {
+    "dashboard_id": null,
+    "baseline_established": false
+  },
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-02-06T02:44:00.000000",
+      "exited": "2026-02-08T00:00:00.000000"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-02-08T00:00:00.000000",
+      "exited": "2026-02-08T00:00:00.000000"
+    },
+    {
+      "phase": "build",
+      "entered": "2026-02-08T00:00:00.000000",
+      "exited": null
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -187,7 +187,7 @@ export default function WorkspaceSettingsPage({
 }) {
   const { id: workspaceId } = use(params);
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
+  const { user } = useCurrentUser();
 
   // UI state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -422,7 +422,7 @@ export default function WorkspaceSettingsPage({
 
   // Find current user's role
   const currentUserMembership = members?.find(
-    (m) => m.userId === session?.user?.id,
+    (m) => m.userId === user?.id,
   );
   const isAdmin = currentUserMembership?.role === "admin";
 
@@ -1130,7 +1130,7 @@ export default function WorkspaceSettingsPage({
                               <p className="font-medium">
                                 {member.user.name ||
                                   member.user.email.split("@")[0]}
-                                {member.userId === session?.user?.id && (
+                                {member.userId === user?.id && (
                                   <span className="text-muted-foreground ml-2">
                                     (you)
                                   </span>

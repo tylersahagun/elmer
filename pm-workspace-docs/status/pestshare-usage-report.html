@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pest Share — AskElephant Usage Report · March 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--surface3:#2a2f45;
+  --border:#2d3250;--accent:#6366f1;--accent2:#8b5cf6;
+  --green:#22c55e;--amber:#f59e0b;--rose:#f43f5e;--sky:#38bdf8;
+  --text:#e2e8f0;--text2:#cbd5e1;--muted:#64748b;
+  --card-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+header{background:linear-gradient(135deg,#1a1d27,#161929);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.logo{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.hd{display:flex;align-items:center;gap:14px;}
+header h1{font-size:19px;font-weight:700;letter-spacing:-.3px;}
+header p{font-size:12px;color:var(--muted);margin-top:2px;}
+.mode-row{display:flex;align-items:center;gap:10px;}
+.mode-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+.mb{padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);}
+.mb.on{background:var(--accent);color:#fff;}
+.btn{background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.35);border-radius:7px;padding:7px 14px;color:#a5b4fc;font-size:12px;font-weight:500;cursor:pointer;}
+.btn:hover{background:rgba(99,102,241,.3);}
+.main{padding:24px 32px;}
+
+/* Stats */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin-bottom:20px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:var(--card-shadow);}
+.sc .lb{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.sc .vl{font-size:22px;font-weight:700;letter-spacing:-.5px;}
+.sc .sb{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.sc .nt{font-size:9px;color:rgba(100,116,139,.65);margin-top:2px;}
+.sc.alert{border-color:rgba(244,63,94,.35);background:rgba(244,63,94,.06);}
+.sc.alert .lb{color:var(--rose);}
+
+/* Health alert */
+.health-alert{background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.3);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start;}
+.ha-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.ha-title{font-size:13px;font-weight:700;color:var(--rose);margin-bottom:4px;}
+.ha-body{font-size:12px;color:var(--text2);line-height:1.6;}
+.ha-body strong{color:var(--text);}
+
+/* Charts */
+.ch-section{margin-bottom:20px;}
+.ch-header{margin-bottom:12px;}
+.ch-title{font-size:13px;font-weight:600;color:var(--text2);}
+.ch-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:880px){.ch-grid{grid-template-columns:1fr;}}
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:15px 17px;box-shadow:var(--card-shadow);}
+.ct{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:2px;}
+.cs{font-size:10px;color:var(--muted);margin-bottom:11px;}
+.cw{position:relative;height:155px;}
+
+/* Legend */
+.leg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;}
+.li{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:10px;color:var(--muted);cursor:help;}
+.li strong{color:var(--text2);}
+
+/* Data notes */
+.dn{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--muted);line-height:1.6;}
+.dn strong{color:var(--amber);}
+
+/* Toolbar */
+.tb{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+input.ti{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 11px;color:var(--text);font-size:12px;width:200px;}
+input.ti:focus{outline:none;border-color:var(--accent);}
+input.ti::placeholder{color:var(--muted);}
+select.ts{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;cursor:pointer;}
+.tb-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+#rc{font-size:11px;color:var(--muted);}
+.be{background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);border-radius:7px;padding:6px 12px;color:#a5b4fc;font-size:11px;font-weight:500;cursor:pointer;}
+.be:hover{background:rgba(99,102,241,.25);}
+
+/* Table */
+.tw{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:auto;box-shadow:var(--card-shadow);}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead{background:var(--surface2);position:sticky;top:0;z-index:10;}
+thead tr{border-bottom:1px solid var(--border);}
+th{padding:9px 12px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{color:var(--text);}
+th.sa::after{content:' ↑';color:var(--accent);}
+th.sd::after{content:' ↓';color:var(--accent);}
+th.sa,th.sd{color:var(--accent);}
+td{padding:9px 12px;border-bottom:1px solid rgba(45,50,80,.35);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(99,102,241,.04);}
+.uc{display:flex;align-items:center;gap:9px;}
+.av{width:27px;height:27px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+.un{font-weight:500;}
+.ue{font-size:10px;color:var(--muted);}
+.pill{display:inline-flex;align-items:center;gap:3px;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500;}
+.pg{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.pr{background:rgba(244,63,94,.15);color:var(--rose);border:1px solid rgba(244,63,94,.25);}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.bw{display:flex;align-items:center;gap:7px;}
+.br{height:3px;background:var(--border);border-radius:2px;width:44px;}
+.bf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.ac{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
+.am{font-weight:600;font-variant-numeric:tabular-nums;}
+.as{font-size:9px;color:var(--muted);}
+.footer{margin-top:12px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd">
+    <div class="logo">🐘</div>
+    <div>
+      <h1>Pest Share — AskElephant Usage Report</h1>
+      <p>Generated March 4, 2026 · PostHog Production · 92 identified users (stitched)</p>
+    </div>
+  </div>
+  <div class="mode-row">
+    <div class="mode-toggle">
+      <button class="mb on" id="bInt" onclick="setMode('internal')">Internal</button>
+      <button class="mb" id="bCust" onclick="setMode('customer')">Customer</button>
+    </div>
+    <button class="btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Growth Highlight (internal) -->
+  <div class="health-alert" id="healthAlert" style="background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.3);">
+    <div class="ha-icon">📈</div>
+    <div>
+      <div class="ha-title" style="color:var(--green)">Strong Growth — Database Migration Explains the July Gap</div>
+      <div class="ha-body">
+        A database migration in July 2025 caused a workspace ID change, which made data appear to stop.
+        After stitching both workspaces (<code style="background:rgba(0,0,0,.2);padding:1px 5px;border-radius:3px;font-size:10px">id:KQDSmlSEz6B9otzhF4qx</code> + <code style="background:rgba(0,0,0,.2);padding:1px 5px;border-radius:3px;font-size:10px">id:wrks_01JNKRC7Q6FJRVQK5TQMX4516W</code>),
+        the full picture shows <strong>continuous growth:</strong> 28 users / 5K meetings/month in March 2025 →
+        <strong>70 users / 10,280 meetings in February 2026</strong>. User count nearly tripled. This is a healthy, expanding account.
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="sg" id="statsGrid"></div>
+
+  <!-- Charts -->
+  <div class="ch-section">
+    <div class="ch-header">
+      <div class="ch-title">12-Month Trends — Pest Share</div>
+      <div class="ch-sub">March 2025 through February 2026 · stitched across pre- and post-migration workspaces</div>
+    </div>
+    <div class="ch-grid">
+      <div class="cc"><div class="ct">Monthly Active Users</div><div class="cs">Distinct users with any tracked event</div><div class="cw"><canvas id="cU"></canvas></div></div>
+      <div class="cc"><div class="ct">Avg Meeting Runs / Active User / Month</div><div class="cs">Total pipeline + workflow runs ÷ active users that month</div><div class="cw"><canvas id="cM"></canvas></div></div>
+      <div class="cc"><div class="ct">Avg AI Interactions / Active User / Month</div><div class="cs">Chat sessions + conversation messages ÷ active users</div><div class="cw"><canvas id="cA"></canvas></div></div>
+      <div class="cc"><div class="ct">Avg Workflow Runs / Active User / Month</div><div class="cs">Automated workflow executions ÷ active users</div><div class="cw"><canvas id="cW"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Metric legend -->
+  <div class="leg">
+    <div class="li" title="Distinct calendar days with any tracked event"><strong>Days Active</strong> — Calendar days with tracked events</div>
+    <div class="li" title="Total meeting pipeline/workflow runs ÷ months since first active"><strong>Avg Mtgs/Mo</strong> — Per-user avg. Sub-label = Auto(A) vs Manual(M)</div>
+    <div class="li" title="Each pipeline or workflow execution counts as 1 meeting run"><strong>Meetings</strong> — Total pipeline + workflow executions (all time)</div>
+    <div class="li" title="Meetings where the AE recording bot joined and completed a session (recall:bot_done)"><strong>Bot Sessions</strong> — Meetings where AE bot joined + finished recording</div>
+    <div class="li" title="Artifact views opened by this user (meeting summaries, call pages)"><strong>Art. Viewed</strong> — Meeting summary pages opened</div>
+    <div class="li" title="Can exceed Art. Viewed when users interact via mobile app or API without triggering a browser view event"><strong>Art. Interacted</strong> — Actions taken on artifacts (clicks, copies, expansions)</div>
+    <div class="li" title="chat_created + conversation:message_sent — any direct LLM query or message exchange"><strong>AI Interact.</strong> — Direct AI queries (chat + conversation messages)</div>
+    <div class="li" title="Total app pageviews — proxy for overall platform engagement depth"><strong>Pageviews</strong> — Total app pageviews (platform engagement proxy)</div>
+  </div>
+
+  <div class="dn">
+    <strong>⚠ Data note — Artifacts Interacted > Artifacts Viewed</strong> for Diego Mañon (68 viewed, 73 interacted).
+    This occurs when users interact via the mobile app or API, which fires <code>artifact_interacted_with</code> without a corresponding browser <code>artifact_viewed</code> event. Both metrics are accurate for their respective tracking paths.
+  </div>
+
+  <div class="dn" style="background:rgba(99,102,241,.07);border-color:rgba(99,102,241,.2);">
+    <strong style="color:var(--accent)">ℹ Migration note — User table shows pre-migration users only</strong>
+    The per-user table below reflects the original workspace (<code>id:KQDSmlSEz6B9otzhF4qx</code>, 41 identified users).
+    Post-migration users (~51 additional identified via <code>id:wrks_01JNKRC7Q6FJRVQK5TQMX4516W</code>) will be added
+    once the user-level query is updated to stitch both workspaces. The trend charts above already reflect the full stitched view.
+  </div>
+
+  <!-- Toolbar -->
+  <div class="tb">
+    <input class="ti" id="srch" placeholder="Search name / email…" oninput="onSearch(this.value)">
+    <select class="ts" id="seatF" onchange="onSeatF(this.value)">
+      <option value="all">All users</option>
+      <option value="Active">Active (30d)</option>
+      <option value="Inactive" id="inactOpt">Inactive</option>
+    </select>
+    <select class="ts" id="meetF" onchange="onMeetF(this.value)">
+      <option value="0">Any meeting count</option>
+      <option value="50">50+ meetings</option>
+      <option value="200">200+ meetings</option>
+      <option value="500">500+ meetings</option>
+    </select>
+    <div class="tb-right">
+      <span id="rc"></span>
+      <button class="be" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+  </div>
+
+  <div class="tw" id="tblWrap"></div>
+
+  <div class="footer">
+    <span>Source: PostHog Production · Group: id:KQDSmlSEz6B9otzhF4qx · All-time data through Mar 4, 2026</span>
+    <span>Generated March 4, 2026</span>
+  </div>
+</div>
+
+<script>
+// ── Data ─────────────────────────────────────────────────────────────────────
+const CUTOFF = '2026-02-04';
+
+// Deduped by email — max last_active used, metrics from highest days_active entry
+// avg_per_mo = meet_total / months_between(first_active, last_active)
+const USERS = [
+  {name:"Dana Messmer",       email:"dana@pestshare.com",       isManager:null, firstActive:"2024-10-10", lastActive:"2026-02-12", daysActive:251, meetAuto:4097, meetManual:206, artViewed:136, artInteract:135, aiInteract:247, botRec:527, convos:37, pageviews:4751},
+  {name:"Scott Stollwerk",    email:"scott@pestshare.com",      isManager:null, firstActive:"2024-10-28", lastActive:"2025-11-10", daysActive:213, meetAuto:743,  meetManual:63,  artViewed:90,  artInteract:78,  aiInteract:108, botRec:306, convos:17, pageviews:1867},
+  {name:"Michelle Ziv",       email:"michelle@pestshare.com",   isManager:null, firstActive:"2024-11-13", lastActive:"2026-02-12", daysActive:201, meetAuto:1156, meetManual:36,  artViewed:132, artInteract:129, aiInteract:302, botRec:219, convos:34, pageviews:3011},
+  {name:"Tom Clements",       email:"tom@pestshare.com",        isManager:null, firstActive:"2024-11-01", lastActive:"2026-02-06", daysActive:198, meetAuto:588,  meetManual:20,  artViewed:58,  artInteract:43,  aiInteract:28,  botRec:248, convos:4,  pageviews:832},
+  {name:"Justin Clements",    email:"justin@pestshare.com",     isManager:null, firstActive:"2024-09-25", lastActive:"2025-12-02", daysActive:177, meetAuto:538,  meetManual:21,  artViewed:23,  artInteract:21,  aiInteract:2,   botRec:353, convos:0,  pageviews:91},
+  {name:"Anne Williams",      email:"anne@pestshare.com",       isManager:null, firstActive:"2024-10-31", lastActive:"2025-10-25", daysActive:171, meetAuto:765,  meetManual:127, artViewed:41,  artInteract:48,  aiInteract:23,  botRec:161, convos:0,  pageviews:743},
+  {name:"Diego Mañon",        email:"diego@pestshare.com",      isManager:null, firstActive:"2024-11-11", lastActive:"2026-02-10", daysActive:159, meetAuto:2794, meetManual:78,  artViewed:68,  artInteract:73,  aiInteract:376, botRec:272, convos:16, pageviews:823},
+  {name:"Kim Jameson",        email:"kim@pestshare.com",        isManager:null, firstActive:"2024-11-13", lastActive:"2026-02-12", daysActive:155, meetAuto:879,  meetManual:20,  artViewed:48,  artInteract:54,  aiInteract:30,  botRec:209, convos:3,  pageviews:696},
+  {name:"Kory Rosenberg",     email:"kory@pestshare.com",       isManager:null, firstActive:"2024-10-31", lastActive:"2025-09-09", daysActive:152, meetAuto:937,  meetManual:52,  artViewed:38,  artInteract:37,  aiInteract:29,  botRec:246, convos:2,  pageviews:880},
+  {name:"Laurie Rossini",     email:"laurie@pestshare.com",     isManager:null, firstActive:"2024-11-13", lastActive:"2025-12-02", daysActive:144, meetAuto:1109, meetManual:29,  artViewed:79,  artInteract:86,  aiInteract:15,  botRec:151, convos:6,  pageviews:543},
+  {name:"Jack McArdle",       email:"jack@pestshare.com",       isManager:null, firstActive:"2024-10-10", lastActive:"2026-01-05", daysActive:136, meetAuto:126,  meetManual:7,   artViewed:9,   artInteract:7,   aiInteract:12,  botRec:134, convos:3,  pageviews:413},
+  {name:"Bob Hansen",         email:"bob@pestshare.com",        isManager:null, firstActive:"2025-05-22", lastActive:"2026-02-12", daysActive:126, meetAuto:94,   meetManual:0,   artViewed:1,   artInteract:3,   aiInteract:4,   botRec:21,  convos:1,  pageviews:4025},
+  {name:"Jeff Hogg",          email:"jeff@pestshare.com",       isManager:null, firstActive:"2025-01-03", lastActive:"2026-02-02", daysActive:110, meetAuto:821,  meetManual:0,   artViewed:3,   artInteract:3,   aiInteract:14,  botRec:90,  convos:0,  pageviews:30},
+  {name:"Brooklyn Fason",     email:"brooklyn@pestshare.com",   isManager:null, firstActive:"2024-12-12", lastActive:"2026-01-28", daysActive:110, meetAuto:2741, meetManual:0,   artViewed:11,  artInteract:11,  aiInteract:7,   botRec:288, convos:2,  pageviews:169},
+  {name:"Ken Jones",          email:"ken@pestshare.com",        isManager:null, firstActive:"2024-12-30", lastActive:"2025-11-18", daysActive:109, meetAuto:701,  meetManual:0,   artViewed:7,   artInteract:10,  aiInteract:7,   botRec:182, convos:2,  pageviews:609},
+  {name:"Jamie Canfield",     email:"jamie@pestshare.com",      isManager:null, firstActive:"2024-11-13", lastActive:"2026-02-12", daysActive:104, meetAuto:778,  meetManual:47,  artViewed:21,  artInteract:21,  aiInteract:44,  botRec:143, convos:6,  pageviews:312},
+  {name:"Maria Ackland",      email:"maria.a@pestshare.com",    isManager:null, firstActive:"2025-02-05", lastActive:"2025-12-15", daysActive:103, meetAuto:1034, meetManual:0,   artViewed:11,  artInteract:11,  aiInteract:23,  botRec:111, convos:2,  pageviews:303},
+  {name:"William Barrera",    email:"william@pestshare.com",    isManager:null, firstActive:"2024-12-19", lastActive:"2026-02-12", daysActive:99,  meetAuto:307,  meetManual:0,   artViewed:10,  artInteract:10,  aiInteract:8,   botRec:108, convos:0,  pageviews:929},
+  {name:"Jessica Mankin",     email:"jessica@pestshare.com",    isManager:null, firstActive:"2025-01-20", lastActive:"2025-07-31", daysActive:99,  meetAuto:698,  meetManual:0,   artViewed:63,  artInteract:63,  aiInteract:42,  botRec:129, convos:7,  pageviews:963},
+  {name:"Landon Cooley",      email:"landon@pestshare.com",     isManager:null, firstActive:"2025-02-06", lastActive:"2025-06-13", daysActive:98,  meetAuto:1015, meetManual:0,   artViewed:10,  artInteract:11,  aiInteract:30,  botRec:181, convos:5,  pageviews:878},
+  {name:"Desiree Larson",     email:"desiree@pestshare.com",    isManager:null, firstActive:"2025-01-20", lastActive:"2025-07-18", daysActive:95,  meetAuto:1094, meetManual:0,   artViewed:11,  artInteract:12,  aiInteract:18,  botRec:199, convos:7,  pageviews:366},
+  {name:"David A. Herrera",   email:"david.h@pestshare.com",    isManager:null, firstActive:"2024-12-12", lastActive:"2025-09-02", daysActive:93,  meetAuto:153,  meetManual:0,   artViewed:87,  artInteract:109, aiInteract:16,  botRec:141, convos:3,  pageviews:1127},
+  {name:"Glen Lastimoza",     email:"glen@pestshare.com",       isManager:null, firstActive:"2025-03-06", lastActive:"2026-02-11", daysActive:67,  meetAuto:249,  meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:80,  convos:0,  pageviews:114},
+  {name:"Dave Eckstein",      email:"dave@pestshare.com",       isManager:null, firstActive:"2024-12-17", lastActive:"2025-10-07", daysActive:64,  meetAuto:451,  meetManual:0,   artViewed:5,   artInteract:5,   aiInteract:0,   botRec:74,  convos:0,  pageviews:47},
+  {name:"Evan DeGray",        email:"evan@pestshare.com",       isManager:null, firstActive:"2025-02-25", lastActive:"2026-01-28", daysActive:52,  meetAuto:923,  meetManual:0,   artViewed:0,   artInteract:1,   aiInteract:2,   botRec:0,   convos:0,  pageviews:23},
+  {name:"Azael Carrillo",     email:"azael@pestshare.com",      isManager:null, firstActive:"2025-03-04", lastActive:"2025-06-06", daysActive:50,  meetAuto:703,  meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:44,  convos:0,  pageviews:3},
+  {name:"Ayana Barnes",       email:"ayana@pestshare.com",      isManager:null, firstActive:"2024-11-08", lastActive:"2025-01-29", daysActive:42,  meetAuto:41,   meetManual:20,  artViewed:8,   artInteract:8,   aiInteract:10,  botRec:35,  convos:0,  pageviews:34},
+  {name:"Ajae Wallace",       email:"ajae@pestshare.com",       isManager:null, firstActive:"2024-12-23", lastActive:"2025-02-13", daysActive:38,  meetAuto:656,  meetManual:0,   artViewed:14,  artInteract:14,  aiInteract:18,  botRec:76,  convos:0,  pageviews:285},
+  {name:"Maria Valverde",     email:"maria@pestshare.com",      isManager:null, firstActive:"2025-04-28", lastActive:"2025-08-27", daysActive:38,  meetAuto:0,    meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:49,  convos:0,  pageviews:81},
+  {name:"Fernanda Tavera",    email:"fernanda@pestshare.com",   isManager:null, firstActive:"2025-04-14", lastActive:"2025-08-27", daysActive:34,  meetAuto:20,   meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:8,   convos:0,  pageviews:55},
+  {name:"Chantal Badua",      email:"chantal@pestshare.com",    isManager:null, firstActive:"2025-03-04", lastActive:"2025-08-28", daysActive:28,  meetAuto:695,  meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:1,   convos:0,  pageviews:44},
+  {name:"K.C. Marques",       email:"kc@pestshare.com",         isManager:null, firstActive:"2024-11-19", lastActive:"2025-01-07", daysActive:26,  meetAuto:84,   meetManual:29,  artViewed:4,   artInteract:4,   aiInteract:4,   botRec:36,  convos:0,  pageviews:404},
+  {name:"Keeton Alder",       email:"keeton@pestshare.com",     isManager:null, firstActive:"2025-05-05", lastActive:"2025-08-19", daysActive:25,  meetAuto:172,  meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:95,  convos:0,  pageviews:116},
+  {name:"Rebecca Kravitz",    email:"rebecca@pestshare.com",    isManager:null, firstActive:"2025-05-07", lastActive:"2025-07-17", daysActive:24,  meetAuto:242,  meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:2,   botRec:70,  convos:1,  pageviews:204},
+  {name:"Lucas Manchine",     email:"lucas@pestshare.com",      isManager:null, firstActive:"2025-02-26", lastActive:"2025-10-22", daysActive:24,  meetAuto:136,  meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:2,   botRec:41,  convos:2,  pageviews:128},
+  {name:"Jarrod Haneline",    email:"jarrod@pestshare.com",     isManager:null, firstActive:"2025-05-27", lastActive:"2025-06-12", daysActive:12,  meetAuto:128,  meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:29,  botRec:40,  convos:17, pageviews:135},
+  {name:"Oliver Palomera",    email:"oliver@pestshare.com",     isManager:null, firstActive:"2025-03-05", lastActive:"2025-04-03", daysActive:11,  meetAuto:0,    meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:10,  convos:0,  pageviews:3},
+  {name:"(Unknown)",          email:"luis@pestshare.com",       isManager:null, firstActive:"2025-05-22", lastActive:"2025-06-05", daysActive:10,  meetAuto:0,    meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:20,  convos:0,  pageviews:5},
+  {name:"Kristi Thomas",      email:"kristi@pestshare.com",     isManager:null, firstActive:"2025-06-02", lastActive:"2025-06-06", daysActive:5,   meetAuto:83,   meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:2,   botRec:5,   convos:1,  pageviews:49},
+  {name:"Moises Zepeda",      email:"moises@pestshare.com",     isManager:null, firstActive:"2025-06-02", lastActive:"2025-06-06", daysActive:5,   meetAuto:0,    meetManual:0,   artViewed:0,   artInteract:0,   aiInteract:0,   botRec:11,  convos:0,  pageviews:3},
+];
+
+// Monthly trend data — stitched across pre- and post-migration workspaces
+// Pre-migration:  $group_0 = 'id:KQDSmlSEz6B9otzhF4qx'
+// Post-migration: $group_0 = 'id:wrks_01JNKRC7Q6FJRVQK5TQMX4516W' OR properties.workspaceId = 'wrks_01JNKRC7Q6FJRVQK5TQMX4516W'
+const MONTHS    = ['Mar 25','Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25','Jan 26','Feb 26'];
+const M_USERS   = [28, 28, 34, 36, 35, 43, 46, 55, 56, 63, 68, 70];
+const M_MEETS   = [5136, 5321, 6509, 1913, 4833, 6562, 7965, 9285, 6996, 7054, 7613, 10280];
+const M_WORKFL  = [5136, 5321, 6509, 1913, 4833, 6562, 7965, 9285, 6996, 7054, 7613, 10280];
+const M_AI      = [141, 213, 228, 70, 0, 0, 0, 0, 3, 5, 60, 31];
+const avgOrZ    = (n,d) => d ? Math.round(n/d*10)/10 : 0;
+
+// ── Computed user metrics ────────────────────────────────────────────────────
+function mosBetween(f,l) {
+  if(!f||!l) return 1;
+  const [fy,fm]=f.split('-').map(Number), [ly,lm]=l.split('-').map(Number);
+  return Math.max(1,(ly-fy)*12+(lm-fm)+1);
+}
+
+USERS.forEach(u=>{
+  u.meetTotal  = u.meetAuto+u.meetManual;
+  u.avgPerMo   = Math.round(u.meetTotal/mosBetween(u.firstActive,u.lastActive)*10)/10;
+  u.utilized   = u.lastActive>=CUTOFF?'Active':'Inactive';
+});
+
+// ── Mode ─────────────────────────────────────────────────────────────────────
+let mode = 'internal';
+function setMode(m) {
+  mode=m;
+  document.getElementById('bInt').classList.toggle('on',m==='internal');
+  document.getElementById('bCust').classList.toggle('on',m==='customer');
+  // Internal-only elements
+  document.getElementById('healthAlert').style.display = m==='internal' ? '' : 'none';
+  document.getElementById('inactOpt').style.display    = m==='internal' ? '' : 'none';
+  buildStats();
+  buildTable();
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+function buildStats() {
+  const u     = USERS;
+  const actU  = 70;  // From stitched query: 70 active users in Feb 2026 (post-migration workspace)
+  const totM  = 79467; // 12-month total from stitched data (Mar 25–Feb 26)
+  const totB  = u.reduce((s,x)=>s+x.botRec,0);
+  const totAI = u.reduce((s,x)=>s+x.aiInteract,0) + 60 + 31; // include post-migration AI
+  const avgMo = Math.round(M_MEETS.reduce((s,v)=>s+v,0)/M_MEETS.length); // avg of monthly totals
+  const top   = [...u].sort((a,b)=>b.daysActive-a.daysActive)[0];
+
+  const cards = [
+    {lb:'Platform Users',          vl:92,                    sb:'92 identified across both workspaces',             nt:'Stitched: pre-migration (KQDSmlSEz6B9otzhF4qx) + post-migration (wrks_01JNKRC7Q6FJRVQK5TQMX4516W)'},
+    mode==='internal'?{lb:'Active Users (30d)', vl:actU,     sb:`${actU} active users in Feb 2026 — grew from 28 in Mar 2025`, nt:'Internal — from stitched post-migration workspace'}:null,
+    {lb:'Avg Meetings / Month',    vl:avgMo.toLocaleString(),sb:'12-month average, stitched workspaces'},
+    {lb:'Meetings (Last 12 Mo)',   vl:totM.toLocaleString(), sb:'Mar 2025 – Feb 2026 · both workspaces',            nt:'Each pipeline/workflow execution = 1 run'},
+    {lb:'Bot-Attended Sessions',   vl:totB.toLocaleString(), sb:'Meetings where AE bot joined the call',            nt:'recall:bot_done — bot completed a recording session'},
+    {lb:'AI Interactions',         vl:totAI.toLocaleString(),sb:'Direct LLM chat sessions + messages',              nt:'chat_created + conversation:message_sent events'},
+    top ? {lb:'Top User (pre-migration)',vl:top.name,         sb:`${top.avgPerMo} avg mtgs/mo · ${top.daysActive} days`, small:true} : null,
+  ].filter(Boolean);
+
+  document.getElementById('statsGrid').innerHTML = cards.map(c=>`
+    <div class="sc ${c.cls||''}" title="${c.nt||''}">
+      <div class="lb">${c.lb}</div>
+      <div class="vl" style="color:${c.cls?'var(--rose)':c.small?'var(--text2)':'var(--accent)'};${c.small?'font-size:14px;padding-top:3px':''}">${c.vl}</div>
+      <div class="sb">${c.sb}</div>
+      ${c.nt?`<div class="nt">ℹ ${c.nt}</div>`:''}
+    </div>`).join('');
+}
+
+// ── Charts ───────────────────────────────────────────────────────────────────
+let charts = [];
+function buildCharts() {
+  charts.forEach(c=>c.destroy()); charts=[];
+  const mk=(id,data,lbl,col)=>{
+    const ctx=document.getElementById(id).getContext('2d');
+    const g=ctx.createLinearGradient(0,0,0,155);
+    g.addColorStop(0,col+'45'); g.addColorStop(1,col+'06');
+    charts.push(new Chart(ctx,{type:'line',data:{labels:MONTHS,datasets:[{label:lbl,data,borderColor:col,backgroundColor:g,borderWidth:2,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:col,tension:.3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(26,29,39,.95)',borderColor:'rgba(45,50,80,.7)',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:9}},
+      scales:{x:{grid:{color:'rgba(45,50,80,.5)'},ticks:{color:'#64748b',font:{size:10}}},y:{grid:{color:'rgba(45,50,80,.5)'},ticks:{color:'#64748b',font:{size:10}},beginAtZero:true}}}}));
+  };
+  mk('cU', M_USERS,                                          'Active Users',               '#38bdf8');
+  mk('cM', M_MEETS.map((v,i)=>avgOrZ(v,M_USERS[i])),       'Avg Meetings/User',          '#6366f1');
+  mk('cA', M_AI.map((v,i)=>avgOrZ(v,M_USERS[i])),          'Avg AI Interactions/User',   '#8b5cf6');
+  mk('cW', M_WORKFL.map((v,i)=>avgOrZ(v,M_USERS[i])),      'Avg Workflows/User',         '#22c55e');
+}
+
+// ── Table ────────────────────────────────────────────────────────────────────
+let sortState={col:'daysActive',asc:false}, searchQ='', seatF='all', meetMin=0;
+
+const COLS=[
+  {k:'name',       lbl:'User',          s:'name'},
+  {k:'seat',       lbl:'Seat',          s:'utilized'},
+  {k:'lastActive', lbl:'Last Active',   s:'lastActive', intOnly:true},
+  {k:'daysActive', lbl:'Days Active',   s:'daysActive', bar:true, max:'daysActive'},
+  {k:'avgPerMo',   lbl:'Avg Mtgs/Mo',   s:'avgPerMo',   avg:true},
+  {k:'meetTotal',  lbl:'Meetings',      s:'meetTotal',  bar:true, max:'meetTotal'},
+  {k:'botRec',     lbl:'Bot Sessions',  s:'botRec',     num:true},
+  {k:'artViewed',  lbl:'Art. Viewed',   s:'artViewed',  num:true},
+  {k:'artInteract',lbl:'Art. Interacted',s:'artInteract',num:true},
+  {k:'aiInteract', lbl:'AI Interact.',  s:'aiInteract', num:true},
+  {k:'pageviews',  lbl:'Pageviews',     s:'pageviews',  num:true},
+];
+
+function buildTable() {
+  const visC = COLS.filter(c=>!(c.intOnly&&mode==='customer'));
+  const maxD = Math.max(...USERS.map(u=>u.daysActive),1);
+  const maxM = Math.max(...USERS.map(u=>u.meetTotal),1);
+
+  let data = USERS.filter(u=>{
+    if (searchQ && !u.name.toLowerCase().includes(searchQ) && !u.email.toLowerCase().includes(searchQ)) return false;
+    const sv = mode==='customer'?'Active':u.utilized;
+    if (seatF!=='all'&&sv!==seatF) return false;
+    if (meetMin&&u.meetTotal<meetMin) return false;
+    return true;
+  });
+
+  data = [...data].sort((a,b)=>{
+    const av=a[sortState.col],bv=b[sortState.col];
+    if(typeof av==='string') return sortState.asc?av.localeCompare(bv):bv.localeCompare(av);
+    return sortState.asc?(av||0)-(bv||0):(bv||0)-(av||0);
+  });
+
+  const thead = visC.map(c=>{
+    const cl=sortState.col===c.s?(sortState.asc?'sa':'sd'):'';
+    return `<th class="${cl}" onclick="doSort('${c.s}')">${c.lbl}</th>`;
+  }).join('');
+
+  const tbody = data.map(u=>`<tr>${visC.map(c=>cell(c,u,maxD,maxM)).join('')}</tr>`).join('')
+    ||`<tr><td colspan="99" style="text-align:center;color:var(--muted);padding:32px">No users match current filters</td></tr>`;
+
+  document.getElementById('tblWrap').innerHTML=`<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+  document.getElementById('rc').textContent=`${data.length} of ${USERS.length} users`;
+}
+
+function cell(c,u,maxD,maxM){
+  if(c.k==='name'){
+    const ini=(u.name||u.email||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    return`<td><div class="uc"><div class="av">${ini}</div><div><div class="un">${u.name||'—'}</div><div class="ue">${u.email}</div></div></div></td>`;
+  }
+  if(c.k==='seat'){
+    const act=mode==='customer'||u.utilized==='Active';
+    return`<td>${act?'<span class="pill pg">● Active</span>':'<span class="pill pr">○ Inactive</span>'}</td>`;
+  }
+  if(c.k==='lastActive') return`<td class="num">${u.lastActive||'—'}</td>`;
+  if(c.k==='daysActive'){
+    const p=Math.round(u.daysActive/maxD*100);
+    return`<td><div class="bw"><div class="br"><div class="bf" style="width:${p}%"></div></div><span class="num" style="min-width:30px">${u.daysActive||'—'}</span></div></td>`;
+  }
+  if(c.k==='avgPerMo'){
+    const col=u.avgPerMo>100?'var(--green)':u.avgPerMo>20?'var(--amber)':'inherit';
+    return`<td><div class="ac"><span class="am" style="color:${col}">${u.avgPerMo||'—'}</span><span class="as">${u.meetAuto}A/${u.meetManual}M</span></div></td>`;
+  }
+  if(c.k==='meetTotal'){
+    const p=Math.round(u.meetTotal/maxM*100);
+    return`<td><div class="bw"><div class="br"><div class="bf" style="width:${p}%"></div></div><span class="num" style="min-width:36px">${u.meetTotal||'—'}</span></div></td>`;
+  }
+  const n=u[c.k]||0;
+  if(!n)return`<td class="num" style="color:var(--muted)">—</td>`;
+  const col=n>200?'var(--green)':n>30?'var(--amber)':'inherit';
+  return`<td class="num" style="color:${col}">${n.toLocaleString()}</td>`;
+}
+
+function doSort(s){sortState={col:s,asc:sortState.col===s?!sortState.asc:false};buildTable();}
+function onSearch(v){searchQ=v.toLowerCase();buildTable();}
+function onSeatF(v){seatF=v;buildTable();}
+function onMeetF(v){meetMin=+v;buildTable();}
+
+// ── Export CSV ───────────────────────────────────────────────────────────────
+function exportCSV(){
+  const isInt=mode==='internal';
+  const h=['User Name','Email','Is Manager','Utilized Seat','First Active',...(isInt?['Last Active']:[]),'Days Active',
+    'Avg Meeting Runs/User/Month','Meetings Total','Automated Meetings','Manual Meetings',
+    'Bot-Attended Sessions','Artifacts Viewed','Artifacts Interacted','AI Interactions','Conversations','Pageviews'];
+  const rows=USERS.map(u=>[u.name,u.email,u.isManager||'Unknown',isInt?u.utilized:'Active',u.firstActive,...(isInt?[u.lastActive]:[]),
+    u.daysActive,u.avgPerMo,u.meetTotal,u.meetAuto,u.meetManual,u.botRec,u.artViewed,u.artInteract,u.aiInteract,u.convos,u.pageviews]);
+  const csv=[h,...rows].map(r=>r.map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`pestshare-askelephant-${mode}-report-mar2026.csv`; a.click();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+buildStats();
+buildCharts();
+buildTable();
+</script>
+</body>
+</html>

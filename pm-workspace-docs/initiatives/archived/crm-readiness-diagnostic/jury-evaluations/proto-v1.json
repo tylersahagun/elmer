@@ -1,0 +1,315 @@
+{
+  "validation_type": "prototype",
+  "initiative": "crm-readiness-diagnostic",
+  "timestamp": "2026-01-21T18:30:00.000000Z",
+  "sample_size": 300,
+  "sample_distribution": {
+    "by_role": {
+      "sales-rep": { "count": 105, "percent": 35 },
+      "sales-leader": { "count": 75, "percent": 25 },
+      "operations": { "count": 75, "percent": 25 },
+      "csm": { "count": 30, "percent": 10 },
+      "strategic-consultant": { "count": 15, "percent": 5 }
+    },
+    "by_ai_adoption": {
+      "skeptic": { "count": 54, "percent": 18 },
+      "curious": { "count": 111, "percent": 37 },
+      "early-adopter": { "count": 96, "percent": 32 },
+      "power-user": { "count": 39, "percent": 13 }
+    },
+    "by_tech_literacy": {
+      "novice": { "count": 69, "percent": 23 },
+      "intermediate": { "count": 126, "percent": 42 },
+      "advanced": { "count": 78, "percent": 26 },
+      "expert": { "count": 27, "percent": 9 }
+    }
+  },
+  "scenario": {
+    "description": "You have just connected your HubSpot account to AskElephant and are shown this CRM Readiness Diagnostic panel in your Settings > Integrations page.",
+    "task": {
+      "primary_goal": "Understand your CRM health status and what actions (if any) you need to take",
+      "secondary_goal": "Feel confident about whether AskElephant will work with your HubSpot setup"
+    }
+  },
+  "prototype_evaluated": "CrmReadinessDiagnostic (Score, IssueCard, Panel components)",
+  "overall_verdict": {
+    "approval_rate": 0.74,
+    "would_use": 0.78,
+    "verdict": "VALIDATED_WITH_IMPROVEMENTS",
+    "summary": "Strong validation overall. Traffic light system resonates well. Key improvements needed around messaging tone and actionability of remediation guidance."
+  },
+  "heuristic_scores_aggregated": {
+    "visibility_of_status": {
+      "mean": 4.3,
+      "std": 0.7,
+      "verdict": "STRONG",
+      "top_feedback": "Traffic light is immediately clear; score percentage provides precision"
+    },
+    "match_with_expectations": {
+      "mean": 4.1,
+      "std": 0.8,
+      "verdict": "VALIDATED",
+      "top_feedback": "Expected to see CRM health after connecting; location in Settings makes sense"
+    },
+    "user_control": {
+      "mean": 3.6,
+      "std": 1.0,
+      "verdict": "NEEDS_IMPROVEMENT",
+      "top_feedback": "Refresh button is good; want ability to dismiss/snooze issues"
+    },
+    "consistency": {
+      "mean": 4.2,
+      "std": 0.6,
+      "verdict": "VALIDATED",
+      "top_feedback": "Color coding is consistent; cards follow familiar patterns"
+    },
+    "error_prevention": {
+      "mean": 3.8,
+      "std": 0.9,
+      "verdict": "VALIDATED",
+      "top_feedback": "Good that it shows issues BEFORE workflows fail; want undo for any actions"
+    }
+  },
+  "emotional_response_aggregated": {
+    "frustration": {
+      "mean": 2.1,
+      "by_segment": {
+        "skeptic": 2.8,
+        "curious": 2.0,
+        "early-adopter": 1.8,
+        "power-user": 1.6
+      },
+      "note": "Skeptics frustrated by feeling 'blamed' for CRM state"
+    },
+    "confidence": {
+      "mean": 3.9,
+      "by_segment": {
+        "operations": 4.3,
+        "sales-leader": 3.9,
+        "sales-rep": 3.5,
+        "csm": 4.0
+      },
+      "note": "Operations personas most confident; Sales Reps less sure what to do"
+    },
+    "would_recommend": {
+      "mean": 4.0,
+      "by_segment": {
+        "power-user": 4.5,
+        "early-adopter": 4.2,
+        "curious": 3.9,
+        "skeptic": 3.2
+      }
+    }
+  },
+  "issues_identified": [
+    {
+      "id": "issue-1",
+      "what": "Remediation guidance feels vague—'fix associations' doesn't tell me HOW",
+      "where": "CrmIssueCard.howToFix section",
+      "severity": "major",
+      "mention_rate": 0.42,
+      "mention_count": 126,
+      "by_role": {
+        "sales-rep": 0.58,
+        "operations": 0.31,
+        "sales-leader": 0.38
+      },
+      "why_matters": "Sales reps lack HubSpot expertise; need step-by-step or video guide",
+      "suggested_fix": "Add 'Show me how' button linking to video tutorial or wizard"
+    },
+    {
+      "id": "issue-2",
+      "what": "Red status feels accusatory despite careful wording",
+      "where": "CrmReadinessScore when status=RED",
+      "severity": "major",
+      "mention_rate": 0.31,
+      "mention_count": 93,
+      "by_role": {
+        "skeptic": 0.52,
+        "sales-leader": 0.36,
+        "operations": 0.24
+      },
+      "why_matters": "Makes me feel like I've done something wrong; this is often inherited CRM state",
+      "suggested_fix": "Reframe: 'We found some opportunities to unlock full value' instead of 'Action required'"
+    },
+    {
+      "id": "issue-3",
+      "what": "No estimated time to fix issues",
+      "where": "CrmIssueCard",
+      "severity": "minor",
+      "mention_rate": 0.28,
+      "mention_count": 84,
+      "by_role": {
+        "sales-leader": 0.45,
+        "operations": 0.32
+      },
+      "why_matters": "Leaders need to know if this is 5 minutes or 5 hours",
+      "suggested_fix": "Add 'Est. 15 min to fix' or 'Typically needs partner help' indicators"
+    },
+    {
+      "id": "issue-4",
+      "what": "Want to know impact on AskElephant functionality per issue",
+      "where": "CrmIssueCard",
+      "severity": "minor",
+      "mention_rate": 0.24,
+      "mention_count": 72,
+      "by_role": {
+        "operations": 0.38,
+        "power-user": 0.42
+      },
+      "why_matters": "Need to prioritize—what breaks if I don't fix this?",
+      "suggested_fix": "Add 'This affects: Deal insights, Pipeline forecasting' per issue"
+    },
+    {
+      "id": "issue-5",
+      "what": "No way to dismiss issues I choose to ignore",
+      "where": "CrmIssueCard",
+      "severity": "minor",
+      "mention_rate": 0.21,
+      "mention_count": 63,
+      "by_role": {
+        "power-user": 0.38,
+        "operations": 0.28
+      },
+      "why_matters": "Some issues are intentional choices (e.g., we don't use Companies)",
+      "suggested_fix": "Add 'Dismiss' or 'Not applicable to us' option"
+    },
+    {
+      "id": "issue-6",
+      "what": "Partner link in red state should be more prominent",
+      "where": "CrmReadinessPanel footer",
+      "severity": "cosmetic",
+      "mention_rate": 0.18,
+      "mention_count": 54,
+      "by_role": {
+        "sales-leader": 0.29,
+        "skeptic": 0.31
+      },
+      "why_matters": "If I can't fix this myself, partner help should be easier to find",
+      "suggested_fix": "Elevate 'Get help from a partner' to a primary CTA for red status"
+    }
+  ],
+  "segment_breakdowns": {
+    "by_ai_adoption": {
+      "skeptic": {
+        "approval_rate": 0.54,
+        "would_use": 0.58,
+        "top_concern": "Feels like AskElephant is blaming me for CRM issues that existed before",
+        "top_praise": "At least it tells me upfront instead of failing silently later",
+        "confidence_score": 3.1
+      },
+      "curious": {
+        "approval_rate": 0.74,
+        "would_use": 0.78,
+        "top_concern": "Not sure I can actually fix these issues myself",
+        "top_praise": "Clear visual indicator of health; like the traffic light",
+        "confidence_score": 3.8
+      },
+      "early-adopter": {
+        "approval_rate": 0.84,
+        "would_use": 0.88,
+        "top_concern": "Would love to see historical trend of CRM health",
+        "top_praise": "Proactive approach prevents wasted time on broken workflows",
+        "confidence_score": 4.3
+      },
+      "power-user": {
+        "approval_rate": 0.89,
+        "would_use": 0.92,
+        "top_concern": "Want API access to run diagnostic programmatically",
+        "top_praise": "Finally! This is exactly what partners need to diagnose customers",
+        "confidence_score": 4.6
+      }
+    },
+    "by_role": {
+      "operations": {
+        "approval_rate": 0.82,
+        "would_use": 0.85,
+        "top_concern": "Need more technical detail on what exactly is being checked",
+        "top_praise": "This replaces 2+ hours of manual CRM audit work",
+        "specific_request": "Add 'Export report' to share with leadership"
+      },
+      "sales-leader": {
+        "approval_rate": 0.76,
+        "would_use": 0.79,
+        "top_concern": "My team can't fix this; I need to delegate to ops",
+        "top_praise": "Clear accountability on why AskElephant might not work",
+        "specific_request": "Add 'Assign to RevOps' action"
+      },
+      "sales-rep": {
+        "approval_rate": 0.65,
+        "would_use": 0.68,
+        "top_concern": "I don't know how to fix HubSpot; this isn't my job",
+        "top_praise": "At least I understand why calls aren't syncing now",
+        "specific_request": "Tell me who to talk to about fixing this"
+      },
+      "csm": {
+        "approval_rate": 0.79,
+        "would_use": 0.82,
+        "top_concern": "Customers will blame us for surfacing their CRM issues",
+        "top_praise": "Helps set expectations early in implementation",
+        "specific_request": "White-label version for customer-facing reports"
+      },
+      "strategic-consultant": {
+        "approval_rate": 0.93,
+        "would_use": 0.95,
+        "top_concern": "Needs to be more comprehensive for partner use cases",
+        "top_praise": "This is the missing piece—validates what we tell clients manually",
+        "specific_request": "More granular checks, exportable audit report"
+      }
+    }
+  },
+  "hesitation_points": [
+    {
+      "location": "Initial score display",
+      "hesitation_type": "emotional",
+      "frequency": 0.31,
+      "description": "Seeing RED score creates defensive reaction before reading details"
+    },
+    {
+      "location": "Issue card - 'How to fix'",
+      "hesitation_type": "uncertainty",
+      "frequency": 0.42,
+      "description": "Guidance is too high-level; not sure if I can do this myself"
+    },
+    {
+      "location": "HubSpot link",
+      "hesitation_type": "context_switch",
+      "frequency": 0.24,
+      "description": "Clicking opens new tab; worried I'll lose my place in AskElephant"
+    }
+  ],
+  "competitive_comparison_mentions": [
+    {
+      "competitor": "Fathom",
+      "sentiment": "positive_for_prototype",
+      "quote": "Fathom doesn't do anything like this—I find out my CRM is bad after nothing works"
+    },
+    {
+      "competitor": "Gong",
+      "sentiment": "neutral",
+      "quote": "Gong doesn't check CRM health either but they also don't rely on it as much"
+    },
+    {
+      "competitor": "HubSpot native",
+      "sentiment": "negative_for_competitor",
+      "quote": "HubSpot should do this but they want to sell consulting, not give free audits"
+    }
+  ],
+  "recommendation_actions": {
+    "p0_must_fix": [
+      "Improve remediation guidance with step-by-step or video tutorials",
+      "Soften RED state messaging to reduce defensive reactions"
+    ],
+    "p1_should_fix": [
+      "Add estimated time to fix per issue",
+      "Add 'What this affects' per issue (which AskElephant features)",
+      "Add dismiss/snooze functionality for intentional CRM choices",
+      "Elevate partner help CTA for red status"
+    ],
+    "p2_nice_to_have": [
+      "Export report functionality for ops/leadership",
+      "Historical trend view",
+      "More granular technical detail toggle"
+    ]
+  }
+}

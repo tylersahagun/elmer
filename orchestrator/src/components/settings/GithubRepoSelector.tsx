@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { signIn } from "next-auth/react";
 import {
   Check,
   ChevronsUpDown,
@@ -186,12 +185,9 @@ export function GithubRepoSelector({
     detectRepoPaths(selectedRepo);
   }, [selectedRepo, onPathsDetected]);
 
-  // Connect to GitHub - link account while staying logged in
+  // Connect to GitHub — TODO Phase 1: wire via Clerk OAuth connection
   const handleConnect = () => {
-    signIn("github", {
-      callbackUrl: window.location.href,
-      redirect: true,
-    });
+    window.location.href = "/api/auth/github";
   };
 
   // Handle repo selection

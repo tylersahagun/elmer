@@ -1,0 +1,29 @@
+{
+  "name": "sandbox-initiative",
+  "stage_id": "metrics",
+  "stage_label": "Metrics",
+  "status": "running",
+  "automation_policy": "auto",
+  "confidence": 0.0,
+  "iteration_count": 0,
+  "last_run_at": "2026-02-01T21:33:33.357133",
+  "last_judge_score": null,
+  "last_judge_verdict": null,
+  "metrics_gate": {
+    "id": "ga_gate",
+    "status": "needs_data",
+    "evaluated_at": "2026-02-01T21:33:33.322666",
+    "details": "No metrics snapshot found. Add posthog-metrics.json to initiative."
+  },
+  "blockers": [],
+  "next_action": "ingest_signals",
+  "artifacts": {
+    "research": null,
+    "prd": null,
+    "design_brief": null,
+    "prototype_notes": null,
+    "engineering_spec": null,
+    "jury_evaluations": null,
+    "metrics": null
+  }
+}

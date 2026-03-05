@@ -1,0 +1,38 @@
+{
+  "last_check": "2026-02-05T22:30:00Z",
+  "last_check_unix": 1738791000,
+  "emails_processed": 100,
+  "labels_created": true,
+  "label_ids": {
+    "PM/Act": "Label_35",
+    "PM/Decide": "Label_36",
+    "PM/Aware": "Label_37",
+    "PM/Capture": "Label_38",
+    "PM/Follow-Up": "Label_39",
+    "PM/Processed": "Label_40"
+  },
+  "last_run_stats": {
+    "act": 6,
+    "decide": 5,
+    "capture": 4,
+    "follow_up": 3,
+    "aware": 74,
+    "archive": 8,
+    "total": 100
+  },
+  "cleanup_mode": "aggressive",
+  "run_history": [
+    {
+      "timestamp": "2026-02-05T22:30:00Z",
+      "mode": "aggressive",
+      "emails_processed": 100,
+      "first_run": true
+    },
+    {
+      "timestamp": "2026-02-14T00:00:00Z",
+      "mode": "full_triage",
+      "status": "skipped_tools_unavailable",
+      "note": "Gmail MCP (google server) not exposed in session; digest created with last-known state"
+    }
+  ]
+}

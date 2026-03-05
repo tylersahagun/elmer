@@ -1,0 +1,407 @@
+---
+title: "THE GRAND APPARATUS — Part II: Knowledge Graph"
+---
+graph LR
+    TYLER(("🧠 Tyler"))
+    PM(("🤖 PM Copilot"))
+    SKYLAR(("🎨 Skylar"))
+    WS(("📁 Workspace"))
+
+    TYLER --- PM
+    TYLER --- SKYLAR
+    PM --- WS
+    SKYLAR --- WS
+
+    VISION["product-vision"]
+    GUARD["strategic-guardrails"]
+    TYLER_CTX["tyler-context"]
+    ORG["org-chart"]
+    PERSONAS["personas"]
+    TECH["tech-stack"]
+
+    WS --- VISION
+    WS --- GUARD
+    WS --- ORG
+    WS --- PERSONAS
+    WS --- TECH
+    TYLER --- TYLER_CTX
+    VISION --- GUARD
+
+    INIT(("📋 Initiatives"))
+    WS --- INIT
+
+    I_ACC["agent-command-center"]
+    I_CUM["client-usage-metrics"]
+    I_HUB["structured-hubspot-agent"]
+    I_GLOBAL["global-chat"]
+    I_FGA["fga-engine"]
+    I_PRIV["privacy-agent-v2"]
+    I_SPEAK["speaker-id-voiceprint"]
+    I_SET["settings-redesign"]
+    I_ADMIN["admin-onboarding"]
+    I_COMP["composio-agent-framework"]
+    I_DEP["deprecate-legacy-hubspot"]
+    I_FLAG["feature-flag-audit"]
+    I_REL["release-lifecycle"]
+    I_UST["universal-signal-tables"]
+
+    INIT --- I_ACC
+    INIT --- I_CUM
+    INIT --- I_HUB
+    INIT --- I_GLOBAL
+    INIT --- I_FGA
+    INIT --- I_PRIV
+    INIT --- I_SPEAK
+    INIT --- I_SET
+    INIT --- I_ADMIN
+    INIT --- I_COMP
+    INIT --- I_DEP
+    INIT --- I_FLAG
+    INIT --- I_REL
+    INIT --- I_UST
+
+    ARTIFACTS(("📄 Artifacts"))
+    INIT --- ARTIFACTS
+    META["_meta.json"]
+    PRD["prd.md"]
+    RESEARCH["research.md"]
+    DECISIONS["decisions.md"]
+    PROTO_N["prototype-notes.md"]
+    COMP_L["competitive-landscape.md"]
+    VIS_D["visual-directions.md"]
+    GTM["gtm-brief.md"]
+
+    ARTIFACTS --- META
+    ARTIFACTS --- PRD
+    ARTIFACTS --- RESEARCH
+    ARTIFACTS --- DECISIONS
+    ARTIFACTS --- PROTO_N
+    ARTIFACTS --- COMP_L
+    ARTIFACTS --- VIS_D
+    ARTIFACTS --- GTM
+
+    LC(("♻️ Lifecycle"))
+    INIT --- LC
+    EXPLORE["Explore"]
+    DEFINE["Define"]
+    BUILD["Build"]
+    VALIDATE["Validate"]
+    LAUNCH["Launch"]
+    LC --- EXPLORE
+    LC --- DEFINE
+    LC --- BUILD
+    LC --- VALIDATE
+    LC --- LAUNCH
+
+    AGENTS(("🤖 Agents"))
+    PM --- AGENTS
+
+    A_RES["research-analyzer"]
+    A_SIG["signals-processor"]
+    A_PROTO["proto-builder"]
+    A_CTX["context-proto-builder"]
+    A_ITER["iterator"]
+    A_VALID["validator"]
+    A_FIG["figma-sync"]
+    A_REM["remotion-video"]
+    A_FIGJAM["figjam-generator"]
+    A_SLACK["slack-monitor"]
+    A_GMAIL["gmail-monitor"]
+    A_NOTION["notion-admin"]
+    A_POST["posthog-analyst"]
+    A_LIN["linear-triage"]
+    A_HUB["hubspot-activity"]
+    A_WS["workspace-admin"]
+    A_DOCS["docs-generator"]
+    A_FEAT["feature-guide"]
+    A_HYPO["hypothesis-manager"]
+    A_CREV["context-reviewer"]
+
+    AGENTS --- A_RES
+    AGENTS --- A_SIG
+    AGENTS --- A_PROTO
+    AGENTS --- A_CTX
+    AGENTS --- A_ITER
+    AGENTS --- A_VALID
+    AGENTS --- A_FIG
+    AGENTS --- A_REM
+    AGENTS --- A_FIGJAM
+    AGENTS --- A_SLACK
+    AGENTS --- A_GMAIL
+    AGENTS --- A_NOTION
+    AGENTS --- A_POST
+    AGENTS --- A_LIN
+    AGENTS --- A_HUB
+    AGENTS --- A_WS
+    AGENTS --- A_DOCS
+    AGENTS --- A_FEAT
+    AGENTS --- A_HYPO
+    AGENTS --- A_CREV
+
+    A_RES -.-> RESEARCH
+    A_PROTO -.-> PROTO_N
+    A_VALID -.-> LC
+
+    SKILLS(("🧠 Skills"))
+    PM --- SKILLS
+
+    S_RES["research-analyst"]
+    S_COMP["competitive-analysis"]
+    S_SIG["signals-synthesis"]
+    S_ROAD["roadmap-analysis"]
+    S_PLACE["placement-analysis"]
+    S_FEAT["feature-availability"]
+    S_PRD["prd-writer"]
+    S_PROTO["prototype-builder"]
+    S_VIS["visual-design"]
+    S_BRAIN["brainstorm"]
+    S_DES["design-companion"]
+    S_FIGC["figma-component-sync"]
+    S_REMV["remotion-video"]
+    S_VDIG["visual-digest"]
+    S_DWEB["digest-website"]
+    S_LSYN["linear-sync"]
+    S_GSYN["github-sync"]
+    S_NSYN["notion-sync"]
+    S_NADM["notion-admin"]
+    S_SSYN["slack-sync"]
+    S_SKIT["slack-block-kit"]
+    S_IST["initiative-status"]
+    S_PST["portfolio-status"]
+    S_ACT["activity-reporter"]
+    S_DAI["daily-planner"]
+    S_TEA["team-dashboard"]
+    S_JUR["jury-system"]
+    S_AGE["agents-generator"]
+    S_PNT["prototype-notification"]
+    S_SKE["skylar-explorer"]
+    S_SKR["skylar-review"]
+    S_SKS["skylar-start"]
+    S_SKV["skylar-visual"]
+
+    SKILLS --- S_RES
+    SKILLS --- S_COMP
+    SKILLS --- S_SIG
+    SKILLS --- S_ROAD
+    SKILLS --- S_PLACE
+    SKILLS --- S_FEAT
+    SKILLS --- S_PRD
+    SKILLS --- S_PROTO
+    SKILLS --- S_VIS
+    SKILLS --- S_BRAIN
+    SKILLS --- S_DES
+    SKILLS --- S_FIGC
+    SKILLS --- S_REMV
+    SKILLS --- S_VDIG
+    SKILLS --- S_DWEB
+    SKILLS --- S_LSYN
+    SKILLS --- S_GSYN
+    SKILLS --- S_NSYN
+    SKILLS --- S_NADM
+    SKILLS --- S_SSYN
+    SKILLS --- S_SKIT
+    SKILLS --- S_IST
+    SKILLS --- S_PST
+    SKILLS --- S_ACT
+    SKILLS --- S_DAI
+    SKILLS --- S_TEA
+    SKILLS --- S_JUR
+    SKILLS --- S_AGE
+    SKILLS --- S_PNT
+    SKILLS --- S_SKE
+    SKILLS --- S_SKR
+    SKILLS --- S_SKS
+    SKILLS --- S_SKV
+
+    SKYLAR --- S_SKE
+    SKYLAR --- S_SKR
+    SKYLAR --- S_SKS
+    SKYLAR --- S_SKV
+
+    A_RES -.-> S_RES
+    A_PROTO -.-> S_PROTO
+    A_VALID -.-> S_JUR
+    A_SLACK -.-> S_SSYN
+    A_LIN -.-> S_LSYN
+    A_NOTION -.-> S_NADM
+    A_POST -.-> S_FEAT
+    A_REM -.-> S_REMV
+    A_FIG -.-> S_FIGC
+    A_SIG -.-> S_SIG
+
+    CMDS(("⌨️ Commands"))
+    PM --- CMDS
+
+    C_MOR["/morning"]
+    C_EOD["/eod"]
+    C_EOW["/eow"]
+    C_TRI["/triage"]
+    C_GMA["/gmail"]
+    C_SLK["/slack-monitor"]
+    C_TEA["/team"]
+    C_RES["/research"]
+    C_LAN["/landscape"]
+    C_ING["/ingest"]
+    C_SYN["/synthesize"]
+    C_PM["/pm"]
+    C_PRO["/proto"]
+    C_VAL["/validate"]
+    C_ITE["/iterate"]
+    C_STA["/status"]
+    C_SDV["/sync-dev"]
+    C_ROA["/roadmap"]
+    C_SAV["/save"]
+    C_SHA["/share"]
+    C_POS["/posthog"]
+    C_NOT["/notion-admin"]
+    C_FIG_C["/figjam"]
+    C_VID["/pmm-video"]
+
+    CMDS --- C_MOR
+    CMDS --- C_EOD
+    CMDS --- C_EOW
+    CMDS --- C_TRI
+    CMDS --- C_GMA
+    CMDS --- C_SLK
+    CMDS --- C_TEA
+    CMDS --- C_RES
+    CMDS --- C_LAN
+    CMDS --- C_ING
+    CMDS --- C_SYN
+    CMDS --- C_PM
+    CMDS --- C_PRO
+    CMDS --- C_VAL
+    CMDS --- C_ITE
+    CMDS --- C_STA
+    CMDS --- C_SDV
+    CMDS --- C_ROA
+    CMDS --- C_SAV
+    CMDS --- C_SHA
+    CMDS --- C_POS
+    CMDS --- C_NOT
+    CMDS --- C_FIG_C
+    CMDS --- C_VID
+
+    C_RES -.-> A_RES
+    C_PRO -.-> A_PROTO
+    C_VAL -.-> A_VALID
+    C_ITE -.-> A_ITER
+    C_SLK -.-> A_SLACK
+    C_GMA -.-> A_GMAIL
+    C_POS -.-> A_POST
+    C_NOT -.-> A_NOTION
+    C_VID -.-> A_REM
+    C_FIG_C -.-> A_FIGJAM
+    C_ING -.-> A_SIG
+
+    C_MOR -.-> S_DAI
+    C_EOD -.-> S_ACT
+    C_STA -.-> S_IST
+    C_TEA -.-> S_TEA
+    C_ROA -.-> S_ROAD
+    C_PM -.-> S_PRD
+    C_LAN -.-> S_COMP
+    C_SYN -.-> S_SIG
+
+    MCP_NODE(("🔌 MCP"))
+    PM --- MCP_NODE
+
+    M_COM["composio-config"]
+    M_LIN["linear"]
+    M_POS["posthog"]
+    M_HUB["hubspot"]
+    M_GOO["google"]
+    M_NOT["notion"]
+    M_FIG_M["figma"]
+    M_PG["postgres-prod"]
+
+    MCP_NODE --- M_COM
+    MCP_NODE --- M_LIN
+    MCP_NODE --- M_POS
+    MCP_NODE --- M_HUB
+    MCP_NODE --- M_GOO
+    MCP_NODE --- M_NOT
+    MCP_NODE --- M_FIG_M
+    MCP_NODE --- M_PG
+
+    SLACK_E(("💬 Slack"))
+    LINEAR_E(("📋 Linear"))
+    POSTHOG_E(("📈 PostHog"))
+    HUBSPOT_E(("💰 HubSpot"))
+    GOOGLE_E(("📧 Google"))
+    NOTION_E(("📓 Notion"))
+    FIGMA_E(("🎨 Figma"))
+    GITHUB_E(("🐙 GitHub"))
+    PG_E(("🗄️ PostgreSQL"))
+
+    M_COM --- SLACK_E
+    M_LIN --- LINEAR_E
+    M_POS --- POSTHOG_E
+    M_HUB --- HUBSPOT_E
+    M_GOO --- GOOGLE_E
+    M_NOT --- NOTION_E
+    M_FIG_M --- FIGMA_E
+    M_PG --- PG_E
+
+    A_SLACK -.-> M_COM
+    A_LIN -.-> M_LIN
+    A_POST -.-> M_POS
+    A_HUB -.-> M_HUB
+    A_GMAIL -.-> M_GOO
+    A_NOTION -.-> M_NOT
+    A_FIG -.-> M_FIG_M
+
+    RULES(("📜 Rules"))
+    WS --- RULES
+    R_PM["pm-foundation"]
+    R_SKF["skylar-foundation"]
+    R_SKD["design-system"]
+    R_SKQ["quality-gate"]
+    R_CMP["component-patterns"]
+    R_GRW["growth-companion"]
+    R_REM["remotion-video"]
+    R_ADM["cursor-admin"]
+
+    RULES --- R_PM
+    RULES --- R_SKF
+    RULES --- R_SKD
+    RULES --- R_SKQ
+    RULES --- R_CMP
+    RULES --- R_GRW
+    RULES --- R_REM
+    RULES --- R_ADM
+    R_PM -.-> PM
+    R_SKF -.-> SKYLAR
+    R_GRW -.-> TYLER
+
+    SIGNALS(("📡 Signals"))
+    ROADMAP(("🗺️ Roadmap"))
+    STATUS(("📊 Status"))
+    HYPOTHESES(("🧪 Hypotheses"))
+    PROTOTYPES(("🧪 Prototypes"))
+    DESIGN_SYS(("🎨 Design System"))
+
+    WS --- SIGNALS
+    WS --- ROADMAP
+    WS --- STATUS
+    WS --- HYPOTHESES
+    WS --- PROTOTYPES
+    WS --- DESIGN_SYS
+
+    SKYLAR --- DESIGN_SYS
+    DESIGN_SYS --- PROTOTYPES
+    A_PROTO -.-> PROTOTYPES
+    S_PROTO -.-> PROTOTYPES
+
+    SIGNALS --- SLACK_E
+    SIGNALS --- LINEAR_E
+    SIGNALS --- HUBSPOT_E
+
+    STORYBOOK["Storybook 9.1"]
+    CHROMATIC(("Chromatic"))
+    PROTOTYPES --- STORYBOOK
+    STORYBOOK --- CHROMATIC
+
+    WORKTREES(("🌳 Worktrees"))
+    WS --- WORKTREES
+    GITHUB_E --- WORKTREES

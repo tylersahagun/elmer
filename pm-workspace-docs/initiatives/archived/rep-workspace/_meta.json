@@ -1,0 +1,131 @@
+{
+  "name": "Rep Workspace",
+  "slug": "rep-workspace",
+  "phase": "build",
+  "status": "in-progress",
+  "owner": "Brian/Rob",
+  "target_personas": [
+    "sales-rep",
+    "ae"
+  ],
+  "priority": "P0",
+  "priority_note": "Council of Product 2026-01-24: #1 priority, viral anchor potential",
+  "created_at": "2026-01-16",
+  "updated_at": "2026-01-24T10:30:00Z",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered_at": "2026-01-16",
+      "completed_at": "2026-01-16"
+    },
+    {
+      "phase": "define",
+      "entered_at": "2026-01-16",
+      "completed_at": "2026-01-16"
+    },
+    {
+      "phase": "build",
+      "entered_at": "2026-01-16",
+      "completed_at": null
+    }
+  ],
+  "graduation_criteria": {
+    "build_to_validate": {
+      "prototype_notes_exists": true,
+      "prototype_covers_states": true,
+      "storybook_complete": true,
+      "design_review_passed": false,
+      "design_brief_exists": true
+    }
+  },
+  "validation_history": [
+    {
+      "date": "2026-01-16",
+      "type": "jury",
+      "phase": "build",
+      "result": "fail",
+      "pass_rate": 45.0,
+      "jury_size": 100,
+      "report_file": "jury-evaluations/build-report-20260116-164514.md",
+      "notes": "V1 evaluation - needs trust indicators and onboarding"
+    }
+  ],
+  "metrics": {
+    "total_iterations": 2,
+    "current_version": "v2"
+  },
+  "iteration_history": [
+    {
+      "version": "v1",
+      "date": "2026-01-16",
+      "summary": "Initial context prototype with dashboard layout"
+    },
+    {
+      "version": "v2",
+      "date": "2026-01-16",
+      "summary": "Trust & onboarding iteration based on jury feedback",
+      "changes": [
+        "Added OnboardingExperience (welcome, tour, complete)",
+        "Added SyncStatusBadge on all widgets",
+        "Added DataProvenancePopover for data sources",
+        "Added GlobalStatusBar for system health",
+        "Created design-brief.md"
+      ]
+    }
+  ],
+  "dependencies": [
+    "global-chat",
+    "crm-exp-ete",
+    "customer-journey-map",
+    "composio-agent-framework"
+  ],
+  "tags": [
+    "dashboard",
+    "rep-experience",
+    "q1-2026",
+    "trust-iteration",
+    "viral-anchor"
+  ],
+  "hypotheses": [
+    "hyp-rep-workspace-viral-anchor",
+    "hyp-proactive-deal-intelligence",
+    "hyp-solo-rep-self-coaching"
+  ],
+  "signals_consumed": [
+    "sig-2026-01-24-council-of-product",
+    "sig-2026-01-21-maple-billing-feedback"
+  ],
+  "next_action": "Brian proving deal context + Composio actions integration; demo story milestone",
+  "council_notes_20260124": {
+    "viral_potential": "Leadership sees as key viral growth lever",
+    "focus_areas": [
+      "Deal data in AskElephant",
+      "Proactive insights beyond explicit action items",
+      "Composio actions for task execution"
+    ],
+    "key_quote": "It gives us an anchor point of this is where you live. This is how we can demo it."
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": "2eaf79b2-c8ac-8180-b691-d47b08c84978",
+  "notion_project_url": "https://www.notion.so/Rep-Workspace-2eaf79b2c8ac8180b691d47b08c84978",
+  "visibility": "internal",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": [
+    "initiative:rep-workspace",
+    "dashboard"
+  ],
+  "github_branch_prefix": "feat/rep-workspace",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "notion_project_name": "Rep Workspace"
+}

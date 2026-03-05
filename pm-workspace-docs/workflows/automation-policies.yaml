@@ -1,0 +1,31 @@
+version: 1
+policies:
+  auto:
+    description: Fully autonomous execution without human gate.
+    requires_human_approval: false
+    allow_parallel: true
+    max_iterations: 6
+    judge_threshold: 0.70
+    notify_on:
+      - stage_complete
+      - iteration_limit
+
+  review:
+    description: Autonomous execution with human gate before advancing.
+    requires_human_approval: true
+    allow_parallel: true
+    max_iterations: 4
+    judge_threshold: 0.80
+    notify_on:
+      - stage_complete
+      - approval_required
+      - iteration_limit
+
+  manual:
+    description: No automation; user must trigger commands.
+    requires_human_approval: true
+    allow_parallel: false
+    max_iterations: 0
+    judge_threshold: 0.90
+    notify_on:
+      - stage_ready

@@ -93,12 +93,12 @@ export function JobStatusIndicator({
     .filter((job) => job.status === "pending")
     .sort(
       (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        a._creationTime - b._creationTime,
     )[0];
   const pendingAgeMinutes = oldestPending
     ? Math.max(
         0,
-        Math.round((now - new Date(oldestPending.createdAt).getTime()) / 60000),
+        Math.round((now - oldestPending._creationTime) / 60000),
       )
     : 0;
   const fallbackInMinutes = Math.max(

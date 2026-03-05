@@ -1,0 +1,277 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "agent-command-center",
+  "name": "Agent Command Center",
+  "hypothesis_id": null,
+  "phase": "build",
+  "sub_phase": "visual-directions-generated",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "owner_note": "Merged from crm-update-artifact, rep-workspace, chief-of-staff-hub, chief-of-staff-recap-hub",
+  "eng_lead": null,
+  "design_lead": null,
+  "feedback_method": "interview-plan",
+  "feedback_method_options": "survey | nps | in-app-prompt | interview-plan | usage-analytics | support-tickets | none",
+  "feedback_status": "not-started",
+  "personas": ["sales-rep", "sales-leader", "revops", "csm"],
+  "pillar": "customer-trust",
+  "strategic_initiative": "Global Chat + CRM Agent Upgrades + AI-First UX",
+  "created_at": "2026-02-07T22:00:00.000Z",
+  "updated_at": "2026-02-09T23:00:00.000Z",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-16T00:00:00.000Z",
+      "exited": "2026-02-07T22:00:00.000Z",
+      "notes": "Research aggregated from crm-update-artifact, rep-workspace, chief-of-staff-hub, chief-of-staff-recap-hub"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-02-07T22:00:00.000Z",
+      "exited": "2026-02-09T23:00:00.000Z",
+      "notes": "10 prototype iterations (v1-v10). v3 validated at 83%. v10 validated at 88% with 120-persona jury. Rob Henderson CEO feedback drove action-first redesign. All graduation criteria met."
+    },
+    {
+      "phase": "build",
+      "entered": "2026-02-09T23:00:00.000Z",
+      "exited": null,
+      "notes": "Advanced after v10 validation (88% would-use, 4.35/5 avg). Design brief and decisions.md updates needed before eng handoff. Build priorities: P0 meeting clearing + value banner + action morning."
+    }
+  ],
+  "blockers": [],
+  "next_action": "Create design brief from v10 validated patterns + competitive landscape; update decisions.md with v10 direction; schedule Rob + Sam alignment session; begin build phase with P0 trio (meeting clearing + value banner + action morning)",
+  "competitive_landscape": {
+    "last_updated": "2026-02-16",
+    "competitors_analyzed": 13,
+    "tiers": {
+      "direct": ["Gong", "Clari", "Chorus (ZoomInfo)"],
+      "indirect": ["Avoma", "Fathom", "Fireflies.ai"],
+      "adjacent_crm": ["Salesforce Agentforce", "HubSpot Breeze"],
+      "adjacent_automation": ["Relay.app", "Gumloop", "Lindy.ai", "StackAI"]
+    },
+    "unique_differentiators": [
+      "rapid-fire-meeting-clearing",
+      "evidence-backed-crm-updates",
+      "value-attribution-visibility",
+      "time-aware-dynamic-ux",
+      "chat-based-agent-configuration",
+      "approval-by-exception",
+      "privacy-before-trigger",
+      "isolated-agent-testing"
+    ],
+    "top_risks": [
+      "Gong Orchestrate expanding into meeting-triggered workflows",
+      "Fireflies MCP making 'connect to Claude' good enough",
+      "HubSpot Breeze as 'good enough' for HubSpot customers"
+    ],
+    "documents": [
+      "competitive-landscape.md",
+      "competitive-landscape-agent-automation.md",
+      "competitive-landscape-gong.md",
+      "competitive-landscape-clari.md",
+      "competitive-landscape-meeting-intelligence.md",
+      "competitive-landscape-crm-ai-hubs.md"
+    ],
+    "mockups": [
+      "assets/competitive/agent-command-center-daily-hub-mockup.png",
+      "assets/competitive/agent-command-center-meeting-clearing-mockup.png",
+      "assets/competitive/agent-command-center-chat-config-mockup.png",
+      "assets/competitive/agent-command-center-artifact-delivery-mockup.png",
+      "assets/competitive/daily-hub-pattern-comparison-mockup.png"
+    ]
+  },
+  "graduation_criteria": {
+    "discovery_to_define": {
+      "research_complete": true,
+      "problem_validated": true,
+      "personas_identified": true,
+      "outcome_chain_clear": true,
+      "jtbd_articulated": true,
+      "owner_assigned": true
+    },
+    "define_to_build": {
+      "prd_exists": true,
+      "design_brief_exists": false,
+      "outcome_chain_defined": true,
+      "e2e_experience_addressed": true,
+      "feedback_method_defined": true,
+      "decisions_documented": false,
+      "jury_evaluation_pass": true,
+      "ceo_validation": true,
+      "no_p0_blockers": true
+    },
+    "build_to_validate": {
+      "prototype_covers_required_states": false,
+      "storybook_stories_complete": false,
+      "flow_stories_implemented": false,
+      "engineering_spec_exists": false
+    }
+  },
+  "validation_results": {
+    "v2": {
+      "date": "2026-02-07",
+      "verdict": "CONTESTED",
+      "would_use_rate": 0.67,
+      "average_score": 3.81,
+      "critical_issues": 4,
+      "report": "jury-evaluations/v2-validation-report-20260207.md"
+    },
+    "v3": {
+      "date": "2026-02-07",
+      "verdict": "VALIDATED",
+      "would_use_rate": 0.83,
+      "average_score": 4.18,
+      "critical_issues": 0,
+      "report": "jury-evaluations/v3-validation-report-20260207.md"
+    },
+    "v10": {
+      "date": "2026-02-09",
+      "verdict": "VALIDATED",
+      "would_use_rate": 0.88,
+      "average_score": 4.35,
+      "critical_issues": 0,
+      "jury_size": 120,
+      "resonance_4_plus": 0.79,
+      "skeptic_satisfaction": 0.72,
+      "leader_satisfaction": 0.9,
+      "top_feature": "rapid-fire meeting clearing (4.7/5)",
+      "ceo_validation": "Rob Henderson: 'I would pay lots of money for that right now'",
+      "hypotheses_validated": [
+        "hyp-action-over-insight-engagement",
+        "hyp-value-attribution-retention",
+        "hyp-time-aware-dynamic-ux",
+        "hyp-proactive-deal-intelligence",
+        "hyp-rep-workspace-viral-anchor"
+      ],
+      "remaining_issues": 7,
+      "remaining_issues_max_severity": "medium",
+      "report": "jury-evaluations/v10-validation-report-20260209.md"
+    }
+  },
+  "key_quotes": [
+    "I would put every penny towards experience of how someone interacts with workflows today.",
+    "Tell me what you've done, what needs approval, and what's scheduled.",
+    "I don't want to click a meeting then a workflow out of a thousand workflows.",
+    "These workflows don't generate a chat. They generate artifacts.",
+    "It gives us an anchor point of this is where you live. This is how we can demo it.",
+    "Your settings are not toggles anymore...It's a chat...AI first.",
+    "When I'm proactive, AI is reactive. When AI is proactive, I'm reactive.",
+    "If you focus on the action, then the insights are a byproduct of what should be done.",
+    "We already have workflows that are doing things. We already have AskElephant working for people. It's just not telling them anything.",
+    "If I log in at 8AM, my home page is actually different than if I log in at 5PM.",
+    "I would pay lots of money for that right now.",
+    "Each meeting is like its own card... boom boom boom. Eight meetings done. Fifteen minutes. I just saved four hours.",
+    "Lowest hanging fruit for biggest impact... every single user that logged in saw, hey Tyler, I just updated these four things for you."
+  ],
+  "merged_from": [
+    {
+      "slug": "crm-update-artifact",
+      "name": "CRM Experience End-to-End",
+      "phase_at_merge": "build",
+      "priority_at_merge": "P0",
+      "key_contribution": "Workflow visibility, manual enrollment, AI context for CRM, property creation"
+    },
+    {
+      "slug": "rep-workspace",
+      "name": "Rep Workspace",
+      "phase_at_merge": "build",
+      "priority_at_merge": "P0",
+      "key_contribution": "Deal-centric workspace, pipeline view, self-coaching, agent activity visibility"
+    },
+    {
+      "slug": "chief-of-staff-hub",
+      "name": "Chief of Staff Hub",
+      "phase_at_merge": "archived",
+      "priority_at_merge": "N/A",
+      "key_contribution": "Daily proactive hub concept, approval-by-exception model"
+    },
+    {
+      "slug": "chief-of-staff-recap-hub",
+      "name": "Chief of Staff Recap Hub",
+      "phase_at_merge": "build",
+      "priority_at_merge": "P2",
+      "key_contribution": "Recap artifacts, chat-based configuration, meeting type templates, share modal"
+    }
+  ],
+  "related_initiatives": [
+    "global-chat",
+    "composio-agent-framework",
+    "admin-onboarding"
+  ],
+  "signals": [
+    "sig-2026-02-23-agent-first-vision-tyler-team",
+    "sig-2026-02-09-rob-feedback-agent-command-center-v9",
+    "sig-2026-02-04-council-of-product",
+    "sig-2026-01-30-meeting-page-view-brainstorm",
+    "sig-2026-01-29-product-vision-robert-henderson",
+    "sig-2026-01-29-product-conversation-sam-ho-skylar-sanford",
+    "sig-2026-01-28-tyler-sam-flagship-meeting-recap-ux",
+    "sig-2026-01-26-council-of-product",
+    "sig-2026-01-26-14day-slack-synthesis",
+    "sig-2026-01-24-council-of-product",
+    "sig-2026-01-22-internal-composio-agent-architecture",
+    "sig-2026-01-22-adam-composio-agent-feedback",
+    "sig-2026-01-21-crispy-feedback",
+    "sig-2026-01-16-crm-exp-ete-planning",
+    "sig-2026-01-21-maple-billing-feedback"
+  ],
+  "hypotheses": [
+    "hyp-rep-workspace-viral-anchor",
+    "hyp-proactive-deal-intelligence",
+    "hyp-solo-rep-self-coaching",
+    "hyp-artifact-first-recap-alignment",
+    "hyp-action-over-insight-engagement",
+    "hyp-value-attribution-retention",
+    "hyp-time-aware-dynamic-ux"
+  ],
+  "dependencies": [
+    "global-chat",
+    "composio-agent-framework",
+    "admin-onboarding"
+  ],
+  "tags": [
+    "chat-centric",
+    "agent-config",
+    "workflow-management",
+    "proactive-hub",
+    "recap-artifacts",
+    "q1-2026",
+    "viral-anchor",
+    "action-first",
+    "rob-validated"
+  ],
+  "timeline": {
+    "started": "2026-02-07",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 10
+  },
+  "posthog": {
+    "dashboard_id": null,
+    "dashboard_url": null,
+    "key_insights": [],
+    "baseline_established": false
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": "301f79b2-c8ac-8162-89dc-e4b4b298eb19",
+  "notion_project_url": "https://www.notion.so/Chat-V2-Agent-Architecture-301f79b2c8ac816289dce4b4b298eb19",
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": ["initiative:agent-command-center"],
+  "github_branch_prefix": "feat/agent-command-center",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "visibility": "internal"
+}

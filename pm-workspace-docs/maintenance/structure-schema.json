@@ -1,0 +1,152 @@
+{
+  "$schema": "pm-workspace-structure-v1",
+  "version": "1.0.0",
+  "description": "Defines the correct structure for the PM workspace",
+
+  "required_root_folders": [
+    "company-context",
+    "signals",
+    "hypotheses",
+    "initiatives",
+    "roadmap",
+    "personas",
+    "research",
+    "scripts",
+    "maintenance"
+  ],
+
+  "signals_structure": {
+    "index_file": "signals/_index.json",
+    "subfolders": ["transcripts", "tickets", "issues", "conversations"],
+    "file_naming": {
+      "transcripts": "YYYY-MM-DD-[source]-[topic].md",
+      "tickets": "YYYY-MM-DD-[id]-[summary].md",
+      "issues": "[source]-[id].md",
+      "conversations": "YYYY-MM-DD-[channel]-[topic].md"
+    }
+  },
+
+  "hypotheses_structure": {
+    "index_file": "hypotheses/_index.json",
+    "template_file": "hypotheses/_template.md",
+    "status_folders": ["active", "validated", "committed", "retired"],
+    "valid_statuses": ["active", "validated", "committed", "retired"],
+    "file_naming": "[hypothesis-name].md"
+  },
+
+  "initiative_structure": {
+    "required_files": ["_meta.json", "research.md"],
+    "optional_files": [
+      "prd.md",
+      "design-brief.md",
+      "engineering-spec.md",
+      "gtm-brief.md",
+      "decisions.md",
+      "prototype-notes.md"
+    ],
+    "optional_folders": [
+      "jury-evaluations",
+      "iterations",
+      "research",
+      "transcripts"
+    ],
+    "meta_schema": {
+      "required_fields": [
+        "initiative",
+        "phase",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "optional_fields": [
+        "hypothesis_id",
+        "sub_phase",
+        "priority",
+        "owner",
+        "personas",
+        "pillar",
+        "phase_history",
+        "blockers",
+        "next_action",
+        "graduation_criteria",
+        "timeline"
+      ]
+    }
+  },
+
+  "valid_phases": [
+    "discovery",
+    "define",
+    "build",
+    "validate",
+    "launch",
+    "measure",
+    "learn"
+  ],
+
+  "valid_statuses": ["on_track", "at_risk", "blocked", "stale"],
+
+  "valid_priorities": ["P0", "P1", "P2", "P3"],
+
+  "valid_pillars": ["customer-trust", "data-knowledge", "trend-visibility"],
+
+  "valid_personas": ["sales-rep", "sales-leader", "csm", "revops"],
+
+  "phase_transitions": {
+    "discovery": ["define", "retired"],
+    "define": ["build", "discovery", "retired"],
+    "build": ["validate", "define", "retired"],
+    "validate": ["launch", "build", "retired"],
+    "launch": ["measure", "retired"],
+    "measure": ["learn", "retired"],
+    "learn": ["retired"]
+  },
+
+  "graduation_criteria": {
+    "discovery_to_define": {
+      "required": ["research.md exists", "user problems documented"],
+      "recommended": ["3+ evidence points", "persona identified"]
+    },
+    "define_to_build": {
+      "required": ["prd.md exists"],
+      "recommended": ["design-brief.md exists", "outcome chain defined"]
+    },
+    "build_to_validate": {
+      "required": ["prototype-notes.md exists"],
+      "recommended": ["all AI states implemented", "storybook stories complete"]
+    },
+    "validate_to_launch": {
+      "required": ["jury pass rate >= 70%"],
+      "recommended": ["stakeholder approval", "no P0 blockers"]
+    },
+    "launch_to_measure": {
+      "required": ["released to users"],
+      "recommended": ["instrumentation active", "gtm-brief.md exists"]
+    },
+    "measure_to_learn": {
+      "required": ["success metrics evaluated"],
+      "recommended": ["data collected for 2+ weeks"]
+    }
+  },
+
+  "stale_thresholds": {
+    "initiative_days": 14,
+    "hypothesis_days": 30,
+    "signal_days": 14
+  },
+
+  "index_files": [
+    "signals/_index.json",
+    "hypotheses/_index.json",
+    "roadmap/roadmap.json"
+  ],
+
+  "derived_files": [
+    "roadmap/roadmap.md",
+    "roadmap/roadmap-gantt.md",
+    "roadmap/roadmap-kanban.md",
+    "maintenance/latest-audit.md"
+  ],
+
+  "excluded_from_audit": ["_template", "current", ".gitkeep", ".DS_Store"]
+}

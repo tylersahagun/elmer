@@ -1,0 +1,77 @@
+# .github/workflows/sync-submodule.yml
+# Place this in your pm-workspace repo at .github/workflows/sync-submodule.yml
+#
+# This workflow automatically keeps the elephant-ai submodule up to date
+# Runs every 30 minutes to check for new commits
+
+name: Sync Elephant AI Submodule
+
+on:
+  # Run daily at 6am UTC (midnight Mountain Time)
+  schedule:
+    - cron: '0 6 * * *'
+  
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+  sync-submodule:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout pm-workspace
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update submodule to latest main
+        id: update
+        run: |
+          cd elephant-ai
+          git fetch origin main
+          
+          # Get current and latest commits
+          CURRENT=$(git rev-parse HEAD)
+          LATEST=$(git rev-parse origin/main)
+          
+          if [ "$CURRENT" != "$LATEST" ]; then
+            git checkout origin/main
+            cd ..
+            git add elephant-ai
+            
+            # Get commit count and latest message for commit description
+            COMMITS=$(git -C elephant-ai rev-list --count $CURRENT..$LATEST)
+            LATEST_MSG=$(git -C elephant-ai log -1 --format="%s" origin/main)
+            
+            git commit -m "🔄 Update elephant-ai submodule" \
+                       -m "Pulled $COMMITS new commit(s) from elephant-ai/main" \
+                       -m "Latest: $LATEST_MSG"
+            
+            echo "updated=true" >> $GITHUB_OUTPUT
+            echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+          else
+            echo "updated=false" >> $GITHUB_OUTPUT
+            echo "Submodule already up to date"
+          fi
+
+      - name: Push changes
+        if: steps.update.outputs.updated == 'true'
+        run: git push
+
+      - name: Notify Slack (optional)
+        if: steps.update.outputs.updated == 'true'
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack-message: "🔄 PM Workspace synced — ${{ steps.update.outputs.commits }} new commit(s) from elephant-ai"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        continue-on-error: true  # Don't fail if Slack not configured
+

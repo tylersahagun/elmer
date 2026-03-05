@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AskElephant PM Workspace — Initiative Flow</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#0d0f14; color:#e2e8f0;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  overflow:hidden; height:100vh; user-select:none;
+}
+
+/* ── Header ── */
+#hdr {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  height:52px;
+  background:rgba(13,15,20,0.96); backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex; align-items:center; gap:16px; padding:0 20px;
+}
+#hdr-title { font-size:14px; font-weight:700; color:#f1f5f9; white-space:nowrap; }
+#hdr-title span { color:#38bdf8; }
+#hdr-sub { font-size:11px; color:#475569; white-space:nowrap; }
+.hdr-sep { width:1px; height:20px; background:rgba(255,255,255,0.08); }
+.hdr-flex { flex:1; }
+
+/* Legend */
+#legend { display:flex; gap:8px; align-items:center; flex-wrap:nowrap; }
+.leg { display:flex; align-items:center; gap:5px; font-size:10.5px; color:#64748b;
+  cursor:pointer; padding:3px 8px; border-radius:5px; transition:all 0.15s;
+  white-space:nowrap; }
+.leg:hover { background:rgba(255,255,255,0.05); color:#94a3b8; }
+.leg.off { opacity:0.3; }
+.leg-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* Rob button */
+#rob-btn {
+  background:linear-gradient(135deg,#7c3aed,#a855f7);
+  border:none; color:white; padding:5px 14px; border-radius:7px;
+  font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap;
+  transition:opacity 0.2s; letter-spacing:0.2px;
+}
+#rob-btn:hover { opacity:0.85; }
+#rob-btn.on { background:linear-gradient(135deg,#a855f7,#ec4899);
+  box-shadow:0 0 24px rgba(168,85,247,0.4); }
+
+/* Hint */
+#hint { font-size:10px; color:#334155; white-space:nowrap; }
+
+/* ── Canvas ── */
+#wrap {
+  position:fixed; top:52px; left:0; right:0; bottom:0;
+  cursor:grab; overflow:hidden;
+}
+#wrap.dragging { cursor:grabbing; }
+#svg { display:block; }
+
+/* ── Detail panel ── */
+#panel {
+  position:fixed; right:0; top:52px; bottom:0; width:292px;
+  background:rgba(13,15,22,0.98); backdrop-filter:blur(20px);
+  border-left:1px solid rgba(255,255,255,0.06);
+  transform:translateX(100%); transition:transform 0.22s cubic-bezier(.16,1,.3,1);
+  z-index:50; overflow-y:auto; padding:22px 20px 30px;
+}
+#panel.open { transform:translateX(0); }
+
+.p-badge { font-size:9.5px; font-weight:800; text-transform:uppercase;
+  letter-spacing:1px; padding:3px 8px; border-radius:4px;
+  display:inline-block; margin-bottom:10px; }
+.p-title { font-size:17px; font-weight:800; color:#f1f5f9;
+  margin-bottom:7px; line-height:1.3; }
+.p-desc { font-size:12.5px; color:#94a3b8; line-height:1.65; margin-bottom:14px; }
+.p-sec { font-size:9.5px; font-weight:800; text-transform:uppercase;
+  letter-spacing:0.8px; color:#475569; margin:14px 0 7px; }
+.p-list { list-style:none; }
+.p-list li { font-size:11.5px; color:#94a3b8; padding:4px 0 4px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.04); position:relative; }
+.p-list li::before { content:'›'; position:absolute; left:0;
+  color:#38bdf8; font-weight:700; }
+.p-rob { background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.3);
+  border-radius:8px; padding:10px 12px; font-size:11.5px; color:#d8b4fe;
+  line-height:1.65; margin-top:14px; }
+.p-rob b { color:#c4b5fd; }
+#panel-close { position:absolute; top:14px; right:14px; background:rgba(255,255,255,0.06);
+  border:none; color:#94a3b8; width:26px; height:26px; border-radius:5px;
+  cursor:pointer; font-size:14px; line-height:26px; text-align:center; }
+#panel-close:hover { background:rgba(255,255,255,0.12); }
+
+/* ── Rob banner ── */
+#banner {
+  position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+  background:rgba(88,28,235,0.18); border:1px solid rgba(167,139,250,0.4);
+  backdrop-filter:blur(14px); border-radius:10px; padding:10px 20px;
+  font-size:11.5px; color:#c4b5fd; text-align:center; z-index:100;
+  opacity:0; pointer-events:none; transition:opacity 0.3s; max-width:660px;
+  line-height:1.55;
+}
+#banner.on { opacity:1; }
+
+/* ── Zoom controls ── */
+#zoom-btns {
+  position:fixed; bottom:18px; right:18px; z-index:100;
+  display:flex; flex-direction:column; gap:6px;
+}
+.z-btn { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1);
+  color:#94a3b8; width:32px; height:32px; border-radius:7px; cursor:pointer;
+  font-size:16px; line-height:30px; text-align:center;
+  transition:background 0.15s; }
+.z-btn:hover { background:rgba(255,255,255,0.12); color:#e2e8f0; }
+
+/* ── Tooltip ── */
+#tt { position:fixed; background:rgba(15,18,28,0.95); border:1px solid rgba(255,255,255,0.1);
+  border-radius:7px; padding:7px 11px; font-size:11.5px; color:#e2e8f0;
+  pointer-events:none; opacity:0; transition:opacity 0.1s; z-index:200; }
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div id="hdr-title">AskElephant <span>PM Workspace</span></div>
+  <div id="hdr-sub">Initiative: Idea → Shipped Feature</div>
+  <div class="hdr-sep"></div>
+  <div id="legend">
+    <div class="leg" data-t="context"><div class="leg-dot" style="background:#38bdf8"></div>Context</div>
+    <div class="leg" data-t="command"><div class="leg-dot" style="background:#34d399"></div>Command</div>
+    <div class="leg" data-t="agent"><div class="leg-dot" style="background:#fb923c"></div>Agent</div>
+    <div class="leg" data-t="skill"><div class="leg-dot" style="background:#a78bfa"></div>Skill</div>
+    <div class="leg" data-t="mcp"><div class="leg-dot" style="background:#22d3ee"></div>MCP Data</div>
+    <div class="leg" data-t="artifact"><div class="leg-dot" style="background:#94a3b8"></div>Artifact</div>
+    <div class="leg" data-t="missing"><div class="leg-dot" style="background:#fbbf24"></div>Gap</div>
+  </div>
+  <div class="hdr-flex"></div>
+  <div id="hint">scroll to zoom · drag to pan · click node for details</div>
+  <div class="hdr-sep"></div>
+  <button id="rob-btn" onclick="toggleRob()">✦ Rob's Vision Flow</button>
+</div>
+
+<div id="wrap">
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+</div>
+
+<div id="panel">
+  <button id="panel-close" onclick="closePanel()">✕</button>
+  <div id="panel-body"></div>
+</div>
+
+<div id="banner"></div>
+<div id="tt"></div>
+
+<div id="zoom-btns">
+  <button class="z-btn" onclick="zoom(1.2)">+</button>
+  <button class="z-btn" onclick="zoomFit()">⊡</button>
+  <button class="z-btn" onclick="zoom(0.8)">−</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// COLORS + CONFIG
+// ═══════════════════════════════════════════
+const C = {
+  context:'#38bdf8', command:'#34d399', agent:'#fb923c',
+  skill:'#a78bfa', mcp:'#22d3ee', artifact:'#94a3b8', missing:'#fbbf24'
+};
+const R = { context:20, command:19, agent:26, skill:22, mcp:18, artifact:16, missing:19 };
+const PHASE_COLORS = [
+  'rgba(56,189,248,0.05)',    // 0 kickoff
+  'rgba(52,211,153,0.05)',    // 1 discovery
+  'rgba(167,139,250,0.05)',   // 2 define
+  'rgba(251,146,60,0.05)',    // 3 build
+  'rgba(236,72,153,0.05)',    // 4 validate
+  'rgba(148,163,184,0.05)',   // 5 launch
+];
+
+// ═══════════════════════════════════════════
+// NODES — explicit (x,y) in the graph canvas
+// ═══════════════════════════════════════════
+// Total canvas: ~1400 x 980
+// Phases run left→right. Y-bands per type group.
+
+const NODES = [
+  // ── CONTEXT (x=75) ────────────────────────
+  {id:'ctx-vision',    type:'context', x:75,  y:120, label:'Product Vision',       sl:'Vision',
+   desc:'Core identity, mission, and anti-vision. Loaded by every agent before any work begins.',
+   details:['What AskElephant IS and IS NOT','Anti-vision: "no generic AI summaries"','Mission: surface what matters for revenue teams'],
+   rob:'This is your guardrails doc — every agent knows what not to build before it starts.'},
+
+  {id:'ctx-guard',     type:'context', x:75,  y:215, label:'Strategic Guardrails', sl:'Guardrails',
+   desc:'Red flags and alignment checks. Agents push back if a request violates these principles.',
+   details:['Flags commodity features','Enforces outcome chains','Prevents persona confusion'],
+   rob:'If you ask for "generic AI notes", the agents push back with: "which persona? what outcome?"'},
+
+  {id:'ctx-personas',  type:'context', x:75,  y:310, label:'Personas',             sl:'Personas',
+   desc:'Sales reps, leaders, CSMs, RevOps. Used in research, PRD writing, and jury simulation.',
+   details:['4 primary personas defined','Used in 100–500 AI jury votes','Segment breakdowns from PostHog'],
+   rob:'These are the "1000 people" who vote on your prototype. All synthetic, all opinionated.'},
+
+  {id:'ctx-tech',      type:'context', x:75,  y:405, label:'Tech Stack',           sl:'Tech',
+   desc:'React, TypeScript, Storybook, design tokens. The prototype builder knows exactly what exists.',
+   details:['Component registry: every production component','Design tokens (Theme V2)','Real app shell integration']},
+
+  {id:'ctx-registry',  type:'context', x:75,  y:500, label:'Component Registry',  sl:'Components',
+   desc:'Catalog of every production UI component. Prototype builder searches here before creating anything new.',
+   details:['Primitives: Button, Card, Badge…','AI elements: ChainOfThought, Suggestion…','App shell: TopNav, GlobalChat'],
+   rob:'Rob mentioned "screenshots of our current platforms" — this is that. Every component the AI can use.'},
+
+  // ── PHASE 0: KICKOFF (x=230) ──────────────
+  {id:'cmd-new',       type:'command', x:230, y:120, label:'/new-initiative',      sl:'/new-init',
+   desc:'Creates the initiative folder structure: _meta.json, prd.md, research.md, design-brief.md, and more.',
+   details:['Copies from _template/','Sets phase: discovery','Commits to git automatically']},
+
+  {id:'cmd-ingest',    type:'command', x:230, y:215, label:'/ingest all',          sl:'/ingest',
+   desc:'Pulls signals from ALL sources in parallel: Slack, Linear, HubSpot. Seeds the research phase.',
+   details:['Slack: #product-forum, #customer-feedback, #churn-alert','Linear: customer-reported + feature-request labels','HubSpot: deal notes, churn reasons'],
+   rob:'Start every initiative by ingesting everything first. Seeds research with real customer evidence.'},
+
+  // ── PHASE 1: DISCOVERY (x=430) ────────────
+  {id:'cmd-research',  type:'command', x:430, y:80,  label:'/research',            sl:'/research',
+   desc:'Analyze transcripts, calls, or feedback. Extracts problems with verbatim quotes, JTBD, and strategic alignment.',
+   details:['Paste transcript or reference file','HubSpot context pulled automatically','Outputs research.md with JTBD'],
+   rob:'"We have an agent going through UX" — this is it. Research Analyzer maps the experience from real calls.'},
+
+  {id:'ag-signals',    type:'agent',   x:430, y:185, label:'Signals Processor',    sl:'Signals',
+   desc:'Processes and categorizes signals from Slack, HubSpot, Linear. Detects problem patterns and churn signals.',
+   details:['Classifies: open / workaround / resolved / tracked','Writes to signals/_index.json','Logs evidence to Ansor memory graph'],
+   rob:'Scans for "would be nice", "customers are asking", "workaround" patterns automatically.'},
+
+  {id:'ag-research',   type:'agent',   x:430, y:290, label:'Research Analyzer',    sl:'Research',
+   desc:'Deep transcript + usage data analysis. Checks strategic alignment, extracts JTBD, flags concerns.',
+   details:['Pulls PostHog usage data automatically','Verbatim quote extraction','Alignment score: Strong/Moderate/Weak'],
+   rob:'Combines customer call with PostHog usage data. You get qual + quant in one pass.'},
+
+  {id:'sk-research',   type:'skill',   x:430, y:390, label:'Research Analyst',     sl:'Research Skill',
+   desc:'Procedural knowledge: JTBD format, red flag detection, outcome chain verification, user breakdown.',
+   details:['JTBD: "When [X], I want [Y], so I can [Z]"','Feedback plan requirement','Evidence gap callouts']},
+
+  {id:'mcp-slack',     type:'mcp',     x:430, y:490, label:'Slack MCP',            sl:'Slack',
+   desc:'Live Slack data: #product-forum, #customer-feedback, #churn-alert, #product-requests.',
+   details:['Full channel history','Thread context + resolution detection','Customer pain pattern search']},
+
+  {id:'mcp-hubspot',   type:'mcp',     x:430, y:570, label:'HubSpot MCP',          sl:'HubSpot',
+   desc:'Deal stage, company context, churn reasons. Auto-pulled when customer name is mentioned.',
+   details:['Company / deal context','Churn reasons → product gaps','Support tickets → pain points']},
+
+  {id:'mcp-posthog',   type:'mcp',     x:430, y:650, label:'PostHog MCP',          sl:'PostHog',
+   desc:'Usage data, feature flags, adoption rates. Adds quantitative evidence to qualitative research.',
+   details:['DAU, adoption %','Feature flag rollout status','User segment breakdown']},
+
+  {id:'art-research',  type:'artifact',x:430, y:740, label:'research.md',          sl:'research.md',
+   desc:'Output: verbatim quotes, JTBD, alignment score, user breakdown, feedback plan.',
+   details:['Saved to: initiatives/active/[name]/research.md','Triggers /pm to write PRD']},
+
+  {id:'miss-voice',    type:'missing', x:430, y:830, label:'★ Voice-to-Signals',   sl:'★ Voice',
+   desc:'GAP: Real-time voice ingestion from customer calls → signals pipeline. Currently requires copy-paste.',
+   details:['Currently: paste transcript manually','Could be: Dialpad/Gong webhook → auto-ingest','Iterator handles voice feedback but trigger is manual'],
+   rob:"Rob\u2019s call ends \u2192 signals auto-ingested. The pieces exist (Iterator handles voice) but the trigger is still manual."},
+
+  // ── PHASE 2: DEFINE (x=640) ───────────────
+  {id:'cmd-landscape', type:'command', x:640, y:80,  label:'/landscape',           sl:'/landscape',
+   desc:'Competitive analysis with UX flow capture. Maps user journeys for competitor products.',
+   details:['Captures UX flows, feature matrices','Differentiation mapping','Outputs competitive-landscape.md'],
+   rob:'"Map out the user journey, put it into a chart" — /landscape does this for competitor products.'},
+
+  {id:'cmd-pm',        type:'command', x:640, y:175, label:'/pm',                  sl:'/pm',
+   desc:'Write the PRD. Outcome chain, personas, success metrics. Pushes back if strategy is unclear.',
+   details:['Loads research.md automatically','Enforces outcome chain','Generates design-brief.md alongside PRD']},
+
+  {id:'cmd-brainstorm',type:'command', x:640, y:265, label:'/brainstorm-board',    sl:'/brainstorm',
+   desc:'Structured creative ideation. Explores problem space divergently before converging on a solution.',
+   details:['Guided probing questions','Clusters ideas by theme','No solving until space is explored']},
+
+  {id:'sk-prd',        type:'skill',   x:640, y:360, label:'PRD Writer',           sl:'PRD Skill',
+   desc:'Structured PRD: outcome chains, evidence basis, persona targeting, risk + dependency callouts.',
+   details:['Feature → behavior → business result chain','Evidence basis requirement','Strategic alignment check']},
+
+  {id:'sk-competitive',type:'skill',   x:640, y:450, label:'Competitive Analysis', sl:'Competitive',
+   desc:'Systematic UX flow capture, feature matrix, differentiation mapping. Rob\'s "UI principles" agent.',
+   details:['Competitor UX flows captured','Build vs. match decisions','Feeds visual design direction'],
+   rob:'"What are UI principles? Screenshots of our current platforms." This maps competitors + existing UX to inform what to build.'},
+
+  {id:'sk-design',     type:'skill',   x:640, y:540, label:'Design Companion',     sl:'Design',
+   desc:'Human-centric AI design review: trust, emotion, accessibility — checked before building.',
+   details:['Trust + privacy implications','Emotional tone review','Accessibility validation']},
+
+  {id:'art-prd',       type:'artifact',x:640, y:640, label:'prd.md',               sl:'prd.md',
+   desc:'Product Requirements Document: outcome chain, personas, success metrics, risks.',
+   details:['Saved to: initiatives/active/[name]/prd.md']},
+
+  {id:'art-brief',     type:'artifact',x:640, y:720, label:'design-brief.md',      sl:'design-brief',
+   desc:'Design brief with flows, states, UI principles from research + competitive analysis.',
+   details:['Saved to: initiatives/active/[name]/design-brief.md']},
+
+  {id:'miss-ux',       type:'missing', x:640, y:810, label:'★ Auto-UX Mapper',     sl:'★ UX Agent',
+   desc:'GAP: A dedicated agent that reads research.md and auto-generates the user journey in FigJam.',
+   details:['Currently: /figjam requires you to describe the flow','Could be: agent reads research → auto-creates FigJam journey','/figjam + competitive analysis covers this partially'],
+   rob:"Rob\u2019s dream: agent reads research, auto-draws the user journey. The FigJam agent exists but needs the research\u2192FigJam bridge."},
+
+  // ── PHASE 3: BUILD (x=860) ────────────────
+  {id:'cmd-figjam',    type:'command', x:860, y:80,  label:'/figjam',              sl:'/figjam',
+   desc:'Generate user journey diagrams in FigJam from plain language. Flowcharts, state machines, sequences.',
+   details:['Mermaid.js syntax generated automatically','Live FigJam URL returned','Types: flowchart, sequence, state, gantt'],
+   rob:'"Map out the user journey, put it into a chart." One command → live FigJam diagram with shareable URL.'},
+
+  {id:'cmd-visual',    type:'command', x:860, y:175, label:'/visual-design',       sl:'/visual-design',
+   desc:'2–3 high-fidelity AI mockup directions before any code is written.',
+   details:['Informed by competitive analysis + design brief','AI-generated mockups','Validates direction before coding']},
+
+  {id:'cmd-proto',     type:'command', x:860, y:265, label:'/proto',               sl:'/proto',
+   desc:'Build production-fidelity Storybook prototype. Real app shell, real components, fully interactive.',
+   details:['Full mode: all states + all flows','Lofi: quick wireframe','Deploys to Chromatic automatically'],
+   rob:'"Have 80% of the meeting summary agent done" — /proto builds a fully interactive prototype using your actual production components.'},
+
+  {id:'ag-figjam',     type:'agent',   x:860, y:365, label:'FigJam Generator',     sl:'FigJam',
+   desc:'Generates Mermaid.js diagrams and publishes them directly to FigJam. Returns live edit URL.',
+   details:['Validates Mermaid syntax before sending','Returns clickable FigJam URL','Iterates on demand'],
+   rob:'This is Rob\u2019s UX journey mapping agent. Say "generate the user journey for onboarding" \u2192 live chart.'},
+
+  {id:'ag-proto',      type:'agent',   x:860, y:465, label:'Prototype Builder',    sl:'Proto Builder',
+   desc:'Builds full Storybook prototypes: component inventory, app shell, all user flows, interactive demo.',
+   details:['Component-first: searches production codebase first','In-context: wraps in real app shell','5 required flows, 6 AI states'],
+   rob:'Uses the component registry (your existing platform) to build a prototype that looks like the real app.'},
+
+  {id:'sk-proto',      type:'skill',   x:860, y:565, label:'Prototype System',     sl:'Proto Skill',
+   desc:'Playbook: component reuse, app shell, interactive patterns, design token compliance.',
+   details:['Discovery→Onboarding→HappyPath→ErrorRecovery→DayTwo','6 AI states required','Semantic color tokens enforced']},
+
+  {id:'sk-visual',     type:'skill',   x:860, y:655, label:'Visual Design',        sl:'Visual Skill',
+   desc:'AI mockup generation with multiple directions. Informed by competitive landscape + design brief.',
+   details:['2-3 directions per key screen','Validates before committing to code']},
+
+  {id:'art-figjam',    type:'artifact',x:860, y:745, label:'FigJam Diagram',       sl:'FigJam',
+   desc:'Live UX journey / flow diagram in FigJam. Shareable URL, editable by the team.',
+   details:['Shareable FigJam link','User journey + state flows']},
+
+  {id:'art-proto',     type:'artifact',x:860, y:825, label:'Storybook Prototype',  sl:'Storybook',
+   desc:'Fully interactive prototype in Storybook, deployed to Chromatic. All states, all flows.',
+   details:['Deployed to Chromatic','All 5 user flows','All 6 AI states','Slack notification sent'],
+   rob:'This IS the demo you show Rob. Click every button, every state works. Not a mockup.'},
+
+  // ── PHASE 4: VALIDATE + ITERATE (x=1075) ──
+  {id:'cmd-validate',  type:'command', x:1075,y:80,  label:'/validate',            sl:'/validate',
+   desc:'Condorcet Jury evaluation: 100–500 synthetic persona votes. Checks graduation criteria.',
+   details:['Pass threshold: ≥60% resonance','Stratified: role, tech level, AI adoption','Always includes 15% AI skeptics'],
+   rob:'"1000 iterations of feedback within our AI personas" — /validate runs exactly this. All your user types, voting.'},
+
+  {id:'cmd-iterate',   type:'command', x:1075,y:185, label:'/iterate',             sl:'/iterate',
+   desc:'Refine prototype from any feedback: voice transcripts, text, jury results. Auto-rebuilds.',
+   details:['Handles messy voice feedback','Auto-pulls signals since last version','Minor fix = patch; major change = new version'],
+   rob:'"Put my own feedback as I get from customers" — /iterate accepts voice, rambling notes, anything.'},
+
+  {id:'ag-validator',  type:'agent',   x:1075,y:290, label:'Validator',            sl:'Validator',
+   desc:'Condorcet Jury: stratified personas evaluate the prototype against their specific pain points.',
+   details:['40% Sales Reps, 25% Leaders, 20% CSM, 15% RevOps','Scenario-specific prompts per persona','Aggregates: Validated / Contested / Rejected'],
+   rob:'Rob\u2019s "1000 iterations of feedback" made real. Each persona has a specific role, tech level, and AI attitude.'},
+
+  {id:'ag-iterator',   type:'agent',   x:1075,y:390, label:'Iterator',             sl:'Iterator',
+   desc:'Synthesizes feedback changes, rebuilds prototype while maintaining production fidelity.',
+   details:['Classifies: Visual / Interaction / Flow / Content / Missing / Remove / Keep','Commits to Chromatic automatically','Preserves what\'s working'],
+   rob:'Paste a voice transcript or customer feedback → extracts what to change → rebuilds → deploys.'},
+
+  {id:'sk-jury',       type:'skill',   x:1075,y:490, label:'Jury System',          sl:'Jury Skill',
+   desc:'Condorcet Jury: if each persona is >50% accurate, 100–500 votes produces near-certain judgment.',
+   details:['Mathematically grounded in Condorcet\'s theorem','3-dimension stratified sampling','Heuristic scoring: visibility, control, expectations'],
+   rob:'"I can also put my own feedback as I get from customers" — jury combines synthetic votes with real Tyler/customer feedback.'},
+
+  {id:'art-jury',      type:'artifact',x:1075,y:590, label:'Jury Evaluation',      sl:'Jury Report',
+   desc:'Validation report: approval rate, by-persona breakdown, top concerns, recommendation.',
+   details:['Saved to: initiatives/active/[name]/jury-evaluations/','Verdict: pass / iterate / reject']},
+
+  // ── PHASE 5: LAUNCH (x=1270) ──────────────
+  {id:'cmd-posthog',   type:'command', x:1270,y:120, label:'/posthog',             sl:'/posthog',
+   desc:'Define success metrics, create PostHog dashboards, configure feature flags and rollout.',
+   details:['Metrics → PostHog dashboard','Feature flag rollout setup','Cohort creation']},
+
+  {id:'cmd-fguide',    type:'command', x:1270,y:220, label:'/feature-guide',       sl:'/feature-guide',
+   desc:'Generate customer-facing feature guide from PRD, prototype, and signals.',
+   details:['Synthesizes Slack + GitHub + Linear + PRD','Customer-safe (checks feature flags)','Release notes format']},
+
+  {id:'cmd-share',     type:'command', x:1270,y:315, label:'/share + notify',      sl:'/share',
+   desc:'Create PR and send Slack notification with Chromatic link and next steps.',
+   details:['Auto Slack DM after prototype','PR creation','Chromatic link shared']},
+
+  {id:'ag-posthog',    type:'agent',   x:1270,y:430, label:'PostHog Analyst',      sl:'PostHog',
+   desc:'Full PostHog lifecycle: dashboards, cohorts, alerts, feature flags, instrumentation.',
+   details:['Creates dashboards from metrics spec','Sets up feature flag rollout','Configures success alerts']},
+
+  {id:'art-gtm',       type:'artifact',x:1270,y:550, label:'gtm-brief.md',         sl:'GTM Brief',
+   desc:'Go-to-market brief: customer messaging, rollout plan, success criteria.',
+   details:['Saved to: initiatives/active/[name]/gtm-brief.md']},
+];
+
+// ═══════════════════════════════════════════
+// EDGES (src, dst, highlighted in Rob mode)
+// ═══════════════════════════════════════════
+const EDGES = [
+  // Context → everything
+  {s:'ctx-vision',    d:'ag-research',  rob:false},
+  {s:'ctx-vision',    d:'sk-prd',       rob:false},
+  {s:'ctx-vision',    d:'ag-validator', rob:false},
+  {s:'ctx-guard',     d:'ag-research',  rob:false},
+  {s:'ctx-guard',     d:'sk-prd',       rob:false},
+  {s:'ctx-personas',  d:'ag-research',  rob:false},
+  {s:'ctx-personas',  d:'sk-jury',      rob:true},
+  {s:'ctx-personas',  d:'ag-validator', rob:true},
+  {s:'ctx-tech',      d:'ag-proto',     rob:false},
+  {s:'ctx-registry',  d:'ag-proto',     rob:true},
+
+  // Phase 0 → 1
+  {s:'cmd-new',       d:'cmd-research', rob:false},
+  {s:'cmd-new',       d:'cmd-ingest',   rob:false},
+  {s:'cmd-ingest',    d:'ag-signals',   rob:true},
+
+  // Phase 1
+  {s:'mcp-slack',     d:'ag-signals',   rob:true},
+  {s:'mcp-hubspot',   d:'ag-research',  rob:false},
+  {s:'mcp-posthog',   d:'ag-research',  rob:false},
+  {s:'cmd-research',  d:'ag-research',  rob:true},
+  {s:'ag-signals',    d:'art-research', rob:true},
+  {s:'ag-research',   d:'sk-research',  rob:false},
+  {s:'ag-research',   d:'art-research', rob:true},
+
+  // Phase 1 → 2
+  {s:'art-research',  d:'cmd-landscape',rob:true},
+  {s:'art-research',  d:'cmd-pm',       rob:true},
+
+  // Phase 2
+  {s:'cmd-landscape', d:'sk-competitive',rob:true},
+  {s:'sk-competitive',d:'art-brief',    rob:true},
+  {s:'cmd-pm',        d:'sk-prd',       rob:false},
+  {s:'cmd-pm',        d:'sk-design',    rob:false},
+  {s:'sk-prd',        d:'art-prd',      rob:true},
+  {s:'sk-prd',        d:'art-brief',    rob:true},
+
+  // Phase 2 → 3
+  {s:'art-prd',       d:'cmd-proto',    rob:true},
+  {s:'art-brief',     d:'cmd-proto',    rob:true},
+  {s:'art-brief',     d:'cmd-figjam',   rob:true},
+
+  // Phase 3
+  {s:'cmd-figjam',    d:'ag-figjam',    rob:true},
+  {s:'ag-figjam',     d:'art-figjam',   rob:true},
+  {s:'cmd-visual',    d:'sk-visual',    rob:false},
+  {s:'sk-visual',     d:'cmd-proto',    rob:false},
+  {s:'cmd-proto',     d:'ag-proto',     rob:true},
+  {s:'ag-proto',      d:'sk-proto',     rob:false},
+  {s:'ag-proto',      d:'art-proto',    rob:true},
+  {s:'art-figjam',    d:'ag-proto',     rob:true},
+
+  // Phase 3 → 4
+  {s:'art-proto',     d:'cmd-validate', rob:true},
+
+  // Phase 4
+  {s:'cmd-validate',  d:'ag-validator', rob:true},
+  {s:'ag-validator',  d:'sk-jury',      rob:true},
+  {s:'sk-jury',       d:'art-jury',     rob:true},
+  {s:'art-jury',      d:'cmd-iterate',  rob:true},
+  {s:'cmd-iterate',   d:'ag-iterator',  rob:true},
+  {s:'ag-iterator',   d:'art-proto',    rob:true},  // ← loop back!
+
+  // Phase 4 → 5
+  {s:'art-proto',     d:'cmd-posthog',  rob:false},
+  {s:'art-prd',       d:'cmd-fguide',   rob:false},
+  {s:'cmd-posthog',   d:'ag-posthog',   rob:false},
+  {s:'ag-posthog',    d:'art-gtm',      rob:false},
+  {s:'cmd-share',     d:'art-proto',    rob:false},
+];
+
+// Rob's main path for glow effect
+const ROB_PATH = new Set([
+  'mcp-slack','cmd-ingest','ag-signals','cmd-research','ag-research','sk-research',
+  'art-research','cmd-landscape','sk-competitive','cmd-figjam','ag-figjam','art-figjam',
+  'cmd-pm','sk-prd','art-prd','art-brief','ctx-registry',
+  'cmd-proto','ag-proto','sk-proto','art-proto',
+  'ctx-personas','cmd-validate','ag-validator','sk-jury','art-jury',
+  'cmd-iterate','ag-iterator'
+]);
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const SVG_W = 1400, SVG_H = 950;
+let robMode = false;
+let hiddenTypes = new Set();
+let selNode = null;
+let tx=0, ty=0, scale=1;
+let dragging=false, lastX=0, lastY=0;
+
+const svg = document.getElementById('svg');
+const wrap = document.getElementById('wrap');
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+function init() {
+  svg.setAttribute('width', SVG_W);
+  svg.setAttribute('height', SVG_H);
+  svg.setAttribute('viewBox', `0 0 ${SVG_W} ${SVG_H}`);
+  svg.style.transformOrigin = '0 0';
+
+  buildDefs();
+  render();
+  zoomFit();
+  setupInteraction();
+  setupLegend();
+}
+
+function buildDefs() {
+  const defs = el('defs');
+  ['default','rob','glow'].forEach(t => {
+    const m = el('marker',{id:`arr-${t}`,markerWidth:'7',markerHeight:'7',refX:'5',refY:'2.5',orient:'auto'});
+    const p = el('path',{d:'M0,0 L0,5 L7,2.5 z',
+      fill: t==='rob' ? '#a855f7' : t==='glow' ? '#38bdf8' : 'rgba(148,163,184,0.35)'});
+    m.appendChild(p); defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function render() {
+  // Clear existing content (keep defs)
+  while (svg.children.length > 1) svg.removeChild(svg.lastChild);
+
+  renderPhaseBands();
+  renderTypeRows();
+
+  // Insert edge group after bands (so edges are above bands but below nodes)
+  const edgeGroup = el('g', {id:'edge-layer'});
+  svg.appendChild(edgeGroup);
+
+  renderEdges(edgeGroup);
+  NODES.forEach(n => renderNode(n));
+}
+
+function renderPhaseBands() {
+  const phases = [
+    {x:155, w:155, label:'Kickoff',            idx:0},
+    {x:315, w:195, label:'Discovery',           idx:1},
+    {x:515, w:195, label:'Define',              idx:2},
+    {x:715, w:200, label:'Build',               idx:3},
+    {x:920, w:200, label:'Validate & Iterate',  idx:4},
+    {x:1125,w:230, label:'Launch',              idx:5},
+  ];
+  phases.forEach(p => {
+    const r = el('rect',{x:p.x, y:10, width:p.w, height:SVG_H-20,
+      rx:10, fill:PHASE_COLORS[p.idx], stroke:'rgba(255,255,255,0.04)','stroke-width':1});
+    svg.appendChild(r);
+
+    const t = el('text',{x:p.x+p.w/2, y:28,
+      'text-anchor':'middle', fill:'rgba(148,163,184,0.4)',
+      'font-size':'9.5','font-weight':'700','letter-spacing':'1.2',
+      'text-transform':'uppercase','font-family':'Inter,sans-serif'});
+    t.textContent = p.label.toUpperCase();
+    svg.appendChild(t);
+  });
+
+  // Context band
+  const cr = el('rect',{x:8, y:10, width:140, height:SVG_H-20,
+    rx:10, fill:'rgba(56,189,248,0.04)', stroke:'rgba(56,189,248,0.08)','stroke-width':1});
+  svg.appendChild(cr);
+  const ct = el('text',{x:75, y:28,'text-anchor':'middle',
+    fill:'rgba(56,189,248,0.5)','font-size':'9','font-weight':'700','letter-spacing':'1.2',
+    'font-family':'Inter,sans-serif'});
+  ct.textContent = 'CONTEXT';
+  svg.appendChild(ct);
+}
+
+function renderTypeRows() {
+  // Subtle horizontal type-group labels on left edge
+  const rows = [
+    {y:85,  label:'Commands',  color:'rgba(52,211,153,0.2)'},
+    {y:290, label:'Agents',    color:'rgba(251,146,60,0.2)'},
+    {y:430, label:'Skills',    color:'rgba(167,139,250,0.2)'},
+    {y:600, label:'MCPs',      color:'rgba(34,211,238,0.2)'},
+    {y:720, label:'Artifacts', color:'rgba(148,163,184,0.2)'},
+    {y:820, label:'Gaps',      color:'rgba(251,191,36,0.15)'},
+  ];
+  // (subtle horizontal guide lines — very faint)
+  rows.forEach(({y, label, color}) => {
+    const line = el('line',{
+      x1:155, y1:y-30, x2:SVG_W-10, y2:y-30,
+      stroke:'rgba(255,255,255,0.03)','stroke-width':'1','stroke-dasharray':'4,6'
+    });
+    svg.appendChild(line);
+  });
+}
+
+function renderEdges(group) {
+  EDGES.forEach(({s, d, rob: isRobEdge}) => {
+    const sn = NODES.find(n=>n.id===s);
+    const dn = NODES.find(n=>n.id===d);
+    if (!sn || !dn) return;
+    if (hiddenTypes.has(sn.type) || hiddenTypes.has(dn.type)) return;
+
+    const showRob = robMode && isRobEdge;
+    const color = showRob ? '#a855f7' : C[sn.type];
+    const opacity = showRob ? 0.78 : 0.18;
+    const sw = showRob ? 2.2 : 1.2;
+
+    const path = el('path', {
+      d: curve(sn.x, sn.y, dn.x, dn.y),
+      fill:'none', stroke:color, 'stroke-width':sw,
+      opacity,
+      'marker-end': `url(#arr-${showRob?'rob':'default'})`,
+    });
+    group.appendChild(path);
+  });
+}
+
+function renderNode(n) {
+  if (hiddenTypes.has(n.type)) return;
+
+  const isRobHighlight = robMode && ROB_PATH.has(n.id);
+  const isSelected = selNode && selNode.id === n.id;
+  const r = R[n.type] || 18;
+  const color = C[n.type];
+
+  const g = el('g');
+  g.style.cursor = 'pointer';
+
+  // Rob glow ring
+  if (isRobHighlight) {
+    const glow = el('circle', {r: r+9, fill:'none', stroke:color,
+      'stroke-width':'1.5', opacity:'0.25'});
+    const anim = el('animate',{attributeName:'r',
+      values:`${r+7};${r+13};${r+7}`, dur:'2.5s', repeatCount:'indefinite'});
+    glow.appendChild(anim);
+    g.appendChild(glow);
+  }
+
+  // Selection ring
+  if (isSelected) {
+    const sel = el('circle',{r:r+7,fill:'none',stroke:'#f1f5f9',
+      'stroke-width':'1.5',opacity:'0.5'});
+    g.appendChild(sel);
+  }
+
+  // Main fill
+  const bg = el('circle',{r, fill:`${color}15`, stroke:color,
+    'stroke-width': n.type==='missing'?'1.5':'1.5',
+    'stroke-dasharray': n.type==='missing'?'4,3':'none'});
+  g.appendChild(bg);
+
+  // Center dot
+  const dot = el('circle',{r:4, fill:color, opacity:'0.9'});
+  g.appendChild(dot);
+
+  // Label
+  const label = el('text',{
+    y: r+13, 'text-anchor':'middle',
+    fill: n.type==='missing' ? '#fbbf24' : '#cbd5e1',
+    'font-size':'9.5', 'font-weight': isRobHighlight?'700':'500',
+    'font-family':'Inter,sans-serif'
+  });
+  label.textContent = n.sl || n.label;
+  g.appendChild(label);
+
+  if (n.type === 'missing') {
+    const gap = el('text',{y:r+24,'text-anchor':'middle',
+      fill:'#fbbf24','font-size':'8','font-weight':'700',
+      'font-family':'Inter,sans-serif'});
+    gap.textContent = 'GAP';
+    g.appendChild(gap);
+  }
+
+  g.setAttribute('transform', `translate(${n.x},${n.y})`);
+  g.addEventListener('click', () => selectNode(n));
+  g.addEventListener('mouseenter', e => showTT(e, n.label));
+  g.addEventListener('mouseleave', hideTT);
+  svg.appendChild(g);
+}
+
+function curve(x1,y1,x2,y2) {
+  const dx = (x2-x1)*0.45;
+  const dy = (y2-y1)*0.1;
+  return `M${x1},${y1} C${x1+dx},${y1+dy} ${x2-dx},${y2-dy} ${x2},${y2}`;
+}
+
+// ═══════════════════════════════════════════
+// PANEL
+// ═══════════════════════════════════════════
+function selectNode(n) {
+  selNode = n;
+  render();
+
+  const tl = {context:'Context File',command:'Slash Command',agent:'Subagent',
+    skill:'Skill Module',mcp:'MCP Data Source',artifact:'Artifact',missing:'⚠ Gap / Opportunity'};
+  const color = C[n.type];
+
+  let html = `
+    <div class="p-badge" style="background:${color}20;color:${color}">${tl[n.type]}</div>
+    <div class="p-title">${n.label}</div>
+    <div class="p-desc">${n.desc}</div>
+  `;
+  if (n.details?.length) {
+    html += `<div class="p-sec">Details</div><ul class="p-list">`;
+    n.details.forEach(d => { html += `<li>${d}</li>`; });
+    html += `</ul>`;
+  }
+  if (n.rob) {
+    html += `<div class="p-rob"><b>Rob's Vision:</b> ${n.rob}</div>`;
+  }
+
+  document.getElementById('panel-body').innerHTML = html;
+  document.getElementById('panel').classList.add('open');
+}
+
+function closePanel() {
+  selNode = null;
+  document.getElementById('panel').classList.remove('open');
+  render();
+}
+
+// ═══════════════════════════════════════════
+// ROB MODE
+// ═══════════════════════════════════════════
+function toggleRob() {
+  robMode = !robMode;
+  const btn = document.getElementById('rob-btn');
+  const banner = document.getElementById('banner');
+  btn.classList.toggle('on', robMode);
+  btn.textContent = robMode ? '✦ Rob\'s Vision: ON' : '✦ Rob\'s Vision Flow';
+  banner.textContent = robMode
+    ? '✦ Highlighted: Customer Signals → Research → UX Journey Map → UI Principles → Prototype → AI Jury (100–500 synthetic votes) → Iterate → loop back. Gaps shown in gold. Click any node for details.'
+    : '';
+  banner.classList.toggle('on', robMode);
+  render();
+}
+
+// ═══════════════════════════════════════════
+// LEGEND FILTERS
+// ═══════════════════════════════════════════
+function setupLegend() {
+  document.querySelectorAll('.leg').forEach(item => {
+    item.addEventListener('click', () => {
+      const t = item.dataset.t;
+      if (hiddenTypes.has(t)) { hiddenTypes.delete(t); item.classList.remove('off'); }
+      else { hiddenTypes.add(t); item.classList.add('off'); }
+      render();
+    });
+  });
+}
+
+// ═══════════════════════════════════════════
+// ZOOM + PAN
+// ═══════════════════════════════════════════
+function applyTransform() {
+  svg.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+}
+
+function zoom(factor, cx, cy) {
+  const rect = wrap.getBoundingClientRect();
+  cx = cx ?? rect.width/2;
+  cy = cy ?? rect.height/2;
+  const newScale = Math.max(0.3, Math.min(3, scale * factor));
+  tx = cx - (cx - tx) * (newScale / scale);
+  ty = cy - (cy - ty) * (newScale / scale);
+  scale = newScale;
+  applyTransform();
+}
+
+function zoomFit() {
+  const rect = wrap.getBoundingClientRect();
+  const scaleX = rect.width / SVG_W;
+  const scaleY = rect.height / SVG_H;
+  scale = Math.min(scaleX, scaleY) * 0.95;
+  tx = (rect.width - SVG_W * scale) / 2;
+  ty = (rect.height - SVG_H * scale) / 2;
+  applyTransform();
+}
+
+function setupInteraction() {
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoom(e.deltaY < 0 ? 1.1 : 0.9, e.clientX, e.clientY - 52);
+  }, {passive:false});
+
+  wrap.addEventListener('mousedown', e => {
+    if (e.target === wrap || e.target === svg ||
+        e.target.tagName === 'rect' || e.target.tagName === 'line' ||
+        e.target.tagName === 'path') {
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+      wrap.classList.add('dragging');
+    }
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    tx += e.clientX - lastX;
+    ty += e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    applyTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    dragging = false; wrap.classList.remove('dragging');
+  });
+
+  window.addEventListener('resize', () => { setTimeout(zoomFit, 50); });
+}
+
+// ═══════════════════════════════════════════
+// TOOLTIP
+// ═══════════════════════════════════════════
+const ttEl = document.getElementById('tt');
+function showTT(e, text) {
+  ttEl.textContent = text;
+  ttEl.style.opacity = '1';
+  ttEl.style.left = (e.clientX+12)+'px';
+  ttEl.style.top = (e.clientY-8)+'px';
+}
+function hideTT() { ttEl.style.opacity = '0'; }
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function el(tag, attrs={}) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.entries(attrs).forEach(([k,v]) => e.setAttribute(k,v));
+  return e;
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+version: 1
+name: pm-workspace
+description: Workspace bindings for repo paths, context roots, and outputs.
+
+repos:
+  - id: pm-workspace
+    label: PM Workspace (primary)
+    root_path: /Users/tylersahagun/Source/pm-workspace
+    context_root: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs
+    outputs:
+      initiatives: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/initiatives
+      status: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/status
+      workflows: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/workflows
+    write_back: true
+
+  - id: elephant-ai
+    label: AskElephant App (submodule)
+    root_path: /Users/tylersahagun/Source/pm-workspace/elephant-ai
+    prototypes_path: /Users/tylersahagun/Source/pm-workspace/elephant-ai/web/src/components/prototypes
+    storybook_path: /Users/tylersahagun/Source/pm-workspace/elephant-ai/web/.storybook
+    chromatic_project_id: null
+    outputs:
+      prototypes: /Users/tylersahagun/Source/pm-workspace/elephant-ai/web/src/components/prototypes
+      storybook_config: /Users/tylersahagun/Source/pm-workspace/elephant-ai/web/.storybook
+    links:
+      storybook_local: http://localhost:6006
+      chromatic_app_template: https://www.chromatic.com/library?appId={chromatic_project_id}
+      chromatic_builds_template: https://www.chromatic.com/builds?appId={chromatic_project_id}
+    write_back: true
+
+context_roots:
+  company_context: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/company-context
+  initiatives: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/initiatives
+  signals: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/signals
+  personas: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/personas
+  research: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/research
+
+outputs:
+  inbox: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/inbox
+  status: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/status
+  workflow_dashboard: /Users/tylersahagun/Source/pm-workspace/pm-workspace-docs/status/workflow/dashboards/workflow-dashboard.md
+
+automation:
+  default_repo_id: pm-workspace
+  prototype_repo_id: elephant-ai
+  commit_granularity: atomic
+  allowed_external_actions:
+    - linear
+    - github
+    - chromatic
+    - posthog
+
+task_routing:
+  linear:
+    default_team_key: EPD
+    default_project_name: null
+    create_for_owners:
+      - tyler
+      - me
+    create_for_ownerless: true
+    avoid_for:
+      - personal
+      - life-admin
+  google_tasks:
+    use_for:
+      - personal
+      - life-admin
+      - quick-followup
+    avoid_for:
+      - cross-team
+      - engineering
+      - customer-facing
+  pm_docs:
+    store_artifacts:
+      - research.md
+      - prd.md
+      - design-brief.md
+      - engineering-spec.md
+      - prototype-notes.md
+      - decisions.md
+      - gtm-brief.md
+      - METRICS.md
+    meeting_notes_location: pm-workspace-docs/signals/transcripts/
+  templates:
+    linear_project: pm-workspace-docs/templates/linear-project-template.md
+    linear_release_criteria: pm-workspace-docs/templates/linear-release-criteria.md
+    prd_ivan_test: pm-workspace-docs/templates/engineer-ready-prd.md
+    ivan_handoff: pm-workspace-docs/templates/ivan-test-handoff-checklist.md
+    initiative_prd: pm-workspace-docs/initiatives/_template/prd.md
+
+agents:
+  root_path: /Users/tylersahagun/Source/pm-workspace/.cursor/agents
+  skills_path: /Users/tylersahagun/Source/pm-workspace/.cursor/skills
+  commands_path: /Users/tylersahagun/Source/pm-workspace/.cursor/commands
+  rules_path: /Users/tylersahagun/Source/pm-workspace/.cursor/rules

@@ -1,0 +1,143 @@
+## Vision Insights from Leadership Conversations
+
+> Note: The strongest concentration of “vision” language lives in the recurring **Council of Product** leadership meetings (Woody/Rob/Skylar/Bryan/Tyler/Tony/McKenzie). I pulled the highest-signal quotes and themes from the specific meetings/chats linked below.[^1][^2][^3][^4][^5][^6]
+
+---
+
+### Core Identity
+
+> “Everything should read fluidly back up. I can easily capture my scheduled meetings so that AskElephant can record all my meetings, so that AskElephant has all my meaningful data so that I’m alerted when a deal is in a bad state so that I can reduce time spent on bad deals so that I have a faster time to close, that I have a higher quota capacity so that I have more revenue…so that my human outcomes are delivered.”[^1]  
+- Source: Council of Product — Nov 19, 2025[^1]
+
+> “Design is the architecture of product intent and functionality, a way of communicating what a product should do and how it should behave.”[^1]  
+- Source: Council of Product — Nov 19, 2025[^1]
+
+**Synthesized insight**  
+Leadership consistently frames AskElephant as an **outcome engine** for GTM teams: capture high-signal activity → structure it → generate trusted insights/alerts/actions that improve win rates, quota capacity, and customer outcomes (not “note-taking”).
+
+---
+
+### Strategic Direction (12–24 months)
+
+> “We’re not being specific with the outcomes that we want…the first piece of data that we need is…meetings…captured consistently in a way that drives confidence for them to be used by AI…the next thing is…emails…captured in a specific way because the outcome we’re driving towards is coaching.”[^2]  
+- Source: Council of Product — Nov 20, 2025 (referenced in Council discussions; pulled from the Nov 26 roadmap context)[^2]
+
+**V3 Roadmap / outcome pillars surfaced in leadership conversations**  
+1) **Customer Trust** (privacy determination, capture visibility)[^2]  
+2) **Data Knowledge** (rep/company stats, journey tracking)[^2]  
+3) **Trend Visibility** (rep insights, performance analytics)[^2]  
+- Source: Council of Product — Nov 26, 2025[^2]
+
+**Strategic inflection points leadership emphasized**
+- **Privacy-first architecture** as a foundation for automation (not a compliance add-on)[^6]  
+- Shift away from **bot-only capture** toward a more reliable model (desktop recorder emphasized as a core path)[^6]  
+- Explicit quality allocation (material capacity dedicated to quality vs feature velocity)[^3]
+
+---
+
+### Product Principles (Extracted)
+
+- **Outcomes > features**  
+  Evidence: Outcome-chain framing as the central planning primitive.[^1]
+
+- **Trust is foundational** (privacy + visibility + consistency must be solved to unlock automation adoption)  
+  Evidence: privacy determination signal + trust pillars research tying privacy failures to churn/adoption risk.[^6]
+
+- **Standardization beats intuition / consistency is the product**  
+  Evidence: repeated emphasis that capture must be “consistent” before AI can safely drive coaching/insights.[^2][^6]
+
+- **Tradeoff: ship less, increase reliability**  
+  Evidence: leadership decision to allocate significant capacity to quality.[^3]
+
+---
+
+### Success Metrics (as leadership describes “winning”)
+
+> Desired outcome: “Users are so confident AskElephant is their trusted personal adviser for privacy that they delegate all privacy concerns to the platform”[^5]  
+- Source: Privacy Determination Agent project plan (leadership-aligned initiative)[^5]
+
+Privacy initiative success measures repeatedly referenced:
+- **Manual privacy toggles decrease** (trust increases)[^5]  
+- **Executive calls recorded increase** (confidence increases)[^5]  
+- **Bots kicked mid-session decrease** (reliability increases)[^5]
+
+Revenue / GTM success framing present in leadership discussions:
+- faster time-to-close, higher quota capacity, better coaching inputs/outputs (via better capture + structured insights)[^1][^2]
+
+---
+
+### Competitive Positioning (as implied/explicit)
+
+- **Differentiator: domain-specific “agents/ADI” vs generic AI summaries**  
+  Evidence: leadership/marketing positioning referenced in Council synthesis.[^1]
+
+- **Why customers choose us (as articulated in leadership themes)**  
+  - We convert conversations into **actions + outcomes** (alerts, coaching direction, execution) rather than “notes.”[^1][^2]  
+  - We’re pushing hard on **trust/visibility** as a prerequisite to automation (where many tools stall).[^6]
+
+---
+
+## Strategic Priorities (frequency + urgency — based on the set surfaced)
+
+1. **Trust / privacy / visibility as a platform foundation** — mentioned across Council + privacy research artifacts (highest urgency)[^2][^5][^6]  
+2. **Reliable capture (meetings first, then email)** — repeated as prerequisite for coaching/insights[^1][^2][^6]  
+3. **Coaching + performance insights** (enabled only after capture + trust are solid)[^2][^4]  
+
+> If you want the “mentioned in X conversations” counts precisely, I can run a second pass that enumerates *all* Council meetings in the date range and tally keyword/theme occurrences. The current pass identifies the core threads and their anchor conversations.[^1][^2][^3][^4]
+
+---
+
+## Open Questions (not clearly answered in the surfaced set)
+
+- What is the **single explicit North Star metric** leadership would choose if forced to pick one (beyond the privacy program metrics)?  
+- What is the **explicit anti-vision boundary** (e.g., “we will never be a generic note taker / generic CRM auto-filler”), stated as a canonical quote rather than implied?
+
+---
+
+## Recommended Updates to `product-vision.md`
+
+- [ ] Add a **Core Identity** section centered on the “outcome chain” framing (capture → structured data → trusted AI alerts/actions → business outcomes).[^1]  
+- [ ] Add **Strategic Pillars (V3)**: Trust, Data Knowledge, Trend Visibility.[^2]  
+- [ ] Add **Principles**: outcomes-first, trust-first, consistency/standardization, quality-over-velocity.[^2][^3][^6]  
+- [ ] Add a **Metrics hierarchy**: privacy trust metrics (leading indicators) + revenue/customer outcomes (lagging indicators).[^5][^1]  
+- [ ] Add an **explicit Anti-Vision** statement once we locate/confirm the canonical leadership phrasing (or draft one for leadership sign-off).
+
+---
+
+# Follow-Up Prompts (Filled In)
+
+## 1) For Roadmap Alignment (initial prioritized list from surfaced set)
+1. Trust foundation (privacy determination, transparency/visibility, reliability)[^5][^6]  
+2. Reliable capture (meeting capture consistency; email capture for coaching)[^2][^6]  
+3. Coaching/trend analytics built on trusted data foundation[^2][^4]
+
+## 2) For Prototype Guidance (alignment checklist)
+- Does this improve **trust, visibility, or reliability** first (before adding automation)?[^6]  
+- Does it strengthen the **outcome chain** (clear “so that…” path to business outcomes)?[^1]  
+- Does it require data we **cannot capture consistently yet**? If yes, pause/adjust.[^2][^6]  
+- Will it reduce manual work *without* increasing privacy risk or ambiguity?[^6]  
+- Can we measure success with a non-vanity metric (behavioral/impact, not usage only)?[^5]
+
+## 3) For Decision Framework (patterns)
+**Primary weighting (observed):**
+1) Trust/reliability prerequisite (must be true) →  
+2) Data capture consistency →  
+3) Outcome impact (coaching, quota capacity, NRR/win rate) →  
+4) Technical lift/quality risk tradeoffs[^3]  
+Evidence anchors: outcome-chain framing + “capture first” + quality allocation + privacy trust plan.[^1][^2][^3][^5]
+
+## 4) For Messaging & Positioning (consistent narrative)
+- To customers/team: “We turn your conversations into trusted, structured insights and actions that improve execution and outcomes.”[^1][^2]  
+- Differentiation: “We’re not a transcript/summaries tool—we’re building domain intelligence/agents for GTM outcomes, and we’re investing in trust/visibility so automation is safe.”[^6][^1]
+
+---
+
+# Research Questions → Draft Answers for `product-vision.md` (v0, based on surfaced leadership sources)
+
+1. **The One-Liner**: AskElephant turns customer conversations into trusted, structured insights and actions that drive GTM outcomes (coaching, deal health, execution).[^1][^2]  
+2. **The Why Now**: Trust and reliability are now gating adoption of automation; solving privacy/visibility unlocks the next wave of AI-driven execution (not just summarization).[^6]  
+3. **The Ideal Customer**: GTM teams who need consistent capture + structured insights to improve coaching/forecasting/outcomes (implied by Council focus on coaching + capture).[^2]  
+4. **The Core Loop**: Capture meetings/emails consistently → transform into structured signals/insights → take action to move deals/customers forward → improved outcomes validate trust and deepen usage.[^1][^2]  
+5. **The Anti-Vision**: Not explicitly quoted in the surfaced set; implied anti-vision is “generic note-taking/transcripts without outcome/action.” (Needs leadership confirmation.)[^1]  
+6. **The North Star**: Not explicitly canonical; privacy program suggests leading indicator: reduced manual privacy toggles + increased executive-call recording; overall product implies outcome metric like quota capacity/time-to-close (needs selection).[^5][^1]  
+7. **The Bet**: “Standardization + trust + structured domain intelligence beats generic AI output; reliability is the moat.” (Implied—needs a canonical quote if one exists.)[^2][^6]

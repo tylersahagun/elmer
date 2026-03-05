@@ -1,0 +1,146 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "design-system-workflow",
+  "name": "Design System & Workflow Modernization",
+  "phase": "build",
+  "sub_phase": "validation-complete",
+  "created_at": "2026-01-22T00:00:00.000000",
+  "updated_at": "2026-01-23T00:00:00.000000",
+  "owner": "tyler",
+  "stakeholders": ["Skyler", "Adam", "Engineering"],
+  "status": "on_track",
+  "priority": "P2",
+  "pillar": "quality-consistency",
+  "tags": [
+    "internal-tooling",
+    "design-system",
+    "developer-experience",
+    "design-handoff"
+  ],
+  "prototype_type": "standalone",
+  "current_version": "v2",
+  "chromatic_url": "https://672502f3cbc6d0a63fdd76aa-ulspbzryjg.chromatic.com/?path=/docs/prototypes-designsystemworkflow-v2-dashboard--docs",
+  "documents": {
+    "research": "research.md",
+    "prd": "prd.md",
+    "design_brief": "design-brief.md",
+    "engineering_spec": "engineering-spec.md",
+    "gtm_brief": "gtm-brief.md",
+    "prototype_notes": "prototype-notes.md",
+    "validation_report": "validation-report.md"
+  },
+  "graduation_criteria": {
+    "discovery_to_definition": [
+      {
+        "criterion": "Document Skyler's human-first design principles",
+        "met": true
+      },
+      { "criterion": "Map current vs. desired workflow", "met": true },
+      {
+        "criterion": "Identify design quality check requirements",
+        "met": true
+      },
+      { "criterion": "Define token structure approach", "met": true }
+    ],
+    "definition_to_build": [
+      { "criterion": "PRD approved by stakeholders", "met": false },
+      { "criterion": "Engineering spec reviewed", "met": false },
+      {
+        "criterion": "Skyler confirms design principles codification",
+        "met": false
+      },
+      { "criterion": "CI workflow skeleton ready", "met": false },
+      { "criterion": "Prototype exists", "met": true },
+      { "criterion": "All states implemented", "met": true },
+      { "criterion": "Interactive journeys created", "met": true }
+    ],
+    "build_to_validate": [
+      { "criterion": "Prototype covers all required states", "met": true },
+      { "criterion": "Storybook stories complete", "met": true },
+      { "criterion": "Chromatic deployment live", "met": true },
+      {
+        "criterion": "Design review passed",
+        "met": true,
+        "note": "v2 addresses Design Companion recommendations"
+      },
+      {
+        "criterion": "Jury evaluation pass rate ≥70%",
+        "met": true,
+        "value": "83%"
+      }
+    ]
+  },
+  "validation": {
+    "last_validated": "2026-01-23",
+    "jury_evaluation": {
+      "pass_rate": 0.83,
+      "approval_rate": 0.78,
+      "conditional_rate": 0.14,
+      "rejection_rate": 0.08,
+      "sample_size": 50,
+      "verdict": "PASS"
+    },
+    "criteria_score": "7/10",
+    "recommendation": "Ready to advance - design review addressed"
+  },
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-22T00:00:00Z",
+      "exited": "2026-01-22T00:00:00Z"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-01-22T00:00:00Z",
+      "exited": "2026-01-23T00:00:00Z"
+    },
+    { "phase": "build", "entered": "2026-01-23T00:00:00Z", "exited": null }
+  ],
+  "dependencies": {
+    "internal": [],
+    "external": [
+      "Skyler's design principle documentation",
+      "Atomic Design reference materials"
+    ]
+  },
+  "timeline": {
+    "phase_1_foundation": "4 weeks",
+    "phase_2_enforcement": "4 weeks",
+    "phase_3_scale": "ongoing"
+  },
+  "metrics": {
+    "total_iterations": 2
+  },
+  "linear_project_id": null,
+  "linear_project_url": null,
+  "notion_project_id": null,
+  "notion_project_url": null,
+  "notion_artifacts": {
+    "engineering_specs": [],
+    "design_briefs": [],
+    "launch_planning": []
+  },
+  "github_labels": ["initiative:design-system", "internal-tooling"],
+  "github_branch_prefix": "feat/design-system",
+  "dev_activity": {
+    "last_synced": null,
+    "linear_issues_total": null,
+    "linear_issues_completed": null,
+    "linear_issues_in_progress": null,
+    "github_prs_merged_30d": null
+  },
+  "iteration_history": [
+    {
+      "version": "v1",
+      "date": "2026-01-22",
+      "changes": "Initial prototype with Red/Yellow/Green classification, auto-fix, token audit, design principles guide",
+      "feedback_source": "Synthetic jury evaluation"
+    },
+    {
+      "version": "v2",
+      "date": "2026-01-23",
+      "changes": "Accessibility improvements (icons with colors), Report False Positive button, Auto-fix feedback collection, Gray/uncertain severity for edge cases, Enhanced ARIA labels",
+      "feedback_source": "Design Companion Review"
+    }
+  ]
+}

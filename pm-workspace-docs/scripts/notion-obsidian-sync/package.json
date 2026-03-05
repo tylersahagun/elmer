@@ -1,0 +1,14 @@
+{
+  "name": "notion-obsidian-sync",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "tsx src/index.ts --sync",
+    "pull": "tsx src/index.ts --pull",
+    "push": "tsx src/index.ts --push"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

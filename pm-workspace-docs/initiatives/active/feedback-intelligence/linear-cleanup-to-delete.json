@@ -1,0 +1,902 @@
+[
+  {
+    "id": "30df79b2-c8ac-8100-a1f7-cff1f724fa72",
+    "title": "Summarize standup notes and decisions",
+    "quote": "Compile key updates, decisions, action items, and blockers from today's standup into a one-page summary and share with the team and external guests (Madi). Include owners and due dates for each action item.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8102-94c2-e43f7fdc6a47",
+    "title": "Send meeting summary and agreed action items",
+    "quote": "Send meeting summary and agreed action items to attendees.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8102-975d-c300ab5551ef",
+    "title": "Create a reusable prompt/context template library",
+    "quote": "Design and document 4\u20136 reusable prompt templates or context-engineering patterns tailored to common research workflows. Provide examples and short usage notes.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8102-ac8d-dd12c884ae26",
+    "title": "Update relevant tickets/boards",
+    "quote": "Update Jira/Trello/GitHub issues with status, progress notes, and next steps for the tasks worked on. Move cards to the appropriate column and add estimated completion dates.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8103-ad87-ff04fbdb1185",
+    "title": "Resolve engineering blockers",
+    "quote": "Follow up on the blockers raised during the meeting, provide status on each (root cause and plan), and coordinate any required support or resources.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8104-a08d-e0922c5fb4fe",
+    "title": "Prepare A/B test plan for messaging",
+    "quote": "Draft an A/B test plan to validate two messaging variants for the campaign, including success metrics, sample sizes, timeline, and tracking requirements.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8104-a764-e3a183821a4a",
+    "title": "Create final roadmap timeline document",
+    "quote": "Compile the agreed-upon roadmap milestones, deadlines, owners, and dependencies discussed in the meeting into a single timeline (Gantt-style or milestone list). Include version, date, and one-paragraph summary of scope and assumptions.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8104-ae90-ed687ca7e513",
+    "title": "Frontend bug: fix responsive layout on dashboard",
+    "quote": "Address the reported responsive layout issue on the dashboard (mobile/tablet). Produce a code fix, screenshots of before/after, and a small e2e test to prevent regressions.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8105-af8f-c68bcad0f93b",
+    "title": "QA test and verify recent deployment",
+    "quote": "Run regression tests against the latest staging deployment, verify fixes for the reported issues, and file any new bugs with steps to reproduce and severity.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8106-848a-ff3afbf21fc3",
+    "title": "Implement UI tweak for onboarding flow",
+    "quote": "Make the agreed UI change to the onboarding screen, run a quick local test, and open a PR with screenshots and brief testing notes.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8107-a730-c90cd1c2fc18",
+    "title": "Develop marketing campaign brief for prioritized feature",
+    "quote": "Create a one-page campaign brief outlining goals, target audience, key messages, channels, KPIs, timeline, and required assets for the feature we agreed to promote.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8108-a325-ca7cef1ead45",
+    "title": "Share lunch availability with key teammates",
+    "quote": "Send a short note to the team (or key collaborators) with the chosen lunch window and ask them to respect it for scheduling, or propose alternative meeting times if needed.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-810d-9289-db217469272f",
+    "title": "QA checklist and test plan",
+    "quote": "Draft the QA checklist and test plan for the upcoming changes, including acceptance criteria, test cases, and regression areas to verify.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-810f-b4e4-d73c48f70c22",
+    "title": "Review and approve roadmap draft",
+    "quote": "Review the draft roadmap, verify priorities and timelines, resolve any conflicts or high-level tradeoffs, and provide final approval or required changes.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8110-aac5-cfe0bfa432c3",
+    "title": "Schedule recurring roadmap syncs",
+    "quote": "Set up a recurring (e.g., biweekly or monthly) sync to track progress against roadmap milestones and surface blockers. Include agenda template and attendees.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8111-a7cd-cb758a19edfa",
+    "title": "Update metrics dashboard and success criteria",
+    "quote": "Define or update the KPIs and dashboard widgets that will track the success of the initiatives approved by the Council.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8115-81b9-f265d2110a7b",
+    "title": "Update product roadmap and priorities",
+    "quote": "Update the public product roadmap to reflect any priority changes announced in the All Hands. Highlight features or milestones impacted and note expected timelines. Share the updated roadmap with the company by next Tuesday.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8115-99e5-d5a3e84c8232",
+    "title": "Account Health Notifications (Manager View)",
+    "quote": "Send proactive notifications to managers when accounts need attention. Alert when customer has not been spoken to in configurable timeframe. Delivery via Daily AskElephant DM with summary of accounts requiring action.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8118-ae8a-c2ae012962ae",
+    "title": "Draft outreach list for PR and partners",
+    "quote": "Assemble a prioritized list of media contacts, influencers, and potential partners for outreach accompanying the feature announcement; include pitch angles.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8118-aeff-d4ff26a3ee46",
+    "title": "Define success metrics and KPIs for each milestone",
+    "quote": "For each major milestone on the roadmap, specify 2\u20133 measurable success metrics, data owners, and how progress will be reported (cadence and format).",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-811b-84b1-db4f69869146",
+    "title": "Publish standup notes and decisions",
+    "quote": "Compile meeting notes, list of blockers, and any decisions made during the standup. Share to team Slack channel and project board. Include action owners and due dates.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-811e-8fd7-ffbaeb1ba965",
+    "title": "Technical debt cleanup and dependency updates",
+    "quote": "Review hackathon codebases for quick wins: remove debug code, add tests for core functionality, and update dependencies to stable versions.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8120-896e-fde00a267a43",
+    "title": "Confirm priorities and deadlines",
+    "quote": "Confirm the priority order and due dates for the items discussed during the sync, and update the project tracker or backlog accordingly.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8121-92c0-d3ee1d176cf6",
+    "title": "Share standup notes and decisions",
+    "quote": "Compile key discussion points, action items, and decisions from today's standup and share in #engineering Slack and the project doc by EOD.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8122-802a-ca6263c4cdee",
+    "title": "Prepare materials for the next meeting/review",
+    "quote": "Gather any files, screenshots, or links created during Focus Time and attach them to the related ticket or meeting agenda.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8126-a82e-ecc676a7ee13",
+    "title": "Resolve highest-priority blocker",
+    "quote": "Investigate the top blocker identified in the sync, propose a fix or mitigation plan, and update the team with ETA.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8127-b54c-edd5ec871348",
+    "title": "Distribute meeting notes & action items",
+    "quote": "Compile concise notes from today's meeting, list all action items with owners and due dates, and send to the Council and relevant stakeholders.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8128-9b4d-f80b0ed978d3",
+    "title": "Validate metrics after last deploy",
+    "quote": "Check key metrics (signup rate, activation funnel, error rate) for the latest deploy window, confirm whether the metric changes discussed are present, and report anomalies.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8128-bb8b-c41ac78a0998",
+    "title": "Personal Journal & Internal Dialogue Space",
+    "quote": "Create a dedicated space for capturing leadership thoughts and strategic observations. Record strategic observations, support multiple entries nested under personal user entity, enable later retrieval.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8129-ba49-d6adce7adeaf",
+    "title": "Update task tracker/kanban",
+    "quote": "Move completed items to Done, update remaining tasks with new estimates, and create subtasks for any partial items from the focus session.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-812a-bc15-f420856107eb",
+    "title": "CRM Data Integration & Account Context Display",
+    "quote": "Display key account relationships directly in AskElephant without requiring CRM lookups. Scope: Assigned Success Manager, Executive Sponsor, AE, SDR, Contract date, ARR. Reduces manual CRM lookups during account management and transitions.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-812f-89d1-efb49c0deb8a",
+    "title": "Collect and summarize blockers",
+    "quote": "After the next Deep Work session, compile any reported blockers from the shared doc and create an action list to address them before the following session.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-812f-b0b7-f9af3d5e9c5d",
+    "title": "Prepare and distribute meeting agenda",
+    "quote": "Draft a short agenda for next week's Trio sync (3\u20134 bullet items: priorities, blockers, deliverables) and share it with attendees at least 24 hours before the meeting.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8135-b02d-fa7ddf74411a",
+    "title": "Prepare shared Deep Work doc/template",
+    "quote": "Create or update a shared document or template for logging intended tasks, progress checkpoints, and end-of-day outcomes that the team will use during Deep Work Wednesdays.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-813a-aa84-da227aaf08a3",
+    "title": "Add quick ergonomic/health tips to the reminder",
+    "quote": "Draft 3\u20135 brief tips to include in the recurring reminder (e.g., stretch, hydrate, eat balanced meal) to encourage healthy lunches. Submit tips to be added to the calendar event description.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-813c-8035-d008ae531ea1",
+    "title": "Create QA test plan for upcoming sprint",
+    "quote": "Draft test cases and acceptance test plan for the next sprint's scope, prioritizing critical user journeys and integration points.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-813c-93f8-eab74343929c",
+    "title": "Prepare agenda for next recurring 1:1",
+    "quote": "Draft a brief agenda for the next meeting (topics, time allocations, and any prework required). Share draft with Tyler at least 3 days before the next meeting.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8143-bee8-d884de588499",
+    "title": "Confirm owners and deadlines for each action item",
+    "quote": "Review the action items list, confirm owners and realistic deadlines, and update the shared summary. Flag any items needing reassigning or clarification.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8144-866a-e0085b81ef7f",
+    "title": "Log time and notes",
+    "quote": "Record the time spent and short notes in time-tracking or project-management tool (include distractions or interruptions that affected focus).",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8144-941f-c955c5ff71c3",
+    "title": "Set up a shared meal/ordering list",
+    "quote": "Create and share a living document (Google Doc or Sheet) listing go-to lunch options, local delivery menus, and estimated costs so ordering is faster. Include links and ordering instructions.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8145-bac1-cc1ce80876a5",
+    "title": "Collect team feedback and outstanding questions",
+    "quote": "Create and share a short anonymous survey to gather employee feedback about the All Hands content and any unanswered questions. Compile responses and flag items that need follow-up within 3 business days.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8149-8dab-face01118853",
+    "title": "Backup and document work artifacts",
+    "quote": "Ensure all files, notes, and drafts are saved to the team drive or repo with clear filenames. Add brief documentation or README entries describing how to run or review the work.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-814c-b1e3-f0eb5ff8b37a",
+    "title": "Post-event recap and notes",
+    "quote": "Compile a short recap of the meetup: key topics covered, decisions made, attendance summary, action items from discussions, and any follow-ups required. Share recap with the team and upload to the meetup event thread.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-814d-baba-f8b349f2c910",
+    "title": "Set up a recurring Slack reminder",
+    "quote": "If applicable, create a recurring Slack reminder or automation that posts a lunchtime prompt in the designated channel (or DMs) so team members get an additional nudge.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-814f-812d-eda224c1213a",
+    "title": "Log brief notes about lunch block purpose",
+    "quote": "Record why this lunch block was scheduled (e.g., focused break, buffer between meetings, social lunch) and any decisions about maintaining or changing it going forward. Include preferred days/times and whether to invite teammates in the future.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-814f-85fd-c059ea92831c",
+    "title": "Schedule follow-up check-in",
+    "quote": "Propose a time for the next quick sync (15\u201330 minutes) to review progress and outstanding issues; send calendar invite once agreed.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8151-9e01-d85207aa18d9",
+    "title": "Provide technical implementation plan",
+    "quote": "Draft a brief implementation plan for the top-priority item (approach, dependencies, risks, and estimated effort) and share it for review.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8153-9193-f77295435594",
+    "title": "Publish meeting notes and action items",
+    "quote": "Compile a short summary of today's trio sync (decisions, key discussion points) and a clear list of action items with owners and due dates. Share in the team Slack channel and attach to the calendar event.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8159-86a0-c296208fa3a6",
+    "title": "Create tracking board and initial updates",
+    "quote": "Create a tracking board (Trello/Jira/Asana) for the agreed action items, add tasks with owners and deadlines, and perform the first status update entry.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-815d-8925-ec3590bc5667",
+    "title": "Track impact for one week",
+    "quote": "Monitor how the lunch block affects your meeting schedule and productivity for the next week. Note any conflicts or benefits and prepare recommendations (keep, change time, shorten/lengthen) based on observations.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-815e-9234-edbad6e50cbe",
+    "title": "Review proposed solution and give feedback",
+    "quote": "Review Tyler's proposed solution to the blocker, provide specific feedback or approval, and indicate any additional support required.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-815f-8075-e7852b0d4556",
+    "title": "Run data analysis on recent experiment results",
+    "quote": "Analyze A/B test or experiment data referenced in the meeting, produce statistical summary, and recommend whether to roll forward, iterate, or halt.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8161-b641-d40946940425",
+    "title": "Draft initial roadmap document",
+    "quote": "Create a draft roadmap incorporating the prioritized features, target milestones, and proposed timelines discussed in the session. Include dependencies, success criteria, and any assumptions.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8163-a617-d593bdfa9462",
+    "title": "Confirm preferred daily lunch time and recurrence",
+    "quote": "Decide whether to keep this 12:30\u201313:00 slot as a recurring daily lunch block and, if yes, update the event in Calendar or Clockwise to a repeating event so availability is consistent.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8165-a311-c03a32b27d06",
+    "title": "Prize distribution and recognition",
+    "quote": "Confirm winners, prepare and distribute prizes (digital or physical), and announce winners on internal channels with a short write-up.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8165-bb0c-de32a637a17b",
+    "title": "Plan next informal check-in",
+    "quote": "Schedule a tentative recurring 30-minute lunch or coffee check-in to continue relationship-building / informal syncs; propose cadence (weekly/biweekly/monthly) and draft a simple agenda format.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8168-a569-c42ed89c8e01",
+    "title": "Confirm preferred lunch reminder time and format",
+    "quote": "Ask Tyler whether the 12:00\u201312:30 recurring reminder works and whether he prefers a calendar event, Slack notification, or phone/alarm reminder. Collect any accessibility or scheduling constraints.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8169-aa11-f3a3159d3229",
+    "title": "Capture action items in project tracker",
+    "quote": "Create tasks in the relevant project management tool (e.g., Asana, Jira, Trello) for any concrete action items that came up during lunch. Assign owners, set due dates, and link back to the lunch summary.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-816a-b459-cb91fdb07d40",
+    "title": "Evaluate impact on daily schedule after one week",
+    "quote": "After using the lunch block for a week, review calendar patterns to confirm the block is respected and adjust timing or settings if conflicts persist.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-816c-b41e-cc5c861655f4",
+    "title": "Prepare stakeholder presentation for leadership review",
+    "quote": "Build a concise slide deck summarizing the roadmap, timeline, critical dependencies, resource asks, and next steps for the leadership review meeting. Include appendix with detailed timeline.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-816f-99a5-f3bbcd5aa761",
+    "title": "Compile competitor / market notes for next council",
+    "quote": "Collect recent competitor moves, market shifts, and relevant benchmarking that should inform prioritization, and share a short briefing doc before the next meeting.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8179-9da8-c418cf2e53ec",
+    "title": "Draft implementation plan for agreed feature",
+    "quote": "Create a concise implementation plan (milestones, owners, estimated timeline) for the feature/initiative the trio agreed to move forward with.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-817a-8d89-c66f6ac50b64",
+    "title": "Create/Update technical spec and docs",
+    "quote": "Write or update the technical specification, architecture notes, and any developer-facing documentation required for the planned work.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-817a-bac0-cccadbd963f5",
+    "title": "Create and share next meeting agenda",
+    "quote": "Draft an agenda for the next Trio sync (topics, time allocations, any prep required) and share with the group 48 hours in advance.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-817b-a529-f08cbffcd3b9",
+    "title": "Disable notifications & set Do Not Disturb guidelines",
+    "quote": "Prepare a short set of recommended Do Not Disturb settings and distraction-minimizing tips (tools, browser extensions, Slack status guidelines) and circulate to the group.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-817f-ab62-f2f7929d4a7d",
+    "title": "Send thank-you/follow-up email",
+    "quote": "Send a brief thank-you note to confirm appreciation for the dinner, recap any high-level points discussed, and state next steps. Ask if any additional materials are needed.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8180-9131-f9f37023535d",
+    "title": "Update project trackers and backlog",
+    "quote": "Move completed items to Done, update statuses for in-progress work, and add any new tasks or follow-ups identified during Focus Time to the backlog with estimates and priorities.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8181-99ef-ec036ded8351",
+    "title": "Coordinate engineering readiness & launch blockers",
+    "quote": "Confirm engineering capacity and any technical blockers for the planned feature launch; provide a go/no-go checklist and estimated fix timelines.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8182-aac2-e1e707215a39",
+    "title": "Draft and circulate next meeting agenda",
+    "quote": "Create a focused agenda for the next Council of Product meeting (topics, owners, timeboxes). Circulate to attendees and IW \u00b7 Main calendar at least 3 business days before the meeting.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8184-b6e7-f298850707b1",
+    "title": "Internal Caller ID for Sales Reps During Calls",
+    "quote": "GetPEYD/Pinny: RingCentral integration should auto-populate meeting title with caller names, not phone numbers. Currently shows numbers which is confusing when searching. Caller ID works for attendees but meeting title still shows numbers.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-818a-8447-cb0a799ba0d8",
+    "title": "Create shared 'Lunch Break' calendar and invite",
+    "quote": "Create a shared calendar or calendar entry that tracks lunch breaks for the team, add both attendees, and confirm sharing permissions so team members can see/modify their availability.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-818b-9117-f9bfa8917215",
+    "title": "Prepare presentation for leadership",
+    "quote": "Create slides summarizing the final roadmap, key tradeoffs, timelines, risks, and ask/decisions needed from executive leadership. Coordinate with Tyler on messaging and approval.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-818c-a81e-f3fcd3e3ff6f",
+    "title": "Open/triage engineering tickets for agreed work",
+    "quote": "Create or update JIRA/GitHub tickets for the implementation work discussed, include acceptance criteria and link to the meeting notes.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-818d-ad05-c84ea589427b",
+    "title": "Plan next Focus Time objectives",
+    "quote": "Define specific objectives for the next Focus Time block based on remaining work and priorities. Estimate time needed for each objective and set a tentative date/time.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-818d-ada3-f7624835cdd4",
+    "title": "Consolidate and publish meeting notes",
+    "quote": "Capture key decisions, action items, owners, and due dates from the sync and circulate meeting notes within 24 hours after the meeting.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-818f-9db2-c973113cdb84",
+    "title": "Incorporate stakeholder feedback and finalize roadmap",
+    "quote": "Update the roadmap with stakeholder feedback from the review meeting, finalize milestones and ownership, and prepare a one-page summary for leadership.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8193-9c09-f48a732e3715",
+    "title": "Follow up on pull request reviews",
+    "quote": "Review outstanding PRs called out during standup, provide feedback or merge when ready, and update PR statuses in the standup notes.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8194-af8c-d37a4df22bac",
+    "title": "Resolve critical blocker on API endpoint X",
+    "quote": "Investigate and fix the failing behavior on API endpoint X that was reported during standup. Provide root cause, patch, and a short test plan.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-8196-8f65-f5a2c3d16a07",
+    "title": "Distribute post-workshop feedback survey",
+    "quote": "Create a short survey (5\u20138 questions) to collect participant feedback on content, pacing, hands-on exercises, and areas for improvement. Send it to attendees and collate responses two weeks after the workshop.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8196-a9f3-c606cfc9cfea",
+    "title": "Update VLCM dashboard visuals",
+    "quote": "Implement the agreed visualization updates on the VLCM dashboard (charts, filters, time ranges). Ensure labels match the finalized metric definitions and add explanatory tooltips where needed.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-8199-ac8d-f24f6ea65bc5",
+    "title": "Schedule follow-up tasks in calendar",
+    "quote": "Schedule follow-up tasks in calendar based on meeting outcomes.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-819b-a11a-fa529001f3c3",
+    "title": "AI-Powered Personal Assistant with Task Execution",
+    "quote": "Enable voice/text command execution of actions directly from AskElephant: Slack messaging, to-do list management, reminders with specific times. All actions logged in AskElephant for historical reference. Reduces context switching, keeps action items in one system.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-819b-a502-eeaff5d54789",
+    "title": "Schedule next Focus Time and adjust calendar settings",
+    "quote": "Create a follow-up reminder to schedule the next Focus Time block and adjust calendar settings based on collected notes and team feedback.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-819c-a13b-f7dc27db4af1",
+    "title": "Follow up with internal stakeholders",
+    "quote": "Send a brief update to internal stakeholders summarizing impact, timeline, and any asks. Request feedback by EOD two business days from now.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-819f-9bd4-d3c0deba04ab",
+    "title": "Log remaining open items and blockers",
+    "quote": "Create a short list of remaining work, blockers, and estimated effort for each item so teammates can pick up if needed. Mark any items that require input from others.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-819f-a258-c47f943c6954",
+    "title": "Update shared action-items tracker",
+    "quote": "Enter all meeting action items into the shared tracker (task, owner, due date, status) and notify assignees of deadlines.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81a1-8ffc-d7e3a7f76ab7",
+    "title": "Prepare status summary for stakeholders",
+    "quote": "Create a 1-page status summary (progress, risks, blockers, next steps) to share with execs and external stakeholders by EOD.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81a1-a55f-f276e8cc3fbd",
+    "title": "Update product roadmap with decisions",
+    "quote": "Incorporate decisions made by the Council into the shared product roadmap, highlight scope or timeline changes, and flag any dependencies.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81a2-b356-e9675ef1165c",
+    "title": "Follow-up email to attendees with actions and links",
+    "quote": "Send a concise follow-up email to all attendees summarizing outcomes, attaching the meeting summary, backlog link, updated roadmap, and scheduled sync invites.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81a6-85f5-ec74a5b21a4c",
+    "title": "Provide metrics and status for current sprint",
+    "quote": "Gather and summarize key metrics (progress, blockers, QA status) for the items discussed and post them to the shared status doc.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81a7-bb81-f6cfbb7bf707",
+    "title": "Triage and assign backlog bugs mentioned in standup",
+    "quote": "Review bugs raised during standup, add reproduction steps if missing, assign priority and owners, and schedule fixes into the sprint.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81aa-834f-fe3c7a150a6b",
+    "title": "Create prioritized action backlog",
+    "quote": "Convert discussion points into a prioritized backlog with estimated effort and target due dates. Identify which items require cross-team coordination and mark dependencies.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81ab-8cc2-d1d2185554ce",
+    "title": "Create a rotating lunch plan/schedule",
+    "quote": "Draft a simple rotation or schedule for who coordinates the lunch reminder/ordering each week (e.g., who picks menu, places orders, or suggests recipes). Post the schedule to the team calendar or shared doc.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81b0-9a52-e43a6c8be0a0",
+    "title": "Resolve blocker: API rate-limit issue",
+    "quote": "Investigate the reported API rate-limit failures, identify root cause, and propose a short-term mitigation (retry/backoff) plus a long-term fix. Provide status update and estimated timeline.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81b1-abea-d00a2d4b299b",
+    "title": "Validate acceptance criteria and run smoke tests",
+    "quote": "Once implementation is ready, run initial validation and smoke tests against the acceptance criteria and report any failures.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81b2-95c6-c3bfcd16a77a",
+    "title": "Prepare agenda items and materials for next Council meeting",
+    "quote": "Collect proposed agenda items, required pre-reads, and materials so the next recurring meeting has a clear agenda distributed 3 days in advance.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81b3-8660-e18a5919ca28",
+    "title": "Schedule quick sync if clarification needed",
+    "quote": "If any blockers require input from teammates, schedule a 15\u201330 minute sync within the next 48 hours. Propose 2\u20133 time options and list the agenda items.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81b4-9428-ec78a7cff229",
+    "title": "Gather status updates and metrics",
+    "quote": "Collect current status updates, key metrics, or progress artifacts for the projects discussed (e.g., progress %, blockers, recent wins) and upload to the shared folder.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81b7-8de3-d0cdd1ee2439",
+    "title": "Request engineering effort estimates",
+    "quote": "Send the prioritized feature list to engineering leads and collect time/effort estimates and resource constraints for the next 3 quarters. Compile estimates into the roadmap draft for timeline validation.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81ba-83c8-cfc9fb93c720",
+    "title": "Collect post-hackathon feedback",
+    "quote": "Send a feedback survey to all participants, compile responses, and summarize key insights and suggestions for improvement.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81be-a3ab-ef2031448195",
+    "title": "Summarize key conversation points from lunch",
+    "quote": "Write a brief (3\u20135 bullet) summary of topics discussed, decisions made, and any ideas worth saving to notes or project trackers. Include any names/next steps mentioned.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81be-bb26-c496aa441b02",
+    "title": "Summarize progress from Focus Time",
+    "quote": "Write a brief summary (3\u20135 bullet points) of what you accomplished during the 14:00\u201318:00 focus block and any partial work remaining.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81bf-a763-ee80b72c919f",
+    "title": "Document work completed during Focus Time",
+    "quote": "Write a concise summary of what you accomplished in this Focus Time block (tasks finished, notes, decisions, blockers encountered). Add links to any files or tickets updated and tag related projects.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81c1-a651-c1c89dbc66dc",
+    "title": "Prepare release checklist for this sprint",
+    "quote": "Create/verify the release checklist (tests, migrations, docs, monitoring) and confirm owners for each item ahead of the upcoming release window.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81c2-8936-e39bfb7c2f6f",
+    "title": "Prepare demo for next sync",
+    "quote": "Prepare a 5-minute demo of the onboarding flow changes and the metrics dashboard to present at the next trio sync. Include before/after screenshots and any user-impact notes.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81c4-b3b8-e0ab7f91154c",
+    "title": "Investigate critical production bug (if any reported)",
+    "quote": "Reproduce the issue, gather logs and steps, estimate effort to fix, and propose a remediation plan. Post findings to the bug ticket and notify stakeholders.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81c8-8817-d18d4e9f89d0",
+    "title": "Prepare metrics dashboard snapshot",
+    "quote": "Provide updated product KPIs (MAU, activation, retention, key funnel conversion rates) and a one-slide summary highlighting trends and areas of concern.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81ca-85fc-f888d2afc8e8",
+    "title": "Collect pre-read materials and dependencies",
+    "quote": "Gather any supporting docs, designs, or dependency statuses required for the next discussion items and upload them to the meeting folder.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81cb-870d-eb3c25597cd3",
+    "title": "Determine if Notetaker bot stops screenshare recording when pinning a speaker",
+    "quote": "In regard to Notetaker behavior when screensharing, will the bot always record the screenshare until toggled off or another meeting interaction like pinning a speaker?",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81ce-9cb2-f74c090902fb",
+    "title": "Create QA checklist for the onboarding change",
+    "quote": "Draft a short QA checklist (critical paths + edge cases) that QA/devs should run before merging the onboarding UI PR. Include required environments and test accounts.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81cf-8eab-ec1bbbed1d42",
+    "title": "Prioritize backlog items discussed",
+    "quote": "Update the product backlog to reflect the prioritization decisions from the sync (move items to top, add priorities, link to related tickets). Flag any items that need more detail.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81d0-89f6-d12ff41cf5ef",
+    "title": "Prepare next meeting agenda & pre-reads",
+    "quote": "Create the agenda for next week's Product x Marketing meeting, attach any pre-read materials (roadmap, metrics snapshot, campaign brief), and send calendar invite update.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81d0-9eb8-ced040d49196",
+    "title": "Enable calendar auto-responses during lunch (optional)",
+    "quote": "If desired, set up a brief auto-response or calendar note indicating you are unavailable during lunch to reduce interruptions.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81d1-bb7b-cc2045bcf313",
+    "title": "Set up user research plan for priority feature",
+    "quote": "Draft an interview/survey plan, target user segments, and timeline for validation of the priority feature; recruit participants as needed.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81d2-99ec-f74a791966b9",
+    "title": "Document lessons learned and process improvements",
+    "quote": "Draft a one-page summary of operational learnings (logistics, equipment, schedule) and recommended process changes for the next event.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81d2-aaf5-fe9a1d56c4ea",
+    "title": "Adjust Clockwise lunch settings",
+    "quote": "Review and update Clockwise lunch settings to reflect your preferred duration, flexibility rules, and auto-reschedule preferences. Save changes and confirm behavior for the next two weeks.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81d3-9dba-f291c2b001ad",
+    "title": "Internal blog post or newsletter content",
+    "quote": "Draft a 300\u2013500 word recap highlighting outcomes, photos, and notable projects for the company newsletter or blog.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81d3-b981-f8afd64307d3",
+    "title": "Update onboarding notes for external guest integration",
+    "quote": "Create or update a short onboarding checklist for external guests describing how to join Meet, access shared drives, and who to contact for access issues. Share with Madi and other external attendees.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81d4-a513-df08bdc6f16a",
+    "title": "Complete integration tests for recent API change",
+    "quote": "Write and run integration tests for the new API change discussed; document test results and file follow-up issues for failures.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81d9-b666-fe638aef3765",
+    "title": "Update roadmap/tasks based on sync outcomes",
+    "quote": "Adjust the team roadmap and update task tracker (tickets, priorities, and deadlines) to reflect decisions made in the sync.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81dc-90c0-c569b36c3709",
+    "title": "Draft summary of walkthrough outcomes",
+    "quote": "Write a 1-page summary of decisions, open issues, and next steps from the Chief of Staff walkthrough. Highlight any blockers and owners for each action item.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81dc-b410-d9f3ed2bc32c",
+    "title": "Prepare a brief status update for stakeholders",
+    "quote": "Draft a 2\u20133 sentence status update summarizing progress and next steps to share with stakeholders or your manager, and send or paste it into the relevant Slack channel/email thread.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81dd-8966-d0aaa049c7ce",
+    "title": "Create a risks & mitigations register",
+    "quote": "Document key risks to the timeline (technical, resourcing, dependencies, vendor) and propose mitigation actions and owners for each risk item.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81de-8d32-d996dc80b7e7",
+    "title": "Speaker follow-up (talk notes / improvements)",
+    "quote": "If you gave a talk or demo, provide brief speaker notes, list any demo fixes or code refactors identified during the session, and schedule any promised code drops or blog posts.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81df-8742-dcc1fb5cd006",
+    "title": "Collect attendee feedback",
+    "quote": "Create and distribute a short feedback survey (3\u20136 questions) about content, format, venue, and timing. Compile responses and highlight any recurring suggestions or problems.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81e0-9b0f-fa7bf112e0d3",
+    "title": "Share availability with team",
+    "quote": "If this lunch block affects team scheduling, send a quick calendar note to the team summarizing the lunch window and any rules (do not disturb, can move if important meetings, etc.).",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81e0-9c8b-e56020350a4e",
+    "title": "Implement scheduled sprint task",
+    "quote": "Continue work on assigned sprint story; update status on the board, push a draft PR, and add any missing tests or documentation.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81e2-ba20-d09ad55a93a0",
+    "title": "Communicate final roadmap to the company",
+    "quote": "Once approved, publish the roadmap summary to the company (email/portal) and announce next steps and owners for major initiatives.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81e3-827b-e800b6ce40dc",
+    "title": "Update product roadmap with agreed priorities",
+    "quote": "Incorporate the prioritized initiatives discussed into the shared roadmap, highlight timeline changes, and call out dependencies and risks.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81e3-a937-e96765729038",
+    "title": "Update calendar visibility & reminders",
+    "quote": "Ensure the recurring Deep Work Wednesday event has clear visibility, required attendees, and a reminder set; confirm optional vs. required status for future invites.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81e3-be2d-cddbce750ebe",
+    "title": "Summarize work completed during Focus Time",
+    "quote": "Write a concise summary (3\u20136 bullet points) of tasks completed, key decisions made, and any code or documents created/updated during the Focus Time block. Include links to files or PRs.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81e4-88fd-d81e1061b7a6",
+    "title": "Publish curated resource list",
+    "quote": "Assemble and annotate a list of resources referenced during the workshop (tutorials, papers, example prompts, tools, libraries). Include links and recommended next steps for researchers getting started with context engineering.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81e7-a0ad-f089ebed39c2",
+    "title": "Set recurring roadmap review cadence and agenda",
+    "quote": "Propose a recurring meeting cadence (weekly/biweekly), draft a standard agenda for roadmap reviews, and invite required attendees. Include decision and escalation paths.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81e8-bd7f-c1b2a21a12d6",
+    "title": "Distribute meeting notes & action items",
+    "quote": "Compile the key decisions, open action items, owners, and deadlines from today's Trio sync and email/share them with the group and relevant stakeholders.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81e9-ba0f-fdff2a0749f8",
+    "title": "Define UX/design handoff deliverables",
+    "quote": "Create the design requirements and deliverables checklist for the top-priority project and set deadlines for mockups and prototypes.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81ea-861d-e04e0088d5f3",
+    "title": "Set reminder to revisit settings",
+    "quote": "Create a follow-up reminder in two weeks to revisit Clockwise and calendar settings and implement any adjustments based on collected notes and team feedback.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81ea-abb0-f6a473d4e425",
+    "title": "Reconcile current ETL transformations with definitions",
+    "quote": "Review the ETL code/SQL that computes VLCM metrics and update any transformations that conflict with the finalized metric definitions. Submit PRs for required changes.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81eb-9747-fd2a1964fe02",
+    "title": "Draft and distribute meeting notes & action items",
+    "quote": "Compile concise notes from today's Council of Product meeting, list all action items with owners and due dates, and email the summary to all attendees and the IW \u00b7 Main group.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81ec-8af1-d2960cb83677",
+    "title": "Create follow-up action items for collaborators",
+    "quote": "Create follow-up action items for collaborators from meeting outcomes.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81ef-8176-c8606ccf52bc",
+    "title": "Notify stakeholders of timeline change",
+    "quote": "Draft and send a short update to product and customer success summarizing any changes to delivery timelines and impacts discussed in the standup.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81f3-b020-cf4ce1a176c1",
+    "title": "Prepare updated roadmap slide",
+    "quote": "Update the roadmap slide deck to reflect changes agreed in the walkthrough, showing timeline shifts, new priorities, and who owns each milestone. Deliver a slide-ready PDF.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81f4-8559-cdfc7adf334d",
+    "title": "Investigate blocker on API integration",
+    "quote": "Diagnose the reported API integration failure, identify root cause, and propose a short-term workaround and long-term fix. Provide update by tomorrow 11:00 AM MST.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81f4-85c8-fdca29b08d6b",
+    "title": "Publish meeting notes and action tracker",
+    "quote": "Compile concise meeting notes, list decisions, owners, and due dates for each action item. Publish to the IW \u00b7 Main calendar group and the team docs.",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81f4-85ce-dc646352202d",
+    "title": "Update recurring event settings",
+    "quote": "Adjust the recurrence, notification lead time, and visibility (private/public) based on team preferences. Ensure the Google Meet link is removed if not needed for a simple reminder and set an appropriate notification (e.g., 10 minutes before).",
+    "bucket": "task_like"
+  },
+  {
+    "id": "30df79b2-c8ac-81f5-9d68-c84d6e4bc0b4",
+    "title": "Update project/status summary",
+    "quote": "Provide a concise status update on current tasks (progress, next steps, estimated completion dates) to present during the sync and post as meeting notes afterward.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81f6-bd5f-da8f27a12d66",
+    "title": "Circulate draft roadmap for stakeholder review",
+    "quote": "Circulate draft roadmap for stakeholder review and feedback.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81fa-869d-c9431d463c52",
+    "title": "Resolve blocker & propose solution",
+    "quote": "Investigate the highest-priority technical blocker discussed in the meeting, propose a concrete solution (options, recommended approach, required resources), and be ready to decide next actions.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81fa-b83d-c4481135ba2c",
+    "title": "Assign owners and deadlines for immediate follow-ups",
+    "quote": "For the top 5 highest-priority items from the backlog, propose owners, concrete deliverables, and target deadlines. Confirm feasibility with respective owners.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81fe-8c7c-e703451ab303",
+    "title": "Share resources or links promised during lunch",
+    "quote": "Collect and send any articles, docs, contact info, or links you promised to share with attendees. Include a short note reminding recipients why you sent each link.",
+    "bucket": "mixed"
+  },
+  {
+    "id": "30df79b2-c8ac-81ff-aefd-d092bc4f3498",
+    "title": "Share dietary preferences and restrictions",
+    "quote": "Provide a short list of dietary preferences, allergies, or restrictions so shared meals or ordering can accommodate everyone. Include foods to avoid and preferred meal types.",
+    "bucket": "mixed"
+  }
+]

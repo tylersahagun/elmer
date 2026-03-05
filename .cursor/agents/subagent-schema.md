@@ -5,6 +5,7 @@ This document defines the structure and format for Cursor subagent definition fi
 ## File Structure
 
 A subagent file consists of two main sections:
+
 1. **Frontmatter** (YAML metadata)
 2. **Content** (Markdown instructions)
 
@@ -16,12 +17,12 @@ The frontmatter appears at the top of the file, delimited by `---` markers.
 
 ### Required Fields
 
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `name` | string | Unique identifier for the agent (kebab-case) | `proto-builder`, `research-analyzer` |
-| `description` | string | Brief description of what the agent does and when to invoke it | `Build Storybook prototypes... Use when user wants to create UI prototypes... Invoke for /proto or /lofi-proto commands.` |
-| `model` | string | Model preference: `inherit` (use parent model) or `fast` (use faster model) | `inherit`, `fast` |
-| `readonly` | boolean | Whether the agent can modify files (`false`) or is read-only (`true`) | `false` |
+| Field         | Type    | Description                                                                 | Example                                                                                                                   |
+| ------------- | ------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | string  | Unique identifier for the agent (kebab-case)                                | `proto-builder`, `research-analyzer`                                                                                      |
+| `description` | string  | Brief description of what the agent does and when to invoke it              | `Build Storybook prototypes... Use when user wants to create UI prototypes... Invoke for /proto or /lofi-proto commands.` |
+| `model`       | string  | Model preference: `inherit` (use parent model) or `fast` (use faster model) | `inherit`, `fast`                                                                                                         |
+| `readonly`    | boolean | Whether the agent can modify files (`false`) or is read-only (`true`)       | `false`                                                                                                                   |
 
 ### Frontmatter Example
 
@@ -51,6 +52,7 @@ The content section uses Markdown and follows a consistent pattern:
 A brief introduction explaining the agent's primary role and goal.
 
 **Example:**
+
 ```markdown
 You build interactive Storybook prototypes in `elephant-ai/web/src/components/prototypes/`. Your goal is to create **multiple creative options** that meet human-centric AI design standards.
 ```
@@ -60,6 +62,7 @@ You build interactive Storybook prototypes in `elephant-ai/web/src/components/pr
 Optional section for handling ambiguous requests using the `AskQuestion` tool.
 
 **Pattern:**
+
 ```markdown
 ## Clarification (Cursor 2.4)
 
@@ -76,15 +79,18 @@ You can continue reading files while waiting for clarification.
 Context loading instructions that specify which files to read before executing the agent's main workflow.
 
 **Pattern:**
+
 ```markdown
 ## Before [Action]
 
 Load context:
+
 - `@[workspace]/path/to/file.md`
 - `@[workspace]/path/to/file.json`
 ```
 
 **File Reference Syntax:**
+
 - `@[workspace-name]/path/to/file.md` - References files in workspace
 - Paths are relative to workspace root
 - Can reference multiple workspaces
@@ -94,6 +100,7 @@ Load context:
 The core workflow, principles, and requirements. This section is highly variable based on the agent's purpose.
 
 **Common Subsections:**
+
 - **Modes/Variants** - Different ways the agent can operate
 - **Design Principles** - Core principles to follow
 - **Required States/Components** - Mandatory elements
@@ -101,18 +108,22 @@ The core workflow, principles, and requirements. This section is highly variable
 - **Anti-Patterns** - What to avoid
 
 **Example Structure:**
-```markdown
+
+````markdown
 ## Two Modes
 
 ### Full Prototype Mode (`/proto`)
+
 [Description]
 
 ### LoFi Mode (`/lofi-proto`)
+
 [Description]
 
 ## Design Principles
 
 ### Trust Before Automation
+
 - [Principle 1]
 - [Principle 2]
 
@@ -124,7 +135,9 @@ Every AI feature needs ALL of these states in Storybook:
 export const Loading: Story = { ... };
 export const Success: Story = { ... };
 ```
-```
+````
+
+````
 
 ### 6. MCP Tools Section (Optional)
 
@@ -141,14 +154,15 @@ You can use MCP tools to [purpose]:
 | Source | Tools | Use Case |
 |--------|-------|----------|
 | **Slack** | `SLACK_FETCH_CONVERSATION_HISTORY` | [Use case] |
-```
+````
 
 ### 7. Output Format
 
 Specifies the expected response format, including structure, sections, and formatting.
 
 **Pattern:**
-```markdown
+
+````markdown
 ## Output Format
 
 ```markdown
@@ -157,12 +171,16 @@ Specifies the expected response format, including structure, sections, and forma
 **Field:** [value]
 
 ## Section 1
+
 [Content]
 
 ## Section 2
+
 [Content]
 ```
-```
+````
+
+````
 
 ### 8. Save Locations
 
@@ -174,13 +192,14 @@ Documents where the agent should save its output files.
 
 - [Type] → `path/to/file.md`
 - [Type] → `path/to/file.json`
-```
+````
 
 ### 9. After [Action] Section
 
 Post-execution steps, such as updating metadata files, committing changes, or suggesting next steps.
 
 **Pattern:**
+
 ```markdown
 ## After [Action]
 
@@ -195,10 +214,11 @@ Post-execution steps, such as updating metadata files, committing changes, or su
 Some agents include a "Response Format" section that shows the exact format to use when replying to the user.
 
 **Pattern:**
+
 ```markdown
 ## Response Format
-
 ```
+
 ✅ [Status message]
 
 🔗 **Link:** [URL]
@@ -206,10 +226,13 @@ Some agents include a "Response Format" section that shows the exact format to u
 📦 **Details:** [List]
 
 📋 **Files:**
+
 - [File paths]
 
 **Next:** [Suggestion]
+
 ```
+
 ```
 
 ---
@@ -219,10 +242,12 @@ Some agents include a "Response Format" section that shows the exact format to u
 ### Command Triggers
 
 The `description` field typically includes:
+
 - When to use the agent
 - Which commands invoke it (e.g., `/proto`, `/research`)
 
 **Example:**
+
 ```yaml
 description: Analyze transcripts and user research with strategic alignment lens. Use when processing interviews, call recordings, customer feedback, or any user research. Invoke for /research command.
 ```
@@ -230,6 +255,7 @@ description: Analyze transcripts and user research with strategic alignment lens
 ### File References
 
 Agents reference files using workspace syntax:
+
 - `@pm-workspace-docs/company-context/product-vision.md`
 - `@pm-workspace-docs/initiatives/[name]/prd.md`
 - `@.interface-design/system.md`
@@ -237,6 +263,7 @@ Agents reference files using workspace syntax:
 ### Structured Outputs
 
 Agents often define structured output formats using:
+
 - Markdown tables
 - JSON schemas
 - Code blocks with examples
@@ -244,6 +271,7 @@ Agents often define structured output formats using:
 ### Phase/Workflow Integration
 
 Agents reference:
+
 - Initiative phases (discovery → define → build → validate → launch)
 - Metadata files (`_meta.json`)
 - Versioned folders (`v1/`, `v2/`)
@@ -271,6 +299,7 @@ readonly: false
 ## Before [Action]
 
 Load context:
+
 - `@workspace/path/to/file.md`
 
 ## Main Instructions

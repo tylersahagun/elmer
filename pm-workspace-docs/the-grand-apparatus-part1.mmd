@@ -1,0 +1,291 @@
+---
+title: "THE GRAND APPARATUS — Part I: System Architecture"
+---
+graph TB
+    TYLER(("🧠 TYLER\nProduct Manager"))
+
+    subgraph IDE["🖥️ IDE LAYER — Dual Copilot System"]
+        direction LR
+        CURSOR["🤖 Cursor IDE\nPM Copilot"]
+        SKYLAR["🎨 Skylar\nDesigner Copilot"]
+        CLAUDE["🤖 Claude Code\nPM Copilot"]
+    end
+    TYLER --> IDE
+
+    subgraph COMMANDS["⌨️ 54 SLASH COMMANDS"]
+        direction TB
+        subgraph CMD_DAILY["🌅 Daily Ops"]
+            morning["/morning"]
+            eod["/eod"]
+            eow["/eow"]
+            triage["/triage"]
+            gmail["/gmail"]
+            slack_mon["/slack-monitor"]
+            team["/team"]
+            block["/block"]
+        end
+        subgraph CMD_RESEARCH["🔬 Research & Strategy"]
+            research["/research"]
+            landscape["/landscape"]
+            ingest["/ingest"]
+            synthesize["/synthesize"]
+            hypothesis["/hypothesis"]
+            brainstorm["/brainstorm"]
+        end
+        subgraph CMD_BUILD["🏗️ Build & Design"]
+            pm["/pm"]
+            proto["/proto"]
+            lofi["/lofi-proto"]
+            ctx_proto["/context-proto"]
+            validate["/validate"]
+            iterate["/iterate"]
+            design["/design"]
+            vis_design["/visual-design"]
+            figma_sync["/figma-sync"]
+            placement["/placement"]
+            pmm_video["/pmm-video"]
+            figjam_cmd["/figjam"]
+        end
+        subgraph CMD_SYNC["🔄 Sync & Status"]
+            status["/status"]
+            status_all["/status-all"]
+            sync_dev["/sync-dev"]
+            sync_linear["/sync-linear"]
+            sync_github["/sync-github"]
+            sync_notion["/sync-notion"]
+            full_sync["/full-sync"]
+            roadmap_cmd["/roadmap"]
+            notion_admin["/notion-admin"]
+            posthog_cmd["/posthog"]
+        end
+        subgraph CMD_OPS["⚡ Operations"]
+            save["/save"]
+            update["/update"]
+            share["/share"]
+            help["/help"]
+            new_init["/new-initiative"]
+            merge_init["/merge-initiative"]
+            maintain["/maintain"]
+            admin["/admin"]
+            setup["/setup"]
+            agents_cmd["/agents"]
+            avail["/availability-check"]
+            engineer["/engineer-profile"]
+        end
+    end
+    IDE --> COMMANDS
+
+    subgraph AGENTS["🤖 20 AUTONOMOUS SUBAGENTS"]
+        direction TB
+        subgraph SA_RES["📖 Research"]
+            a_research["research-analyzer ⚡"]
+            a_signals["signals-processor ⚡"]
+        end
+        subgraph SA_BUILD["🔨 Build"]
+            a_proto["proto-builder"]
+            a_ctx["context-proto-builder"]
+            a_iter["iterator"]
+            a_valid["validator"]
+            a_figma_a["figma-sync"]
+            a_remotion["remotion-video"]
+            a_figjam_a["figjam-generator ⚡"]
+        end
+        subgraph SA_OPS["⚙️ Operations"]
+            a_slack["slack-monitor ⚡"]
+            a_gmail["gmail-monitor ⚡"]
+            a_notion_a["notion-admin ⚡"]
+            a_posthog["posthog-analyst"]
+            a_linear["linear-triage ⚡"]
+            a_hubspot["hubspot-activity ⚡"]
+            a_workspace["workspace-admin ⚡"]
+        end
+        subgraph SA_DOCS["📝 Documentation"]
+            a_docs["docs-generator"]
+            a_feature["feature-guide"]
+            a_hypo["hypothesis-manager ⚡"]
+            a_ctx_rev["context-reviewer ⚡"]
+        end
+    end
+    COMMANDS --> AGENTS
+
+    subgraph SKILLS["🧠 33 KNOWLEDGE SKILLS"]
+        direction TB
+        subgraph SK_ANALYSIS["🔍 Analysis"]
+            s_research["research-analyst"]
+            s_comp["competitive-analysis"]
+            s_sig["signals-synthesis"]
+            s_road["roadmap-analysis"]
+            s_place["placement-analysis"]
+            s_feat["feature-availability"]
+        end
+        subgraph SK_CREATE["✨ Creation"]
+            s_prd["prd-writer"]
+            s_proto_s["prototype-builder"]
+            s_vis["visual-design"]
+            s_brain["brainstorm"]
+            s_design_s["design-companion"]
+            s_figma_s["figma-component-sync"]
+            s_rem_s["remotion-video"]
+            s_digest["visual-digest"]
+            s_web["digest-website"]
+        end
+        subgraph SK_SYNC["🔄 Sync"]
+            s_lin["linear-sync"]
+            s_gh["github-sync"]
+            s_not["notion-sync"]
+            s_not_a["notion-admin"]
+            s_slk["slack-sync"]
+            s_kit["slack-block-kit"]
+        end
+        subgraph SK_STATUS["📊 Status"]
+            s_init["initiative-status"]
+            s_port["portfolio-status"]
+            s_act["activity-reporter"]
+            s_daily["daily-planner"]
+            s_team_s["team-dashboard"]
+        end
+        subgraph SK_SYS["🔧 System"]
+            s_jury["jury-system"]
+            s_agen["agents-generator"]
+            s_notif["prototype-notification"]
+        end
+        subgraph SK_SKY["🎨 Skylar Design"]
+            s_sky_exp["component-explorer"]
+            s_sky_rev["design-review"]
+            s_sky_start["start-here"]
+            s_sky_vis["visual-change"]
+        end
+    end
+    AGENTS --> SKILLS
+
+    subgraph RULES["📜 8 GOVERNANCE RULES"]
+        direction LR
+        r_pm["pm-foundation\n(Always Active)"]
+        r_sky_f["skylar-foundation\n(Always Active)"]
+        r_sky_ds["design-system"]
+        r_sky_qg["quality-gate"]
+        r_comp_r["component-patterns"]
+        r_growth["growth-companion"]
+        r_rem_r["remotion-video"]
+        r_admin_r["cursor-admin"]
+    end
+    RULES -.->|governs| IDE
+    RULES -.->|constrains| AGENTS
+
+    subgraph MCP["🔌 8 MCP INTEGRATION SERVERS — 900+ Tools"]
+        direction LR
+        m_composio["💬 composio-config\nSlack + Notion\n110+ tools"]
+        m_linear["📋 linear\n35+ tools"]
+        m_posthog["📈 posthog\n300+ tools"]
+        m_hubspot["💰 hubspot\n200+ tools"]
+        m_google["📧 google\n150+ tools"]
+        m_notion["📓 notion\n55+ tools"]
+        m_figma["🎨 figma\n40+ tools"]
+        m_postgres["🗄️ postgres-prod"]
+    end
+    AGENTS -->|calls| MCP
+    SKILLS -->|calls| MCP
+
+    subgraph DATA["📁 PM WORKSPACE DATA LAYER"]
+        direction TB
+        subgraph CTX["🏛️ Company Context"]
+            vision["product-vision"]
+            guard["strategic-guardrails"]
+            tyler_ctx["tyler-context"]
+            org["org-chart (39 people)"]
+            personas_d["personas"]
+            tech["tech-stack"]
+        end
+        subgraph INIT["📋 14 Active Initiatives"]
+            i_acc["agent-command-center"]
+            i_cum["client-usage-metrics"]
+            i_hub["structured-hubspot-agent"]
+            i_glob["global-chat"]
+            i_fga["fga-engine"]
+            i_priv["privacy-agent-v2"]
+            i_speak["speaker-id-voiceprint"]
+            i_set["settings-redesign"]
+            i_adm["admin-onboarding"]
+            i_comp_i["composio-agent-framework"]
+            i_dep["deprecate-legacy-hubspot"]
+            i_flag["feature-flag-audit"]
+            i_rel["release-lifecycle"]
+            i_ust["universal-signal-tables"]
+        end
+        subgraph SIG["📡 Signals"]
+            sig_slack["slack/"]
+            sig_trans["transcripts/"]
+            sig_res["research/"]
+            sig_issues["issues/"]
+            sig_releases["releases/"]
+            sig_docs["documents/"]
+            sig_memos["memos/"]
+        end
+        subgraph ROAD["🗺️ Roadmap"]
+            road_json["roadmap.json"]
+            road_kanban["kanban"]
+            road_gantt["gantt"]
+            road_snap["snapshots/"]
+        end
+        subgraph STAT["📊 Status"]
+            stat_today["today.md"]
+            stat_activity["activity/"]
+            stat_digests["slack/digests/"]
+            stat_dev["dev/"]
+            stat_portfolio["portfolio/"]
+        end
+        subgraph HYP["🧪 Hypotheses"]
+            hyp_active["active/"]
+            hyp_validated["validated/"]
+            hyp_committed["committed/"]
+        end
+    end
+    SKILLS -->|reads/writes| DATA
+
+    subgraph PROTO["🧪 PROTOTYPE LAYER"]
+        direction LR
+        p_acc["AgentCommandCenter"]
+        p_cum["ClientUsageMetrics"]
+        p_fga["FGAEngine"]
+        p_hub["HubSpotAgentConfig"]
+        p_dep["DeprecatePipedream"]
+        storybook["📖 Storybook 9.1"]
+    end
+    a_proto -->|builds| PROTO
+    SKYLAR -->|designs| PROTO
+
+    subgraph EXTERNAL["🌐 10 EXTERNAL SYSTEMS"]
+        direction LR
+        e_slack["💬 Slack"]
+        e_linear["📋 Linear\nEPD + ASK"]
+        e_posthog["📈 PostHog"]
+        e_hubspot["💰 HubSpot"]
+        e_google["📧 Google"]
+        e_notion["📓 Notion"]
+        e_figma["🎨 Figma"]
+        e_github["🐙 GitHub"]
+        e_postgres["🗄️ PostgreSQL"]
+        e_chromatic["🔬 Chromatic"]
+    end
+    MCP -->|connects| EXTERNAL
+
+    subgraph LIFECYCLE["♻️ INITIATIVE LIFECYCLE"]
+        direction LR
+        lc_explore["🔍 Explore"] --> lc_define["📝 Define"] --> lc_build["🔨 Build"] --> lc_validate["✅ Validate"] --> lc_launch["🚀 Launch"]
+    end
+    INIT --- LIFECYCLE
+
+    classDef tyler fill:#FFD700,stroke:#B8860B,stroke-width:4px,color:#000,font-weight:bold
+    classDef agent fill:#4169E1,stroke:#000080,color:#fff
+    classDef skill fill:#2E8B57,stroke:#006400,color:#fff
+    classDef mcp fill:#FF6347,stroke:#8B0000,color:#fff
+    classDef external fill:#87CEEB,stroke:#4682B4,color:#000
+    classDef rule fill:#FFB6C1,stroke:#FF1493,color:#000
+    classDef lifecycle fill:#98FB98,stroke:#228B22,color:#000
+
+    class TYLER tyler
+    class a_research,a_signals,a_proto,a_ctx,a_iter,a_valid,a_figma_a,a_remotion,a_figjam_a,a_slack,a_gmail,a_notion_a,a_posthog,a_linear,a_hubspot,a_workspace,a_docs,a_feature,a_hypo,a_ctx_rev agent
+    class m_composio,m_linear,m_posthog,m_hubspot,m_google,m_notion,m_figma,m_postgres mcp
+    class e_slack,e_linear,e_posthog,e_hubspot,e_google,e_notion,e_figma,e_github,e_postgres,e_chromatic external
+    class r_pm,r_sky_f,r_sky_ds,r_sky_qg,r_comp_r,r_growth,r_rem_r,r_admin_r rule
+    class lc_explore,lc_define,lc_build,lc_validate,lc_launch lifecycle

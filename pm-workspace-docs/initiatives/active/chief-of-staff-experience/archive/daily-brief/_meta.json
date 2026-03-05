@@ -1,0 +1,56 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "daily-brief",
+  "name": "Chief of Staff - Daily Brief",
+  "parent_initiative": "chief-of-staff-experience",
+  "hypothesis_id": "hyp-chief-of-staff-cross-signal-brief",
+  "phase": "define",
+  "status": "on_track",
+  "priority": "P0",
+  "owner": "tyler",
+  "feedback_method": "interview-plan",
+  "feedback_status": "planned",
+  "personas": [
+    "sales-rep",
+    "sales-leader",
+    "revops",
+    "csm"
+  ],
+  "pillar": "trend-visibility",
+  "created_at": "2026-02-17T10:00:00.000Z",
+  "updated_at": "2026-02-17T10:00:00.000Z",
+  "next_action": "Define v1 newspaper-style interaction and historical snapshot behavior",
+  "timeline": {
+    "started": "2026-02-17",
+    "target_launch": null
+  },
+  "visibility": "internal",
+  "competitive_landscape": {
+    "last_analyzed": "2026-02-17",
+    "competitors": [
+      "Gong",
+      "Clari",
+      "Chorus",
+      "Avoma",
+      "Fathom",
+      "Fireflies.ai",
+      "Salesforce Agentforce",
+      "HubSpot Breeze",
+      "Salesloft",
+      "Outreach",
+      "Relay.app",
+      "Lindy.ai",
+      "StackAI",
+      "Gumloop",
+      "Zapier",
+      "Make"
+    ],
+    "differentiation_points": [
+      "Action-first morning hub",
+      "Time-aware UX (8AM \u2260 5PM)",
+      "Cross-signal unified view",
+      "Historical daily snapshots",
+      "Newspaper-style layout"
+    ]
+  }
+}

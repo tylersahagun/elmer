@@ -1,0 +1,24 @@
+{
+  "name": "template",
+  "stage_id": "intake",
+  "stage_label": "Intake",
+  "status": "pending",
+  "automation_policy": "hybrid",
+  "confidence": 0.0,
+  "iteration_count": 0,
+  "last_run_at": null,
+  "last_judge_score": null,
+  "last_judge_verdict": null,
+  "metrics_gate": null,
+  "blockers": [],
+  "next_action": "ingest_signals",
+  "artifacts": {
+    "research": null,
+    "prd": null,
+    "design_brief": null,
+    "prototype_notes": null,
+    "engineering_spec": null,
+    "jury_evaluations": null,
+    "metrics": null
+  }
+}

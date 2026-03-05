@@ -119,36 +119,9 @@ export function ConnectGitHubStep({ onComplete, onReadyChange }: ConnectGitHubSt
     onReadyChange?.(connectionState === "ready");
   }, [connectionState, onReadyChange]);
 
-  // Connect to GitHub via OAuth
+  // Connect to GitHub via OAuth — TODO Phase 1: wire via Clerk OAuth connection
   const startGithubOAuth = async () => {
-    const csrfResponse = await fetch("/api/auth/csrf");
-    if (!csrfResponse.ok) {
-      throw new Error("Failed to initialize GitHub auth");
-    }
-    const csrfData = await csrfResponse.json();
-
-    const signInResponse = await fetch("/api/auth/signin/github", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-Auth-Return-Redirect": "1",
-      },
-      body: new URLSearchParams({
-        csrfToken: csrfData.csrfToken ?? "",
-        callbackUrl: window.location.href,
-      }),
-    });
-
-    if (!signInResponse.ok) {
-      throw new Error("Failed to start GitHub OAuth flow");
-    }
-
-    const data = await signInResponse.json();
-    if (data?.url) {
-      window.location.href = data.url;
-    } else {
-      throw new Error("Missing GitHub OAuth redirect");
-    }
+    window.location.href = "/api/auth/github";
   };
 
   const handleConnect = async () => {

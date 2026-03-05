@@ -1,0 +1,75 @@
+[
+  {
+    "id": "persona_sc001",
+    "archetype_id": "strategic-consultant",
+    "demographics": {"name": "Alexandra Reid", "age": 42, "location": "New York, NY", "years_experience": 18},
+    "role": {"title": "Managing Director, Sales Strategy", "department": "executive", "seniority": "vp", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "51-200", "industry": "Management Consulting", "tech_stack": ["Salesforce", "LinkedIn", "Notion", "Miro"], "funding_stage": "bootstrapped"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "early-adopter", "trust_in_ai": 0.7, "patience_for_learning": 0.4, "tool_fatigue": 0.55, "migration_sensitivity": 0.5, "complexity_tolerance": 0.8, "communication_style": "driver"},
+    "context": {"primary_pain": "Client conversations contain gold but extracting insights takes hours", "secondary_pains": ["Billable time spent on admin", "Proposal quality inconsistent across team"], "current_workarounds": ["Post-meeting note templates", "Senior review of all proposals"], "success_looks_like": "AI extracts client needs and drafts proposals automatically", "fear": "AI missing nuance that costs us the engagement"},
+    "behavioral_heuristics": {"first_click_tendency": "Insight extraction and proposal features", "error_response": "Compares AI output to manual expert version", "abandonment_trigger": "Quality below consultant standards"},
+    "voice_quotes": ["Every client conversation should generate 3 follow-up opportunities", "If the AI can't think like a consultant, it's just transcription"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["Partners"]}
+  },
+  {
+    "id": "persona_sc002",
+    "archetype_id": "strategic-consultant",
+    "demographics": {"name": "Michael Okonkwo", "age": 35, "location": "London, UK", "years_experience": 11},
+    "role": {"title": "Principal Consultant", "department": "consulting", "seniority": "individual-contributor", "decision_authority": "influencer-champion"},
+    "firmographics": {"company_size": "1000+", "industry": "Big 4 Consulting", "tech_stack": ["Salesforce", "Teams", "PowerPoint", "Tableau"], "funding_stage": "public"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "curious", "trust_in_ai": 0.55, "patience_for_learning": 0.45, "tool_fatigue": 0.7, "migration_sensitivity": 0.65, "complexity_tolerance": 0.7, "communication_style": "analytical"},
+    "context": {"primary_pain": "Client expects AI but my firm is slow to adopt", "secondary_pains": ["Competitive pressure from boutiques using AI", "Internal tools are legacy"], "current_workarounds": ["Personal AI experiments", "Shadow IT solutions"], "success_looks_like": "AI that makes me look cutting-edge to clients", "fear": "Getting caught using unapproved tools"},
+    "behavioral_heuristics": {"first_click_tendency": "Security and compliance documentation", "error_response": "Finds compliant workaround", "abandonment_trigger": "Doesn't meet enterprise security requirements"},
+    "voice_quotes": ["My clients expect me to have AI insights - I need to deliver", "If this isn't enterprise-ready, I can't risk using it with client data"],
+    "decision_context": {"decision_authority": "influencer-champion", "evaluation_role": "secondary", "competitive_evaluation": true, "stakeholders_to_convince": ["Practice Lead", "IT Security"]}
+  },
+  {
+    "id": "persona_sc003",
+    "archetype_id": "strategic-consultant",
+    "demographics": {"name": "Sarah Chen", "age": 38, "location": "San Francisco, CA", "years_experience": 14},
+    "role": {"title": "Founder, GTM Strategy Consulting", "department": "executive", "seniority": "c-suite", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "1-50", "industry": "Boutique Consulting", "tech_stack": ["HubSpot", "Notion", "Loom", "Figma"], "funding_stage": "bootstrapped"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "power-user", "trust_in_ai": 0.85, "patience_for_learning": 0.6, "tool_fatigue": 0.3, "migration_sensitivity": 0.25, "complexity_tolerance": 0.85, "communication_style": "expressive"},
+    "context": {"primary_pain": "I'm the product - need to scale my expertise without hiring", "secondary_pains": ["Client work is 1:1, not scalable", "Knowledge lives in my head"], "current_workarounds": ["Recording all client calls", "Building playbook templates"], "success_looks_like": "AI that captures my methodology and applies it at scale", "fear": "AI diluting the quality that clients pay premium for"},
+    "behavioral_heuristics": {"first_click_tendency": "Custom training and personalization", "error_response": "Refines prompts and training data", "abandonment_trigger": "Can't customize to my methodology"},
+    "voice_quotes": ["I charge $500/hour because of my unique insight - AI needs to capture that", "If I can train this on my approach, I can serve 10x the clients"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": []}
+  },
+  {
+    "id": "persona_sc004",
+    "archetype_id": "strategic-consultant",
+    "demographics": {"name": "James Thompson", "age": 55, "location": "Chicago, IL", "years_experience": 30},
+    "role": {"title": "Senior Partner", "department": "executive", "seniority": "c-suite", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "201-1000", "industry": "Strategy Consulting", "tech_stack": ["Salesforce", "PowerPoint", "Excel", "Teams"], "funding_stage": "bootstrapped"},
+    "psychographics": {"tech_literacy": "novice", "ai_adoption_stage": "skeptic", "trust_in_ai": 0.2, "patience_for_learning": 0.15, "tool_fatigue": 0.95, "migration_sensitivity": 0.9, "complexity_tolerance": 0.3, "communication_style": "analytical"},
+    "context": {"primary_pain": "Junior consultants want AI but I don't trust it with client work", "secondary_pains": ["Pressure to modernize from younger partners", "Clients asking about our AI capabilities"], "current_workarounds": ["Delegate all tech to juniors", "Manual quality review of everything"], "success_looks_like": "AI that I can verify and control completely", "fear": "AI making recommendations I can't defend to C-suite clients"},
+    "behavioral_heuristics": {"first_click_tendency": "Has associate demo it first", "error_response": "Refuses to use, mandates human verification", "abandonment_trigger": "Any unexplainable output"},
+    "voice_quotes": ["I've built a 30-year reputation - I'm not risking it on AI", "Show me exactly how this conclusion was reached or I can't use it"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "secondary", "competitive_evaluation": true, "stakeholders_to_convince": ["Other Partners"]}
+  },
+  {
+    "id": "persona_sc005",
+    "archetype_id": "strategic-consultant",
+    "demographics": {"name": "Priya Patel", "age": 29, "location": "Boston, MA", "years_experience": 6},
+    "role": {"title": "Senior Associate", "department": "consulting", "seniority": "individual-contributor", "decision_authority": "end-user"},
+    "firmographics": {"company_size": "1000+", "industry": "Management Consulting", "tech_stack": ["Salesforce", "Slack", "Notion", "Figma"], "funding_stage": "public"},
+    "psychographics": {"tech_literacy": "advanced", "ai_adoption_stage": "power-user", "trust_in_ai": 0.9, "patience_for_learning": 0.85, "tool_fatigue": 0.2, "migration_sensitivity": 0.15, "complexity_tolerance": 0.9, "communication_style": "driver"},
+    "context": {"primary_pain": "I'm doing 80% of the work for partners who take the credit", "secondary_pains": ["Can't scale without burning out", "AI could help me do 2x the work"], "current_workarounds": ["Personal ChatGPT workflow", "Automation scripts"], "success_looks_like": "AI that makes me a 10x consultant before I make partner", "fear": "Getting in trouble for using AI on client work"},
+    "behavioral_heuristics": {"first_click_tendency": "Power user features and shortcuts", "error_response": "Finds creative workaround", "abandonment_trigger": "Learning curve too steep for immediate value"},
+    "voice_quotes": ["I need to outperform my peers - AI is my secret weapon", "If this helps me deliver partner-quality work, I'll make partner faster"],
+    "decision_context": {"decision_authority": "end-user", "evaluation_role": "none", "competitive_evaluation": false, "stakeholders_to_convince": ["Manager"]}
+  },
+  {
+    "id": "persona_sc006",
+    "archetype_id": "strategic-consultant",
+    "demographics": {"name": "Daniel Hernandez", "age": 45, "location": "Los Angeles, CA", "years_experience": 20},
+    "role": {"title": "Chief Strategy Officer (Client Side)", "department": "executive", "seniority": "c-suite", "decision_authority": "decision-maker"},
+    "firmographics": {"company_size": "201-1000", "industry": "Media & Entertainment", "tech_stack": ["Salesforce", "Slack", "Tableau", "Asana"], "funding_stage": "series-c+"},
+    "psychographics": {"tech_literacy": "intermediate", "ai_adoption_stage": "curious", "trust_in_ai": 0.5, "patience_for_learning": 0.35, "tool_fatigue": 0.6, "migration_sensitivity": 0.55, "complexity_tolerance": 0.6, "communication_style": "expressive"},
+    "context": {"primary_pain": "Hiring consultants is expensive but I need strategic insights", "secondary_pains": ["Internal team lacks external perspective", "Board wants data-driven strategy"], "current_workarounds": ["Quarterly consultant engagements", "Executive offsites"], "success_looks_like": "AI that gives me consultant-quality insights without consultant costs", "fear": "AI giving me generic advice that doesn't fit my industry"},
+    "behavioral_heuristics": {"first_click_tendency": "Industry-specific insights and benchmarks", "error_response": "Compares to consultant recommendations", "abandonment_trigger": "Generic, non-industry-specific output"},
+    "voice_quotes": ["I pay McKinsey $50K for insights - can AI give me 80% of that?", "This needs to understand entertainment, not just generic B2B"],
+    "decision_context": {"decision_authority": "decision-maker", "evaluation_role": "primary", "competitive_evaluation": true, "stakeholders_to_convince": ["CEO", "Board"]}
+  }
+]
+

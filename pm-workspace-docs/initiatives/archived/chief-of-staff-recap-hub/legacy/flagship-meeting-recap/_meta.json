@@ -1,0 +1,155 @@
+{
+  "$schema": "pm-workspace-meta-v1",
+  "initiative": "flagship-meeting-recap",
+  "hypothesis_id": "hyp-meeting-summary-flagship-drives-growth",
+  "phase": "build",
+  "sub_phase": "prototype-complete",
+  "status": "merged",
+  "merged_into": "chief-of-staff-recap-hub",
+  "priority": "P1",
+  "owner": "Tyler",
+  "personas": ["sales-rep", "csm", "sales-leader"],
+  "pillar": "data-knowledge",
+  "created_at": "2026-01-28T10:00:00.000000",
+  "updated_at": "2026-02-01T00:00:00.000000",
+  "current_version": "v3",
+  "prototype_location": "elephant-ai/web/src/components/prototypes/FlagshipMeetingRecap/v3/",
+  "chromatic_url": "https://672502f3cbc6d0a63fdd76aa-aovcxceoqt.chromatic.com/",
+  "last_signals_processed": "2026-01-30T06:56:40.000000",
+  "figjam_url": "https://www.figma.com/online-whiteboard/create-diagram/8fdb3d58-1f13-4901-b07a-0474aad77030",
+  "figjam_generated": "2026-01-28",
+  "phase_history": [
+    {
+      "phase": "discovery",
+      "entered": "2026-01-27T00:00:00.000000",
+      "exited": "2026-01-28T10:00:00.000000",
+      "notes": "Evidence from Tyler-Sam conversations (Jan 27, Jan 28)"
+    },
+    {
+      "phase": "define",
+      "entered": "2026-01-28T10:00:00.000000",
+      "exited": "2026-01-28T03:45:00.000000",
+      "notes": "PRD, design brief, design audit, placement research complete"
+    },
+    {
+      "phase": "build",
+      "entered": "2026-01-28T03:45:00.000000",
+      "exited": null,
+      "notes": "Storybook prototype v1 complete"
+    }
+  ],
+  "blockers": [
+    "Privacy determination gating + override rules not finalized",
+    "Audit trail export + ops-facing share history missing"
+  ],
+  "next_action": "Refer to chief-of-staff-recap-hub for current roadmap and validation",
+  "signals": [
+    "sig-2026-01-28-tyler-sam-flagship-meeting-recap-ux",
+    "sig-2026-01-27-tyler-sam-prioritization-workflow",
+    "sig-2026-01-26-council-of-product",
+    "sig-2026-01-24-council-of-product",
+    "sig-2026-01-26-14day-slack-synthesis"
+  ],
+  "signals_consumed": [
+    "sig-2026-01-28-tyler-sam-flagship-meeting-recap-ux",
+    "sig-2026-01-27-tyler-sam-prioritization-workflow",
+    "sig-2026-01-26-council-of-product",
+    "sig-2026-01-24-council-of-product",
+    "sig-2026-01-26-14day-slack-synthesis",
+    "jury-evaluations/build-report-20260129.md",
+    "jury-evaluations/validate-report-20260129.md",
+    "jury-evaluations/validate-report-20260129-2.md"
+  ],
+  "related_initiatives": [
+    "settings-redesign",
+    "product-usability",
+    "composio-agent-framework"
+  ],
+  "graduation_criteria": {
+    "discovery_to_define": {
+      "evidence_points": 5,
+      "persona_validated": true,
+      "outcome_chain_defined": true
+    },
+    "define_to_build": {
+      "prd_approved": false,
+      "design_brief_exists": false,
+      "engineering_alignment": false
+    }
+  },
+  "validation_history": [
+    {
+      "date": "2026-01-29",
+      "type": "jury",
+      "phase": "build",
+      "result": "pass",
+      "pass_rate": 69,
+      "jury_size": 100,
+      "report_file": "jury-evaluations/build-report-20260129.md",
+      "notes": "Strong resonance for sales reps/CSMs; ops + skeptic gaps on auditability."
+    },
+    {
+      "date": "2026-01-29",
+      "type": "jury",
+      "phase": "build",
+      "result": "pass",
+      "pass_rate": 76,
+      "jury_size": 120,
+      "report_file": "jury-evaluations/validate-report-20260129.md",
+      "notes": "Ops audit surface improved; privacy gating + low-confidence override still notable gaps."
+    },
+    {
+      "date": "2026-01-29",
+      "type": "jury",
+      "phase": "build",
+      "result": "pass",
+      "pass_rate": 74,
+      "jury_size": 140,
+      "report_file": "jury-evaluations/validate-report-20260129-2.md",
+      "notes": "Strong rep/CSM resonance; ops needs audit export and clearer privacy gating."
+    }
+  ],
+  "timeline": {
+    "started": "2026-01-28",
+    "target_launch": null
+  },
+  "metrics": {
+    "days_in_phase": 0,
+    "total_iterations": 3,
+    "jury_evaluations": 3,
+    "last_jury_pass_rate": 74
+  },
+  "iteration_history": [
+    {
+      "version": "v3",
+      "date": "2026-01-30T06:56:40.000000",
+      "focus": "Audit export, privacy checklist clarity, meeting type override affordance",
+      "signals_consumed": [
+        "jury-evaluations/validate-report-20260129.md",
+        "jury-evaluations/validate-report-20260129-2.md"
+      ]
+    },
+    {
+      "version": "v2",
+      "date": "2026-01-30T05:45:49.000000",
+      "focus": "Audit trail visibility, privacy gating, faster setup + channel defaults",
+      "signals_consumed": [
+        "sig-2026-01-28-tyler-sam-flagship-meeting-recap-ux",
+        "sig-2026-01-27-tyler-sam-prioritization-workflow",
+        "sig-2026-01-26-council-of-product",
+        "sig-2026-01-24-council-of-product",
+        "sig-2026-01-26-14day-slack-synthesis",
+        "jury-evaluations/build-report-20260129.md"
+      ]
+    }
+  ],
+  "key_themes": [
+    "ai-first-ux",
+    "chat-configuration",
+    "meeting-recap",
+    "flagship-experience",
+    "zero-to-one",
+    "workflow-simplification"
+  ],
+  "visibility": "internal"
+}

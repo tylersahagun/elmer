@@ -1,0 +1,272 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AskElephantPersona",
+  "description": "Synthetic user persona for Condorcet jury system evaluation",
+  "type": "object",
+  "required": ["id", "archetype_id", "demographics", "role", "firmographics", "psychographics", "context", "voice_quotes"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^persona_[a-z0-9]{8}$",
+      "description": "Unique persona identifier"
+    },
+    "archetype_id": {
+      "type": "string",
+      "enum": ["sales-rep", "sales-leader", "csm", "operations", "strategic-consultant"],
+      "description": "Base archetype this persona derives from"
+    },
+    "sub_type": {
+      "type": "string",
+      "description": "Sub-type within archetype (e.g., executive_leader, sdr_leader, small_team_leader for sales-leader)"
+    },
+    "generation_metadata": {
+      "type": "object",
+      "properties": {
+        "batch_id": { "type": "string" },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "model": { "type": "string" },
+        "sampling_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source_interviews": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "Interview files that informed this persona"
+        }
+      }
+    },
+    "demographics": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "age": { "type": "integer", "minimum": 22, "maximum": 65 },
+        "location": { "type": "string" },
+        "years_experience": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "role": {
+      "type": "object",
+      "required": ["title", "department", "seniority"],
+      "properties": {
+        "title": { 
+          "type": "string",
+          "examples": ["Account Executive", "SDR", "VP of Sales", "CSM Manager", "RevOps Analyst"]
+        },
+        "department": { 
+          "type": "string",
+          "enum": ["sales", "customer-success", "revenue-operations", "sales-enablement", "executive"]
+        },
+        "seniority": {
+          "type": "string",
+          "enum": ["individual-contributor", "manager", "director", "vp", "c-suite"]
+        },
+        "decision_authority": {
+          "type": "string",
+          "enum": ["end-user", "influencer", "champion", "economic-buyer", "technical-validator"]
+        },
+        "team_size": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "firmographics": {
+      "type": "object",
+      "required": ["company_size"],
+      "properties": {
+        "company_size": {
+          "type": "string",
+          "enum": ["1-50", "51-200", "201-1000", "1000+"]
+        },
+        "industry": { "type": "string" },
+        "tech_stack": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "CRMs and tools they use (e.g., HubSpot, Salesforce, Outreach)"
+        },
+        "funding_stage": {
+          "type": "string",
+          "enum": ["bootstrapped", "seed", "series-a", "series-b", "series-c+", "public"]
+        }
+      }
+    },
+    "psychographics": {
+      "type": "object",
+      "required": ["tech_literacy", "ai_adoption_stage"],
+      "properties": {
+        "tech_literacy": {
+          "type": "string",
+          "enum": ["novice", "intermediate", "advanced", "expert"]
+        },
+        "ai_adoption_stage": {
+          "type": "string",
+          "enum": ["skeptic", "curious", "early-adopter", "power-user"],
+          "description": "Attitude toward AI tools"
+        },
+        "trust_in_ai": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0 = deeply skeptical, 1 = fully trusting"
+        },
+        "patience_for_learning": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0 = wants instant value, 1 = willing to invest time"
+        },
+        "detail_orientation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0 = big picture only, 1 = highly detail-oriented"
+        },
+        "communication_style": {
+          "type": "string",
+          "enum": ["analytical", "driver", "amiable", "expressive"]
+        },
+        "risk_tolerance": {
+          "type": "string",
+          "enum": ["risk-averse", "moderate", "risk-tolerant"]
+        },
+        "change_readiness": {
+          "type": "string",
+          "enum": ["resistant", "cautious", "open", "eager"]
+        },
+        "tool_fatigue": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0 = fresh/open to new tools, 1 = exhausted by 200 tools that don't talk"
+        },
+        "migration_sensitivity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0 = easy switcher, 1 = will overpay to avoid migration pain"
+        },
+        "complexity_tolerance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0 = needs Apple easy, 1 = willing to learn complex systems"
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "required": ["primary_pain", "success_looks_like"],
+      "properties": {
+        "primary_pain": {
+          "type": "string",
+          "description": "The main frustration this persona experiences"
+        },
+        "secondary_pains": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "current_workarounds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What they do today to cope with the pain"
+        },
+        "success_looks_like": {
+          "type": "string",
+          "description": "Ideal outcome if problem were solved"
+        },
+        "fear": {
+          "type": "string",
+          "description": "What they're afraid might go wrong with new tools"
+        },
+        "time_constraints": {
+          "type": "string",
+          "enum": ["very-busy", "moderate", "flexible"],
+          "description": "How much time they have for new tools"
+        }
+      }
+    },
+    "behavioral_heuristics": {
+      "type": "object",
+      "properties": {
+        "first_click_tendency": {
+          "type": "string",
+          "description": "Where do they look first in a new UI?"
+        },
+        "error_response": {
+          "type": "string",
+          "description": "How do they react when something breaks?"
+        },
+        "help_seeking": {
+          "type": "string",
+          "description": "How do they seek help when stuck?"
+        },
+        "abandonment_trigger": {
+          "type": "string",
+          "description": "What makes them give up on a tool?"
+        }
+      }
+    },
+    "voice_quotes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 2,
+      "maxItems": 5,
+      "description": "Representative quotes in this persona's authentic voice"
+    },
+    "day_in_life": {
+      "type": "string",
+      "description": "100-word narrative of typical workday"
+    },
+    "decision_context": {
+      "type": "object",
+      "description": "Context for how this persona participates in buying decisions",
+      "properties": {
+        "decision_authority": {
+          "type": "string",
+          "enum": ["decision-maker", "influencer-champion", "evaluator", "end-user"],
+          "description": "Role in purchase decisions"
+        },
+        "evaluation_role": {
+          "type": "string",
+          "enum": ["primary", "secondary", "none"],
+          "description": "How involved in hands-on product evaluation"
+        },
+        "budget_awareness": {
+          "type": "string",
+          "enum": ["owns-budget", "influences-budget", "no-visibility"],
+          "description": "Relationship to budget decisions"
+        },
+        "competitive_evaluation": {
+          "type": "boolean",
+          "description": "Whether they systematically compare vendors"
+        },
+        "stakeholders_to_convince": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Who else needs to approve (e.g., 'VP of Sales', 'RevOps')"
+        }
+      }
+    },
+    "buying_signals": {
+      "type": "object",
+      "description": "Context about their current buying situation",
+      "properties": {
+        "budget_cycle_phase": {
+          "type": "string",
+          "enum": ["planning", "frozen", "active", "renewal-window"],
+          "description": "Where they are in budget cycle"
+        },
+        "incumbent_tools": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Current tools in the space (e.g., 'Gong', 'Fathom')"
+        },
+        "trigger_event": {
+          "type": "string",
+          "description": "What prompted them to evaluate (e.g., 'renewal coming', 'new pain point')"
+        },
+        "timeline": {
+          "type": "string",
+          "description": "Decision timeline (e.g., 'Q1 2026', 'Before January')"
+        }
+      }
+    }
+  }
+}
+

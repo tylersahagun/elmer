@@ -1,0 +1,112 @@
+{
+  "$schema": "product-os-metrics-contract-v1",
+  "project_id": "chief-of-staff-experience",
+  "north_star_metric": {
+    "name": "Approval-complete action loop rate",
+    "definition": "% of extracted action items completed or explicitly deferred within 7 days",
+    "unit": "percentage",
+    "window": "7d",
+    "segmentation": [
+      "workspace",
+      "persona",
+      "surface"
+    ]
+  },
+  "instrumentation": {
+    "required_events": [
+      {
+        "event_name": "cos_action_item_completed",
+        "description": "Action item completion event for accountability loop",
+        "required_properties": [
+          "user_id",
+          "item_id",
+          "source",
+          "days_to_complete",
+          "workspace_id",
+          "initiative_id"
+        ],
+        "mapped_posthog_insight_ids": [],
+        "mapped_dashboard_ids": []
+      },
+      {
+        "event_name": "cos_action_item_dismissed",
+        "description": "Action dismissed without completion; denominator for loop quality",
+        "required_properties": [
+          "user_id",
+          "item_id",
+          "reason",
+          "workspace_id",
+          "initiative_id"
+        ],
+        "mapped_posthog_insight_ids": [],
+        "mapped_dashboard_ids": []
+      },
+      {
+        "event_name": "cos_feed_item_reviewed",
+        "description": "Engagement leading indicator for action-taking behavior",
+        "required_properties": [
+          "user_id",
+          "item_id",
+          "item_type",
+          "priority",
+          "workspace_id",
+          "initiative_id"
+        ],
+        "mapped_posthog_insight_ids": [],
+        "mapped_dashboard_ids": []
+      },
+      {
+        "event_name": "cos_draft_approved",
+        "description": "Draft approval behavior used for cognitive load proxy",
+        "required_properties": [
+          "user_id",
+          "item_id",
+          "channel",
+          "time_to_approve_seconds",
+          "workspace_id",
+          "initiative_id"
+        ],
+        "mapped_posthog_insight_ids": [],
+        "mapped_dashboard_ids": []
+      }
+    ],
+    "posthog": {
+      "dashboard_ids": [],
+      "insight_ids": []
+    }
+  },
+  "validation": {
+    "status": "partial",
+    "last_validated_at": "2026-03-01T07:55:39.643275+00:00",
+    "gaps": [
+      {
+        "type": "missing_dashboard",
+        "severity": "high",
+        "detail": "PostHog dashboards for Daily Health and PQL Conversion are not linked",
+        "recommended_action": "Create and link dashboard IDs in instrumentation.posthog.dashboard_ids"
+      },
+      {
+        "type": "missing_insight",
+        "severity": "high",
+        "detail": "North-star insight for approval-complete action loop rate is not linked",
+        "recommended_action": "Create insight and add to instrumentation.posthog.insight_ids"
+      },
+      {
+        "type": "missing_property",
+        "severity": "medium",
+        "detail": "workspace_id and initiative_id not yet confirmed on all required events",
+        "recommended_action": "Run /posthog instrument-check chief-of-staff-experience and patch emitters"
+      }
+    ],
+    "linked_linear_issue_ids": [
+      "AUTO-D29C45",
+      "AUTO-721BF0"
+    ]
+  },
+  "meta": {
+    "created_at": "2026-03-01T06:32:05.089125+00:00",
+    "updated_at": "2026-03-01T07:55:39.643276+00:00",
+    "owner": "tyler",
+    "pilot": true
+  }
+}
