@@ -3,23 +3,17 @@
  *
  * Authentication: HMAC-SHA256 signature verification (v0 format)
  * URL Verification: Handles Slack's url_verification challenge
- * Workspace mapping: Via team_id from payload
  *
  * POST /api/webhooks/slack/events
  */
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { integrations } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
 import {
   verifySlackSignature,
-  createSignalFromSlack,
   type SlackEventPayload,
 } from "@/lib/integrations";
 
 export async function POST(request: NextRequest) {
-  const receivedAt = new Date();
   const rawBody = await request.text();
 
   // Parse payload first (needed for url_verification check)
@@ -36,42 +30,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ challenge: payload.challenge });
   }
 
-  // For all other requests, team_id is required
-  if (!payload.team_id) {
-    return NextResponse.json(
-      { error: "Missing team_id in payload" },
-      { status: 400 }
-    );
-  }
-
-  // Look up integration by Slack team_id
-  const integration = await db.query.integrations.findFirst({
-    where: and(
-      eq(integrations.platform, "slack"),
-      eq(integrations.slackTeamId, payload.team_id),
-      eq(integrations.isActive, true)
-    ),
-  });
-
-  if (!integration) {
-    return NextResponse.json(
-      { error: "Unknown Slack team or inactive integration" },
-      { status: 401 }
-    );
-  }
-
-  if (!integration.webhookSecret) {
-    return NextResponse.json(
-      { error: "Integration not configured (missing signing secret)" },
-      { status: 500 }
-    );
-  }
-
-  // Verify Slack signature
+  // Verify Slack signature using env var secret
   const timestamp = request.headers.get("x-slack-request-timestamp");
   const signature = request.headers.get("x-slack-signature");
+  const signingSecret = process.env.SLACK_SIGNING_SECRET;
 
-  if (!verifySlackSignature(rawBody, timestamp, signature, integration.webhookSecret)) {
+  if (!signingSecret) {
+    console.warn("SLACK_SIGNING_SECRET not set — skipping signature verification");
+  } else if (!verifySlackSignature(rawBody, timestamp, signature, signingSecret)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
@@ -79,8 +45,8 @@ export async function POST(request: NextRequest) {
   if (payload.type === "event_callback" && payload.event?.type === "message") {
     const event = payload.event;
 
-    // Filter out bot messages (prevent self-processing and bot spam)
-    if (event.bot_id || event.user === integration.slackBotUserId) {
+    // Filter out bot messages
+    if (event.bot_id) {
       return NextResponse.json({
         ok: true,
         filtered: "bot_message",
@@ -109,25 +75,20 @@ export async function POST(request: NextRequest) {
     // Queue async processing
     after(async () => {
       try {
-        const result = await createSignalFromSlack({
-          workspaceId: integration.workspaceId,
-          event,
-          teamId: payload.team_id!,
-          receivedAt,
+        const verbatim = `[Slack #${event.channel ?? "unknown"}] ${event.text}`;
+        await fetch("https://fortunate-parakeet-796.convex.site/mcp/signals", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer elmer-mcp-internal",
+          },
+          body: JSON.stringify({
+            verbatim,
+            source: "slack",
+          }),
         });
-
-        // Update lastUsedAt
-        await db
-          .update(integrations)
-          .set({ lastUsedAt: new Date() })
-          .where(eq(integrations.id, integration.id));
-
-        if (result.error) {
-          console.error("Slack signal creation failed:", result.error);
-        }
       } catch (error) {
-        console.error("Slack webhook processing error:", error);
-        // Don't throw - webhook is already acknowledged
+        console.error("Slack webhook Convex error:", error);
       }
     });
   }

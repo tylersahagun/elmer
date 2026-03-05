@@ -2,94 +2,59 @@
  * Pylon webhook endpoint for support ticket ingestion
  *
  * Authentication: HMAC-SHA256 signature verification
- * Workspace mapping: Via integration_id query parameter
  *
- * POST /api/webhooks/pylon?integration_id={id}
+ * POST /api/webhooks/pylon
  */
 import { after } from "next/server";
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { integrations } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
 import {
   verifyPylonSignature,
-  createSignalFromPylon,
-  type PylonWebhookPayload,
 } from "@/lib/integrations";
 
 export async function POST(request: NextRequest) {
   const receivedAt = new Date();
   const rawBody = await request.text();
 
-  // Get integration_id from query params (required for workspace mapping)
-  const integrationId = new URL(request.url).searchParams.get("integration_id");
-  if (!integrationId) {
-    return NextResponse.json(
-      { error: "Missing integration_id query parameter" },
-      { status: 400 }
-    );
-  }
-
   // Parse payload
-  let payload: PylonWebhookPayload;
+  let payload: Record<string, unknown>;
   try {
     payload = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Look up integration
-  const integration = await db.query.integrations.findFirst({
-    where: and(
-      eq(integrations.id, integrationId),
-      eq(integrations.platform, "pylon"),
-      eq(integrations.isActive, true)
-    ),
-  });
-
-  if (!integration) {
-    return NextResponse.json(
-      { error: "Unknown or inactive integration" },
-      { status: 401 }
-    );
-  }
-
-  if (!integration.webhookSecret) {
-    return NextResponse.json(
-      { error: "Integration not configured (missing webhook secret)" },
-      { status: 500 }
-    );
-  }
-
-  // Verify signature
+  // Verify signature using env var secret
   const timestamp = request.headers.get("pylon-webhook-timestamp");
   const signature = request.headers.get("pylon-webhook-signature");
+  const webhookSecret = process.env.PYLON_WEBHOOK_SECRET;
 
-  if (!verifyPylonSignature(rawBody, timestamp, signature, integration.webhookSecret)) {
+  if (!webhookSecret) {
+    console.warn("PYLON_WEBHOOK_SECRET not set — skipping signature verification");
+  } else if (!verifyPylonSignature(rawBody, timestamp, signature, webhookSecret)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   // Queue async processing
   after(async () => {
     try {
-      const result = await createSignalFromPylon({
-        workspaceId: integration.workspaceId,
-        payload: payload.data,
-        receivedAt,
+      const data = payload.data as Record<string, unknown> | undefined;
+      const title = (data?.title ?? data?.subject ?? "Support ticket") as string;
+      const body = (data?.body ?? data?.description ?? "") as string;
+      const verbatim = body ? `${title}: ${body}`.slice(0, 1000) : title;
+      const priority = data?.priority as string | undefined;
+      const severity = priority === "urgent" ? "critical" :
+                       priority === "high" ? "high" : "medium";
+
+      await fetch("https://fortunate-parakeet-796.convex.site/mcp/signals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer elmer-mcp-internal",
+        },
+        body: JSON.stringify({ verbatim, source: "pylon", severity }),
       });
-
-      // Update lastUsedAt
-      await db
-        .update(integrations)
-        .set({ lastUsedAt: new Date() })
-        .where(eq(integrations.id, integrationId));
-
-      if (result.error) {
-        console.error("Pylon signal creation failed:", result.error);
-      }
     } catch (error) {
-      console.error("Pylon webhook processing error:", error);
-      // Don't throw - webhook is already acknowledged
+      console.error("Pylon webhook Convex error:", error);
     }
   });
 
