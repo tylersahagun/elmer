@@ -6,7 +6,6 @@ import {
   DisplaySettingsProvider,
   type DisplayMode,
 } from "@/components/display";
-import { JobLogsDrawer } from "@/components/jobs/JobLogsDrawer";
 
 // Get display mode from localStorage for initial render
 function getInitialDisplayMode(): DisplayMode {
@@ -60,8 +59,6 @@ export default function DashboardLayout({
         onModeChange={handleDisplayModeChange}
       >
         {children}
-        {/* Global Job Logs Drawer - accessible from any project card */}
-        <JobLogsDrawer />
       </DisplaySettingsProvider>
     </QueryClientProvider>
   );

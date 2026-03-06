@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
 import ReactMarkdown from "react-markdown";
 import {
@@ -15,6 +15,7 @@ import {
   User,
   Bot,
   MessageSquare,
+  Circle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,216 @@ interface Mention {
   entityType: string;
   entityId: string;
   label: string;
+}
+
+type Job = {
+  _id: Id<"jobs">;
+  _creationTime: number;
+  type: string;
+  status: string;
+  projectId?: Id<"projects">;
+  agentDefinitionId?: Id<"agentDefinitions">;
+  output?: unknown;
+};
+
+type PendingQuestion = {
+  _id: Id<"pendingQuestions">;
+  jobId: Id<"jobs">;
+  questionText: string;
+  status: string;
+};
+
+const STATUS_FILTER_MAP: Record<string, string[]> = {
+  all: ["pending", "running", "completed", "failed", "waiting_input", "cancelled"],
+  running: ["running"],
+  waiting: ["waiting_input"],
+  complete: ["completed"],
+  failed: ["failed"],
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; cls: string }> = {
+    running: { label: "running", cls: "bg-blue-500/20 text-blue-400" },
+    waiting_input: { label: "waiting", cls: "bg-amber-500/20 text-amber-400" },
+    completed: { label: "done", cls: "bg-green-500/20 text-green-400" },
+    failed: { label: "failed", cls: "bg-red-500/20 text-red-400" },
+    pending: { label: "pending", cls: "bg-slate-500/20 text-slate-400" },
+    cancelled: { label: "cancelled", cls: "bg-slate-500/20 text-slate-400" },
+  };
+  const { label, cls } = config[status] ?? { label: status, cls: "bg-slate-500/20 text-slate-400" };
+  return (
+    <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", cls)}>
+      {label}
+    </span>
+  );
+}
+
+function JobRow({
+  job,
+  pendingQ,
+  workspaceId,
+  onHITLClick,
+  formatDuration,
+  formatJobType,
+  router,
+}: {
+  job: Job;
+  pendingQ?: PendingQuestion;
+  workspaceId: string;
+  onHITLClick: (job: Job, q: PendingQuestion) => void;
+  formatDuration: (ms: number) => string;
+  formatJobType: (t: string) => string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const lastLog = useQuery(api.jobs.getLastLog, { jobId: job._id });
+  const duration = Date.now() - job._creationTime;
+  const hasHITL = !!pendingQ;
+
+  return (
+    <div
+      className={cn(
+        "px-3 py-2.5 border-b border-white/5 hover:bg-white/5 transition-colors",
+        hasHITL && "border-l-2 border-l-amber-500/60",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-xs font-medium text-white truncate flex-1">
+          {formatJobType(job.type)}
+        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {hasHITL && (
+            <button
+              onClick={() => onHITLClick(job, pendingQ!)}
+              title="Agent needs your input — click to answer"
+              className="flex items-center gap-1 text-[10px] text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              <Circle className="w-2 h-2 fill-amber-500 text-amber-500" />
+              <span>HITL</span>
+            </button>
+          )}
+          <StatusBadge status={job.status} />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+        <span>{formatDuration(duration)}</span>
+        {job.projectId && (
+          <>
+            <span>·</span>
+            <button
+              onClick={() =>
+                router.push(`/workspace/${workspaceId}/projects/${job.projectId}`)
+              }
+              className="text-purple-400 hover:text-purple-300 transition-colors truncate max-w-[100px]"
+            >
+              project ↗
+            </button>
+          </>
+        )}
+      </div>
+
+      {lastLog && (
+        <p className="text-[10px] text-muted-foreground/70 mt-1 truncate">
+          {lastLog.message.length > 60
+            ? lastLog.message.slice(0, 60) + "…"
+            : lastLog.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
+type HubFilter = "all" | "running" | "waiting" | "complete" | "failed";
+
+function AgentHubTab({
+  recentJobs,
+  pendingQs,
+  hubFilter,
+  setHubFilter,
+  workspaceId,
+  onHITLClick,
+  formatDuration,
+  formatJobType,
+  router,
+}: {
+  recentJobs: Job[] | undefined;
+  pendingQs: PendingQuestion[] | undefined;
+  hubFilter: HubFilter;
+  setHubFilter: (f: HubFilter) => void;
+  workspaceId: string;
+  onHITLClick: (job: Job, q: PendingQuestion) => void;
+  formatDuration: (ms: number) => string;
+  formatJobType: (t: string) => string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const allowedStatuses = STATUS_FILTER_MAP[hubFilter] ?? [];
+  const filtered = recentJobs
+    ? recentJobs.filter((j) => allowedStatuses.includes(j.status))
+    : [];
+
+  const pendingQsByJob = new Map<string, PendingQuestion>();
+  for (const q of pendingQs ?? []) {
+    if (q.status === "pending") pendingQsByJob.set(q.jobId, q);
+  }
+
+  const FILTER_LABELS: { key: HubFilter; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "running", label: "Running" },
+    { key: "waiting", label: "Waiting" },
+    { key: "complete", label: "Done" },
+    { key: "failed", label: "Failed" },
+  ];
+
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Filter bar */}
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-white/10 shrink-0 overflow-x-auto">
+        {FILTER_LABELS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setHubFilter(key)}
+            className={cn(
+              "px-2 py-0.5 text-[10px] rounded-sm whitespace-nowrap transition-colors shrink-0",
+              hubFilter === key
+                ? "bg-white/10 text-white"
+                : "text-muted-foreground hover:text-white",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Job list */}
+      <div className="flex-1 overflow-y-auto">
+        {recentJobs === undefined ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+            <Bot className="w-8 h-8 text-muted-foreground/30 mb-2" />
+            <p className="text-xs text-muted-foreground">
+              {hubFilter === "all" ? "No agent activity in the last 24h" : `No ${hubFilter} jobs`}
+            </p>
+          </div>
+        ) : (
+          filtered.map((job) => (
+            <JobRow
+              key={job._id}
+              job={job}
+              pendingQ={pendingQsByJob.get(job._id)}
+              workspaceId={workspaceId}
+              onHITLClick={onHITLClick}
+              formatDuration={formatDuration}
+              formatJobType={formatJobType}
+              router={router}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
@@ -56,6 +267,11 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const [mentionSearch, setMentionSearch] = useState<string | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [mentionDropdownIndex, setMentionDropdownIndex] = useState(0);
+
+  const router = useRouter();
+  const [hubFilter, setHubFilter] = useState<
+    "all" | "running" | "waiting" | "complete" | "failed"
+  >("all");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -96,6 +312,20 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   );
 
   const createThread = useMutation(api.chat.createThread);
+
+  const recentJobs = useQuery(
+    api.jobs.listRecent,
+    isAuthenticated && isOpen && activeTab === "hub" && workspaceId
+      ? { workspaceId: workspaceId as Id<"workspaces"> }
+      : "skip",
+  );
+
+  const pendingQs = useQuery(
+    api.pendingQuestions.listPending,
+    isAuthenticated && isOpen && activeTab === "hub" && workspaceId
+      ? { workspaceId: workspaceId as Id<"workspaces">, status: "pending" }
+      : "skip",
+  );
 
   // Sync messages from Convex into local streaming state
   useEffect(() => {
@@ -397,6 +627,38 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     return `${days}d ago`;
   };
 
+  const formatDuration = (ms: number) => {
+    const secs = Math.floor(ms / 1000);
+    const mins = Math.floor(secs / 60);
+    if (mins > 0) return `${mins}m ${secs % 60}s`;
+    return `${secs}s`;
+  };
+
+  const formatJobType = (type: string) => {
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  const handleHITLClick = useCallback(
+    async (
+      job: { _id: Id<"jobs">; type: string },
+      pendingQuestion: { questionText: string },
+    ) => {
+      setActiveTab("chat");
+      const threadId = await createThread({
+        workspaceId: workspaceId as Id<"workspaces">,
+        userId,
+        title: `HITL: ${formatJobType(job.type)}`,
+        contextEntityType: "job",
+        contextEntityId: job._id,
+        model: "auto",
+      });
+      setActiveThreadId(threadId);
+      setStreamingMessages([]);
+      setInputValue(pendingQuestion.questionText);
+    },
+    [createThread, workspaceId, userId],
+  );
+
   return (
     <>
       {/* Floating toggle button */}
@@ -460,13 +722,16 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
               <button
                 onClick={() => setActiveTab("hub")}
                 className={cn(
-                  "px-3 py-1 text-xs rounded-sm transition-colors",
+                  "px-3 py-1 text-xs rounded-sm transition-colors relative",
                   activeTab === "hub"
                     ? "bg-white/10 text-white"
                     : "text-muted-foreground hover:text-white",
                 )}
               >
                 Agent Hub
+                {pendingQs && pendingQs.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
+                )}
               </button>
             </div>
 
@@ -482,9 +747,17 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
           {/* Tab content */}
           {activeTab === "hub" ? (
-            <div className="flex items-center justify-center flex-1 text-muted-foreground text-sm">
-              Agent Hub coming soon
-            </div>
+            <AgentHubTab
+              recentJobs={recentJobs}
+              pendingQs={pendingQs}
+              hubFilter={hubFilter}
+              setHubFilter={setHubFilter}
+              workspaceId={workspaceId}
+              onHITLClick={handleHITLClick}
+              formatDuration={formatDuration}
+              formatJobType={formatJobType}
+              router={router}
+            />
           ) : (
             <div className="flex flex-1 overflow-hidden">
               {/* Thread list */}

@@ -1,1 +1,1 @@
-export { JobLogsDrawer } from "./JobLogsDrawer";
+export { ExecutionPanel } from "./ExecutionPanel";

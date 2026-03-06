@@ -57,10 +57,18 @@ export const create = mutation({
     type: v.string(),
     input: v.any(),
     agentDefinitionId: v.optional(v.id("agentDefinitions")),
+    parentJobId: v.optional(v.id("jobs")),
+    rootInitiator: v.optional(v.string()),
+    rootInitiatorName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    const displayName =
+      ((identity as Record<string, unknown>).name as string | undefined) ??
+      ((identity as Record<string, unknown>).email as string | undefined) ??
+      ((identity as Record<string, unknown>).tokenIdentifier as string | undefined) ??
+      identity.subject;
     return await ctx.db.insert("jobs", {
       workspaceId: args.workspaceId,
       projectId: args.projectId,
@@ -70,6 +78,11 @@ export const create = mutation({
       output: null,
       attempt: 0,
       agentDefinitionId: args.agentDefinitionId,
+      initiatedBy: identity.subject,
+      initiatedByName: displayName,
+      rootInitiator: args.rootInitiator ?? identity.subject,
+      rootInitiatorName: args.rootInitiatorName ?? displayName,
+      parentJobId: args.parentJobId,
     });
   },
 });
@@ -107,6 +120,24 @@ export const incrementAttempt = mutation({
   },
 });
 
+export const listRecent = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    limitHours: v.optional(v.number()),
+  },
+  handler: async (ctx, { workspaceId, limitHours = 24 }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const cutoff = Date.now() - limitHours * 60 * 60 * 1000;
+    const jobs = await ctx.db
+      .query("jobs")
+      .withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspaceId))
+      .order("desc")
+      .take(50);
+    return jobs.filter((j) => (j._creationTime ?? 0) >= cutoff);
+  },
+});
+
 // ── Job Log Queries ───────────────────────────────────────────────────────────
 
 export const getLogs = query({
@@ -118,6 +149,19 @@ export const getLogs = query({
       .query("jobLogs")
       .withIndex("by_job", (q) => q.eq("jobId", jobId))
       .collect();
+  },
+});
+
+export const getLastLog = query({
+  args: { jobId: v.id("jobs") },
+  handler: async (ctx, { jobId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    return await ctx.db
+      .query("jobLogs")
+      .withIndex("by_job", (q) => q.eq("jobId", jobId))
+      .order("desc")
+      .first();
   },
 });
 
@@ -157,10 +201,18 @@ export const createAndSchedule = mutation({
     type: v.string(),
     input: v.any(),
     agentDefinitionId: v.optional(v.id("agentDefinitions")),
+    parentJobId: v.optional(v.id("jobs")),
+    rootInitiator: v.optional(v.string()),
+    rootInitiatorName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    const displayName =
+      ((identity as Record<string, unknown>).name as string | undefined) ??
+      ((identity as Record<string, unknown>).email as string | undefined) ??
+      ((identity as Record<string, unknown>).tokenIdentifier as string | undefined) ??
+      identity.subject;
 
     const jobId = await ctx.db.insert("jobs", {
       workspaceId: args.workspaceId,
@@ -174,6 +226,11 @@ export const createAndSchedule = mutation({
       output: null,
       attempt: 0,
       agentDefinitionId: args.agentDefinitionId,
+      initiatedBy: identity.subject,
+      initiatedByName: displayName,
+      rootInitiator: args.rootInitiator ?? identity.subject,
+      rootInitiatorName: args.rootInitiatorName ?? displayName,
+      parentJobId: args.parentJobId,
     });
 
     // Schedule the agent runner immediately

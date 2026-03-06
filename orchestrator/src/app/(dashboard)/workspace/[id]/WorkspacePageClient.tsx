@@ -34,7 +34,6 @@ import {
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
-import { PendingQuestionsPanel } from "@/components/agents";
 import { Window } from "@/components/chrome/Window";
 import { canRunConvexQuery } from "@/lib/auth/convex";
 import { getWorkspacePathSegment } from "@/lib/workspaces/path";
@@ -301,11 +300,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       <NewProjectDialog />
       <ProjectDetailModal />
       {workspace?._id && <ArchivedProjectsModal workspaceId={workspace._id} />}
-
-      {/* Agent HITL panel — floats above content when agents need input */}
-      <div className="fixed bottom-4 right-4 z-50 w-96 max-w-[calc(100vw-2rem)]">
-        <PendingQuestionsPanel workspaceId={workspaceId} />
-      </div>
     </div>
   );
 }

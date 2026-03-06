@@ -4,5 +4,4 @@ export { AgentExecutionHistory } from "./AgentExecutionHistory";
 export { AgentExecutionPanel } from "./AgentExecutionPanel";
 export { AgentsList } from "./AgentsList";
 export { ContextSelector } from "./ContextSelector";
-export { PendingQuestionsPanel } from "./PendingQuestionsPanel";
 export { InitiativeDashboardEmbed } from "./InitiativeDashboardEmbed";
