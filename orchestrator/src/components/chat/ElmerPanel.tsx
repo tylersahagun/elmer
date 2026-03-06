@@ -16,10 +16,22 @@ import {
   Bot,
   MessageSquare,
   Circle,
+  FileText,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUIStore } from "@/lib/store";
+import { DocumentArtifactPanel } from "./DocumentArtifactPanel";
+
+const DOCUMENT_PATTERN = /\[DOCUMENT_CREATED:\s*(\{[^}]+\})\]/;
+
+interface DocumentRef {
+  documentId: string;
+  title: string;
+  type: string;
+  projectId?: string;
+}
 
 interface ElmerPanelProps {
   workspaceId: string;
@@ -259,6 +271,11 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const [activeTab, setActiveTab] = useState<"chat" | "hub">("chat");
   const [activeThreadId, setActiveThreadId] =
     useState<Id<"chatThreads"> | null>(null);
+  const [documentArtifacts, setDocumentArtifacts] = useState<
+    Record<string, DocumentRef>
+  >({});
+  const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
+  const [activeDocRef, setActiveDocRef] = useState<DocumentRef | null>(null);
 
   // Listen to Zustand store for external open requests (e.g. "Chat about this" from ContextPeekPopover)
   const elmerPanelOpen = useUIStore((s) => s.elmerPanelOpen);
@@ -345,6 +362,22 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
         content: m.content,
       })),
     );
+    // Detect document artifacts in persisted messages
+    for (const m of messages) {
+      if (m.role === "assistant") {
+        const match = m.content.match(DOCUMENT_PATTERN);
+        if (match) {
+          try {
+            const docRef = JSON.parse(match[1]) as DocumentRef;
+            setDocumentArtifacts((prev) =>
+              prev[m._id] ? prev : { ...prev, [m._id]: docRef },
+            );
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
   }, [messages]);
 
   // Auto-scroll to bottom
@@ -603,9 +636,23 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       );
     } finally {
       setIsStreaming(false);
-      setStreamingMessages((prev) =>
-        prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
-      );
+      setStreamingMessages((prev) => {
+        const updated = prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m));
+        // Scan the final assistant message for DOCUMENT_CREATED marker
+        const lastAssistant = [...updated].reverse().find((m) => m.role === "assistant");
+        if (lastAssistant) {
+          const match = lastAssistant.content.match(DOCUMENT_PATTERN);
+          if (match) {
+            try {
+              const docRef = JSON.parse(match[1]) as DocumentRef;
+              setDocumentArtifacts((prev) => ({ ...prev, [lastAssistant.id]: docRef }));
+            } catch {
+              // ignore JSON parse errors
+            }
+          }
+        }
+        return updated;
+      });
     }
   }, [inputValue, isStreaming, mentions, getOrCreateThread, getToken, workspaceId, pageContext]);
 
@@ -877,50 +924,77 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                     </div>
                   ) : (
                     streamingMessages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={cn(
-                          "flex gap-2",
-                          msg.role === "user" ? "flex-row-reverse" : "",
-                        )}
-                      >
+                      <div key={msg.id}>
                         <div
                           className={cn(
-                            "w-6 h-6 rounded-md shrink-0 flex items-center justify-center",
-                            msg.role === "user"
-                              ? "bg-purple-500/20"
-                              : "bg-teal-500/20",
+                            "flex gap-2",
+                            msg.role === "user" ? "flex-row-reverse" : "",
                           )}
                         >
-                          {msg.role === "user" ? (
-                            <User className="w-3 h-3 text-purple-400" />
-                          ) : (
-                            <Bot className="w-3 h-3 text-teal-400" />
-                          )}
-                        </div>
-                        <div
-                          className={cn(
-                            "max-w-[calc(100%-2.5rem)] rounded-lg px-3 py-2 text-xs",
-                            msg.role === "user"
-                              ? "bg-purple-500/15 text-white"
-                              : "bg-white/5 text-slate-200",
-                          )}
-                        >
-                          {msg.role === "assistant" ? (
-                            msg.isStreaming && msg.content === "" ? (
-                              <span className="flex items-center gap-1.5 text-muted-foreground">
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                Thinking…
-                              </span>
+                          <div
+                            className={cn(
+                              "w-6 h-6 rounded-md shrink-0 flex items-center justify-center",
+                              msg.role === "user"
+                                ? "bg-purple-500/20"
+                                : "bg-teal-500/20",
+                            )}
+                          >
+                            {msg.role === "user" ? (
+                              <User className="w-3 h-3 text-purple-400" />
                             ) : (
-                              <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                                <ReactMarkdown>{msg.content}</ReactMarkdown>
-                              </div>
-                            )
-                          ) : (
-                            <p className="whitespace-pre-wrap">{msg.content}</p>
-                          )}
+                              <Bot className="w-3 h-3 text-teal-400" />
+                            )}
+                          </div>
+                          <div
+                            className={cn(
+                              "max-w-[calc(100%-2.5rem)] rounded-lg px-3 py-2 text-xs",
+                              msg.role === "user"
+                                ? "bg-purple-500/15 text-white"
+                                : "bg-white/5 text-slate-200",
+                            )}
+                          >
+                            {msg.role === "assistant" ? (
+                              msg.isStreaming && msg.content === "" ? (
+                                <span className="flex items-center gap-1.5 text-muted-foreground">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  Thinking…
+                                </span>
+                              ) : (
+                                <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                </div>
+                              )
+                            ) : (
+                              <p className="whitespace-pre-wrap">{msg.content}</p>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Document artifact preview card */}
+                        {msg.role === "assistant" && documentArtifacts[msg.id] && (
+                          <div className="ml-8 mt-2">
+                            <div
+                              className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 cursor-pointer hover:bg-blue-500/10 transition-colors"
+                              onClick={() => {
+                                setActiveDocRef(documentArtifacts[msg.id]);
+                                setArtifactPanelOpen(true);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-blue-400 shrink-0" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs font-medium text-white truncate">
+                                    {documentArtifacts[msg.id].title}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground capitalize">
+                                    {documentArtifacts[msg.id].type.replace(/_/g, " ")}
+                                  </div>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
@@ -1013,6 +1087,17 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
           )}
         </div>
       </div>
+      {/* Document artifact panel */}
+      {artifactPanelOpen && activeDocRef && (
+        <DocumentArtifactPanel
+          documentId={activeDocRef.documentId}
+          workspaceId={workspaceId}
+          onClose={() => {
+            setArtifactPanelOpen(false);
+            setActiveDocRef(null);
+          }}
+        />
+      )}
     </>
   );
 }

@@ -388,6 +388,161 @@ http.route({
   }),
 });
 
+// GET /mcp/workspace
+http.route({
+  path: "/mcp/workspace",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    if (!workspaceId) return jsonError("Missing workspaceId");
+    const workspace = await ctx.runQuery(internal.mcp.getWorkspace, {
+      workspaceId: workspaceId as Id<"workspaces">,
+    });
+    return jsonOk(workspace);
+  }),
+});
+
+// PATCH /mcp/workspace
+http.route({
+  path: "/mcp/workspace",
+  method: "PATCH",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const workspace = await ctx.runMutation(internal.mcp.updateWorkspace, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      name: body.name as string | undefined,
+      description: body.description as string | undefined,
+      contextPath: body.contextPath as string | undefined,
+      githubRepo: body.githubRepo as string | undefined,
+      settings: body.settings,
+    });
+    return jsonOk(workspace);
+  }),
+});
+
+// GET /mcp/workspace-access
+http.route({
+  path: "/mcp/workspace-access",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    const clerkUserId = url.searchParams.get("clerkUserId");
+    if (!workspaceId || !clerkUserId) return jsonError("Missing workspaceId or clerkUserId");
+    const result = await ctx.runQuery(internal.mcp.getWorkspaceAccess, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      clerkUserId,
+    });
+    return jsonOk(result);
+  }),
+});
+
+// GET /mcp/workspace-members
+http.route({
+  path: "/mcp/workspace-members",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    if (!workspaceId) return jsonError("Missing workspaceId");
+    const members = await ctx.runQuery(internal.mcp.listWorkspaceMembers, {
+      workspaceId: workspaceId as Id<"workspaces">,
+    });
+    return jsonOk(members);
+  }),
+});
+
+// GET /mcp/workspace-invitations
+http.route({
+  path: "/mcp/workspace-invitations",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    if (!workspaceId) return jsonError("Missing workspaceId");
+    const invitations = await ctx.runQuery(internal.mcp.listWorkspaceInvitations, {
+      workspaceId: workspaceId as Id<"workspaces">,
+    });
+    return jsonOk(invitations);
+  }),
+});
+
+// POST /mcp/workspace-invitations
+http.route({
+  path: "/mcp/workspace-invitations",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const invitation = await ctx.runMutation(internal.mcp.createWorkspaceInvitation, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      email: body.email as string,
+      role: body.role as string,
+      invitedBy: body.invitedBy as string | undefined,
+      inviterName: body.inviterName as string | undefined,
+      inviterEmail: body.inviterEmail as string | undefined,
+    });
+    return jsonOk(invitation);
+  }),
+});
+
+// DELETE /mcp/workspace-invitations
+http.route({
+  path: "/mcp/workspace-invitations",
+  method: "DELETE",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const invitationId = url.searchParams.get("invitationId");
+    if (!invitationId) return jsonError("Missing invitationId");
+    const result = await ctx.runMutation(internal.mcp.revokeWorkspaceInvitation, {
+      invitationId: invitationId as Id<"invitations">,
+    });
+    return jsonOk(result);
+  }),
+});
+
+// GET /mcp/invitation
+http.route({
+  path: "/mcp/invitation",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const token = url.searchParams.get("token");
+    if (!token) return jsonError("Missing token");
+    const invitation = await ctx.runQuery(internal.mcp.getInvitationByToken, {
+      token,
+    });
+    return jsonOk(invitation);
+  }),
+});
+
+// POST /mcp/invitation/accept
+http.route({
+  path: "/mcp/invitation/accept",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const result = await ctx.runMutation(internal.mcp.acceptInvitationByToken, {
+      token: body.token as string,
+      userId: body.userId as string | undefined,
+      clerkUserId: body.clerkUserId as string,
+      email: body.email as string,
+      name: body.name as string | undefined,
+      image: body.image as string | undefined,
+    });
+    return jsonOk(result);
+  }),
+});
+
 // POST /mcp/signals/synthesize
 http.route({
   path: "/mcp/signals/synthesize",
@@ -596,6 +751,23 @@ http.route({
   path: "/api/chat/stream",
   method: "POST",
   handler: streamResponse,
+});
+
+// GET /mcp/documents?id=<documentId>
+http.route({
+  path: "/mcp/documents",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (!id) return jsonError("Missing id param");
+    const doc = await ctx.runQuery(internal.mcp.getDocument, {
+      documentId: id as Id<"documents">,
+    });
+    if (!doc) return jsonError("Document not found", 404);
+    return jsonOk(doc);
+  }),
 });
 
 export default http;

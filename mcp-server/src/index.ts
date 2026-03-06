@@ -33,6 +33,7 @@ import { listAgents, getAgent, runAgent, syncAgents } from "./tools/agents.js";
 import { listJobs, getJob, getJobLogs, getPendingQuestions, respondToQuestion } from "./tools/jobs.js";
 import { listContext, getContext, search, storeMemory, queryMemory, graphGetContext, listCommands } from "./tools/knowledge.js";
 import { postPrototype, getPrototypeFeedback, iteratePrototype, listPrototypeVariants } from "./tools/prototypes.js";
+import { discussDocument } from "./tools/documents.js";
 import { mcpGet, mcpPost } from "./convex-client.js";
 
 // ── Tool definitions ──────────────────────────────────────────────────────────
@@ -318,6 +319,27 @@ const TOOLS = [
       type: "object",
       properties: { project_id: { type: "string" } },
       required: ["project_id"],
+    },
+  },
+  // ── Documents ──
+  {
+    name: "elmer_discuss_document",
+    description:
+      "Ask a question about a specific document in Elmer and get an AI answer grounded in the document content. " +
+      "Use to quickly query a PRD, research doc, engineering spec, or any other document.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        document_id: {
+          type: "string",
+          description: "The Convex document ID (from elmer_get_project or elmer_list_context)",
+        },
+        question: {
+          type: "string",
+          description: "The question to ask about the document",
+        },
+      },
+      required: ["document_id", "question"],
     },
   },
   // ── Prototype Feedback Loop ──
@@ -608,6 +630,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case "elmer_graph_get_context":
         result = await graphGetContext(a.project_id as string);
+        break;
+
+      // Documents
+      case "elmer_discuss_document":
+        result = await discussDocument(a.document_id as string, a.question as string);
         break;
 
       // Prototype Feedback Loop
