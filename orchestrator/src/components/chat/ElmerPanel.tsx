@@ -53,6 +53,7 @@ interface StreamingMessage {
   isStreaming?: boolean;
   tokenCount?: number;
   model?: string;
+  isHITL?: boolean;
 }
 
 interface Mention {
@@ -153,6 +154,7 @@ function JobRow({
   pendingQ,
   workspaceId,
   onHITLClick,
+  onStopJob,
   formatDuration,
   formatJobType,
   router,
@@ -161,6 +163,7 @@ function JobRow({
   pendingQ?: PendingQuestion;
   workspaceId: string;
   onHITLClick: (job: Job, q: PendingQuestion) => void;
+  onStopJob?: (jobId: Id<"jobs">) => void;
   formatDuration: (ms: number) => string;
   formatJobType: (t: string) => string;
   router: ReturnType<typeof useRouter>;
@@ -171,6 +174,7 @@ function JobRow({
 
   return (
     <div
+      data-testid="elmer-job-row"
       className={cn(
         "px-3 py-2.5 border-b border-white/5 hover:bg-white/5 transition-colors",
         hasHITL && "border-l-2 border-l-amber-500/60",
@@ -183,12 +187,23 @@ function JobRow({
         <div className="flex items-center gap-1.5 shrink-0">
           {hasHITL && (
             <button
+              data-testid="elmer-hitl-btn"
               onClick={() => onHITLClick(job, pendingQ!)}
               title="Agent needs your input — click to answer"
               className="flex items-center gap-1 text-[10px] text-amber-400 hover:text-amber-300 transition-colors"
             >
               <Circle className="w-2 h-2 fill-amber-500 text-amber-500" />
               <span>HITL</span>
+            </button>
+          )}
+          {job.status === "running" && (
+            <button
+              data-testid="elmer-job-stop-btn"
+              onClick={() => onStopJob?.(job._id)}
+              title="Cancel this agent run"
+              className="text-[10px] text-red-400 hover:text-red-300 transition-colors px-1.5 py-0.5 rounded border border-red-500/30 hover:bg-red-500/10"
+            >
+              Stop
             </button>
           )}
           <StatusBadge status={job.status} />
@@ -232,6 +247,7 @@ function AgentHubTab({
   setHubFilter,
   workspaceId,
   onHITLClick,
+  onStopJob,
   formatDuration,
   formatJobType,
   router,
@@ -242,6 +258,7 @@ function AgentHubTab({
   setHubFilter: (f: HubFilter) => void;
   workspaceId: string;
   onHITLClick: (job: Job, q: PendingQuestion) => void;
+  onStopJob?: (jobId: Id<"jobs">) => void;
   formatDuration: (ms: number) => string;
   formatJobType: (t: string) => string;
   router: ReturnType<typeof useRouter>;
@@ -266,7 +283,7 @@ function AgentHubTab({
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-white/10 shrink-0 overflow-x-auto">
+      <div data-testid="elmer-hub-filter-bar" className="flex items-center gap-1 px-3 py-2 border-b border-white/10 shrink-0 overflow-x-auto">
         {FILTER_LABELS.map(({ key, label }) => (
           <button
             key={key}
@@ -303,6 +320,7 @@ function AgentHubTab({
               pendingQ={pendingQsByJob.get(job._id)}
               workspaceId={workspaceId}
               onHITLClick={onHITLClick}
+              onStopJob={onStopJob}
               formatDuration={formatDuration}
               formatJobType={formatJobType}
               router={router}
@@ -425,6 +443,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const createThread = useMutation(api.chat.createThread);
   const updateThread = useMutation(api.chat.updateThread);
   const createAndSchedule = useMutation(api.jobs.createAndSchedule);
+  const cancelJob = useMutation(api.jobs.cancel);
 
   const recentJobs = useQuery(
     api.jobs.listRecent,
@@ -464,6 +483,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
         role: m.role as "user" | "assistant",
         content: m.content,
         tokenCount: m.tokenCount,
+        isHITL: m.isHITL,
       })),
     );
     for (const m of messages) {
@@ -749,9 +769,9 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     [activeThreadId, updateThread],
   );
 
-  const handleSend = useCallback(async () => {
-    if (!inputValue.trim() || isStreaming) return;
-    const content = inputValue.trim();
+  const handleSend = useCallback(async (forcedContent?: string) => {
+    const content = (forcedContent ?? inputValue).trim();
+    if (!content || isStreaming) return;
     const currentMentions = mentions.map(({ entityType, entityId }) => ({
       entityType,
       entityId,
@@ -996,10 +1016,21 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     [createThread, workspaceId, userId],
   );
 
+  const isAnswered = useCallback((hitlMsgId: string): boolean => {
+    const hitlIdx = streamingMessages.findIndex((m) => m.id === hitlMsgId);
+    if (hitlIdx === -1) return false;
+    return streamingMessages.slice(hitlIdx + 1).some((m) => m.role === "user");
+  }, [streamingMessages]);
+
+  const handleHITLResponse = useCallback(async (_hitlMsgId: string, response: string) => {
+    await handleSend(response);
+  }, [handleSend]);
+
   return (
     <>
       {/* Floating toggle button */}
       <button
+        data-testid="elmer-toggle-btn"
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
           "fixed right-0 top-1/2 -translate-y-1/2 z-50",
@@ -1016,6 +1047,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
       {/* Panel */}
       <div
+        data-testid="elmer-panel"
         ref={panelRef}
         style={{ width: isOpen ? panelWidth : 0 }}
         className={cn(
@@ -1047,7 +1079,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
               {/* Model selector */}
               {activeTab === "chat" && (
                 <Select value={currentModel} onValueChange={(v) => void handleModelChange(v)}>
-                  <SelectTrigger className="h-7 w-24 text-[10px] border-white/10 bg-white/5 text-muted-foreground">
+                  <SelectTrigger data-testid="elmer-model-select" className="h-7 w-24 text-[10px] border-white/10 bg-white/5 text-muted-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1061,6 +1093,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
               {/* Tabs */}
               <div className="flex items-center gap-1 bg-white/5 rounded-md p-0.5">
                 <button
+                  data-testid="elmer-tab-chat"
                   onClick={() => setActiveTab("chat")}
                   className={cn(
                     "px-3 py-1 text-xs rounded-sm transition-colors",
@@ -1072,6 +1105,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                   Chat
                 </button>
                 <button
+                  data-testid="elmer-tab-hub"
                   onClick={() => setActiveTab("hub")}
                   className={cn(
                     "px-3 py-1 text-xs rounded-sm transition-colors relative",
@@ -1082,7 +1116,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                 >
                   Agent Hub
                   {pendingQs && pendingQs.length > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
+                    <span data-testid="elmer-hitl-badge" className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
                   )}
                 </button>
               </div>
@@ -1107,6 +1141,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
               setHubFilter={setHubFilter}
               workspaceId={workspaceId}
               onHITLClick={handleHITLClick}
+              onStopJob={(jobId) => void cancelJob({ jobId })}
               formatDuration={formatDuration}
               formatJobType={formatJobType}
               router={router}
@@ -1117,6 +1152,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
               <div className="w-44 shrink-0 flex flex-col border-r border-white/10 overflow-hidden">
                 <div className="p-2 shrink-0">
                   <button
+                    data-testid="elmer-new-thread-btn"
                     onClick={() => void handleNewThread()}
                     className="w-full flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-white hover:bg-white/5 rounded-md transition-colors"
                   >
@@ -1125,7 +1161,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
+                <div data-testid="elmer-thread-list" className="flex-1 overflow-y-auto">
                   {threads === undefined ? (
                     <div className="flex items-center justify-center py-4">
                       <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -1162,9 +1198,9 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
               </div>
 
               {/* Message area */}
-              <div className="flex-1 flex flex-col overflow-hidden">
+              <div data-testid="elmer-messages" className="flex-1 flex flex-col overflow-hidden">
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                <div data-testid="elmer-messages-scroll" className="flex-1 overflow-y-auto p-3 space-y-3">
                   {!activeThreadId ? (
                     <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
                       <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
@@ -1246,6 +1282,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                         {msg.role === "assistant" && documentArtifacts[msg.id] && (
                           <div className="ml-8 mt-2">
                             <div
+                              data-testid="elmer-doc-card"
                               className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 cursor-pointer hover:bg-blue-500/10 transition-colors"
                               onClick={() => {
                                 setActiveDocRef(documentArtifacts[msg.id]);
@@ -1264,6 +1301,35 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                                 </div>
                                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                               </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* HITL structured response buttons */}
+                        {msg.isHITL && !isAnswered(msg.id) && (
+                          <div data-testid="elmer-hitl-response" className="ml-8 mt-2 flex flex-col gap-1.5">
+                            <div className="flex gap-2">
+                              <button
+                                data-testid="elmer-hitl-approve"
+                                onClick={() => void handleHITLResponse(msg.id, "yes")}
+                                className="px-3 py-1.5 text-xs rounded-md bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 transition-colors"
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                data-testid="elmer-hitl-deny"
+                                onClick={() => void handleHITLResponse(msg.id, "no")}
+                                className="px-3 py-1.5 text-xs rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors"
+                              >
+                                ✗ Deny
+                              </button>
+                              <button
+                                data-testid="elmer-hitl-reply"
+                                onClick={() => textareaRef.current?.focus()}
+                                className="px-3 py-1.5 text-xs rounded-md bg-white/5 text-muted-foreground hover:bg-white/10 border border-white/10 transition-colors"
+                              >
+                                Custom reply…
+                              </button>
                             </div>
                           </div>
                         )}
@@ -1327,12 +1393,13 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
                   {/* Intent suggestion banner */}
                   {intentSuggestion && inputValue.length > 10 && !selectedCommand && (
-                    <div className="mb-2 flex items-center gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-xs">
+                    <div data-testid="elmer-intent-banner" className="mb-2 flex items-center gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-xs">
                       <Zap className="w-3 h-3 text-yellow-400 shrink-0" />
                       <span className="text-slate-300">
                         Run <strong className="text-white">/{intentSuggestion.agentName}</strong> instead?
                       </span>
                       <button
+                        data-testid="elmer-intent-confirm"
                         onClick={() => void handleConfirmIntent()}
                         className="ml-auto text-yellow-400 hover:text-yellow-300 underline whitespace-nowrap"
                       >
@@ -1371,7 +1438,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
                   {/* Slash command picker */}
                   {slashSearch !== null && flatCommandList.length > 0 && (
-                    <div className="mb-2 rounded-md border border-white/10 bg-slate-900 overflow-hidden shadow-lg max-h-64 overflow-y-auto">
+                    <div data-testid="elmer-slash-dropdown" className="mb-2 rounded-md border border-white/10 bg-slate-900 overflow-hidden shadow-lg max-h-64 overflow-y-auto">
                       {commandResults && Object.entries(commandResults).map(([group, items]) => {
                         const groupItems = items as AgentDefinition[];
                         if (!groupItems.length) return null;
@@ -1429,7 +1496,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                   {mentionSearch !== null &&
                     mentionResults &&
                     mentionResults.length > 0 && (
-                      <div className="mb-2 rounded-md border border-white/10 bg-slate-900 overflow-hidden shadow-lg">
+                      <div data-testid="elmer-mention-dropdown" className="mb-2 rounded-md border border-white/10 bg-slate-900 overflow-hidden shadow-lg">
                         {mentionResults.map((item, i) => (
                           <button
                             key={item.id}
@@ -1455,6 +1522,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
                   <div className="flex gap-2 items-end">
                     <textarea
+                      data-testid="elmer-input"
                       ref={textareaRef}
                       value={inputValue}
                       onChange={handleInputChange}
@@ -1466,6 +1534,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                       style={{ minHeight: "2.25rem" }}
                     />
                     <Button
+                      data-testid="elmer-send-btn"
                       size="sm"
                       onClick={() => void handleSend()}
                       disabled={!inputValue.trim() || isStreaming || !isAuthenticated}

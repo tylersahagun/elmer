@@ -502,6 +502,20 @@ export const streamResponse = httpAction(async (ctx, request) => {
     limit: 20,
   });
 
+  // Context compaction: if more than 10 messages, summarize older ones
+  let messagesToSend = history;
+  if (history.length > 10) {
+    const older = history.slice(0, history.length - 6);
+    const recent = history.slice(history.length - 6);
+    const summaryLines = older.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n');
+    const compactedHistory = [
+      { role: "user" as const, content: `[Conversation summary — ${older.length} earlier messages]:\n${summaryLines}` },
+      { role: "assistant" as const, content: "Understood, I have the context of our earlier conversation." },
+      ...recent,
+    ];
+    messagesToSend = compactedHistory as typeof history;
+  }
+
   await ctx.runMutation(internal.chat.sendMessageInternal, {
     threadId: typedThreadId,
     role: "user",
@@ -623,7 +637,7 @@ export const streamResponse = httpAction(async (ctx, request) => {
       systemPrompt += ` (document: ${pageContext.documentId})`;
   }
 
-  const anthropicMessages = history.map((m) => ({
+  const anthropicMessages = messagesToSend.map((m) => ({
     role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
     content: m.content,
   }));

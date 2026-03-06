@@ -190,6 +190,15 @@ export const appendLog = mutation({
   },
 });
 
+export const cancel = mutation({
+  args: { jobId: v.id("jobs") },
+  handler: async (ctx, { jobId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    await ctx.db.patch(jobId, { status: "cancelled" });
+  },
+});
+
 /**
  * Create a job AND immediately schedule the agent runner.
  * This is the primary entry point for triggering agents from the UI.
