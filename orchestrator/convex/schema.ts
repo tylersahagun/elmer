@@ -5,6 +5,7 @@ export default defineSchema({
   workspaces: defineTable({
     name: v.string(),
     slug: v.string(),
+    description: v.optional(v.string()),
     githubRepo: v.optional(v.string()),
     settings: v.any(),
     clerkOrgId: v.optional(v.string()),
@@ -55,9 +56,15 @@ export default defineSchema({
     attempt: v.number(),
     agentDefinitionId: v.optional(v.id("agentDefinitions")),
     runId: v.optional(v.string()), // Convex scheduler ID (_scheduled_functions ID as string)
+    initiatedBy: v.optional(v.string()), // Clerk user ID or "system"
+    initiatedByName: v.optional(v.string()),
+    rootInitiator: v.optional(v.string()), // original human trigger across job chains
+    rootInitiatorName: v.optional(v.string()),
+    parentJobId: v.optional(v.id("jobs")),
   })
     .index("by_workspace_status", ["workspaceId", "status"])
-    .index("by_project", ["projectId"]),
+    .index("by_project", ["projectId"])
+    .index("by_parent", ["parentJobId"]),
 
   jobLogs: defineTable({
     jobId: v.id("jobs"),
@@ -185,6 +192,21 @@ export default defineSchema({
     .index("by_workspace_status", ["workspaceId", "status"])
     .index("by_user", ["userId", "status"]),
 
+  presence: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.string(),
+    displayName: v.string(),
+    avatarUrl: v.optional(v.string()),
+    location: v.string(),
+    projectId: v.optional(v.id("projects")),
+    documentId: v.optional(v.string()),
+    lastSeen: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_user_workspace", ["userId", "workspaceId"])
+    .index("by_document", ["workspaceId", "documentId"])
+    .index("by_project_presence", ["workspaceId", "projectId"]),
+
   tasks: defineTable({
     workspaceId: v.id("workspaces"),
     projectId: v.optional(v.id("projects")),
@@ -286,6 +308,7 @@ export default defineSchema({
     slackMessageTs: v.optional(v.string()),
     // How many iterations deep this variant is (0 = original)
     iterationCount: v.optional(v.number()),
+    metadata: v.optional(v.any()),
   })
     .index("by_project", ["projectId"])
     .index("by_workspace", ["workspaceId"])
@@ -300,4 +323,28 @@ export default defineSchema({
   })
     .index("by_signal", ["signalId"])
     .index("by_variant", ["prototypeVariantId"]),
+
+  chatThreads: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.string(),
+    title: v.string(),
+    contextEntityType: v.optional(v.string()), // "project" | "document" | "signal"
+    contextEntityId: v.optional(v.string()),
+    lastMessageAt: v.number(),
+    model: v.optional(v.string()), // user's model override: "haiku" | "sonnet" | "auto"
+    isArchived: v.boolean(),
+  })
+    .index("by_workspace_user", ["workspaceId", "userId"])
+    .index("by_last_message", ["workspaceId", "lastMessageAt"]),
+
+  chatMessages: defineTable({
+    threadId: v.id("chatThreads"),
+    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("tool")),
+    content: v.string(),
+    toolCalls: v.optional(v.array(v.any())),
+    tokenCount: v.optional(v.number()),
+    agentJobId: v.optional(v.id("jobs")),
+    isHITL: v.optional(v.boolean()),
+    hitlJobId: v.optional(v.id("jobs")),
+  }).index("by_thread", ["threadId"]),
 });
