@@ -28,6 +28,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import type { DocumentType } from "@/lib/db/schema";
+import { ContextPeekPopover } from "@/components/chat/ContextPeekPopover";
 
 // Document type metadata
 const DOCUMENT_TYPES: Record<
@@ -117,6 +118,7 @@ interface DocumentSidebarProps {
   onUpload?: () => void;
   className?: string;
   defaultOpen?: boolean;
+  workspaceId?: string;
 }
 
 export function DocumentSidebar({
@@ -126,6 +128,7 @@ export function DocumentSidebar({
   onUpload,
   className,
   defaultOpen = true,
+  workspaceId,
 }: DocumentSidebarProps) {
   // Default to collapsed on mobile screens (< 1024px)
   const [isOpen, setIsOpen] = useState(() => {
@@ -282,9 +285,23 @@ export function DocumentSidebar({
                             >
                               <FileItem icon={Icon}>
                                 <div className="flex items-center justify-between w-full gap-2">
-                                  <span className="truncate text-foreground">
-                                    {doc.title}
-                                  </span>
+                                  {workspaceId ? (
+                                    <ContextPeekPopover
+                                      workspaceId={workspaceId}
+                                      entityType="document"
+                                      entityId={doc.id}
+                                      entityName={doc.title}
+                                      className="min-w-0 flex-1"
+                                    >
+                                      <span className="truncate text-foreground">
+                                        {doc.title}
+                                      </span>
+                                    </ContextPeekPopover>
+                                  ) : (
+                                    <span className="truncate text-foreground">
+                                      {doc.title}
+                                    </span>
+                                  )}
                                   <div className="flex items-center gap-1.5 shrink-0">
                                     {doc.metadata?.generatedBy === "ai" && (
                                       <Sparkles className="w-3 h-3 text-purple-500 dark:text-purple-400" />

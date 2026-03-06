@@ -34,6 +34,7 @@ import {
 import { UnlockProjectDialog } from "./UnlockProjectDialog";
 import { AutomationStatusBadge } from "./AutomationStatusBadge";
 import { useProjectAutomationStatus } from "@/hooks/useProjectAutomationStatus";
+import { ContextPeekPopover } from "@/components/chat/ContextPeekPopover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -277,7 +278,15 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
           >
             {project.stage.charAt(0).toUpperCase() + project.stage.slice(1)}
           </span>
-          <h4 className="font-medium text-sm truncate">{project.name}</h4>
+          <ContextPeekPopover
+            workspaceId={workspace?.id ?? ""}
+            entityType="project"
+            entityId={project.id}
+            entityName={project.name}
+            className="min-w-0 flex-1"
+          >
+            <h4 className="font-medium text-sm truncate">{project.name}</h4>
+          </ContextPeekPopover>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">

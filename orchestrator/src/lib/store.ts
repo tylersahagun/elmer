@@ -256,6 +256,12 @@ interface UIState {
   jobLogsDrawerJobId: string | null;
   jobLogsDrawerProjectName: string | null;
 
+  // Elmer Panel context
+  elmerPanelOpen: boolean;
+  elmerPanelContextEntityType: string | null;
+  elmerPanelContextEntityId: string | null;
+  elmerPanelContextEntityName: string | null;
+
   // Actions
   toggleSidebar: () => void;
   setSidebarTab: (tab: "chat" | "details" | "jobs") => void;
@@ -267,6 +273,8 @@ interface UIState {
   closeArchivedProjectsModal: () => void;
   openJobLogsDrawer: (jobId: string, projectName?: string) => void;
   closeJobLogsDrawer: () => void;
+  openElmerPanelWithContext: (entityType: string, entityId: string, entityName: string) => void;
+  closeElmerPanel: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -279,6 +287,10 @@ export const useUIStore = create<UIState>((set) => ({
   jobLogsDrawerOpen: false,
   jobLogsDrawerJobId: null,
   jobLogsDrawerProjectName: null,
+  elmerPanelOpen: false,
+  elmerPanelContextEntityType: null,
+  elmerPanelContextEntityId: null,
+  elmerPanelContextEntityName: null,
 
   // Actions
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -300,6 +312,20 @@ export const useUIStore = create<UIState>((set) => ({
       jobLogsDrawerOpen: false,
       jobLogsDrawerJobId: null,
       jobLogsDrawerProjectName: null,
+    }),
+  openElmerPanelWithContext: (entityType, entityId, entityName) =>
+    set({
+      elmerPanelOpen: true,
+      elmerPanelContextEntityType: entityType,
+      elmerPanelContextEntityId: entityId,
+      elmerPanelContextEntityName: entityName,
+    }),
+  closeElmerPanel: () =>
+    set({
+      elmerPanelOpen: false,
+      elmerPanelContextEntityType: null,
+      elmerPanelContextEntityId: null,
+      elmerPanelContextEntityName: null,
     }),
 }));
 

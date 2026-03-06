@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useUIStore } from "@/lib/store";
 
 interface ElmerPanelProps {
   workspaceId: string;
@@ -258,6 +259,13 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const [activeTab, setActiveTab] = useState<"chat" | "hub">("chat");
   const [activeThreadId, setActiveThreadId] =
     useState<Id<"chatThreads"> | null>(null);
+
+  // Listen to Zustand store for external open requests (e.g. "Chat about this" from ContextPeekPopover)
+  const elmerPanelOpen = useUIStore((s) => s.elmerPanelOpen);
+  const elmerPanelContextEntityType = useUIStore((s) => s.elmerPanelContextEntityType);
+  const elmerPanelContextEntityId = useUIStore((s) => s.elmerPanelContextEntityId);
+  const elmerPanelContextEntityName = useUIStore((s) => s.elmerPanelContextEntityName);
+  const closeElmerPanel = useUIStore((s) => s.closeElmerPanel);
   const [panelWidth, setPanelWidth] = useState(380);
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -348,6 +356,41 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   useEffect(() => {
     setMentionDropdownIndex(0);
   }, [mentionResults]);
+
+  // Open panel + create context thread when triggered from ContextPeekPopover
+  useEffect(() => {
+    if (!elmerPanelOpen || !isAuthenticated || !userId) return;
+    setIsOpen(true);
+    setActiveTab("chat");
+
+    if (elmerPanelContextEntityId && elmerPanelContextEntityType) {
+      const entityName = elmerPanelContextEntityName ?? elmerPanelContextEntityType;
+      void createThread({
+        workspaceId: workspaceId as Id<"workspaces">,
+        userId,
+        title: `About: ${entityName}`,
+        contextEntityType: elmerPanelContextEntityType,
+        contextEntityId: elmerPanelContextEntityId,
+      }).then((newId) => {
+        setActiveThreadId(newId);
+        setStreamingMessages([]);
+        const initialMessage = `Tell me about this ${elmerPanelContextEntityType}: "${entityName}"`;
+        setInputValue(initialMessage);
+      });
+    }
+
+    closeElmerPanel();
+  }, [
+    elmerPanelOpen,
+    elmerPanelContextEntityType,
+    elmerPanelContextEntityId,
+    elmerPanelContextEntityName,
+    closeElmerPanel,
+    isAuthenticated,
+    userId,
+    workspaceId,
+    createThread,
+  ]);
 
   // Cmd+L / Ctrl+L shortcut
   useEffect(() => {

@@ -1,6 +1,7 @@
 import {
   query,
   mutation,
+  action,
   internalQuery,
   internalMutation,
   httpAction,
@@ -298,6 +299,166 @@ export const getMentionEntityContent = internalQuery({
       return agent ? { type: "agent", agent } : null;
     }
     return null;
+  },
+});
+
+// ── Context Peek Summaries ────────────────────────────────────────────────────
+
+// Internal query: fetch entity for peek (projects, documents, signals)
+export const getEntityForPeek = internalQuery({
+  args: {
+    table: v.union(v.literal("projects"), v.literal("documents"), v.literal("signals")),
+    entityId: v.string(),
+  },
+  handler: async (ctx, { table, entityId }) => {
+    if (table === "projects") {
+      return await ctx.db.get(entityId as Id<"projects">);
+    }
+    if (table === "documents") {
+      return await ctx.db.get(entityId as Id<"documents">);
+    }
+    if (table === "signals") {
+      return await ctx.db.get(entityId as Id<"signals">);
+    }
+    return null;
+  },
+});
+
+// Internal query: check if a cached peek summary exists and is fresh (< 1 hour)
+export const getPeekSummaryInternal = internalQuery({
+  args: {
+    entityType: v.string(),
+    entityId: v.string(),
+  },
+  handler: async (ctx, { entityType, entityId }) => {
+    const ONE_HOUR = 3600000;
+    if (entityType === "project") {
+      const entity = await ctx.db.get(entityId as Id<"projects">);
+      const meta = entity?.metadata as Record<string, unknown> | null | undefined;
+      if (
+        meta?.peekSummary &&
+        typeof meta.peekSummaryAt === "number" &&
+        meta.peekSummaryAt > Date.now() - ONE_HOUR
+      ) {
+        return meta.peekSummary as string;
+      }
+    }
+    // Documents and signals don't have metadata fields in schema,
+    // so we skip caching for them (summaries are generated fresh each time)
+    return null;
+  },
+});
+
+// Internal mutation: store peek summary in entity metadata
+export const storePeekSummaryInternal = internalMutation({
+  args: {
+    entityType: v.string(),
+    entityId: v.string(),
+    summary: v.string(),
+  },
+  handler: async (ctx, { entityType, entityId, summary }) => {
+    if (entityType === "project") {
+      const entity = await ctx.db.get(entityId as Id<"projects">);
+      if (!entity) return;
+      const existing = (entity.metadata ?? {}) as Record<string, unknown>;
+      await ctx.db.patch(entityId as Id<"projects">, {
+        metadata: {
+          ...existing,
+          peekSummary: summary,
+          peekSummaryAt: Date.now(),
+        },
+      });
+    }
+    // Documents/signals lack a metadata field in the schema — skip caching
+  },
+});
+
+// Public action: generate a 2-3 sentence AI summary for hover preview
+export const generatePeekSummary = action({
+  args: {
+    workspaceId: v.id("workspaces"),
+    entityType: v.string(), // "project" | "document" | "signal"
+    entityId: v.string(),
+  },
+  handler: async (ctx, { entityType, entityId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    // Check cache first (projects only)
+    const cached = await ctx.runQuery(internal.chat.getPeekSummaryInternal, {
+      entityType,
+      entityId,
+    });
+    if (cached) return cached;
+
+    // Fetch entity and build context text
+    let entityText = "";
+    if (entityType === "project") {
+      const p = await ctx.runQuery(internal.chat.getEntityForPeek, {
+        table: "projects",
+        entityId,
+      });
+      if (p) {
+        const meta = p.metadata as Record<string, unknown> | null | undefined;
+        entityText = `Project: ${p.name}\nStage: ${p.stage}\nStatus: ${p.status}\nTL;DR: ${meta?.tldr ?? "not available"}`;
+      }
+    } else if (entityType === "document") {
+      const d = await ctx.runQuery(internal.chat.getEntityForPeek, {
+        table: "documents",
+        entityId,
+      });
+      if (d) {
+        entityText = `Document: ${d.title}\nType: ${d.type}\nContent preview: ${(d.content ?? "").slice(0, 500)}`;
+      }
+    } else if (entityType === "signal") {
+      const s = await ctx.runQuery(internal.chat.getEntityForPeek, {
+        table: "signals",
+        entityId,
+      });
+      if (s) {
+        entityText = `Signal from ${s.source}: ${s.verbatim.slice(0, 300)}`;
+      }
+    }
+
+    if (!entityText) return null;
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return null;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 150,
+        messages: [
+          {
+            role: "user",
+            content: `In exactly 2-3 sentences, summarize what this is and why it matters right now. Be concrete and specific.\n\n${entityText}`,
+          },
+        ],
+      }),
+    });
+
+    const data = (await response.json()) as {
+      content?: Array<{ text: string }>;
+    };
+    const summary = data.content?.[0]?.text ?? null;
+
+    // Cache it for projects
+    if (summary && entityType === "project") {
+      await ctx.runMutation(internal.chat.storePeekSummaryInternal, {
+        entityType,
+        entityId,
+        summary,
+      });
+    }
+
+    return summary;
   },
 });
 
