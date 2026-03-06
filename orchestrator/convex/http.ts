@@ -2,6 +2,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { streamResponse } from "./chat";
 
 const http = httpRouter();
 
@@ -403,6 +404,49 @@ http.route({
   }),
 });
 
+// POST /mcp/e2e/inbox
+// Seed deterministic inbox scenarios for Playwright against a dev/test workspace.
+http.route({
+  path: "/mcp/e2e/inbox",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const id = await ctx.runMutation(internal.mcp.seedInboxItem, {
+      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      source: (body.source as string | undefined) ?? "e2e",
+      title: body.title as string,
+      rawContent: body.rawContent as string,
+      type: body.type as string | undefined,
+      tldr: body.tldr as string | undefined,
+      impactScore: body.impactScore as number | undefined,
+      suggestsVisionUpdate: body.suggestsVisionUpdate as boolean | undefined,
+      assignedProjectId: body.assignedProjectId as Id<"projects"> | undefined,
+      projectDirectionChange: body.projectDirectionChange,
+      extractedProblems: body.extractedProblems,
+    });
+    return jsonOk({ id });
+  }),
+});
+
+// POST /mcp/e2e/questions
+// Seed a waiting-input scenario so the dashboard can render pending question UI.
+http.route({
+  path: "/mcp/e2e/questions",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const result = await ctx.runMutation(internal.mcp.seedPendingQuestionScenario, {
+      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      projectId: body.projectId as Id<"projects"> | undefined,
+      questionText: body.questionText as string,
+      choices: body.choices as string[] | undefined,
+    });
+    return jsonOk(result);
+  }),
+});
+
 // ── Prototype Feedback Loop API ───────────────────────────────────────────────
 
 // GET /mcp/prototypes?projectId=<id>
@@ -544,6 +588,14 @@ http.route({
         });
     return jsonOk(entries);
   }),
+});
+
+// ── Chat streaming ────────────────────────────────────────────────────────────
+
+http.route({
+  path: "/api/chat/stream",
+  method: "POST",
+  handler: streamResponse,
 });
 
 export default http;

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useConvexAuth, useQuery as useConvexQuery } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
 import Link from "next/link";
 import {
   useKanbanStore,
@@ -13,7 +15,7 @@ import {
 import { KanbanBoard, ArchivedProjectsModal } from "@/components/kanban";
 import { NewProjectDialog } from "@/components/kanban/NewProjectDialog";
 import { ProjectDetailModal } from "@/components/kanban/ProjectDetailModal";
-import { ChatSidebar } from "@/components/chat";
+import { ElmerPanel } from "@/components/chat";
 import { NotificationInbox } from "@/components/inbox";
 import { InboxPanel } from "@/components/inbox";
 import { Button } from "@/components/ui/button";
@@ -30,12 +32,14 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
 import { PendingQuestionsPanel } from "@/components/agents";
 import { Window } from "@/components/chrome/Window";
+import { canRunConvexQuery } from "@/lib/auth/convex";
+import { getWorkspacePathSegment } from "@/lib/workspaces/path";
 import {
   Plus,
-  MessageSquare,
   Loader2,
   AlertCircle,
   Archive,
@@ -46,9 +50,31 @@ interface WorkspacePageClientProps {
   workspaceId: string;
 }
 
+const DEFAULT_COLUMNS: KanbanColumn[] = [
+  { id: "inbox", displayName: "Inbox", color: "slate", order: 0, enabled: true },
+  { id: "discovery", displayName: "Discovery", color: "teal", order: 1, enabled: true },
+  { id: "prd", displayName: "PRD", color: "purple", order: 2, enabled: true },
+  { id: "design", displayName: "Design", color: "blue", order: 3, enabled: true },
+  { id: "prototype", displayName: "Prototype", color: "pink", order: 4, enabled: true },
+  { id: "validate", displayName: "Validate", color: "amber", order: 5, enabled: true },
+  { id: "tickets", displayName: "Tickets", color: "orange", order: 6, enabled: true },
+  { id: "build", displayName: "Build", color: "green", order: 7, enabled: true },
+  { id: "alpha", displayName: "Alpha", color: "cyan", order: 8, enabled: true },
+  { id: "beta", displayName: "Beta", color: "indigo", order: 9, enabled: true },
+  { id: "ga", displayName: "GA", color: "emerald", order: 10, enabled: true },
+];
+
 export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useCurrentUser();
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const canLoadConvexData = canRunConvexQuery({
+    isClerkLoaded: isLoaded,
+    isSignedIn,
+    isConvexAuthenticated,
+  });
+
   const [inboxOpen, setInboxOpen] = useState(false);
   const setWorkspace = useKanbanStore((s) => s.setWorkspace);
   const setColumns = useKanbanStore((s) => s.setColumns);
@@ -58,7 +84,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const openArchivedProjectsModal = useUIStore(
     (s) => s.openArchivedProjectsModal,
   );
-  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
 
   // Get real-time job status for the inbox
   const { summary: jobSummary } = useRealtimeJobs({
@@ -91,90 +116,30 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     };
   }, []);
 
-  // Fetch workspace data
-  const {
-    data: workspace,
-    isLoading: workspaceLoading,
-    error: workspaceError,
-  } = useQuery({
-    queryKey: ["workspace", workspaceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/workspaces/${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to fetch workspace");
-      return res.json();
-    },
-  });
-
-  // Fetch projects
-  const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ["projects", workspaceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/projects?workspaceId=${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to fetch projects");
-      return res.json();
-    },
-    enabled: !!workspace,
-  });
+  const workspace = useConvexQuery(
+    api.workspaces.get,
+    canLoadConvexData
+      ? { workspaceId: workspaceId as Id<"workspaces"> }
+      : "skip",
+  );
+  const projects = useConvexQuery(
+    api.projects.list,
+    canLoadConvexData
+      ? { workspaceId: workspaceId as Id<"workspaces"> }
+      : "skip",
+  );
 
   // Update store when data loads
   useEffect(() => {
     if (workspace) {
       setWorkspace({
-        id: workspace.id,
+        id: workspace._id,
         name: workspace.name,
-        description: workspace.description,
         githubRepo: workspace.githubRepo,
-        contextPath: workspace.contextPath,
         settings: workspace.settings || {},
       });
 
-      // Set columns from workspace config
-      if (workspace.columnConfigs) {
-        const columns: KanbanColumn[] = workspace.columnConfigs.map(
-          (c: {
-            id: string;
-            stage: string;
-            displayName: string;
-            color: string;
-            order: number;
-            enabled: boolean;
-            autoTriggerJobs?: string[];
-            agentTriggers?: Array<{
-              agentDefinitionId: string;
-              priority: number;
-              conditions?: Record<string, unknown>;
-            }>;
-            humanInLoop?: boolean;
-            requiredDocuments?: string[];
-            requiredApprovals?: number;
-            rules?: {
-              contextPaths?: string[];
-              contextNotes?: string;
-              loopGroupId?: string;
-              loopTargets?: string[];
-              dependencyNotes?: string;
-            };
-          }) => ({
-            id: c.stage,
-            configId: c.id,
-            displayName: c.displayName,
-            color: c.color,
-            order: c.order,
-            enabled: c.enabled,
-            autoTriggerJobs: c.autoTriggerJobs,
-            agentTriggers: c.agentTriggers,
-            humanInLoop: c.humanInLoop,
-            requiredDocuments: c.requiredDocuments,
-            requiredApprovals: c.requiredApprovals,
-            contextPaths: c.rules?.contextPaths,
-            contextNotes: c.rules?.contextNotes,
-            loopGroupId: c.rules?.loopGroupId,
-            loopTargets: c.rules?.loopTargets,
-            dependencyNotes: c.rules?.dependencyNotes,
-          }),
-        );
-        setColumns(columns);
-      }
+      setColumns(DEFAULT_COLUMNS);
     }
   }, [workspace, setWorkspace, setColumns]);
 
@@ -182,31 +147,30 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     if (projects) {
       const mappedProjects: ProjectCard[] = projects.map(
         (p: {
-          id: string;
+          _id: string;
           name: string;
           description?: string;
           stage: string;
           status: string;
-          priority?: number;
-          createdAt: string;
-          updatedAt: string;
-          documents?: unknown[];
-          prototypes?: unknown[];
+          priority?: string;
+          _creationTime: number;
           metadata?: {
             gitBranch?: string;
             baseBranch?: string;
+            tldr?: string;
           };
         }) => ({
-          id: p.id,
+          id: p._id,
           name: p.name,
           description: p.description,
-          stage: p.stage,
-          status: p.status,
-          priority: p.priority || 0,
-          createdAt: new Date(p.createdAt),
-          updatedAt: new Date(p.updatedAt),
-          documentCount: p.documents?.length || 0,
-          prototypeCount: p.prototypes?.length || 0,
+          stage: p.stage as ProjectCard["stage"],
+          status: "active",
+          priority:
+            p.priority === "P0" ? 0 : p.priority === "P1" ? 1 : p.priority === "P2" ? 2 : 3,
+          createdAt: new Date(p._creationTime),
+          updatedAt: new Date(p._creationTime),
+          documentCount: 0,
+          prototypeCount: 0,
           metadata: p.metadata,
         }),
       );
@@ -214,12 +178,15 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     }
   }, [projects, setProjects]);
 
-  const isLoading = workspaceLoading || projectsLoading;
-  const workspaceSlug = (workspace?.name ?? storeWorkspace?.name ?? workspaceId)
-    .toLowerCase()
-    .replace(/\s+/g, "-");
+  const isLoading =
+    isSignedIn &&
+    (!canLoadConvexData || workspace === undefined || projects === undefined);
+  const workspaceSlug = getWorkspacePathSegment({
+    slug: workspace?.slug,
+    name: workspace?.name ?? storeWorkspace?.name ?? workspaceId,
+  });
 
-  if (workspaceError) {
+  if (workspace === null) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <Window title="error" className="max-w-md">
@@ -287,14 +254,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
               <Archive className="w-4 h-4" />
               Archived Projects
             </DropdownMenuItem>
-            <DropdownMenuItem
-              data-tour="agents"
-              onClick={toggleSidebar}
-              className="gap-2"
-            >
-              <MessageSquare className="w-4 h-4" />
-              AI Assistant
-            </DropdownMenuItem>
             {isAdmin && (
               <Link
                 href={`/workspace/${workspaceId}/settings`}
@@ -335,13 +294,13 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
         </div>
 
         {/* Sidebar */}
-        <ChatSidebar />
+        <ElmerPanel workspaceId={workspaceId} />
       </main>
 
       {/* Modals */}
       <NewProjectDialog />
       <ProjectDetailModal />
-      {workspace?.id && <ArchivedProjectsModal workspaceId={workspace.id} />}
+      {workspace?._id && <ArchivedProjectsModal workspaceId={workspace._id} />}
 
       {/* Agent HITL panel — floats above content when agents need input */}
       <div className="fixed bottom-4 right-4 z-50 w-96 max-w-[calc(100vw-2rem)]">

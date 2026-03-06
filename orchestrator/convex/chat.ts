@@ -1,4 +1,12 @@
-import { query, mutation } from "./_generated/server";
+import {
+  query,
+  mutation,
+  internalQuery,
+  internalMutation,
+  httpAction,
+} from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
@@ -124,4 +132,184 @@ export const sendMessage = mutation({
     await ctx.db.patch(args.threadId, { lastMessageAt: Date.now() });
     return messageId;
   },
+});
+
+// ── Internal variants (no auth check — used by HTTP action) ───────────────────
+
+export const listMessagesInternal = internalQuery({
+  args: {
+    threadId: v.id("chatThreads"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { threadId, limit }) => {
+    const all = await ctx.db
+      .query("chatMessages")
+      .withIndex("by_thread", (q) => q.eq("threadId", threadId))
+      .order("asc")
+      .collect();
+    const cap = limit ?? 100;
+    return all.slice(0, cap);
+  },
+});
+
+export const sendMessageInternal = internalMutation({
+  args: {
+    threadId: v.id("chatThreads"),
+    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("tool")),
+    content: v.string(),
+    tokenCount: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const messageId = await ctx.db.insert("chatMessages", {
+      threadId: args.threadId,
+      role: args.role,
+      content: args.content,
+      tokenCount: args.tokenCount,
+    });
+    await ctx.db.patch(args.threadId, { lastMessageAt: Date.now() });
+    return messageId;
+  },
+});
+
+// ── Streaming HTTP action ─────────────────────────────────────────────────────
+
+export const streamResponse = httpAction(async (ctx, request) => {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  let body: {
+    threadId: string;
+    content: string;
+    pageContext?: { pathname?: string; projectId?: string; documentId?: string };
+  };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return new Response("Invalid JSON", { status: 400 });
+  }
+
+  const { threadId, content, pageContext } = body;
+  if (!threadId || !content) {
+    return new Response("Missing threadId or content", { status: 400 });
+  }
+
+  const typedThreadId = threadId as Id<"chatThreads">;
+
+  const history = await ctx.runQuery(internal.chat.listMessagesInternal, {
+    threadId: typedThreadId,
+    limit: 20,
+  });
+
+  await ctx.runMutation(internal.chat.sendMessageInternal, {
+    threadId: typedThreadId,
+    role: "user",
+    content,
+  });
+
+  const anthropicMessages = history.map((m) => ({
+    role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+    content: m.content,
+  }));
+  anthropicMessages.push({ role: "user", content });
+
+  let systemPrompt =
+    "You are Elmer, an AI product management assistant. Help the user with their PM work — strategy, research, prototypes, and shipping decisions. Be concise and direct.";
+  if (pageContext?.pathname) {
+    systemPrompt += `\n\nThe user is currently viewing: ${pageContext.pathname}`;
+    if (pageContext.projectId)
+      systemPrompt += ` (project: ${pageContext.projectId})`;
+    if (pageContext.documentId)
+      systemPrompt += ` (document: ${pageContext.documentId})`;
+  }
+
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicKey) {
+    return new Response("ANTHROPIC_API_KEY not configured", { status: 500 });
+  }
+
+  const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": anthropicKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-3-haiku-20240307",
+      max_tokens: 2048,
+      stream: true,
+      system: systemPrompt,
+      messages: anthropicMessages,
+    }),
+  });
+
+  if (!anthropicRes.ok || !anthropicRes.body) {
+    const errText = await anthropicRes.text();
+    return new Response(`Anthropic error: ${errText}`, {
+      status: anthropicRes.status,
+    });
+  }
+
+  let fullText = "";
+  let inputTokens = 0;
+  let outputTokens = 0;
+
+  const transformStream = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      controller.enqueue(chunk);
+      const text = new TextDecoder().decode(chunk);
+      for (const line of text.split("\n")) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data) as {
+            type: string;
+            delta?: { type: string; text?: string };
+            message?: {
+              usage?: { input_tokens?: number; output_tokens?: number };
+            };
+            usage?: { input_tokens?: number; output_tokens?: number };
+          };
+          if (
+            parsed.type === "content_block_delta" &&
+            parsed.delta?.type === "text_delta" &&
+            parsed.delta.text
+          ) {
+            fullText += parsed.delta.text;
+          }
+          if (parsed.type === "message_start" && parsed.message?.usage) {
+            inputTokens = parsed.message.usage.input_tokens ?? 0;
+          }
+          if (parsed.type === "message_delta" && parsed.usage) {
+            outputTokens = parsed.usage.output_tokens ?? 0;
+          }
+        } catch {
+          // Non-JSON SSE line — ignore
+        }
+      }
+    },
+    async flush() {
+      if (fullText) {
+        await ctx.runMutation(internal.chat.sendMessageInternal, {
+          threadId: typedThreadId,
+          role: "assistant",
+          content: fullText,
+          tokenCount: inputTokens + outputTokens,
+        });
+      }
+    },
+  });
+
+  anthropicRes.body.pipeThrough(transformStream);
+
+  return new Response(transformStream.readable, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
 });

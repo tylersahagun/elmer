@@ -1,1 +1,1 @@
-export { ChatSidebar } from "./ChatSidebar";
+export { ElmerPanel } from "./ElmerPanel";
