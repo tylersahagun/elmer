@@ -18,9 +18,18 @@ import {
   Circle,
   FileText,
   ChevronRight,
+  ChevronDown,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useUIStore } from "@/lib/store";
 import { DocumentArtifactPanel } from "./DocumentArtifactPanel";
 
@@ -42,6 +51,8 @@ interface StreamingMessage {
   role: "user" | "assistant";
   content: string;
   isStreaming?: boolean;
+  tokenCount?: number;
+  model?: string;
 }
 
 interface Mention {
@@ -67,12 +78,57 @@ type PendingQuestion = {
   status: string;
 };
 
+type AgentDefinition = {
+  _id: Id<"agentDefinitions">;
+  name: string;
+  type: string;
+  description?: string;
+  phase?: string;
+  requiredArtifacts?: string[];
+  enabled: boolean;
+};
+
 const STATUS_FILTER_MAP: Record<string, string[]> = {
   all: ["pending", "running", "completed", "failed", "waiting_input", "cancelled"],
   running: ["running"],
   waiting: ["waiting_input"],
   complete: ["completed"],
   failed: ["failed"],
+};
+
+const INTENT_PATTERNS: Array<{ pattern: RegExp; agentType: string }> = [
+  { pattern: /\b(write|create|draft|generate)\s+(a\s+)?(prd|product requirements)/i, agentType: "prd" },
+  { pattern: /\b(build|create|prototype|mock up|design)\s+/i, agentType: "prototype" },
+  { pattern: /\b(validate|test|jury|evaluate)\s+/i, agentType: "validate" },
+  { pattern: /\b(research|analyze|transcript|interview)\s+/i, agentType: "research" },
+  { pattern: /\b(eod|end of day|daily report|weekly report|eow)\b/i, agentType: "activity-reporter" },
+  { pattern: /\b(sync|pull|fetch)\s+(linear|notion|slack|github)/i, agentType: "sync" },
+  { pattern: /\b(synthesize|find patterns|what themes)\b/i, agentType: "signals-synthesis" },
+];
+
+// Cost per million tokens (USD)
+const MODEL_COSTS: Record<string, { input: number; output: number }> = {
+  "claude-3-haiku-20240307": { input: 0.25, output: 1.25 },
+  "claude-sonnet-4-5": { input: 3.0, output: 15.0 },
+};
+
+function estimateCost(tokenCount: number, model?: string): string {
+  const costs = MODEL_COSTS[model ?? "claude-3-haiku-20240307"] ?? MODEL_COSTS["claude-3-haiku-20240307"];
+  // Rough split: 60% input, 40% output
+  const inputTokens = tokenCount * 0.6;
+  const outputTokens = tokenCount * 0.4;
+  const cost = (inputTokens * costs.input + outputTokens * costs.output) / 1_000_000;
+  if (cost < 0.001) return "<$0.001";
+  return `~$${cost.toFixed(3)}`;
+}
+
+const GROUP_ORDER = ["subagent", "skill", "command", "rule", "utility"];
+const GROUP_LABELS: Record<string, string> = {
+  subagent: "Agents",
+  skill: "Skills",
+  command: "Commands",
+  rule: "Rules",
+  utility: "Utilities",
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -210,7 +266,6 @@ function AgentHubTab({
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Filter bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-white/10 shrink-0 overflow-x-auto">
         {FILTER_LABELS.map(({ key, label }) => (
           <button
@@ -228,7 +283,6 @@ function AgentHubTab({
         ))}
       </div>
 
-      {/* Job list */}
       <div className="flex-1 overflow-y-auto">
         {recentJobs === undefined ? (
           <div className="flex items-center justify-center py-8">
@@ -277,7 +331,6 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
   const [activeDocRef, setActiveDocRef] = useState<DocumentRef | null>(null);
 
-  // Listen to Zustand store for external open requests (e.g. "Chat about this" from ContextPeekPopover)
   const elmerPanelOpen = useUIStore((s) => s.elmerPanelOpen);
   const elmerPanelContextEntityType = useUIStore((s) => s.elmerPanelContextEntityType);
   const elmerPanelContextEntityId = useUIStore((s) => s.elmerPanelContextEntityId);
@@ -286,17 +339,27 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const [panelWidth, setPanelWidth] = useState(380);
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingMessages, setStreamingMessages] = useState<
-    StreamingMessage[]
-  >([]);
+  const [streamingMessages, setStreamingMessages] = useState<StreamingMessage[]>([]);
   const [mentionSearch, setMentionSearch] = useState<string | null>(null);
   const [mentions, setMentions] = useState<Mention[]>([]);
   const [mentionDropdownIndex, setMentionDropdownIndex] = useState(0);
 
+  // Slash command picker state
+  const [slashSearch, setSlashSearch] = useState<string | null>(null);
+  const [slashDropdownIndex, setSlashDropdownIndex] = useState(0);
+  const [selectedCommand, setSelectedCommand] = useState<AgentDefinition | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<Id<"projects"> | null>(null);
+
+  // Intent detection state
+  const [intentSuggestion, setIntentSuggestion] = useState<{
+    agentId: string;
+    agentName: string;
+    agentDefinitionId: Id<"agentDefinitions">;
+    confidence: number;
+  } | null>(null);
+
   const router = useRouter();
-  const [hubFilter, setHubFilter] = useState<
-    "all" | "running" | "waiting" | "complete" | "failed"
-  >("all");
+  const [hubFilter, setHubFilter] = useState<HubFilter>("all");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -307,7 +370,6 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
   const userId = clerkUser?.id ?? "";
 
-  // Extract page context from URL params
   const pageContext = {
     pathname: pathname ?? undefined,
     projectId:
@@ -336,7 +398,33 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       : "skip",
   );
 
+  const commandResults = useQuery(
+    api.agentDefinitions.searchCommands,
+    slashSearch !== null && isAuthenticated && workspaceId
+      ? { workspaceId: workspaceId as Id<"workspaces">, query: slashSearch }
+      : "skip",
+  );
+
+  const allAgents = useQuery(
+    api.agentDefinitions.list,
+    isAuthenticated && workspaceId
+      ? { workspaceId: workspaceId as Id<"workspaces"> }
+      : "skip",
+  );
+
+  const projects = useQuery(
+    api.projects.list,
+    isAuthenticated && workspaceId
+      ? { workspaceId: workspaceId as Id<"workspaces"> }
+      : "skip",
+  );
+
+  const activeThread = threads?.find((t) => t._id === activeThreadId);
+  const currentModel = activeThread?.model ?? "auto";
+
   const createThread = useMutation(api.chat.createThread);
+  const updateThread = useMutation(api.chat.updateThread);
+  const createAndSchedule = useMutation(api.jobs.createAndSchedule);
 
   const recentJobs = useQuery(
     api.jobs.listRecent,
@@ -352,7 +440,22 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       : "skip",
   );
 
-  // Sync messages from Convex into local streaming state
+  // Flatten commandResults groups into a list for keyboard nav
+  const flatCommandList: AgentDefinition[] = [];
+  if (commandResults) {
+    for (const group of GROUP_ORDER) {
+      if (commandResults[group]) {
+        flatCommandList.push(...(commandResults[group] as AgentDefinition[]));
+      }
+    }
+    // Add any groups not in the known order
+    for (const [group, items] of Object.entries(commandResults)) {
+      if (!GROUP_ORDER.includes(group)) {
+        flatCommandList.push(...(items as AgentDefinition[]));
+      }
+    }
+  }
+
   useEffect(() => {
     if (!messages) return;
     setStreamingMessages(
@@ -360,9 +463,9 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
         id: m._id,
         role: m.role as "user" | "assistant",
         content: m.content,
+        tokenCount: m.tokenCount,
       })),
     );
-    // Detect document artifacts in persisted messages
     for (const m of messages) {
       if (m.role === "assistant") {
         const match = m.content.match(DOCUMENT_PATTERN);
@@ -380,17 +483,18 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     }
   }, [messages]);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [streamingMessages]);
 
-  // Reset mention dropdown index when results change
   useEffect(() => {
     setMentionDropdownIndex(0);
   }, [mentionResults]);
 
-  // Open panel + create context thread when triggered from ContextPeekPopover
+  useEffect(() => {
+    setSlashDropdownIndex(0);
+  }, [commandResults]);
+
   useEffect(() => {
     if (!elmerPanelOpen || !isAuthenticated || !userId) return;
     setIsOpen(true);
@@ -425,7 +529,6 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     createThread,
   ]);
 
-  // Cmd+L / Ctrl+L shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "l") {
@@ -440,7 +543,6 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  // Drag-to-resize
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     isDragging.current = true;
     dragStartX.current = e.clientX;
@@ -452,10 +554,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
       const delta = dragStartX.current - e.clientX;
-      const newWidth = Math.min(
-        640,
-        Math.max(280, dragStartWidth.current + delta),
-      );
+      const newWidth = Math.min(640, Math.max(280, dragStartWidth.current + delta));
       setPanelWidth(newWidth);
     };
     const handleMouseUp = () => {
@@ -480,23 +579,66 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     return newId;
   }, [activeThreadId, createThread, workspaceId, userId]);
 
-  // Handle @mention detection in textarea
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const value = e.target.value;
       setInputValue(value);
 
-      // Detect @mention — find the last word starting with @ up to the cursor
       const cursorPos = e.target.selectionStart ?? value.length;
       const textBeforeCursor = value.slice(0, cursorPos);
+
+      // Detect slash commands: / at start or after space
+      const slashMatch = textBeforeCursor.match(/(^|\s)\/(\w*)$/);
+      if (slashMatch) {
+        setSlashSearch(slashMatch[2]);
+        setMentionSearch(null);
+        return;
+      } else {
+        setSlashSearch(null);
+      }
+
+      // Detect @mention
       const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
       if (mentionMatch) {
         setMentionSearch(mentionMatch[1]);
       } else {
         setMentionSearch(null);
       }
+
+      // Intent detection for free-text (no slash/mention)
+      if (!slashMatch && !mentionMatch && value.length > 10) {
+        let matched: { agentType: string } | null = null;
+        for (const { pattern, agentType } of INTENT_PATTERNS) {
+          if (pattern.test(value)) {
+            matched = { agentType };
+            break;
+          }
+        }
+
+        if (matched && allAgents) {
+          const agent = allAgents.find(
+            (a) =>
+              a.type === matched!.agentType ||
+              a.name.toLowerCase().includes(matched!.agentType.toLowerCase()),
+          );
+          if (agent) {
+            setIntentSuggestion({
+              agentId: agent._id,
+              agentName: agent.name,
+              agentDefinitionId: agent._id,
+              confidence: 0.8,
+            });
+          } else {
+            setIntentSuggestion(null);
+          }
+        } else {
+          setIntentSuggestion(null);
+        }
+      } else {
+        setIntentSuggestion(null);
+      }
     },
-    [],
+    [allAgents],
   );
 
   const insertMention = useCallback(
@@ -505,7 +647,6 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       const textBeforeCursor = inputValue.slice(0, cursorPos);
       const textAfterCursor = inputValue.slice(cursorPos);
 
-      // Replace the @word fragment with @[Label]
       const replaced = textBeforeCursor.replace(/@(\w*)$/, `@[${item.label}]`);
       const newValue = replaced + textAfterCursor;
 
@@ -516,7 +657,6 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       ]);
       setMentionSearch(null);
 
-      // Restore focus to textarea
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
@@ -526,6 +666,87 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       }, 0);
     },
     [inputValue],
+  );
+
+  const selectSlashCommand = useCallback(
+    (command: AgentDefinition) => {
+      setSlashSearch(null);
+      // Check if command needs project context
+      const needsProject =
+        (command.requiredArtifacts && command.requiredArtifacts.length > 0) ||
+        (command.description ?? "").toLowerCase().includes("project");
+
+      if (needsProject) {
+        setSelectedCommand(command);
+        // Clear the slash text from input
+        setInputValue((prev) => prev.replace(/(^|\s)\/\w*$/, "").trim());
+      } else {
+        // Trigger directly
+        void triggerAgentCommand(command, null);
+        setInputValue("");
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [workspaceId],
+  );
+
+  const triggerAgentCommand = useCallback(
+    async (command: AgentDefinition, projectId: Id<"projects"> | null) => {
+      const project = projectId ? projects?.find((p) => p._id === projectId) : null;
+      await createAndSchedule({
+        workspaceId: workspaceId as Id<"workspaces">,
+        type: "execute_agent_definition",
+        input: {
+          agentDefinitionId: command._id,
+          ...(projectId ? { projectId } : {}),
+        },
+        agentDefinitionId: command._id,
+        ...(projectId ? { projectId } : {}),
+      });
+
+      const confirmMsg = project
+        ? `🤖 ${command.name} started on ${project.name} — see Agent Hub for progress`
+        : `🤖 ${command.name} started — see Agent Hub for progress`;
+
+      setStreamingMessages((prev) => [
+        ...prev,
+        {
+          id: `agent-trigger-${Date.now()}`,
+          role: "assistant" as const,
+          content: confirmMsg,
+        },
+      ]);
+      setSelectedCommand(null);
+      setSelectedProjectId(null);
+      setInputValue("");
+    },
+    [createAndSchedule, projects, workspaceId],
+  );
+
+  const handleConfirmIntent = useCallback(async () => {
+    if (!intentSuggestion) return;
+    const agent = allAgents?.find((a) => a._id === intentSuggestion.agentDefinitionId);
+    if (!agent) return;
+
+    const needsProject =
+      (agent.requiredArtifacts && agent.requiredArtifacts.length > 0) ||
+      (agent.description ?? "").toLowerCase().includes("project");
+
+    if (needsProject) {
+      setSelectedCommand(agent);
+      setIntentSuggestion(null);
+    } else {
+      await triggerAgentCommand(agent, null);
+      setIntentSuggestion(null);
+    }
+  }, [intentSuggestion, allAgents, triggerAgentCommand]);
+
+  const handleModelChange = useCallback(
+    async (newModel: string) => {
+      if (!activeThreadId) return;
+      await updateThread({ threadId: activeThreadId, model: newModel });
+    },
+    [activeThreadId, updateThread],
   );
 
   const handleSend = useCallback(async () => {
@@ -538,6 +759,8 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     setInputValue("");
     setMentions([]);
     setMentionSearch(null);
+    setSlashSearch(null);
+    setIntentSuggestion(null);
 
     const threadId = await getOrCreateThread();
 
@@ -638,7 +861,6 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       setIsStreaming(false);
       setStreamingMessages((prev) => {
         const updated = prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m));
-        // Scan the final assistant message for DOCUMENT_CREATED marker
         const lastAssistant = [...updated].reverse().find((m) => m.role === "assistant");
         if (lastAssistant) {
           const match = lastAssistant.content.match(DOCUMENT_PATTERN);
@@ -658,6 +880,31 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Handle slash command dropdown navigation
+      if (slashSearch !== null && flatCommandList.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSlashDropdownIndex((i) => Math.min(i + 1, flatCommandList.length - 1));
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSlashDropdownIndex((i) => Math.max(i - 1, 0));
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          e.preventDefault();
+          const selected = flatCommandList[slashDropdownIndex];
+          if (selected) selectSlashCommand(selected);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setSlashSearch(null);
+          return;
+        }
+      }
+
       // Handle mention dropdown navigation
       if (mentionSearch !== null && mentionResults && mentionResults.length > 0) {
         if (e.key === "ArrowDown") {
@@ -692,7 +939,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
         void handleSend();
       }
     },
-    [handleSend, mentionSearch, mentionResults, mentionDropdownIndex, insertMention],
+    [handleSend, mentionSearch, mentionResults, mentionDropdownIndex, insertMention, slashSearch, flatCommandList, slashDropdownIndex, selectSlashCommand],
   );
 
   const handleNewThread = useCallback(async () => {
@@ -796,43 +1043,59 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
               <span className="font-semibold text-sm text-white">Elmer</span>
             </div>
 
-            {/* Tabs */}
-            <div className="flex items-center gap-1 bg-white/5 rounded-md p-0.5">
-              <button
-                onClick={() => setActiveTab("chat")}
-                className={cn(
-                  "px-3 py-1 text-xs rounded-sm transition-colors",
-                  activeTab === "chat"
-                    ? "bg-white/10 text-white"
-                    : "text-muted-foreground hover:text-white",
-                )}
-              >
-                Chat
-              </button>
-              <button
-                onClick={() => setActiveTab("hub")}
-                className={cn(
-                  "px-3 py-1 text-xs rounded-sm transition-colors relative",
-                  activeTab === "hub"
-                    ? "bg-white/10 text-white"
-                    : "text-muted-foreground hover:text-white",
-                )}
-              >
-                Agent Hub
-                {pendingQs && pendingQs.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
-                )}
-              </button>
-            </div>
+            <div className="flex items-center gap-2">
+              {/* Model selector */}
+              {activeTab === "chat" && (
+                <Select value={currentModel} onValueChange={(v) => void handleModelChange(v)}>
+                  <SelectTrigger className="h-7 w-24 text-[10px] border-white/10 bg-white/5 text-muted-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto</SelectItem>
+                    <SelectItem value="haiku">Haiku</SelectItem>
+                    <SelectItem value="sonnet">Sonnet</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setIsOpen(false)}
-            >
-              <X className="w-3.5 h-3.5" />
-            </Button>
+              {/* Tabs */}
+              <div className="flex items-center gap-1 bg-white/5 rounded-md p-0.5">
+                <button
+                  onClick={() => setActiveTab("chat")}
+                  className={cn(
+                    "px-3 py-1 text-xs rounded-sm transition-colors",
+                    activeTab === "chat"
+                      ? "bg-white/10 text-white"
+                      : "text-muted-foreground hover:text-white",
+                  )}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => setActiveTab("hub")}
+                  className={cn(
+                    "px-3 py-1 text-xs rounded-sm transition-colors relative",
+                    activeTab === "hub"
+                      ? "bg-white/10 text-white"
+                      : "text-muted-foreground hover:text-white",
+                  )}
+                >
+                  Agent Hub
+                  {pendingQs && pendingQs.length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
+                  )}
+                </button>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setIsOpen(false)}
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </div>
 
           {/* Tab content */}
@@ -970,6 +1233,15 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                           </div>
                         </div>
 
+                        {/* Cost estimate for assistant messages */}
+                        {msg.role === "assistant" && !msg.isStreaming && msg.tokenCount && msg.tokenCount > 0 && (
+                          <div className="flex justify-end mt-0.5 pr-1">
+                            <span className="text-[10px] text-muted-foreground/50">
+                              {estimateCost(msg.tokenCount, currentModel === "sonnet" ? "claude-sonnet-4-5" : "claude-3-haiku-20240307")}
+                            </span>
+                          </div>
+                        )}
+
                         {/* Document artifact preview card */}
                         {msg.role === "assistant" && documentArtifacts[msg.id] && (
                           <div className="ml-8 mt-2">
@@ -1001,8 +1273,80 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
+                {/* Input area */}
                 <div className="shrink-0 p-3 border-t border-white/10">
+                  {/* Project picker for two-step command flow */}
+                  {selectedCommand && (
+                    <div className="mb-2 rounded-md border border-purple-500/30 bg-purple-500/5 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-white">
+                          Select a project for <strong>/{selectedCommand.name}</strong>
+                        </span>
+                        <button
+                          onClick={() => setSelectedCommand(null)}
+                          className="text-muted-foreground hover:text-white"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+                        {projects === undefined ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        ) : projects.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No projects found</p>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => void triggerAgentCommand(selectedCommand, null)}
+                              className="text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-white hover:bg-white/5 rounded transition-colors"
+                            >
+                              No project (workspace-level)
+                            </button>
+                            {projects.map((p) => (
+                              <button
+                                key={p._id}
+                                onClick={() => void triggerAgentCommand(selectedCommand, p._id)}
+                                className={cn(
+                                  "text-left px-2 py-1.5 text-xs rounded transition-colors",
+                                  selectedProjectId === p._id
+                                    ? "bg-purple-500/20 text-white"
+                                    : "text-slate-300 hover:bg-white/5 hover:text-white",
+                                )}
+                              >
+                                <span className="font-medium">{p.name}</span>
+                                <span className="ml-2 text-[10px] text-muted-foreground">
+                                  {p.stage}
+                                </span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Intent suggestion banner */}
+                  {intentSuggestion && inputValue.length > 10 && !selectedCommand && (
+                    <div className="mb-2 flex items-center gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-xs">
+                      <Zap className="w-3 h-3 text-yellow-400 shrink-0" />
+                      <span className="text-slate-300">
+                        Run <strong className="text-white">/{intentSuggestion.agentName}</strong> instead?
+                      </span>
+                      <button
+                        onClick={() => void handleConfirmIntent()}
+                        className="ml-auto text-yellow-400 hover:text-yellow-300 underline whitespace-nowrap"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setIntentSuggestion(null)}
+                        className="text-muted-foreground hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
                   {/* @mention chips */}
                   {mentions.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2">
@@ -1022,6 +1366,62 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                           </button>
                         </span>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Slash command picker */}
+                  {slashSearch !== null && flatCommandList.length > 0 && (
+                    <div className="mb-2 rounded-md border border-white/10 bg-slate-900 overflow-hidden shadow-lg max-h-64 overflow-y-auto">
+                      {commandResults && Object.entries(commandResults).map(([group, items]) => {
+                        const groupItems = items as AgentDefinition[];
+                        if (!groupItems.length) return null;
+                        const label = GROUP_LABELS[group] ?? group;
+                        const startIndex = flatCommandList.findIndex((c) => groupItems[0] && c._id === groupItems[0]._id);
+                        return (
+                          <div key={group}>
+                            <div className="px-3 py-1 text-[9px] font-semibold text-muted-foreground/60 uppercase tracking-wider bg-white/3 border-b border-white/5">
+                              {label}
+                            </div>
+                            {groupItems.map((item, idx) => {
+                              const flatIdx = startIndex + idx;
+                              return (
+                                <button
+                                  key={item._id}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    selectSlashCommand(item);
+                                  }}
+                                  className={cn(
+                                    "w-full text-left px-3 py-2 text-xs flex items-start gap-2 transition-colors",
+                                    flatIdx === slashDropdownIndex
+                                      ? "bg-purple-500/20 text-white"
+                                      : "text-slate-300 hover:bg-white/5",
+                                  )}
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">/{item.name}</span>
+                                      {item.phase && (
+                                        <span className="text-[9px] px-1 py-0.5 rounded bg-white/10 text-muted-foreground">
+                                          {item.phase}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {item.description && (
+                                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                        {item.description.length > 60
+                                          ? item.description.slice(0, 60) + "…"
+                                          : item.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0 mt-0.5 -rotate-90" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -1059,7 +1459,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                       value={inputValue}
                       onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
-                      placeholder="Ask Elmer anything… (@ to mention, Enter to send)"
+                      placeholder="Ask Elmer anything… (/ for commands, @ to mention)"
                       disabled={isStreaming || !isAuthenticated}
                       rows={1}
                       className="flex-1 resize-none bg-white/5 border border-white/10 rounded-md px-3 py-2 text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-purple-500/50 disabled:opacity-50 max-h-32 overflow-y-auto"
@@ -1079,7 +1479,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                     </Button>
                   </div>
                   <p className="text-[10px] text-muted-foreground/50 mt-1.5">
-                    @ to mention · Shift+Enter for newline · Cmd+L to toggle
+                    / for commands · @ to mention · Shift+Enter for newline
                   </p>
                 </div>
               </div>

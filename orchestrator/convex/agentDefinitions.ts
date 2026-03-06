@@ -108,6 +108,41 @@ export const upsert = mutation({
   },
 });
 
+export const searchCommands = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    query: v.string(),
+  },
+  handler: async (ctx, { workspaceId, query: queryStr }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const all = await ctx.db
+      .query("agentDefinitions")
+      .withIndex("by_workspace_type", (q) => q.eq("workspaceId", workspaceId))
+      .filter((q) => q.eq(q.field("enabled"), true))
+      .collect();
+
+    const q = queryStr.toLowerCase();
+    const filtered = q
+      ? all.filter(
+          (a) =>
+            a.name.toLowerCase().includes(q) ||
+            (a.description ?? "").toLowerCase().includes(q),
+        )
+      : all;
+
+    const groups: Record<string, typeof all> = {};
+    for (const a of filtered.slice(0, 30)) {
+      const group = a.type ?? "utility";
+      if (!groups[group]) groups[group] = [];
+      groups[group].push(a);
+    }
+
+    return groups;
+  },
+});
+
 export const setEnabled = mutation({
   args: {
     id: v.id("agentDefinitions"),

@@ -208,6 +208,13 @@ export const sendMessageInternal = internalMutation({
   },
 });
 
+export const getThreadInternal = internalQuery({
+  args: { threadId: v.id("chatThreads") },
+  handler: async (ctx, { threadId }) => {
+    return await ctx.db.get(threadId);
+  },
+});
+
 // ── Context queries (used by streamResponse) ──────────────────────────────────
 
 export const getChatContext = internalQuery({
@@ -622,6 +629,19 @@ export const streamResponse = httpAction(async (ctx, request) => {
   }));
   anthropicMessages.push({ role: "user", content });
 
+  // Resolve the Anthropic model to use based on thread.model setting
+  const thread = await ctx.runQuery(internal.chat.getThreadInternal, { threadId: typedThreadId });
+  const threadModel = thread?.model ?? "auto";
+  let resolvedModel: string;
+  if (threadModel === "haiku") {
+    resolvedModel = "claude-3-haiku-20240307";
+  } else if (threadModel === "sonnet") {
+    resolvedModel = "claude-sonnet-4-5";
+  } else {
+    // auto: use haiku for short messages, sonnet for longer ones
+    resolvedModel = content.length < 500 ? "claude-3-haiku-20240307" : "claude-sonnet-4-5";
+  }
+
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (!anthropicKey) {
     return new Response("ANTHROPIC_API_KEY not configured", { status: 500 });
@@ -635,7 +655,7 @@ export const streamResponse = httpAction(async (ctx, request) => {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
+      model: resolvedModel,
       max_tokens: 2048,
       stream: true,
       system: systemPrompt,
