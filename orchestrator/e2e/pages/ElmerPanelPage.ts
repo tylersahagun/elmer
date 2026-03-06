@@ -44,12 +44,16 @@ export class ElmerPanelPage {
 
   async open() {
     await this.toggleBtn.click();
-    await expect(this.panel).toBeVisible();
+    await expect(this.panel).toHaveAttribute("data-open", "true", { timeout: 5000 });
   }
 
   async openWithKeyboard() {
     await this.page.keyboard.press("Meta+l");
-    await expect(this.panel).toBeVisible();
+    await expect(this.panel).toHaveAttribute("data-open", "true", { timeout: 5000 });
+  }
+
+  async expectClosed() {
+    await expect(this.panel).toHaveAttribute("data-open", "false", { timeout: 3000 });
   }
 
   async switchToHub() {

@@ -1048,6 +1048,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       {/* Panel */}
       <div
         data-testid="elmer-panel"
+        data-open={isOpen ? "true" : "false"}
         ref={panelRef}
         style={{ width: isOpen ? panelWidth : 0 }}
         className={cn(

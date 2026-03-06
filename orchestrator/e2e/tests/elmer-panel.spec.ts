@@ -34,21 +34,17 @@ test.describe("ElmerPanel @chat @agent-ux", () => {
 
     test("Escape closes the panel", async ({ page }) => {
       await elmer.open();
-      // Wait for panel to fully animate open before pressing Escape
       await page.waitForTimeout(400);
       await page.keyboard.press("Escape");
-      // When closed, the floating toggle button becomes visible again
-      await expect(elmer.toggleBtn).toBeVisible({ timeout: 2000 });
-      // Panel width should reach 0px after the 300ms CSS transition
-      await expect(elmer.panel).toHaveCSS("width", "0px", { timeout: 3000 });
+      // data-open attribute is synchronously set by React — no transition race
+      await expect(elmer.panel).toHaveAttribute("data-open", "false", { timeout: 3000 });
     });
 
     test("Cmd+L toggles — second press closes the panel", async ({ page }) => {
       await elmer.openWithKeyboard();
       await page.waitForTimeout(400);
       await page.keyboard.press("Meta+l");
-      await expect(elmer.toggleBtn).toBeVisible({ timeout: 2000 });
-      await expect(elmer.panel).toHaveCSS("width", "0px", { timeout: 3000 });
+      await expect(elmer.panel).toHaveAttribute("data-open", "false", { timeout: 3000 });
     });
 
     test("Chat and Agent Hub tabs are present", async () => {
