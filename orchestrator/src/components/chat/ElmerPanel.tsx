@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
 import ReactMarkdown from "react-markdown";
 import {
@@ -30,11 +30,18 @@ interface StreamingMessage {
   isStreaming?: boolean;
 }
 
+interface Mention {
+  entityType: string;
+  entityId: string;
+  label: string;
+}
+
 export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const { isAuthenticated } = useConvexAuth();
   const { getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const pathname = usePathname();
+  const params = useParams();
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "hub">("chat");
@@ -46,6 +53,9 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const [streamingMessages, setStreamingMessages] = useState<
     StreamingMessage[]
   >([]);
+  const [mentionSearch, setMentionSearch] = useState<string | null>(null);
+  const [mentions, setMentions] = useState<Mention[]>([]);
+  const [mentionDropdownIndex, setMentionDropdownIndex] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -55,6 +65,16 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const dragStartWidth = useRef(0);
 
   const userId = clerkUser?.id ?? "";
+
+  // Extract page context from URL params
+  const pageContext = {
+    pathname: pathname ?? undefined,
+    projectId:
+      (params?.id as string | undefined) ??
+      (params?.projectId as string | undefined) ??
+      undefined,
+    documentId: (params?.docId as string | undefined) ?? undefined,
+  };
 
   const threads = useQuery(
     api.chat.listThreads,
@@ -66,6 +86,13 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const messages = useQuery(
     api.chat.listMessages,
     isAuthenticated && activeThreadId ? { threadId: activeThreadId } : "skip",
+  );
+
+  const mentionResults = useQuery(
+    api.chat.searchMentionables,
+    mentionSearch !== null && isAuthenticated && workspaceId
+      ? { workspaceId: workspaceId as Id<"workspaces">, query: mentionSearch }
+      : "skip",
   );
 
   const createThread = useMutation(api.chat.createThread);
@@ -86,6 +113,11 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [streamingMessages]);
+
+  // Reset mention dropdown index when results change
+  useEffect(() => {
+    setMentionDropdownIndex(0);
+  }, [mentionResults]);
 
   // Cmd+L / Ctrl+L shortcut
   useEffect(() => {
@@ -142,10 +174,64 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     return newId;
   }, [activeThreadId, createThread, workspaceId, userId]);
 
+  // Handle @mention detection in textarea
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.target.value;
+      setInputValue(value);
+
+      // Detect @mention — find the last word starting with @ up to the cursor
+      const cursorPos = e.target.selectionStart ?? value.length;
+      const textBeforeCursor = value.slice(0, cursorPos);
+      const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+      if (mentionMatch) {
+        setMentionSearch(mentionMatch[1]);
+      } else {
+        setMentionSearch(null);
+      }
+    },
+    [],
+  );
+
+  const insertMention = useCallback(
+    (item: { id: string; label: string; type: string }) => {
+      const cursorPos = textareaRef.current?.selectionStart ?? inputValue.length;
+      const textBeforeCursor = inputValue.slice(0, cursorPos);
+      const textAfterCursor = inputValue.slice(cursorPos);
+
+      // Replace the @word fragment with @[Label]
+      const replaced = textBeforeCursor.replace(/@(\w*)$/, `@[${item.label}]`);
+      const newValue = replaced + textAfterCursor;
+
+      setInputValue(newValue);
+      setMentions((prev) => [
+        ...prev,
+        { entityType: item.type, entityId: item.id, label: item.label },
+      ]);
+      setMentionSearch(null);
+
+      // Restore focus to textarea
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const newPos = replaced.length;
+          textareaRef.current.setSelectionRange(newPos, newPos);
+        }
+      }, 0);
+    },
+    [inputValue],
+  );
+
   const handleSend = useCallback(async () => {
     if (!inputValue.trim() || isStreaming) return;
     const content = inputValue.trim();
+    const currentMentions = mentions.map(({ entityType, entityId }) => ({
+      entityType,
+      entityId,
+    }));
     setInputValue("");
+    setMentions([]);
+    setMentionSearch(null);
 
     const threadId = await getOrCreateThread();
 
@@ -174,18 +260,19 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "";
       const siteUrl = convexUrl.replace(".convex.cloud", ".convex.site");
 
-      const pageContext = {
-        pathname,
-        ...(workspaceId ? { projectId: workspaceId } : {}),
-      };
-
       const res = await fetch(`${siteUrl}/api/chat/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ threadId, content, pageContext }),
+        body: JSON.stringify({
+          threadId,
+          content,
+          workspaceId,
+          pageContext,
+          mentions: currentMentions,
+        }),
       });
 
       if (!res.ok || !res.body) {
@@ -247,16 +334,45 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
         prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
       );
     }
-  }, [inputValue, isStreaming, getOrCreateThread, getToken, pathname, workspaceId]);
+  }, [inputValue, isStreaming, mentions, getOrCreateThread, getToken, workspaceId, pageContext]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Handle mention dropdown navigation
+      if (mentionSearch !== null && mentionResults && mentionResults.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setMentionDropdownIndex((i) =>
+            Math.min(i + 1, mentionResults.length - 1),
+          );
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setMentionDropdownIndex((i) => Math.max(i - 1, 0));
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          e.preventDefault();
+          const selected = mentionResults[mentionDropdownIndex];
+          if (selected) {
+            insertMention({ id: selected.id, label: selected.label, type: selected.type });
+          }
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setMentionSearch(null);
+          return;
+        }
+      }
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         void handleSend();
       }
     },
-    [handleSend],
+    [handleSend, mentionSearch, mentionResults, mentionDropdownIndex, insertMention],
   );
 
   const handleNewThread = useCallback(async () => {
@@ -267,6 +383,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     });
     setActiveThreadId(newId);
     setStreamingMessages([]);
+    setMentions([]);
   }, [createThread, workspaceId, userId]);
 
   const formatRelativeTime = (ts: number) => {
@@ -496,13 +613,63 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
                 {/* Input */}
                 <div className="shrink-0 p-3 border-t border-white/10">
+                  {/* @mention chips */}
+                  {mentions.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {mentions.map((m, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px]"
+                        >
+                          @{m.label}
+                          <button
+                            onClick={() =>
+                              setMentions((prev) => prev.filter((_, j) => j !== i))
+                            }
+                            className="hover:text-white transition-colors"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* @mention dropdown */}
+                  {mentionSearch !== null &&
+                    mentionResults &&
+                    mentionResults.length > 0 && (
+                      <div className="mb-2 rounded-md border border-white/10 bg-slate-900 overflow-hidden shadow-lg">
+                        {mentionResults.map((item, i) => (
+                          <button
+                            key={item.id}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              insertMention({ id: item.id, label: item.label, type: item.type });
+                            }}
+                            className={cn(
+                              "w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors",
+                              i === mentionDropdownIndex
+                                ? "bg-purple-500/20 text-white"
+                                : "text-slate-300 hover:bg-white/5",
+                            )}
+                          >
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wide w-12 shrink-0">
+                              {item.type}
+                            </span>
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                   <div className="flex gap-2 items-end">
                     <textarea
                       ref={textareaRef}
                       value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
+                      onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
-                      placeholder="Ask Elmer anything… (Enter to send)"
+                      placeholder="Ask Elmer anything… (@ to mention, Enter to send)"
                       disabled={isStreaming || !isAuthenticated}
                       rows={1}
                       className="flex-1 resize-none bg-white/5 border border-white/10 rounded-md px-3 py-2 text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-purple-500/50 disabled:opacity-50 max-h-32 overflow-y-auto"
@@ -522,7 +689,7 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                     </Button>
                   </div>
                   <p className="text-[10px] text-muted-foreground/50 mt-1.5">
-                    Shift+Enter for newline · Cmd+L to toggle
+                    @ to mention · Shift+Enter for newline · Cmd+L to toggle
                   </p>
                 </div>
               </div>

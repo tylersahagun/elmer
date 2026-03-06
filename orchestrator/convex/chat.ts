@@ -59,6 +59,42 @@ export const listMessages = query({
   },
 });
 
+export const searchMentionables = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    query: v.string(),
+  },
+  handler: async (ctx, { workspaceId, query: searchQuery }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const q = searchQuery.toLowerCase();
+
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (x) => x.eq("workspaceId", workspaceId))
+      .collect();
+
+    const agents = await ctx.db
+      .query("agentDefinitions")
+      .withIndex("by_workspace_type", (x) => x.eq("workspaceId", workspaceId))
+      .filter((x) => x.eq(x.field("enabled"), true))
+      .collect();
+
+    const filteredProjects = projects
+      .filter((p) => p.name.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((p) => ({ id: p._id, label: p.name, type: "project" as const }));
+
+    const filteredAgents = agents
+      .filter((a) => a.name.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map((a) => ({ id: a._id, label: a.name, type: "agent" as const }));
+
+    return [...filteredProjects, ...filteredAgents];
+  },
+});
+
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
 export const createThread = mutation({
@@ -171,6 +207,100 @@ export const sendMessageInternal = internalMutation({
   },
 });
 
+// ── Context queries (used by streamResponse) ──────────────────────────────────
+
+export const getChatContext = internalQuery({
+  args: {
+    workspaceId: v.id("workspaces"),
+    pageContext: v.optional(v.any()),
+  },
+  handler: async (ctx, { workspaceId, pageContext }) => {
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+
+    const recentJobs = await ctx.db
+      .query("jobs")
+      .withIndex("by_workspace_status", (q) => q.eq("workspaceId", workspaceId))
+      .filter((q) => q.neq(q.field("status"), "cancelled"))
+      .order("desc")
+      .take(10);
+
+    const signals = await ctx.db
+      .query("signals")
+      .withIndex("by_workspace_status", (q) =>
+        q.eq("workspaceId", workspaceId).eq("status", "active"),
+      )
+      .order("desc")
+      .take(10);
+
+    const companyContext = await ctx.db
+      .query("knowledgebaseEntries")
+      .withIndex("by_workspace_type", (q) => q.eq("workspaceId", workspaceId))
+      .filter((q) => q.eq(q.field("type"), "company_context"))
+      .take(3);
+
+    const agents = await ctx.db
+      .query("agentDefinitions")
+      .withIndex("by_workspace_type", (q) => q.eq("workspaceId", workspaceId))
+      .filter((q) => q.eq(q.field("enabled"), true))
+      .take(20);
+
+    const graphNodes = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_workspace_type", (q) => q.eq("workspaceId", workspaceId))
+      .filter((q) => q.eq(q.field("validTo"), undefined))
+      .order("desc")
+      .take(20);
+
+    return {
+      projects,
+      recentJobs,
+      signals,
+      companyContext,
+      agents,
+      graphNodes,
+      pageContext,
+    };
+  },
+});
+
+export const getMentionEntityContent = internalQuery({
+  args: {
+    entityType: v.string(),
+    entityId: v.string(),
+  },
+  handler: async (ctx, { entityType, entityId }) => {
+    if (entityType === "project") {
+      const project = await ctx.db.get(entityId as Id<"projects">);
+      if (!project) return null;
+      const docs = await ctx.db
+        .query("documents")
+        .withIndex("by_project", (q) => q.eq("projectId", entityId as Id<"projects">))
+        .take(10);
+      return {
+        type: "project",
+        project,
+        docs: docs.map((d) => ({ id: d._id, title: d.title, type: d.type })),
+      };
+    }
+    if (entityType === "document") {
+      const doc = await ctx.db.get(entityId as Id<"documents">);
+      return doc ? { type: "document", doc } : null;
+    }
+    if (entityType === "signal") {
+      const signal = await ctx.db.get(entityId as Id<"signals">);
+      return signal ? { type: "signal", signal } : null;
+    }
+    if (entityType === "agent") {
+      const agent = await ctx.db.get(entityId as Id<"agentDefinitions">);
+      return agent ? { type: "agent", agent } : null;
+    }
+    return null;
+  },
+});
+
 // ── Streaming HTTP action ─────────────────────────────────────────────────────
 
 export const streamResponse = httpAction(async (ctx, request) => {
@@ -182,7 +312,9 @@ export const streamResponse = httpAction(async (ctx, request) => {
   let body: {
     threadId: string;
     content: string;
+    workspaceId?: string;
     pageContext?: { pathname?: string; projectId?: string; documentId?: string };
+    mentions?: Array<{ entityType: string; entityId: string }>;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -190,7 +322,7 @@ export const streamResponse = httpAction(async (ctx, request) => {
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  const { threadId, content, pageContext } = body;
+  const { threadId, content, workspaceId, pageContext, mentions } = body;
   if (!threadId || !content) {
     return new Response("Missing threadId or content", { status: 400 });
   }
@@ -208,21 +340,126 @@ export const streamResponse = httpAction(async (ctx, request) => {
     content,
   });
 
-  const anthropicMessages = history.map((m) => ({
-    role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-    content: m.content,
-  }));
-  anthropicMessages.push({ role: "user", content });
-
+  // Fetch workspace context if workspaceId is provided
   let systemPrompt =
     "You are Elmer, an AI product management assistant. Help the user with their PM work — strategy, research, prototypes, and shipping decisions. Be concise and direct.";
-  if (pageContext?.pathname) {
-    systemPrompt += `\n\nThe user is currently viewing: ${pageContext.pathname}`;
+
+  if (workspaceId) {
+    const typedWorkspaceId = workspaceId as Id<"workspaces">;
+
+    const [workspaceContext, mentionContents] = await Promise.all([
+      ctx.runQuery(internal.chat.getChatContext, {
+        workspaceId: typedWorkspaceId,
+        pageContext,
+      }),
+      Promise.all(
+        (mentions ?? []).map((m) =>
+          ctx.runQuery(internal.chat.getMentionEntityContent, m),
+        ),
+      ),
+    ]);
+
+    const { projects, signals, companyContext, agents, graphNodes } =
+      workspaceContext;
+
+    const parts: string[] = [
+      "You are Elmer, the AskElephant PM command center AI assistant. You have full access to this workspace's context.",
+    ];
+
+    // Current page context
+    if (pageContext?.pathname) {
+      parts.push("\n## Current Page");
+      parts.push(pageContext.pathname);
+      if (pageContext.projectId) {
+        const linkedProject = projects.find(
+          (p) => p._id === pageContext.projectId,
+        );
+        if (linkedProject) {
+          parts.push(`Viewing project: ${linkedProject.name}`);
+        }
+      }
+    }
+
+    // Active projects
+    parts.push(`\n## Active Projects (${projects.length})`);
+    if (projects.length > 0) {
+      for (const p of projects) {
+        const tldr = (p.metadata as Record<string, string> | null)?.tldr ?? "";
+        parts.push(
+          `- ${p.name} (${p.stage} / ${p.status})${tldr ? `: ${tldr}` : ""}`,
+        );
+      }
+    } else {
+      parts.push("No projects yet.");
+    }
+
+    // Recent signals
+    parts.push("\n## Recent Signals (last 10 by recency)");
+    if (signals.length > 0) {
+      for (const s of signals) {
+        const snippet = s.verbatim.slice(0, 100);
+        const cls =
+          typeof s.classification === "string" ? s.classification : "";
+        parts.push(`- ${s.source}: ${snippet}${cls ? ` (${cls})` : ""}`);
+      }
+    } else {
+      parts.push("No recent signals.");
+    }
+
+    // Company context
+    parts.push("\n## Company Context");
+    if (companyContext.length > 0) {
+      for (const kb of companyContext) {
+        parts.push(`${kb.title}: ${kb.content.slice(0, 500)}`);
+      }
+    } else {
+      parts.push("No company context synced yet.");
+    }
+
+    // Agents
+    parts.push(`\n## Available Agents (${agents.length} enabled)`);
+    if (agents.length > 0) {
+      for (const a of agents) {
+        parts.push(`- ${a.name} (${a.type})${a.description ? `: ${a.description}` : ""}`);
+      }
+    } else {
+      parts.push("No agents configured.");
+    }
+
+    // Memory graph top entities
+    parts.push("\n## Memory Graph Top Entities");
+    if (graphNodes.length > 0) {
+      for (const n of graphNodes) {
+        parts.push(`- ${n.name} (${n.entityType}, weight=${n.accessWeight})`);
+      }
+    } else {
+      parts.push("Memory graph is empty.");
+    }
+
+    // @Mentioned context
+    const resolvedMentions = mentionContents.filter(Boolean);
+    if (resolvedMentions.length > 0) {
+      parts.push("\n## @Mentioned Context");
+      for (const m of resolvedMentions) {
+        parts.push(JSON.stringify(m, null, 2));
+      }
+    }
+
+    systemPrompt = parts.join("\n");
+  } else if (pageContext?.pathname) {
+    systemPrompt +=
+      `\n\nThe user is currently viewing: ${pageContext.pathname}`;
     if (pageContext.projectId)
       systemPrompt += ` (project: ${pageContext.projectId})`;
     if (pageContext.documentId)
       systemPrompt += ` (document: ${pageContext.documentId})`;
   }
+
+  const anthropicMessages = history.map((m) => ({
+    role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+    content: m.content,
+  }));
+  anthropicMessages.push({ role: "user", content });
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (!anthropicKey) {
