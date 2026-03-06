@@ -8,11 +8,14 @@ test.describe("ElmerPanel @chat @agent-ux", () => {
   let workspace: WorkspacePage;
 
   test.beforeEach(async ({ page }) => {
+    test.setTimeout(90_000); // tunnel latency: give each test 90s
     workspace = new WorkspacePage(page);
     elmer = new ElmerPanelPage(page);
     await workspace.gotoHome();
     await workspace.expectAuthenticatedHome();
     workspaceId = await workspace.openFirstWorkspaceFromHome();
+    // Let Convex subscriptions hydrate before interacting with the panel
+    await page.waitForTimeout(500);
   });
 
   // ── PRINCIPLE: Chat Interfaces — activation ──────────────────────────────────
@@ -31,14 +34,21 @@ test.describe("ElmerPanel @chat @agent-ux", () => {
 
     test("Escape closes the panel", async ({ page }) => {
       await elmer.open();
+      // Wait for panel to fully animate open before pressing Escape
+      await page.waitForTimeout(400);
       await page.keyboard.press("Escape");
-      await expect(elmer.panel).toHaveCSS("width", /^0/);
+      // When closed, the floating toggle button becomes visible again
+      await expect(elmer.toggleBtn).toBeVisible({ timeout: 2000 });
+      // Panel width should reach 0px after the 300ms CSS transition
+      await expect(elmer.panel).toHaveCSS("width", "0px", { timeout: 3000 });
     });
 
     test("Cmd+L toggles — second press closes the panel", async ({ page }) => {
       await elmer.openWithKeyboard();
+      await page.waitForTimeout(400);
       await page.keyboard.press("Meta+l");
-      await expect(elmer.panel).toHaveCSS("width", /^0/);
+      await expect(elmer.toggleBtn).toBeVisible({ timeout: 2000 });
+      await expect(elmer.panel).toHaveCSS("width", "0px", { timeout: 3000 });
     });
 
     test("Chat and Agent Hub tabs are present", async () => {
