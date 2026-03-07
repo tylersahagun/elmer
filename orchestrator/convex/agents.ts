@@ -75,9 +75,14 @@ function buildUserMessage(input: Record<string, unknown>, agentName: string): st
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadContext(ctx: any, workspaceId: Id<"workspaces">, projectId?: Id<"projects">) {
-  const kbEntries = await ctx.runQuery(api.knowledgebase.listByWorkspace, { workspaceId });
+  const workspaceRuntimeContext = await ctx.runQuery(api.memory.listWorkspaceRuntimeContext, {
+    workspaceId,
+    types: ["company_context", "strategic_guardrails", "personas"],
+  });
   const companyContext: Record<string, string> = {};
-  for (const e of kbEntries) companyContext[e.type] = e.content;
+  for (const item of workspaceRuntimeContext.items) {
+    if (item.type) companyContext[item.type] = item.content;
+  }
 
   let projectTldr: string | undefined;
   let graphContext: string | undefined;
@@ -86,25 +91,24 @@ async function loadContext(ctx: any, workspaceId: Id<"workspaces">, projectId?: 
     const project = await ctx.runQuery(api.projects.get, { projectId });
     projectTldr = (project?.metadata as Record<string, unknown> | undefined)?.tldr as string | undefined;
 
-    // GTM-47: Load graph context for richer project understanding
+    // Load the canonical runtime memory context for this project.
     try {
-      const graphData = await ctx.runQuery(api.graph.getNodeByEntity, {
-        entityType: "project",
-        entityId: projectId as unknown as string,
+      const runtimeContext = await ctx.runQuery(api.memory.getProjectRuntimeContext, {
+        projectId,
       });
-
-      if (graphData) {
-        // Get observations (summaries)
-        const observations = await ctx.runQuery(api.graph.getObservations, {
-          nodeId: graphData._id,
-          depth: 0,
-        });
-        if (observations.length > 0) {
-          graphContext = observations.map((o: { content: string }) => o.content).join("\n\n");
-        }
-
-        // Reinforce on access
-        await ctx.runMutation(internal.graph.reinforceNode, { nodeId: graphData._id });
+      if (runtimeContext?.items?.length) {
+        graphContext = runtimeContext.items
+          .slice(0, 12)
+          .map((item: {
+            title: string;
+            entityType: string;
+            snippet: string;
+            promotionState: string;
+            provenance: { source: string };
+          }) =>
+            `- ${item.title} [${item.entityType}; ${item.promotionState}; ${item.provenance.source}]\n${item.snippet}`,
+          )
+          .join("\n\n");
       }
     } catch { /* graph context is optional — don't fail the whole run */ }
   }

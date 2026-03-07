@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { storeMemory } from "@/lib/db/queries";
+import { storeConvexMemory } from "@/lib/convex/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const memory = await storeMemory({
+    const memory = await storeConvexMemory({
       workspaceId,
       projectId,
       type,

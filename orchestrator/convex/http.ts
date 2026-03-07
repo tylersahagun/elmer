@@ -657,6 +657,42 @@ http.route({
   }),
 });
 
+// GET /mcp/runtime-context
+http.route({
+  path: "/mcp/runtime-context",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    if (!workspaceId) return jsonError("Missing workspaceId");
+    const types = url.searchParams.get("types")?.split(",").filter(Boolean);
+    const rows = await ctx.runQuery(internal.mcp.listWorkspaceRuntimeContext, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      types,
+    });
+    return jsonOk(rows);
+  }),
+});
+
+// GET /mcp/project-runtime-context
+http.route({
+  path: "/mcp/project-runtime-context",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const projectId = url.searchParams.get("projectId");
+    if (!projectId) return jsonError("Missing projectId");
+    const q = url.searchParams.get("q") ?? undefined;
+    const rows = await ctx.runQuery(internal.mcp.getProjectRuntimeContext, {
+      projectId: projectId as Id<"projects">,
+      q,
+    });
+    return jsonOk(rows);
+  }),
+});
+
 // POST /mcp/columns
 http.route({
   path: "/mcp/columns",
@@ -1028,9 +1064,11 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
     const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
     const type = url.searchParams.get("type") ?? undefined;
+    if (!workspaceId) return jsonError("Missing workspaceId");
     const entries = await ctx.runQuery(internal.mcp.listKnowledge, {
-      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      workspaceId: workspaceId as Id<"workspaces">,
       type,
     });
     return jsonOk(entries);
@@ -1055,6 +1093,22 @@ http.route({
   }),
 });
 
+// DELETE /mcp/knowledge
+http.route({
+  path: "/mcp/knowledge",
+  method: "DELETE",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (!id) return jsonError("Missing id");
+    const result = await ctx.runMutation(internal.mcp.removeKnowledge, {
+      id: id as Id<"knowledgebaseEntries">,
+    });
+    return jsonOk(result);
+  }),
+});
+
 // POST /mcp/memory
 http.route({
   path: "/mcp/memory",
@@ -1062,11 +1116,13 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
     const body = await request.json() as Record<string, unknown>;
+    if (!body.workspaceId) return jsonError("Missing workspaceId");
     const id = await ctx.runMutation(internal.mcp.storeMemory, {
-      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      workspaceId: body.workspaceId as Id<"workspaces">,
       projectId: body.projectId as Id<"projects"> | undefined,
       type: body.type as string,
       content: body.content as string,
+      metadata: body.metadata,
     });
     return jsonOk({ id });
   }),

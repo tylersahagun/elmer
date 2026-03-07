@@ -43,7 +43,39 @@ export default function SearchPage() {
             <Button onClick={() => refetch()}>Search</Button>
           </div>
           <div className="space-y-4">
-            {data?.documents?.length ? (
+            {data?.results?.length ? (
+              <div>
+                <h3 className="text-sm font-medium mb-2">Runtime Memory Results</h3>
+                <div className="space-y-2">
+                  {data.results.map(
+                    (result: {
+                      id: string;
+                      title: string;
+                      entityType: string;
+                      promotionState: string;
+                      provenance: { source: string };
+                      snippet: string;
+                    }) => (
+                      <div
+                        key={result.id}
+                        className="rounded-lg border border-border p-3 text-sm"
+                      >
+                        <div className="font-medium">
+                          {result.title} · {result.entityType}
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          {result.promotionState} · {result.provenance.source}
+                        </div>
+                        <div className="text-muted-foreground mt-1 line-clamp-3">
+                          {result.snippet}
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            ) : null}
+            {!data?.results?.length && data?.documents?.length ? (
               <div>
                 <h3 className="text-sm font-medium mb-2">Documents</h3>
                 <div className="space-y-2">
