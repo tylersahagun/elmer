@@ -2,7 +2,7 @@ import { StandaloneDocumentPage } from "@/app/(dashboard)/projects/[id]/document
 
 interface WorkspaceProjectDocumentPageProps {
   params: Promise<{
-    workspaceId: string;
+    id: string;
     projectId: string;
     docId: string;
   }>;

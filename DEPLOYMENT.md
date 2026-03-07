@@ -86,7 +86,8 @@ cloudflared tunnel run elmer
 `npm run check:auth` should fail if the Clerk publishable key cannot be decoded,
 if `CLERK_JWT_ISSUER_DOMAIN` disagrees with that frontend API host, if
 `AUTH_URL` and `NEXTAUTH_URL` disagree, or if `NEXT_PUBLIC_CONVEX_URL` is
-missing before it performs DNS and `/login` HTTP checks.
+missing or points at a `.convex.site` URL before it verifies that `/login`
+returns HTML with Clerk bootstrap markers and performs Clerk DNS checks.
 
 ### Delivery Readiness
 

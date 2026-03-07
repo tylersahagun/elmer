@@ -5,6 +5,44 @@ import { WorkspacePage, type WorkspaceRoute } from "../pages";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
 
+test("unauthenticated /login renders Clerk sign-in @smoke", async ({
+  browser,
+}) => {
+  const freshCtx = await browser.newContext({ storageState: undefined });
+  const page = await freshCtx.newPage();
+
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.locator("body")).not.toContainText("500");
+  await expect(page.locator("body")).not.toContainText(
+    "Runtime configuration error",
+  );
+  await expect(page.locator("body")).not.toContainText("Internal Server Error");
+
+  await expect
+    .poll(
+      async () => {
+        const emailFieldVisible = await page
+          .locator(
+            'input[type="email"], input[name="identifier"], input[name="emailAddress"]',
+          )
+          .first()
+          .isVisible()
+          .catch(() => false);
+        const continueVisible = await page
+          .getByRole("button", { name: /^Continue$/ })
+          .isVisible()
+          .catch(() => false);
+
+        return emailFieldVisible || continueVisible;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
+
+  await freshCtx.close();
+});
+
 /**
  * Smoke tests — @smoke
  * Fast, broad validation that the app is up and all major routes load.
