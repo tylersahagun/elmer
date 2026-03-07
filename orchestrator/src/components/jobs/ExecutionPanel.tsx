@@ -29,6 +29,20 @@ interface LogEntry {
   data?: Record<string, unknown>;
 }
 
+interface JobSnapshot {
+  id: string;
+  type: string;
+  status: "pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled";
+  progress?: number | null;
+  error?: string | null;
+  input?: Record<string, unknown> | null;
+  output?: Record<string, unknown> | null;
+  projectId?: string | null;
+  workspaceId?: string;
+  createdAt?: string;
+  completedAt?: string | null;
+}
+
 interface ExecutionPanelProps {
   jobId: string;
   jobType: string;
@@ -52,6 +66,7 @@ export function ExecutionPanel({
   const [status, setStatus] = useState<"pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled">("pending");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [jobSnapshot, setJobSnapshot] = useState<JobSnapshot | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -146,6 +161,7 @@ export function ExecutionPanel({
               setStatus(data.job.status);
               setProgress(data.job.progress || 0);
               if (data.job.error) setError(data.job.error);
+              setJobSnapshot(data.job);
               break;
 
             case "log":
@@ -163,11 +179,32 @@ export function ExecutionPanel({
             case "status":
               setStatus(data.status);
               setProgress(data.progress || 0);
+              setJobSnapshot((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      status: data.status,
+                      progress: data.progress || 0,
+                      output: data.output ?? prev.output,
+                      error: data.error ?? prev.error,
+                    }
+                  : prev,
+              );
               break;
 
             case "finished":
               setStatus(data.status);
               if (data.error) setError(data.error);
+              setJobSnapshot((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      status: data.status,
+                      output: data.output ?? prev.output,
+                      error: data.error ?? prev.error,
+                    }
+                  : prev,
+              );
               eventSource.close();
               break;
           }
@@ -257,6 +294,15 @@ export function ExecutionPanel({
       default:
         return "text-gray-300";
     }
+  };
+
+  const renderStructuredData = (data: Record<string, unknown> | null | undefined) => {
+    if (!data || Object.keys(data).length === 0) return null;
+    return (
+      <pre className="overflow-x-auto rounded-md bg-black/30 p-3 text-[11px] text-slate-200">
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    );
   };
 
   return (
@@ -353,6 +399,15 @@ export function ExecutionPanel({
               exit={{ height: 0 }}
               className="overflow-hidden"
             >
+              {jobSnapshot?.input && Object.keys(jobSnapshot.input).length > 0 && (
+                <div className="p-3 border-b border-white/10 bg-white/5">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                    Execution context
+                  </div>
+                  {renderStructuredData(jobSnapshot.input)}
+                </div>
+              )}
+
               {status === "waiting_input" && activeQuestion && (
                 <div className="p-3 border-b border-amber-500/20 bg-amber-500/10">
                   <div className="flex items-start justify-between gap-3">
@@ -385,6 +440,15 @@ export function ExecutionPanel({
                       Respond
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {jobSnapshot?.output && Object.keys(jobSnapshot.output).length > 0 && (
+                <div className="p-3 border-b border-white/10 bg-emerald-500/5">
+                  <div className="text-xs uppercase tracking-wide text-emerald-300/80 mb-2">
+                    Latest output
+                  </div>
+                  {renderStructuredData(jobSnapshot.output)}
                 </div>
               )}
 
@@ -506,7 +570,7 @@ export function ExecutionBadge({
   jobType: string;
   className?: string;
 }) {
-  const [status, setStatus] = useState<"pending" | "running" | "completed" | "failed">("pending");
+  const [status, setStatus] = useState<"pending" | "running" | "waiting_input" | "completed" | "failed">("pending");
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -549,6 +613,7 @@ export function ExecutionBadge({
         "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs",
         status === "running" && "bg-purple-500/20 text-purple-300",
         status === "pending" && "bg-amber-500/20 text-amber-300",
+        status === "waiting_input" && "bg-orange-500/20 text-orange-300",
         status === "completed" && "bg-green-500/20 text-green-300",
         status === "failed" && "bg-red-500/20 text-red-300",
         className
@@ -556,6 +621,8 @@ export function ExecutionBadge({
     >
       {status === "running" ? (
         <Loader2 className="w-3 h-3 animate-spin" />
+      ) : status === "waiting_input" ? (
+        <AlertCircle className="w-3 h-3" />
       ) : status === "completed" ? (
         <CheckCircle className="w-3 h-3" />
       ) : status === "failed" ? (
