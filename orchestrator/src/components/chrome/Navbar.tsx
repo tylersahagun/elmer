@@ -292,7 +292,13 @@ export function SimpleNavbar({
 
             <DropdownMenu open={menuOpen} onOpenChange={onMenuOpenChange}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  data-testid="workspace-menu-trigger"
+                  aria-label="Open workspace menu"
+                >
                   <Menu className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>

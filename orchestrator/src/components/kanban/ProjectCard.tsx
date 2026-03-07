@@ -222,6 +222,8 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
 
   return (
     <div
+      data-testid="project-card"
+      data-project-id={project.id}
       ref={setNodeRef}
       style={style}
       {...attributes}

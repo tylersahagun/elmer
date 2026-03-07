@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   useAction,
   useConvexAuth,
@@ -60,6 +61,7 @@ const TYPE_ORDER: Array<{
 ];
 
 export function AgentsList({ workspaceId }: AgentsListProps) {
+  const router = useRouter();
   const { isLoaded, isSignedIn } = useCurrentUser();
   const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
   const canLoadConvexData = canRunConvexQuery({
@@ -204,7 +206,7 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Bot className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-2xl font-semibold">Agents</h1>
+          <h1 className="text-2xl font-semibold">Agent Catalog</h1>
         </div>
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -230,7 +232,7 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Bot className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-2xl font-semibold">Agents</h1>
+          <h1 className="text-2xl font-semibold">Agent Catalog</h1>
         </div>
         <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 space-y-2">
           <div className="flex items-center gap-2">
@@ -261,15 +263,15 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Bot className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-2xl font-semibold">Agents</h1>
+          <h1 className="text-2xl font-semibold">Agent Catalog</h1>
         </div>
         <div className="p-8 rounded-lg bg-muted/30 border text-center">
           <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-lg font-medium mb-2">No agents imported</h2>
+          <h2 className="text-lg font-medium mb-2">No definitions imported yet</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Connect a repository with .cursor/ configuration to import agent
-            definitions. Agents include skills, commands, subagents, rules, and
-            AGENTS.md files.
+            definitions. This catalog is for provenance and admin control; daily
+            project work should happen from the project cockpit or Elmer.
           </p>
         </div>
       </div>
@@ -325,6 +327,29 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
               ? <Loader2 className="w-3 h-3 animate-spin" />
               : <Database className="w-3 h-3" />}
             Sync PM Workspace
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-muted/30 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p className="text-[11px] font-mono text-muted-foreground">
+              Secondary admin surface
+            </p>
+            <p className="text-sm text-muted-foreground max-w-2xl">
+              Use this page to inspect imported definitions, provenance, and
+              enablement. Use Projects as the primary cockpit for evidence,
+              agent runs, approvals, and artifact handoff.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => router.push(`/workspace/${workspaceId}`)}
+          >
+            Back to Projects
           </Button>
         </div>
       </div>

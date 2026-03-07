@@ -62,11 +62,31 @@ test.describe("Smoke: Core routes @smoke", () => {
     await workspace.expectRouteLoaded("dashboard");
   });
 
+  test("project cockpit exposes the alpha operator loop", async ({ page }) => {
+    const workspace = new WorkspacePage(page);
+    await workspace.goto(workspaceId);
+    await workspace.expectRouteLoaded("dashboard");
+    await workspace.openFirstProject();
+
+    await expect(
+      page.getByRole("heading", { name: "Active Work", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Evidence status", { exact: true })).toBeVisible();
+    await expect(page.getByText("Agent visibility", { exact: true })).toBeVisible();
+    await expect(page.getByText("Human gates", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Internal alpha feedback", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /copy issue template/i }),
+    ).toBeVisible();
+  });
+
   const routeCoverage: Array<{
     route: Exclude<WorkspaceRoute, "dashboard">;
     label: string;
   }> = [
-    { route: "agents", label: "Agent Hub" },
+    { route: "agents", label: "Agent Catalog" },
     { route: "inbox", label: "Signal Inbox" },
     { route: "signals", label: "signals table" },
     { route: "tasks", label: "tasks page" },

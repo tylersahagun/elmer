@@ -45,6 +45,7 @@ import {
   Ticket,
   CheckSquare,
   ArrowRight,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -111,6 +112,9 @@ type ProjectOverviewAction = {
   description: string;
   tab: "signals" | "documents" | "prototypes" | "tasks" | "commands" | "validation" | "tickets";
 };
+
+const INTERNAL_ALPHA_FEEDBACK_ISSUE_URL =
+  "https://linear.app/askelephant/issue/GTM-107";
 
 function getProjectOverviewAction(project: {
   stage?: string;
@@ -189,6 +193,54 @@ function getProjectOverviewAction(project: {
         tab: "tasks",
       };
   }
+}
+
+function buildInternalAlphaFeedbackTemplate(args: {
+  projectName: string;
+  workspaceId?: string;
+  route: string;
+}) {
+  return `## Session Context
+- Project: ${args.projectName}
+- Workspace: ${args.workspaceId ?? ""}
+- Route: ${args.route}
+- Tester:
+- Date:
+
+## Flow Attempted
+1.
+2.
+3.
+
+## Expected Behavior
+
+## Actual Behavior
+
+## Why This Matters For Internal Alpha
+- [ ] Blocks real project work
+- [ ] Makes agent activity hard to understand
+- [ ] Makes approvals ambiguous
+- [ ] Makes evidence provenance unclear
+- [ ] Creates confidence loss but work can continue
+
+## Evidence
+- Screenshot:
+- Job ID / trace:
+- Artifact or document involved:
+
+## Severity
+- [ ] Release-blocking for internal alpha
+- [ ] High-friction but test can continue
+- [ ] Minor clarity issue
+
+## Repeatability
+- [ ] Reproduced once
+- [ ] Reproduced multiple times
+- [ ] Intermittent
+
+## Related Issues
+- GTM-107
+- Related existing issue(s):`;
 }
 
 export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
@@ -560,6 +612,27 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     },
     [answerPendingQuestion],
   );
+
+  const handleCopyAlphaFeedbackTemplate = useCallback(async () => {
+    if (!project) return;
+
+    const template = buildInternalAlphaFeedbackTemplate({
+      projectName: project.name,
+      workspaceId: project.workspaceId,
+      route: pathname,
+    });
+
+    try {
+      await navigator.clipboard.writeText(template);
+      toast.success("Copied Linear alpha feedback template");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to copy the alpha feedback template",
+      );
+    }
+  }, [pathname, project]);
 
   // Extract GitHub repo info for file fetching
   const githubInfo = useMemo(() => {
@@ -1174,6 +1247,12 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                               Open Execution
                             </span>
                           </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span>Agent admin layer</span>
+                            <span className="font-medium text-foreground">
+                              Agent Catalog
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1203,7 +1282,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                     </div>
                   </Window>
 
-                  <Window title="evidence-and-execution">
+                  <Window title="alpha-operator-loop">
                     <div className="space-y-3">
                       <div className="rounded-xl border border-border bg-card/40 p-3">
                         <p className="text-[11px] font-mono text-muted-foreground">
@@ -1214,13 +1293,24 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                             ? `${project.signalCount} signals currently inform this project.`
                             : "No linked signals yet. Review evidence before advancing the project."}
                         </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 gap-1.5"
+                          onClick={() => handleTabChange("signals")}
+                        >
+                          Review evidence
+                          <Radio className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                       <div className="rounded-xl border border-border bg-card/40 p-3">
                         <p className="text-[11px] font-mono text-muted-foreground">
-                          Execution path
+                          Agent visibility
                         </p>
                         <p className="mt-1 text-sm">
-                          Use project commands for stage-specific work, and treat the other tabs as supporting surfaces.
+                          {activeProjectJobs.length > 0
+                            ? `${activeProjectJobs.length} run${activeProjectJobs.length === 1 ? "" : "s"} currently active. Follow live execution from Active Work or Elmer.`
+                            : "No active runs right now. Use project commands to start the next stage-specific job."}
                         </p>
                         <Button
                           variant="outline"
@@ -1231,6 +1321,74 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                           Open execution
                           <Terminal className="w-3.5 h-3.5" />
                         </Button>
+                      </div>
+                      <div className="rounded-xl border border-border bg-card/40 p-3">
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Human gates
+                        </p>
+                        <p className="mt-1 text-sm">
+                          {projectPendingQuestions.length > 0
+                            ? `${projectPendingQuestions.length} pending approval${projectPendingQuestions.length === 1 ? "" : "s"} or question${projectPendingQuestions.length === 1 ? "" : "s"} need a human response before work can continue.`
+                            : "No pending approvals right now. The project can progress without a manual gate at the moment."}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 gap-1.5"
+                          onClick={() =>
+                            openElmerPanelWithContext("project", projectId, project.name)
+                          }
+                        >
+                          Open approvals in Elmer
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      <div className="rounded-xl border border-border bg-muted/30 p-3">
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Daily flow
+                        </p>
+                        <ol className="mt-2 space-y-1 text-sm text-muted-foreground">
+                          <li>1. Review the evidence linked to this project.</li>
+                          <li>2. Run or inspect the next project command.</li>
+                          <li>3. Resolve any human gate before leaving the cockpit.</li>
+                          <li>4. Capture follow-up tasks or feedback after each run.</li>
+                        </ol>
+                      </div>
+                      <div className="rounded-xl border border-border bg-card/40 p-3">
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Internal alpha feedback
+                        </p>
+                        <p className="mt-1 text-sm">
+                          File new usability, runtime, approval, evidence, or
+                          agent-visibility findings into Linear under
+                          `GTM-107` before ending the session.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={handleCopyAlphaFeedbackTemplate}
+                          >
+                            Copy issue template
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() =>
+                              window.open(
+                                INTERNAL_ALPHA_FEEDBACK_ISSUE_URL,
+                                "_blank",
+                                "noopener,noreferrer",
+                              )
+                            }
+                          >
+                            Open GTM-107
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </Window>
