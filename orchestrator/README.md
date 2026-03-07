@@ -44,7 +44,7 @@ docker compose up -d
 
 This starts a PostgreSQL 16 container with:
 
-- **Host**: localhost:5432
+- **Host**: localhost:5433
 - **Database**: orchestrator
 - **User**: elmer
 - **Password**: elmer_local_dev
@@ -66,6 +66,8 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000)
 
 ## Architecture
+
+For the current Convex cutover roadmap, see [MIGRATION-READINESS.md](./MIGRATION-READINESS.md).
 
 ```
 orchestrator/
@@ -209,22 +211,38 @@ docker compose down -v
 
 **Connection Details:**
 
-- Host: `localhost:5432`
+- Host: `localhost:5433`
 - Database: `orchestrator`
 - User: `elmer`
 - Password: `elmer_local_dev`
-- Connection string: `postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator`
+- Connection string: `postgresql://elmer:elmer_local_dev@localhost:5433/orchestrator`
 
 ## Public Access
 
 The app is exposed publicly via Cloudflare Tunnel at **https://elmer.studio**.
+
+Clerk authentication uses a separate frontend API hostname. For the current
+custom-domain setup, both of these records must resolve independently of the
+app tunnel:
+
+- `clerk.elmer.studio` -> `frontend-api.clerk.services`
+- `accounts.elmer.studio` -> `accounts.clerk.services`
+
+If those DNS records are missing, `/login` can render the shell while Clerk
+assets fail to load with hostname errors.
 
 ```bash
 # Start tunnel
 cloudflared tunnel run elmer
 
 # Or use the /local command in Cursor to start everything
+# Validate auth/DNS wiring
+npm run check:auth
 ```
+
+`npm run check:auth` validates the Clerk publishable key, `CLERK_JWT_ISSUER_DOMAIN`,
+`AUTH_URL`/`NEXTAUTH_URL`, and `NEXT_PUBLIC_CONVEX_URL` before it checks the
+public `/login` route and Clerk DNS.
 
 **Note:** Site is only available when your Mac is running with all services active.
 

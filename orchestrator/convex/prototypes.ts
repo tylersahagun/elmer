@@ -75,6 +75,36 @@ export const listByProject = query({
   },
 });
 
+export const listByProjectDetailed = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const variants = await ctx.db
+      .query("prototypeVariants")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect();
+
+    return variants.map((variant) => {
+      const metadata = (variant.metadata ?? {}) as Record<string, unknown>;
+      return {
+        id: variant._id,
+        name: variant.title,
+        type: (metadata.prototypeType as string | undefined) ?? variant.platform,
+        status: variant.status,
+        chromaticUrl: variant.chromaticUrl,
+        chromaticStorybookUrl:
+          (metadata.chromaticStorybookUrl as string | undefined) ??
+          variant.chromaticUrl,
+        storybookPath:
+          (metadata.storybookPath as string | undefined) ??
+          (metadata.sourcePath as string | undefined),
+        metadata,
+      };
+    });
+  },
+});
+
 export const get = query({
   args: { variantId: v.id("prototypeVariants") },
   handler: async (ctx, { variantId }) => {
@@ -201,6 +231,7 @@ export const createVariant = mutation({
     content: v.optional(v.string()),
     chromaticUrl: v.optional(v.string()),
     parentVariantId: v.optional(v.id("prototypeVariants")),
+    metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -220,15 +251,60 @@ export const createVariant = mutation({
   },
 });
 
-// ── Action: postPrototypeToSlack ──────────────────────────────────────────────
+export const updateVariant = mutation({
+  args: {
+    variantId: v.id("prototypeVariants"),
+    title: v.optional(v.string()),
+    url: v.optional(v.string()),
+    chromaticUrl: v.optional(v.string()),
+    status: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, { variantId, ...patch }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const existing = await ctx.db.get(variantId);
+    if (!existing) throw new Error("Prototype variant not found");
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) updates[key] = value;
+    }
+    await ctx.db.patch(variantId, updates);
+    return await ctx.db.get(variantId);
+  },
+});
 
-export const postPrototypeToSlack = action({
+export const deleteVariant = mutation({
   args: { variantId: v.id("prototypeVariants") },
   handler: async (ctx, { variantId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    const existing = await ctx.db.get(variantId);
+    if (!existing) throw new Error("Prototype variant not found");
+    await ctx.db.delete(variantId);
+    return { ok: true };
+  },
+});
 
-    const variant = await ctx.runQuery(api.prototypes.get, { variantId });
+// ── Action: postPrototypeToSlack ──────────────────────────────────────────────
+
+export const postPrototypeToSlack = action({
+  args: { variantId: v.id("prototypeVariants") },
+  handler: async (
+    ctx,
+    { variantId },
+  ): Promise<{ ok: true; slackMessageTs: string; channel: string; url: string }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const variant: {
+      chromaticUrl?: string | null;
+      url?: string | null;
+      iterationCount?: number | null;
+      title: string;
+      projectId: Id<"projects">;
+      workspaceId: Id<"workspaces">;
+    } | null = await ctx.runQuery(api.prototypes.get, { variantId });
     if (!variant) throw new Error("Prototype variant not found");
     if (!variant.chromaticUrl && !variant.url) {
       throw new Error("Variant has no URL to share — set chromaticUrl or url first");
@@ -247,7 +323,7 @@ export const postPrototypeToSlack = action({
       );
     }
 
-    const url = variant.chromaticUrl ?? variant.url!;
+    const url: string = (variant.chromaticUrl ?? variant.url)!;
     const iterLabel = (variant.iterationCount ?? 0) > 0
       ? ` (iteration ${variant.iterationCount})`
       : "";
@@ -305,11 +381,18 @@ export const postPrototypeToSlack = action({
 
 export const ingestPrototypeFeedback = action({
   args: { variantId: v.id("prototypeVariants") },
-  handler: async (ctx, { variantId }) => {
+  handler: async (
+    ctx,
+    { variantId },
+  ): Promise<{ ok: true; ingestedCount: number; message: string; totalReplies?: number }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const variant = await ctx.runQuery(api.prototypes.get, { variantId });
+    const variant: {
+      slackMessageTs?: string | null;
+      projectId: Id<"projects">;
+      workspaceId: Id<"workspaces">;
+    } | null = await ctx.runQuery(api.prototypes.get, { variantId });
     if (!variant) throw new Error("Prototype variant not found");
     if (!variant.slackMessageTs) {
       throw new Error("Variant has not been posted to Slack yet. Call postPrototypeToSlack first.");
@@ -329,7 +412,7 @@ export const ingestPrototypeFeedback = action({
       ts: variant.slackMessageTs,
     }) as { messages: Array<{ ts: string; text: string; user?: string; bot_id?: string }> };
 
-    const replies = (repliesData.messages ?? [])
+    const replies: Array<{ ts: string; text: string; user?: string; bot_id?: string }> = (repliesData.messages ?? [])
       // Skip the original message (first item) and bot messages
       .filter((m) => m.ts !== variant.slackMessageTs && !m.bot_id)
       .filter((m) => m.text?.trim().length > 0);
@@ -392,11 +475,34 @@ export const iteratePrototype = action({
     variantId: v.id("prototypeVariants"),
     instructions: v.optional(v.string()),
   },
-  handler: async (ctx, { variantId, instructions }) => {
+  handler: async (
+    ctx,
+    { variantId, instructions },
+  ): Promise<{
+    ok: boolean;
+    message?: string;
+    newVariantId?: Id<"prototypeVariants">;
+    jobId?: Id<"jobs">;
+    iterationCount?: number;
+    synthesis?: {
+      summary: string;
+      changes: string[];
+      builderBrief: string;
+      challengedAssumptions: string[];
+    };
+  }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const variant = await ctx.runQuery(api.prototypes.get, { variantId });
+    const variant: {
+      title: string;
+      platform: string;
+      outputType: string;
+      chromaticUrl?: string | null;
+      iterationCount?: number | null;
+      workspaceId: Id<"workspaces">;
+      projectId: Id<"projects">;
+    } | null = await ctx.runQuery(api.prototypes.get, { variantId });
     if (!variant) throw new Error("Prototype variant not found");
 
     const project = await ctx.runQuery(api.projects.get, {
@@ -494,7 +600,7 @@ export const iteratePrototype = action({
 
     // Create the next prototype variant placeholder
     const nextIterationCount = (variant.iterationCount ?? 0) + 1;
-    const newVariantId = await ctx.runMutation(internal.prototypes.create, {
+    const newVariantId: Id<"prototypeVariants"> = await ctx.runMutation(internal.prototypes.create, {
       workspaceId: variant.workspaceId,
       projectId: variant.projectId,
       platform: variant.platform,
@@ -566,7 +672,10 @@ export const handleSlackPrototypeThread = internalAction({
     text: v.string(),
     userId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ handled: boolean; reason?: string; variantId?: Id<"prototypeVariants"> }> => {
     // Check if text contains a Chromatic or Storybook URL
     const isPrototypeLink =
       args.text.includes("chromatic.com") ||
@@ -576,13 +685,13 @@ export const handleSlackPrototypeThread = internalAction({
     if (!isPrototypeLink) return { handled: false };
 
     // Find the project linked to this Slack channel
-    const projects = await ctx.runQuery(internal.prototypes.listBySlackChannel, {
+    const projects: Array<{ _id: Id<"projects"> }> = await ctx.runQuery(internal.prototypes.listBySlackChannel, {
       workspaceId: args.workspaceId,
       slackChannelId: args.channelId,
     });
 
     if (!projects.length) return { handled: false };
-    const project = projects[0];
+    const project: { _id: Id<"projects"> } = projects[0];
 
     // Extract the URL from the message
     const urlMatch = args.text.match(/https?:\/\/[^\s>]+/);
@@ -601,7 +710,7 @@ export const handleSlackPrototypeThread = internalAction({
     }
 
     // Auto-create a variant for links shared directly in Slack (outside of Elmer)
-    const variantId = await ctx.runMutation(internal.prototypes.create, {
+    const variantId: Id<"prototypeVariants"> = await ctx.runMutation(internal.prototypes.create, {
       workspaceId: args.workspaceId,
       projectId: project._id,
       platform: url?.includes("chromatic") ? "storybook" : "storybook",
@@ -740,8 +849,30 @@ export const iteratePrototypeInternal = internalAction({
     variantId: v.id("prototypeVariants"),
     instructions: v.optional(v.string()),
   },
-  handler: async (ctx, { variantId, instructions }) => {
-    const variant = await ctx.runQuery(internal.mcp.getPrototypeVariant, { variantId });
+  handler: async (
+    ctx,
+    { variantId, instructions },
+  ): Promise<{
+    ok: boolean;
+    message?: string;
+    newVariantId?: Id<"prototypeVariants">;
+    jobId?: Id<"jobs">;
+    iterationCount?: number;
+    synthesis?: {
+      summary: string;
+      changes: string[];
+      builderBrief: string;
+      challengedAssumptions: string[];
+    };
+  }> => {
+    const variant: {
+      title: string;
+      platform: string;
+      outputType: string;
+      iterationCount?: number | null;
+      workspaceId: Id<"workspaces">;
+      projectId: Id<"projects">;
+    } | null = await ctx.runQuery(internal.mcp.getPrototypeVariant, { variantId });
     if (!variant) throw new Error("Prototype variant not found");
 
     const project = await ctx.runQuery(api.projects.get, { projectId: variant.projectId });
@@ -801,7 +932,7 @@ export const iteratePrototypeInternal = internalAction({
     }
 
     const nextIterationCount = (variant.iterationCount ?? 0) + 1;
-    const newVariantId = await ctx.runMutation(internal.prototypes.create, {
+    const newVariantId: Id<"prototypeVariants"> = await ctx.runMutation(internal.prototypes.create, {
       workspaceId: variant.workspaceId,
       projectId: variant.projectId,
       platform: variant.platform,
@@ -811,7 +942,7 @@ export const iteratePrototypeInternal = internalAction({
       iterationCount: nextIterationCount,
     });
 
-    const jobId = await ctx.runMutation(internal.mcp.createJob, {
+    const jobId: Id<"jobs"> = await ctx.runMutation(internal.mcp.createJob, {
       workspaceId: variant.workspaceId,
       projectId: variant.projectId,
       type: "prototype_iteration",
@@ -844,7 +975,10 @@ export const handleSlackElmerMention = internalAction({
     text: v.string(),
     userId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ ok: true; jobId: Id<"jobs"> }> => {
     // Strip @elmer prefix and clean the command
     const command = args.text
       .replace(/@elmer\s*/gi, "")
@@ -852,7 +986,7 @@ export const handleSlackElmerMention = internalAction({
       .trim();
 
     // Create a job to handle the user's request via the agent loop
-    const jobId = await ctx.runMutation(internal.mcp.createJob, {
+    const jobId: Id<"jobs"> = await ctx.runMutation(internal.mcp.createJob, {
       workspaceId: args.workspaceId,
       type: "slack_command",
       input: {
@@ -887,16 +1021,19 @@ export const handleSlackFeedbackMessage = internalAction({
     text: v.string(),
     userId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ handled: boolean; signalId?: Id<"signals">; projectId?: Id<"projects"> }> => {
     // Only ingest if the channel is linked to a project
-    const projects = await ctx.runQuery(internal.prototypes.listBySlackChannel, {
+    const projects: Array<{ _id: Id<"projects"> }> = await ctx.runQuery(internal.prototypes.listBySlackChannel, {
       workspaceId: args.workspaceId,
       slackChannelId: args.channelId,
     });
     if (!projects.length) return { handled: false };
 
-    const project = projects[0];
-    const signalId = await ctx.runMutation(internal.mcp.createSignal, {
+    const project: { _id: Id<"projects"> } = projects[0];
+    const signalId: Id<"signals"> = await ctx.runMutation(internal.mcp.createSignal, {
       workspaceId: args.workspaceId,
       verbatim: args.text,
       source: `slack:${args.channelId}`,

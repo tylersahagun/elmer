@@ -74,7 +74,7 @@ Content: ${item.rawContent.slice(0, 3000)}
 
 ## Active Projects
 ${activeProjects
-  .map((p) => `- ${p.name} (${p.stage}): ${p.description}`)
+  .map((p: { name: string; stage: string; description: string }) => `- ${p.name} (${p.stage}): ${p.description}`)
   .join("\n")}
 
 ## Your Task

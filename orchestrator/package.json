@@ -14,6 +14,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:smoke": "playwright test --grep @smoke",
     "test:e2e:headed": "playwright test --headed",
+    "check:auth": "tsx scripts/check-auth-health.ts",
     "worker": "tsx src/worker.ts",
     "execution-worker": "tsx src/execution-worker.ts",
     "db:generate": "drizzle-kit generate",

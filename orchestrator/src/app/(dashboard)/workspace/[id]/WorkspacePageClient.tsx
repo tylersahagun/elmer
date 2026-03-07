@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { useConvexAuth, useQuery as useConvexQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
@@ -34,6 +35,10 @@ import {
 import { useRealtimeJobs } from "@/hooks/useRealtimeJobs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useWorkspaceRole } from "@/hooks/useWorkspaceRole";
+import {
+  resolveWorkspaceColumns,
+  type WorkspaceColumnConfig,
+} from "@/lib/workspaces/columns";
 import { Window } from "@/components/chrome/Window";
 import { canRunConvexQuery } from "@/lib/auth/convex";
 import { getWorkspacePathSegment } from "@/lib/workspaces/path";
@@ -127,6 +132,33 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       ? { workspaceId: workspaceId as Id<"workspaces"> }
       : "skip",
   );
+  const { data: configuredColumns } = useTanstackQuery({
+    queryKey: ["columns", workspaceId],
+    queryFn: async () => {
+      const res = await fetch(`/api/columns?workspaceId=${workspaceId}`);
+      if (!res.ok) {
+        throw new Error("Failed to load columns");
+      }
+      return (await res.json()) as WorkspaceColumnConfig[];
+    },
+    enabled: canLoadConvexData,
+  });
+  const { data: legacyProjectsWithCounts } = useTanstackQuery({
+    queryKey: ["workspace-project-counts", workspaceId],
+    queryFn: async () => {
+      const res = await fetch(`/api/projects?workspaceId=${workspaceId}`);
+      if (!res.ok) {
+        throw new Error("Failed to load project counts");
+      }
+      return (await res.json()) as Array<{
+        id: string;
+        documentCount?: number;
+        prototypeCount?: number;
+        signalCount?: number;
+      }>;
+    },
+    enabled: canLoadConvexData,
+  });
 
   // Update store when data loads
   useEffect(() => {
@@ -137,13 +169,25 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
         githubRepo: workspace.githubRepo,
         settings: workspace.settings || {},
       });
-
-      setColumns(DEFAULT_COLUMNS);
     }
-  }, [workspace, setWorkspace, setColumns]);
+  }, [workspace, setWorkspace]);
+
+  useEffect(() => {
+    setColumns(resolveWorkspaceColumns(configuredColumns, DEFAULT_COLUMNS));
+  }, [configuredColumns, setColumns]);
 
   useEffect(() => {
     if (projects) {
+      const projectCounts = new Map(
+        (legacyProjectsWithCounts ?? []).map((project) => [
+          project.id,
+          {
+            documentCount: project.documentCount ?? 0,
+            prototypeCount: project.prototypeCount ?? 0,
+            signalCount: project.signalCount ?? 0,
+          },
+        ]),
+      );
       const mappedProjects: ProjectCard[] = projects.map(
         (p: {
           _id: string;
@@ -158,24 +202,34 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
             baseBranch?: string;
             tldr?: string;
           };
-        }) => ({
-          id: p._id,
-          name: p.name,
-          description: p.description,
-          stage: p.stage as ProjectCard["stage"],
-          status: "active",
-          priority:
-            p.priority === "P0" ? 0 : p.priority === "P1" ? 1 : p.priority === "P2" ? 2 : 3,
-          createdAt: new Date(p._creationTime),
-          updatedAt: new Date(p._creationTime),
-          documentCount: 0,
-          prototypeCount: 0,
-          metadata: p.metadata,
-        }),
+        }) => {
+          const counts = projectCounts.get(p._id);
+          return {
+            id: p._id,
+            name: p.name,
+            description: p.description,
+            stage: p.stage as ProjectCard["stage"],
+            status: "active",
+            priority:
+              p.priority === "P0"
+                ? 0
+                : p.priority === "P1"
+                  ? 1
+                  : p.priority === "P2"
+                    ? 2
+                    : 3,
+            createdAt: new Date(p._creationTime),
+            updatedAt: new Date(p._creationTime),
+            documentCount: counts?.documentCount ?? 0,
+            prototypeCount: counts?.prototypeCount ?? 0,
+            signalCount: counts?.signalCount ?? 0,
+            metadata: p.metadata,
+          };
+        },
       );
       setProjects(mappedProjects);
     }
-  }, [projects, setProjects]);
+  }, [legacyProjectsWithCounts, projects, setProjects]);
 
   const isLoading =
     isSignedIn &&

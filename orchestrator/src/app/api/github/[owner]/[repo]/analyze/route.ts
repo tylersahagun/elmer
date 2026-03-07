@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
 import { auth } from "@/auth";
+import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
 
 type RouteContext = {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json(
         {
           error: "GitHub not connected",
-          connectUrl: "/api/auth/signin/github",
+          connectUrl: GITHUB_OAUTH_CONNECT_URL,
         },
         { status: 403 },
       );

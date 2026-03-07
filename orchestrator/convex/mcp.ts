@@ -324,6 +324,48 @@ export const listKnowledge = internalQuery({
   },
 });
 
+export const upsertKnowledge = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    type: v.string(),
+    title: v.string(),
+    content: v.string(),
+    filePath: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const candidates = await ctx.db
+      .query("knowledgebaseEntries")
+      .withIndex("by_workspace_type", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("type", args.type),
+      )
+      .collect();
+
+    const existing = args.filePath
+      ? candidates.find((entry) => entry.filePath === args.filePath)
+      : candidates[0];
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        title: args.title,
+        content: args.content,
+        filePath: args.filePath,
+        version: existing.version + 1,
+      });
+      return await ctx.db.get(existing._id);
+    }
+
+    const id = await ctx.db.insert("knowledgebaseEntries", {
+      workspaceId: args.workspaceId,
+      type: args.type,
+      title: args.title,
+      content: args.content,
+      filePath: args.filePath,
+      version: 1,
+    });
+    return await ctx.db.get(id);
+  },
+});
+
 // ── Workspace access / memberships / invitations ─────────────────────────────
 
 export const getWorkspace = internalQuery({
@@ -385,6 +427,174 @@ export const listWorkspaceInvitations = internalQuery({
       .query("invitations")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
       .collect();
+  },
+});
+
+export const listWorkspaceActivity = internalQuery({
+  args: {
+    workspaceId: v.id("workspaces"),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, { workspaceId, limit = 20, offset = 0 }) => {
+    const rows = await ctx.db
+      .query("activityLogs")
+      .withIndex("by_workspace_created", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+    const sorted = rows.sort((a, b) => b.createdAt - a.createdAt);
+    return sorted.slice(offset, offset + limit).map((row) => ({
+      id: row._id,
+      workspaceId: row.workspaceId,
+      userId: row.userId ?? null,
+      action: row.action,
+      targetType: row.targetType ?? null,
+      targetId: row.targetId ?? null,
+      metadata: row.metadata ?? null,
+      createdAt: new Date(row.createdAt).toISOString(),
+      user: row.actorEmail || row.actorName || row.actorImage
+        ? {
+            id: row.userId ?? "unknown",
+            name: row.actorName ?? null,
+            email: row.actorEmail ?? "",
+            image: row.actorImage ?? null,
+          }
+        : null,
+    }));
+  },
+});
+
+export const createWorkspaceActivity = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    userId: v.optional(v.string()),
+    action: v.string(),
+    targetType: v.optional(v.string()),
+    targetId: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    actorName: v.optional(v.string()),
+    actorEmail: v.optional(v.string()),
+    actorImage: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("activityLogs", {
+      ...args,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+// ── Column configs ────────────────────────────────────────────────────────────
+
+export const listColumnConfigs = internalQuery({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, { workspaceId }) => {
+    return await ctx.db
+      .query("columnConfigs")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+  },
+});
+
+export const ensureDefaultColumnConfigs = internalMutation({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, { workspaceId }) => {
+    const existing = await ctx.db
+      .query("columnConfigs")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+    if (existing.length > 0) return existing;
+
+    const defaults = [
+      { stage: "inbox", displayName: "Inbox", color: "slate", autoTriggerJobs: [], requiredDocuments: [], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: false, enabled: true },
+      { stage: "discovery", displayName: "Discovery", color: "teal", autoTriggerJobs: ["analyze_transcript"], requiredDocuments: [], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: false, enabled: true },
+      { stage: "prd", displayName: "PRD", color: "purple", autoTriggerJobs: ["generate_prd", "generate_design_brief", "generate_engineering_spec", "generate_gtm_brief"], requiredDocuments: ["research"], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: true, enabled: true },
+      { stage: "design", displayName: "Design", color: "blue", autoTriggerJobs: [], requiredDocuments: ["prd", "design_brief", "engineering_spec"], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: false, enabled: true },
+      { stage: "prototype", displayName: "Prototype", color: "pink", autoTriggerJobs: ["build_prototype", "deploy_chromatic"], requiredDocuments: ["prd"], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: true, enabled: true },
+      { stage: "validate", displayName: "Validate", color: "amber", autoTriggerJobs: ["run_jury_evaluation"], requiredDocuments: ["prototype_notes"], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: true, enabled: true },
+      { stage: "tickets", displayName: "Tickets", color: "orange", autoTriggerJobs: ["generate_tickets", "validate_tickets"], requiredDocuments: ["engineering_spec"], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: false, enabled: true },
+      { stage: "build", displayName: "Build", color: "green", autoTriggerJobs: [], requiredDocuments: [], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: false, enabled: true },
+      { stage: "alpha", displayName: "Alpha", color: "cyan", autoTriggerJobs: [], requiredDocuments: [], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: false, enabled: true },
+      { stage: "beta", displayName: "Beta", color: "indigo", autoTriggerJobs: [], requiredDocuments: [], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: false, enabled: true },
+      { stage: "ga", displayName: "GA", color: "emerald", autoTriggerJobs: [], requiredDocuments: [], requiredApprovals: 0, aiIterations: 0, rules: {}, humanInLoop: false, enabled: true },
+    ];
+    for (let index = 0; index < defaults.length; index++) {
+      const column = defaults[index];
+      await ctx.db.insert("columnConfigs", { workspaceId, order: index, ...column });
+    }
+    return await ctx.db
+      .query("columnConfigs")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+  },
+});
+
+export const createColumnConfig = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    stage: v.string(),
+    displayName: v.string(),
+    order: v.number(),
+    color: v.optional(v.string()),
+    autoTriggerJobs: v.optional(v.array(v.string())),
+    agentTriggers: v.optional(v.array(v.any())),
+    requiredDocuments: v.optional(v.array(v.string())),
+    requiredApprovals: v.optional(v.number()),
+    aiIterations: v.optional(v.number()),
+    rules: v.optional(v.any()),
+    humanInLoop: v.optional(v.boolean()),
+    enabled: v.optional(v.boolean()),
+    graduationCriteria: v.optional(v.any()),
+    enforceGraduation: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("columnConfigs", {
+      ...args,
+      color: args.color ?? "slate",
+      autoTriggerJobs: args.autoTriggerJobs ?? [],
+      agentTriggers: args.agentTriggers ?? [],
+      requiredDocuments: args.requiredDocuments ?? [],
+      requiredApprovals: args.requiredApprovals ?? 0,
+      aiIterations: args.aiIterations ?? 0,
+      rules: args.rules ?? {},
+      humanInLoop: args.humanInLoop ?? false,
+      enabled: args.enabled ?? true,
+    });
+    return await ctx.db.get(id);
+  },
+});
+
+export const updateColumnConfig = internalMutation({
+  args: {
+    columnId: v.id("columnConfigs"),
+    displayName: v.optional(v.string()),
+    order: v.optional(v.number()),
+    color: v.optional(v.string()),
+    autoTriggerJobs: v.optional(v.array(v.string())),
+    agentTriggers: v.optional(v.array(v.any())),
+    requiredDocuments: v.optional(v.array(v.string())),
+    requiredApprovals: v.optional(v.number()),
+    aiIterations: v.optional(v.number()),
+    rules: v.optional(v.any()),
+    humanInLoop: v.optional(v.boolean()),
+    enabled: v.optional(v.boolean()),
+    graduationCriteria: v.optional(v.any()),
+    enforceGraduation: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { columnId, ...patch }) => {
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) updates[key] = value;
+    }
+    await ctx.db.patch(columnId, updates);
+    return await ctx.db.get(columnId);
+  },
+});
+
+export const deleteColumnConfig = internalMutation({
+  args: { columnId: v.id("columnConfigs") },
+  handler: async (ctx, { columnId }) => {
+    await ctx.db.delete(columnId);
+    return { ok: true };
   },
 });
 
@@ -492,6 +702,181 @@ export const acceptInvitationByToken = internalMutation({
     }
     await ctx.db.patch(invitation._id, { acceptedAt: Date.now() });
     return { success: true, workspaceId: invitation.workspaceId };
+  },
+});
+
+// ── Personas / search ─────────────────────────────────────────────────────────
+
+export const listPersonas = internalQuery({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, { workspaceId }) => {
+    return await ctx.db
+      .query("personas")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+  },
+});
+
+export const upsertPersona = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    archetypeId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    role: v.any(),
+    pains: v.array(v.string()),
+    successCriteria: v.array(v.string()),
+    evaluationHeuristics: v.array(v.string()),
+    typicalTools: v.array(v.string()),
+    fears: v.array(v.string()),
+    psychographicRanges: v.any(),
+    content: v.string(),
+    filePath: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("personas")
+      .withIndex("by_workspace_archetype", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("archetypeId", args.archetypeId),
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        ...args,
+        version: existing.version + 1,
+      });
+      return await ctx.db.get(existing._id);
+    }
+    const id = await ctx.db.insert("personas", {
+      ...args,
+      version: 1,
+    });
+    return await ctx.db.get(id);
+  },
+});
+
+export const listSignalPersonas = internalQuery({
+  args: { signalId: v.id("signals") },
+  handler: async (ctx, { signalId }) => {
+    const links = await ctx.db
+      .query("signalPersonas")
+      .withIndex("by_signal", (q) => q.eq("signalId", signalId))
+      .collect();
+    const personas = await Promise.all(links.map((link) => ctx.db.get(link.personaId)));
+    return links.map((link, index) => ({
+      persona: personas[index],
+      linkedAt: new Date(link._creationTime).toISOString(),
+    })).filter((entry) => entry.persona);
+  },
+});
+
+export const linkSignalPersona = internalMutation({
+  args: {
+    signalId: v.id("signals"),
+    personaId: v.id("personas"),
+    linkedBy: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("signalPersonas")
+      .withIndex("by_signal", (q) => q.eq("signalId", args.signalId))
+      .filter((q) => q.eq(q.field("personaId"), args.personaId))
+      .unique();
+    if (existing) return existing._id;
+    return await ctx.db.insert("signalPersonas", args);
+  },
+});
+
+export const unlinkSignalPersona = internalMutation({
+  args: {
+    signalId: v.id("signals"),
+    personaId: v.id("personas"),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("signalPersonas")
+      .withIndex("by_signal", (q) => q.eq("signalId", args.signalId))
+      .filter((q) => q.eq(q.field("personaId"), args.personaId))
+      .unique();
+    if (!existing) return null;
+    await ctx.db.delete(existing._id);
+    return existing._id;
+  },
+});
+
+export const searchWorkspace = internalQuery({
+  args: {
+    workspaceId: v.id("workspaces"),
+    q: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const normalized = args.q.trim().toLowerCase();
+    if (!normalized) return { documents: [], memory: [], knowledgebase: [], personas: [] };
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    const documents = (
+      await Promise.all(
+        projects.map((project) =>
+          ctx.db
+            .query("documents")
+            .withIndex("by_project", (q) => q.eq("projectId", project._id))
+            .collect(),
+        ),
+      )
+    ).flat();
+    const [memory, knowledgebase, personas] = await Promise.all([
+      ctx.db
+        .query("memoryEntries")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+        .collect(),
+      ctx.db
+        .query("knowledgebaseEntries")
+        .withIndex("by_workspace_type", (q) => q.eq("workspaceId", args.workspaceId))
+        .collect(),
+      ctx.db
+        .query("personas")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+        .collect(),
+    ]);
+
+    const includes = (value?: string) => (value ?? "").toLowerCase().includes(normalized);
+    return {
+      documents: documents
+        .filter((doc) => includes(doc.title) || includes(doc.content))
+        .map((doc) => ({
+          id: doc._id,
+          projectId: doc.projectId,
+          title: doc.title,
+          content: doc.content,
+          type: doc.type,
+        })),
+      memory: memory
+        .filter((entry) => includes(entry.content))
+        .map((entry) => ({
+          id: entry._id,
+          projectId: entry.projectId,
+          content: entry.content,
+          type: entry.type,
+        })),
+      knowledgebase: knowledgebase
+        .filter((entry) => includes(entry.title) || includes(entry.content))
+        .map((entry) => ({
+          id: entry._id,
+          title: entry.title,
+          content: entry.content,
+          type: entry.type,
+        })),
+      personas: personas
+        .filter((persona) => includes(persona.name) || includes(persona.description) || includes(persona.content))
+        .map((persona) => ({
+          id: persona._id,
+          archetypeId: persona.archetypeId,
+          name: persona.name,
+          description: persona.description,
+        })),
+    };
   },
 });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,8 @@ import {
   Eye,
 } from "lucide-react";
 import type { WorkspaceRole } from "@/lib/db/schema";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 interface InviteModalProps {
   workspaceId: string;
@@ -53,37 +55,42 @@ export function InviteModal({
   open,
   onOpenChange,
 }: InviteModalProps) {
-  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<WorkspaceRole>("member");
   const [copied, setCopied] = useState(false);
   const [inviteResult, setInviteResult] = useState<InvitationResult | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createInvitation = useMutation({
-    mutationFn: async (data: { email: string; role: WorkspaceRole }) => {
-      const res = await fetch(`/api/workspaces/${workspaceId}/invitations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to create invitation");
-      }
-      return res.json() as Promise<InvitationResult>;
-    },
-    onSuccess: (result) => {
-      setInviteResult(result);
-      queryClient.invalidateQueries({
-        queryKey: ["workspace-invitations", workspaceId],
-      });
-    },
-  });
+  const createInvitation = useMutation(api.invitations.create);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    createInvitation.mutate({ email: email.trim(), role });
+    setInviteError(null);
+    setIsSubmitting(true);
+    try {
+      const result = await createInvitation({
+        workspaceId: workspaceId as Id<"workspaces">,
+        email: email.trim(),
+        role,
+      });
+      const baseUrl = window.location.origin || "http://localhost:3000";
+      setInviteResult({
+        id: result.id,
+        token: result.token,
+        email: result.email,
+        role: result.role as WorkspaceRole,
+        expiresAt: new Date(result.expiresAt).toISOString(),
+        inviteUrl: `${baseUrl}/invite/${result.token}`,
+      });
+    } catch (error) {
+      setInviteError(
+        error instanceof Error ? error.message : "Failed to create invitation",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCopyLink = async () => {
@@ -98,7 +105,7 @@ export function InviteModal({
     setRole("member");
     setInviteResult(null);
     setCopied(false);
-    createInvitation.reset();
+    setInviteError(null);
     onOpenChange(false);
   };
 
@@ -107,7 +114,7 @@ export function InviteModal({
     setRole("member");
     setInviteResult(null);
     setCopied(false);
-    createInvitation.reset();
+    setInviteError(null);
   };
 
   const getRoleIcon = (r: WorkspaceRole) => {
@@ -152,7 +159,7 @@ export function InviteModal({
               
               <div className="flex items-center gap-2">
                 <div className="flex-1 flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
-                  <LinkIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span className="truncate text-muted-foreground">
                     {inviteResult.inviteUrl}
                   </span>
@@ -162,7 +169,7 @@ export function InviteModal({
                   variant="outline"
                   size="icon"
                   onClick={handleCopyLink}
-                  className="flex-shrink-0"
+                  className="shrink-0"
                 >
                   {copied ? (
                     <Check className="w-4 h-4 text-green-500" />
@@ -187,9 +194,9 @@ export function InviteModal({
         ) : (
           // Input state - email and role form
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            {createInvitation.error && (
+            {inviteError && (
               <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {createInvitation.error.message}
+                {inviteError}
               </div>
             )}
 
@@ -201,7 +208,7 @@ export function InviteModal({
                 placeholder="colleague@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={createInvitation.isPending}
+                disabled={isSubmitting}
                 autoFocus
               />
             </div>
@@ -211,7 +218,7 @@ export function InviteModal({
               <Select
                 value={role}
                 onValueChange={(value) => setRole(value as WorkspaceRole)}
-                disabled={createInvitation.isPending}
+                disabled={isSubmitting}
               >
                 <SelectTrigger id="role">
                   <SelectValue />
@@ -253,16 +260,16 @@ export function InviteModal({
                 type="button"
                 variant="ghost"
                 onClick={handleClose}
-                disabled={createInvitation.isPending}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={!email.trim() || createInvitation.isPending}
+                disabled={!email.trim() || isSubmitting}
                 className="gap-2"
               >
-                {createInvitation.isPending ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Creating...

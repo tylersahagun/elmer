@@ -3,6 +3,7 @@
 import { useState, useEffect, use, useRef } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery as useConvexQuery, useMutation as useConvexMutation } from "convex/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,8 @@ import {
   type KanbanColumn,
 } from "@/components/settings";
 import { AgentsList } from "@/components/agents/AgentsList";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 import type {
   WorkspaceRole,
   MaintenanceSettings,
@@ -254,33 +257,78 @@ export default function WorkspaceSettingsPage({
       enabled: !!workspaceId,
     });
 
-  // Fetch workspace members
-  const { data: members, isLoading: isLoadingMembers } = useQuery<
-    WorkspaceMember[]
-  >({
-    queryKey: ["workspace-members", workspaceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/workspaces/${workspaceId}/members`);
-      if (!res.ok) {
-        if (res.status === 403) return [];
-        throw new Error("Failed to fetch members");
-      }
-      return res.json();
-    },
-    enabled: !!workspaceId,
-  });
+  const rawMembers = useConvexQuery(api.memberships.listByWorkspace, {
+    workspaceId: workspaceId as Id<"workspaces">,
+  }) as
+    | Array<{
+        _id: string;
+        userId?: string;
+        clerkUserId: string;
+        role: WorkspaceRole;
+        joinedAt: number;
+        displayName?: string;
+        email?: string;
+        image?: string;
+      }>
+    | undefined;
+  const isLoadingMembers = rawMembers === undefined;
+  const members: WorkspaceMember[] =
+    rawMembers?.map((member) => ({
+      id: member._id,
+      userId: member.userId ?? member.clerkUserId,
+      role: member.role,
+      joinedAt: new Date(member.joinedAt).toISOString(),
+      user: {
+        id: member.userId ?? member.clerkUserId,
+        name: member.displayName ?? null,
+        email: member.email ?? "",
+        image: member.image ?? null,
+      },
+    })) ?? [];
 
   // Fetch workspace invitations (admin only)
-  const { data: invitations, isLoading: isLoadingInvitations } = useQuery<
-    Invitation[]
+  const rawInvitations = useConvexQuery(api.invitations.listByWorkspace, {
+    workspaceId: workspaceId as Id<"workspaces">,
+  }) as
+    | Array<{
+        _id: string;
+        email: string;
+        role: WorkspaceRole;
+        expiresAt: number;
+        acceptedAt?: number;
+        _creationTime: number;
+        inviterName?: string;
+        inviterEmail?: string;
+      }>
+    | undefined;
+  const isLoadingInvitations = rawInvitations === undefined;
+  const invitations: Invitation[] =
+    rawInvitations?.map((inv) => ({
+      id: inv._id,
+      email: inv.email,
+      role: inv.role,
+      expiresAt: new Date(inv.expiresAt).toISOString(),
+      acceptedAt: inv.acceptedAt ? new Date(inv.acceptedAt).toISOString() : null,
+      createdAt: new Date(inv._creationTime).toISOString(),
+      status: inv.acceptedAt
+        ? "accepted"
+        : inv.expiresAt < Date.now()
+          ? "expired"
+          : "pending",
+      inviter: {
+        id: inv.inviterEmail ?? "unknown",
+        name: inv.inviterName ?? null,
+        email: inv.inviterEmail ?? "",
+      },
+    })) ?? [];
+
+  const { data: workspaceColumns, isLoading: isLoadingColumns } = useQuery<
+    ColumnConfig[]
   >({
-    queryKey: ["workspace-invitations", workspaceId],
+    queryKey: ["workspace-columns", workspaceId],
     queryFn: async () => {
-      const res = await fetch(`/api/workspaces/${workspaceId}/invitations`);
-      if (!res.ok) {
-        if (res.status === 403) return [];
-        throw new Error("Failed to fetch invitations");
-      }
+      const res = await fetch(`/api/workspaces/${workspaceId}/columns`);
+      if (!res.ok) throw new Error("Failed to fetch workspace columns");
       return res.json();
     },
     enabled: !!workspaceId,
@@ -358,10 +406,10 @@ export default function WorkspaceSettingsPage({
     }
   }, [workspace]);
 
-  // Initialize columns from workspace data
+  // Initialize columns from the workspace columns route
   useEffect(() => {
-    if (workspace?.columnConfigs) {
-      const mappedColumns: KanbanColumn[] = workspace.columnConfigs.map(
+    if (workspaceColumns) {
+      const mappedColumns: KanbanColumn[] = workspaceColumns.map(
         (col) => ({
           id: col.stage,
           configId: col.id,
@@ -383,42 +431,15 @@ export default function WorkspaceSettingsPage({
       );
       setColumns(mappedColumns);
     }
-  }, [workspace?.columnConfigs]);
+  }, [workspaceColumns]);
 
   // Update workspace mutation
-  const updateWorkspace = useMutation({
-    mutationFn: async (data: { name?: string; description?: string }) => {
-      const res = await fetch(`/api/workspaces/${workspaceId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update workspace");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-      setIsEditingName(false);
-    },
-  });
+  const updateWorkspaceMutation = useConvexMutation(api.workspaces.update);
+  const [isUpdatingWorkspace, setIsUpdatingWorkspace] = useState(false);
 
   // Revoke invitation mutation
-  const revokeInvitation = useMutation({
-    mutationFn: async (invitationId: string) => {
-      const res = await fetch(
-        `/api/workspaces/${workspaceId}/invitations?invitationId=${invitationId}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) throw new Error("Failed to revoke invitation");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["workspace-invitations", workspaceId],
-      });
-    },
-  });
+  const revokeInvitation = useConvexMutation(api.invitations.revoke);
+  const [revokingInvitationId, setRevokingInvitationId] = useState<string | null>(null);
 
   // Find current user's role
   const currentUserMembership = members?.find(
@@ -504,54 +525,45 @@ export default function WorkspaceSettingsPage({
       const sanitizedMapping = Object.fromEntries(
         Object.entries(knowledgebaseMapping).filter(([, value]) => value),
       );
-      const res = await fetch(`/api/workspaces/${workspaceId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: workspaceName.trim() || undefined,
-          description: workspaceDescription.trim() || undefined,
-          githubRepo: githubRepo.trim() || null,
-          contextPath: normalizedContextPaths[0],
-          settings: {
-            prototypesPath: prototypesPath.trim() || undefined,
-            storybookPort: storybookPort ? Number(storybookPort) : undefined,
-            contextPaths: normalizedContextPaths,
-            baseBranch: baseBranch.trim() || "main",
-            githubRepoOwner: resolvedRepoMeta?.owner || undefined,
-            githubRepoName: resolvedRepoMeta?.repo || undefined,
-            autoCreateFeatureBranch,
-            autoCommitJobs,
-            cursorDeepLinkTemplate: cursorDeepLinkTemplate.trim() || undefined,
-            aiExecutionMode: "server",
-            aiValidationMode: "schema",
-            knowledgebaseMapping: sanitizedMapping,
-            automationMode,
-            automationStopStage: automationStopStage || undefined,
-            automationNotifyStage: automationNotifyStage || undefined,
-            workerEnabled,
-            workerMaxConcurrency: workerMaxConcurrency
-              ? Number(workerMaxConcurrency)
+      await updateWorkspaceMutation({
+        workspaceId: workspaceId as Id<"workspaces">,
+        name: workspaceName.trim() || undefined,
+        description: workspaceDescription.trim() || undefined,
+        githubRepo: githubRepo.trim() || undefined,
+        contextPath: normalizedContextPaths[0],
+        settings: {
+          prototypesPath: prototypesPath.trim() || undefined,
+          storybookPort: storybookPort ? Number(storybookPort) : undefined,
+          contextPaths: normalizedContextPaths,
+          baseBranch: baseBranch.trim() || "main",
+          githubRepoOwner: resolvedRepoMeta?.owner || undefined,
+          githubRepoName: resolvedRepoMeta?.repo || undefined,
+          autoCreateFeatureBranch,
+          autoCommitJobs,
+          cursorDeepLinkTemplate: cursorDeepLinkTemplate.trim() || undefined,
+          aiExecutionMode: "server",
+          aiValidationMode: "schema",
+          knowledgebaseMapping: sanitizedMapping,
+          automationMode,
+          automationStopStage: automationStopStage || undefined,
+          automationNotifyStage: automationNotifyStage || undefined,
+          workerEnabled,
+          workerMaxConcurrency: workerMaxConcurrency
+            ? Number(workerMaxConcurrency)
+            : undefined,
+          browserNotificationsEnabled,
+          notifyOnJobComplete,
+          notifyOnJobFailed,
+          notifyOnApprovalRequired,
+          atomicCommitsEnabled,
+          verificationStrictness,
+          stateTrackingEnabled,
+          sourceRepoTransformations:
+            sourceRepoTransformations.length > 0
+              ? sourceRepoTransformations
               : undefined,
-            browserNotificationsEnabled,
-            notifyOnJobComplete,
-            notifyOnJobFailed,
-            notifyOnApprovalRequired,
-            atomicCommitsEnabled,
-            verificationStrictness,
-            stateTrackingEnabled,
-            sourceRepoTransformations:
-              sourceRepoTransformations.length > 0
-                ? sourceRepoTransformations
-                : undefined,
-          },
-        }),
+        },
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Failed to update workspace (${res.status})`,
-        );
-      }
       queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
     } catch (error) {
       const errorMessage =
@@ -565,9 +577,17 @@ export default function WorkspaceSettingsPage({
 
   const handleSaveName = () => {
     if (!workspaceName.trim()) return;
-    updateWorkspace.mutate({
+    setIsUpdatingWorkspace(true);
+    void updateWorkspaceMutation({
+      workspaceId: workspaceId as Id<"workspaces">,
       name: workspaceName.trim(),
       description: workspaceDescription.trim() || undefined,
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      setIsEditingName(false);
+    }).finally(() => {
+      setIsUpdatingWorkspace(false);
     });
   };
 
@@ -610,8 +630,11 @@ export default function WorkspaceSettingsPage({
     }
   };
 
-  const getInitials = (name: string | null, email: string) => {
-    if (name) {
+  const getInitials = (name?: string | null, email?: string | null) => {
+    const trimmedName = name?.trim();
+    const trimmedEmail = email?.trim();
+
+    if (trimmedName) {
       return name
         .split(" ")
         .map((n) => n[0])
@@ -619,7 +642,10 @@ export default function WorkspaceSettingsPage({
         .toUpperCase()
         .slice(0, 2);
     }
-    return email[0].toUpperCase();
+    if (trimmedEmail) {
+      return trimmedEmail[0].toUpperCase();
+    }
+    return "?";
   };
 
   if (isLoadingWorkspace) {
@@ -738,12 +764,12 @@ export default function WorkspaceSettingsPage({
                         <Button
                           onClick={handleSaveName}
                           disabled={
-                            !workspaceName.trim() || updateWorkspace.isPending
+                            !workspaceName.trim() || isUpdatingWorkspace
                           }
                           size="sm"
                           className="gap-2"
                         >
-                          {updateWorkspace.isPending ? (
+                          {isUpdatingWorkspace ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <Save className="w-4 h-4" />
@@ -1212,12 +1238,25 @@ export default function WorkspaceSettingsPage({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() =>
-                                  revokeInvitation.mutate(invitation.id)
+                                  void (async () => {
+                                    setRevokingInvitationId(invitation.id);
+                                    try {
+                                      await revokeInvitation({
+                                        invitationId: invitation.id as Id<"invitations">,
+                                      });
+                                    } finally {
+                                      setRevokingInvitationId(null);
+                                    }
+                                  })()
                                 }
-                                disabled={revokeInvitation.isPending}
+                                disabled={revokingInvitationId === invitation.id}
                                 className="text-destructive hover:text-destructive"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                {revokingInvitationId === invitation.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
                               </Button>
                             </div>
                           </div>

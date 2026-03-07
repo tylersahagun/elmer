@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspaceMembers } from "@/lib/db/queries";
+import { listConvexWorkspaceMembers } from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+import type { WorkspaceRole } from "@/lib/db/schema";
 
 export async function GET(
   request: NextRequest,
@@ -16,8 +17,30 @@ export async function GET(
     // Require at least viewer access to see members
     await requireWorkspaceAccess(workspaceId, "viewer");
 
-    const members = await getWorkspaceMembers(workspaceId);
-    return NextResponse.json(members);
+    const members = await listConvexWorkspaceMembers(workspaceId) as Array<{
+      _id: string;
+      userId?: string;
+      clerkUserId: string;
+      role: WorkspaceRole;
+      joinedAt: number;
+      displayName?: string;
+      email?: string;
+      image?: string;
+    }>;
+    return NextResponse.json(
+      members.map((m) => ({
+        id: m._id,
+        userId: m.userId ?? m.clerkUserId,
+        role: m.role,
+        joinedAt: new Date(m.joinedAt).toISOString(),
+        user: {
+          id: m.userId ?? m.clerkUserId,
+          name: m.displayName ?? null,
+          email: m.email ?? "",
+          image: m.image ?? null,
+        },
+      })),
+    );
   } catch (error) {
     if (error instanceof PermissionError) {
       const { error: message, status } = handlePermissionError(error);

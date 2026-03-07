@@ -30,6 +30,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
+import { PresenceAvatarStack } from "@/components/presence/PresenceAvatarStack";
+import { useDocumentPresence } from "@/hooks/usePresence";
 import {
   Files,
   FolderItem,
@@ -129,6 +131,8 @@ interface DocumentViewerProps {
   publishDisabled?: boolean;
   className?: string;
   readOnly?: boolean;
+  workspaceId?: string;
+  presenceDocumentId?: string;
 }
 
 export function DocumentViewer({
@@ -140,6 +144,8 @@ export function DocumentViewer({
   publishDisabled = false,
   className,
   readOnly = false,
+  workspaceId,
+  presenceDocumentId,
 }: DocumentViewerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(document.content);
@@ -153,6 +159,10 @@ export function DocumentViewer({
 
   const typeInfo = DOCUMENT_TYPES[document.type];
   const Icon = typeInfo.icon;
+  const documentPresence = useDocumentPresence(
+    workspaceId,
+    presenceDocumentId ?? document.id,
+  );
 
   const handleSave = useCallback(async () => {
     if (!onSave) return;
@@ -231,6 +241,14 @@ export function DocumentViewer({
         </div>
 
         <div className="flex items-center gap-2">
+          {documentPresence && documentPresence.length > 0 && (
+            <div className="hidden md:flex items-center gap-2 rounded-full border border-white/10 px-2 py-1">
+              <PresenceAvatarStack entries={documentPresence} max={3} size="sm" />
+              <span className="text-xs text-muted-foreground">
+                {documentPresence.length} viewing
+              </span>
+            </div>
+          )}
           {/* Status badge */}
           {document.metadata?.reviewStatus && (
             <Badge

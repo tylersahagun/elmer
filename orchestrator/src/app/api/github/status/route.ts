@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/auth";
+import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { db } from "@/lib/db";
 import { accounts } from "@/lib/db/schema";
 
@@ -33,7 +34,7 @@ export async function GET() {
     if (!account?.access_token) {
       return NextResponse.json({
         connected: false,
-        connectUrl: "/api/auth/signin/github",
+        connectUrl: GITHUB_OAUTH_CONNECT_URL,
       });
     }
 
@@ -56,7 +57,7 @@ export async function GET() {
       return NextResponse.json({
         connected: false,
         expired: true,
-        connectUrl: "/api/auth/signin/github",
+        connectUrl: GITHUB_OAUTH_CONNECT_URL,
         message: "GitHub token expired, please reconnect",
       });
     }

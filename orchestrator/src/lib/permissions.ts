@@ -1,5 +1,6 @@
-import { auth } from "@/auth";
+import { AppAuthenticationError, requireCurrentAppUser } from "@/lib/auth/server";
 import { getWorkspaceMembership } from "@/lib/db/queries";
+import { getConvexWorkspaceAccess } from "@/lib/convex/server";
 import type { WorkspaceRole } from "@/lib/db/schema";
 
 /**
@@ -121,17 +122,43 @@ export async function requireWorkspaceAccess(
   requiredRole: WorkspaceRole = "viewer"
 ): Promise<WorkspaceMembership & { userId: string }> {
   // Check authentication
-  const session = await auth();
-  
-  if (!session?.user?.id) {
+  let appUser;
+  try {
+    appUser = await requireCurrentAppUser();
+  } catch (error) {
+    if (error instanceof AppAuthenticationError) {
+      throw new UnauthenticatedError();
+    }
+    throw error;
+  }
+
+  if (!appUser?.id) {
     throw new UnauthenticatedError();
   }
 
-  const userId = session.user.id;
+  const userId = appUser.id;
 
-  // Check membership
+  // Check Convex membership first (source of truth for newly created workspaces)
+  const convexAccess = appUser.clerkUserId
+    ? await getConvexWorkspaceAccess(workspaceId, appUser.clerkUserId)
+    : null;
+  const convexMembership = (convexAccess as { membership?: { role: WorkspaceRole; workspaceId: string } } | null)?.membership;
+
+  if (convexMembership) {
+    if (!hasPermission(convexMembership.role, requiredRole)) {
+      throw new InsufficientRoleError(requiredRole);
+    }
+    return {
+      id: `${workspaceId}:${appUser.clerkUserId}`,
+      userId,
+      workspaceId: convexMembership.workspaceId,
+      role: convexMembership.role,
+      joinedAt: new Date(),
+    };
+  }
+
+  // Fallback to legacy Drizzle membership while migration is in progress
   const membership = await getWorkspaceMembership(workspaceId, userId);
-
   if (!membership) {
     throw new NotMemberError();
   }

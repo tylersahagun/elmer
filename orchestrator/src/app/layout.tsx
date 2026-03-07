@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
+import { getClerkProviderProps } from "@/lib/auth/clerk";
 import {
   ThemeProvider,
   SessionProvider,
@@ -42,12 +43,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const clerkProviderProps = getClerkProviderProps();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${chillax.variable} ${synonym.variable} antialiased min-h-screen`}
       >
-        <ClerkProvider>
+        <ClerkProvider {...clerkProviderProps}>
           <ConvexClientProvider>
             <SessionProvider>
               <ThemeProvider>

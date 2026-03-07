@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
@@ -9,6 +9,7 @@ import {
   Loader2,
   RefreshCw,
 } from "lucide-react";
+import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,10 +53,7 @@ type ConnectionState =
  * Handles GitHub OAuth connection and permission validation.
  * Users must have sufficient scopes (repo, read:user) to proceed.
  */
-export function ConnectGitHubStep({ onComplete, onReadyChange }: ConnectGitHubStepProps) {
-  const [connectionState, setConnectionState] =
-    useState<ConnectionState>("loading");
-
+export function ConnectGitHubStep({ onReadyChange }: ConnectGitHubStepProps) {
   // Check GitHub connection status
   const {
     data: status,
@@ -87,32 +85,15 @@ export function ConnectGitHubStep({ onComplete, onReadyChange }: ConnectGitHubSt
     staleTime: 30 * 1000,
   });
 
-  // Update connection state based on status and permissions
-  useEffect(() => {
-    if (isLoadingStatus) {
-      setConnectionState("loading");
-      return;
-    }
-
-    if (!status?.connected) {
-      setConnectionState("not-connected");
-      return;
-    }
-
-    if (isLoadingPermissions) {
-      setConnectionState("connected-checking-permissions");
-      return;
-    }
-
-    if (permissions && !permissions.valid) {
-      setConnectionState("insufficient-permissions");
-      return;
-    }
-
-    if (permissions?.valid) {
-      setConnectionState("ready");
-    }
-  }, [status, permissions, isLoadingStatus, isLoadingPermissions]);
+  const connectionState: ConnectionState = isLoadingStatus
+    ? "loading"
+    : !status?.connected
+      ? "not-connected"
+      : isLoadingPermissions || !permissions
+        ? "connected-checking-permissions"
+        : !permissions.valid
+          ? "insufficient-permissions"
+          : "ready";
 
   // Notify parent of ready state changes
   useEffect(() => {
@@ -121,7 +102,7 @@ export function ConnectGitHubStep({ onComplete, onReadyChange }: ConnectGitHubSt
 
   // Connect to GitHub via OAuth — TODO Phase 1: wire via Clerk OAuth connection
   const startGithubOAuth = async () => {
-    window.location.href = "/api/auth/github";
+    window.location.href = GITHUB_OAUTH_CONNECT_URL;
   };
 
   const handleConnect = async () => {

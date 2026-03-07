@@ -492,6 +492,259 @@ http.route({
   }),
 });
 
+// GET /mcp/workspace-activity
+http.route({
+  path: "/mcp/workspace-activity",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    const limit = Number(url.searchParams.get("limit") ?? "20");
+    const offset = Number(url.searchParams.get("offset") ?? "0");
+    if (!workspaceId) return jsonError("Missing workspaceId");
+    const rows = await ctx.runQuery(internal.mcp.listWorkspaceActivity, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      limit,
+      offset,
+    });
+    return jsonOk(rows);
+  }),
+});
+
+// GET /mcp/columns
+http.route({
+  path: "/mcp/columns",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    if (!workspaceId) return jsonError("Missing workspaceId");
+    const rows = await ctx.runQuery(internal.mcp.listColumnConfigs, {
+      workspaceId: workspaceId as Id<"workspaces">,
+    });
+    return jsonOk(rows);
+  }),
+});
+
+// GET /mcp/personas
+http.route({
+  path: "/mcp/personas",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    if (!workspaceId) return jsonError("Missing workspaceId");
+    const rows = await ctx.runQuery(internal.mcp.listPersonas, {
+      workspaceId: workspaceId as Id<"workspaces">,
+    });
+    return jsonOk(rows);
+  }),
+});
+
+// POST /mcp/personas
+http.route({
+  path: "/mcp/personas",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const row = await ctx.runMutation(internal.mcp.upsertPersona, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      archetypeId: body.archetypeId as string,
+      name: body.name as string,
+      description: body.description as string,
+      role: body.role,
+      pains: body.pains as string[],
+      successCriteria: body.successCriteria as string[],
+      evaluationHeuristics: body.evaluationHeuristics as string[],
+      typicalTools: body.typicalTools as string[],
+      fears: body.fears as string[],
+      psychographicRanges: body.psychographicRanges,
+      content: body.content as string,
+      filePath: body.filePath as string | undefined,
+    });
+    return jsonOk(row);
+  }),
+});
+
+// GET /mcp/signal-personas
+http.route({
+  path: "/mcp/signal-personas",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const signalId = url.searchParams.get("signalId");
+    if (!signalId) return jsonError("Missing signalId");
+    const rows = await ctx.runQuery(internal.mcp.listSignalPersonas, {
+      signalId: signalId as Id<"signals">,
+    });
+    return jsonOk(rows);
+  }),
+});
+
+// POST /mcp/signal-personas
+http.route({
+  path: "/mcp/signal-personas",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const id = await ctx.runMutation(internal.mcp.linkSignalPersona, {
+      signalId: body.signalId as Id<"signals">,
+      personaId: body.personaId as Id<"personas">,
+      linkedBy: body.linkedBy as string | undefined,
+    });
+    return jsonOk({ id });
+  }),
+});
+
+// DELETE /mcp/signal-personas
+http.route({
+  path: "/mcp/signal-personas",
+  method: "DELETE",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const signalId = url.searchParams.get("signalId");
+    const personaId = url.searchParams.get("personaId");
+    if (!signalId || !personaId) return jsonError("Missing signalId or personaId");
+    const id = await ctx.runMutation(internal.mcp.unlinkSignalPersona, {
+      signalId: signalId as Id<"signals">,
+      personaId: personaId as Id<"personas">,
+    });
+    return jsonOk({ id });
+  }),
+});
+
+// GET /mcp/search
+http.route({
+  path: "/mcp/search",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId");
+    const q = url.searchParams.get("q");
+    if (!workspaceId || !q) return jsonError("Missing workspaceId or q");
+    const rows = await ctx.runQuery(internal.mcp.searchWorkspace, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      q,
+    });
+    return jsonOk(rows);
+  }),
+});
+
+// POST /mcp/columns
+http.route({
+  path: "/mcp/columns",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const row = await ctx.runMutation(internal.mcp.createColumnConfig, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      stage: body.stage as string,
+      displayName: body.displayName as string,
+      order: body.order as number,
+      color: body.color as string | undefined,
+      autoTriggerJobs: body.autoTriggerJobs as string[] | undefined,
+      agentTriggers: body.agentTriggers as unknown[] | undefined,
+      requiredDocuments: body.requiredDocuments as string[] | undefined,
+      requiredApprovals: body.requiredApprovals as number | undefined,
+      aiIterations: body.aiIterations as number | undefined,
+      rules: body.rules,
+      humanInLoop: body.humanInLoop as boolean | undefined,
+      enabled: body.enabled as boolean | undefined,
+      graduationCriteria: body.graduationCriteria,
+      enforceGraduation: body.enforceGraduation as boolean | undefined,
+    });
+    return jsonOk(row);
+  }),
+});
+
+// POST /mcp/columns/ensure-defaults
+http.route({
+  path: "/mcp/columns/ensure-defaults",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const rows = await ctx.runMutation(internal.mcp.ensureDefaultColumnConfigs, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+    });
+    return jsonOk(rows);
+  }),
+});
+
+// PATCH /mcp/column
+http.route({
+  path: "/mcp/column",
+  method: "PATCH",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const row = await ctx.runMutation(internal.mcp.updateColumnConfig, {
+      columnId: body.columnId as Id<"columnConfigs">,
+      displayName: body.displayName as string | undefined,
+      order: body.order as number | undefined,
+      color: body.color as string | undefined,
+      autoTriggerJobs: body.autoTriggerJobs as string[] | undefined,
+      agentTriggers: body.agentTriggers as unknown[] | undefined,
+      requiredDocuments: body.requiredDocuments as string[] | undefined,
+      requiredApprovals: body.requiredApprovals as number | undefined,
+      aiIterations: body.aiIterations as number | undefined,
+      rules: body.rules,
+      humanInLoop: body.humanInLoop as boolean | undefined,
+      enabled: body.enabled as boolean | undefined,
+      graduationCriteria: body.graduationCriteria,
+      enforceGraduation: body.enforceGraduation as boolean | undefined,
+    });
+    return jsonOk(row);
+  }),
+});
+
+// DELETE /mcp/column
+http.route({
+  path: "/mcp/column",
+  method: "DELETE",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const columnId = url.searchParams.get("columnId");
+    if (!columnId) return jsonError("Missing columnId");
+    const row = await ctx.runMutation(internal.mcp.deleteColumnConfig, {
+      columnId: columnId as Id<"columnConfigs">,
+    });
+    return jsonOk(row);
+  }),
+});
+
+// POST /mcp/workspace-activity
+http.route({
+  path: "/mcp/workspace-activity",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const result = await ctx.runMutation(internal.mcp.createWorkspaceActivity, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      userId: body.userId as string | undefined,
+      action: body.action as string,
+      targetType: body.targetType as string | undefined,
+      targetId: body.targetId as string | undefined,
+      metadata: body.metadata,
+      actorName: body.actorName as string | undefined,
+      actorEmail: body.actorEmail as string | undefined,
+      actorImage: body.actorImage as string | undefined,
+    });
+    return jsonOk({ id: result });
+  }),
+});
+
 // DELETE /mcp/workspace-invitations
 http.route({
   path: "/mcp/workspace-invitations",
@@ -703,6 +956,24 @@ http.route({
       type,
     });
     return jsonOk(entries);
+  }),
+});
+
+// POST /mcp/knowledge
+http.route({
+  path: "/mcp/knowledge",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const entry = await ctx.runMutation(internal.mcp.upsertKnowledge, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      type: body.type as string,
+      title: body.title as string,
+      content: body.content as string,
+      filePath: body.filePath as string | undefined,
+    });
+    return jsonOk(entry);
   }),
 });
 

@@ -12,6 +12,7 @@ import {
   Search,
   Unlink,
 } from "lucide-react";
+import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,7 +188,7 @@ export function GithubRepoSelector({
 
   // Connect to GitHub — TODO Phase 1: wire via Clerk OAuth connection
   const handleConnect = () => {
-    window.location.href = "/api/auth/github";
+    window.location.href = GITHUB_OAUTH_CONNECT_URL;
   };
 
   // Handle repo selection

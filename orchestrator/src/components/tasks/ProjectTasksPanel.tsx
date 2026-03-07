@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
+  getProjectDocumentRoute,
+  getProjectRouteWithTab,
+} from "@/lib/projects/navigation";
+import {
   CheckSquare,
   Square,
   Plus,
@@ -81,7 +85,7 @@ export function ProjectTasksPanel({
       });
       // Link the new job to the task
       await updateTask({ taskId: task._id, linkedJobId: jobId as Id<"jobs"> });
-      router.push(`/projects/${projectId}?tab=tasks`);
+      router.push(getProjectRouteWithTab(projectId, "tasks", workspaceId));
     } finally {
       setTriggeringTask(null);
     }
@@ -261,7 +265,11 @@ export function ProjectTasksPanel({
                     <button
                       onClick={() =>
                         router.push(
-                          `/projects/${projectId}/documents/${task.linkedDocumentId}`,
+                          getProjectDocumentRoute(
+                            projectId,
+                            String(task.linkedDocumentId),
+                            workspaceId,
+                          ),
                         )
                       }
                       title="Open linked document"

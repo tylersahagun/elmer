@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireCurrentAppUser } from "@/lib/auth/server";
 import { getWorkspace } from "@/lib/db/queries";
 import { syncSignals } from "@/lib/signals/sync";
 import {
@@ -29,11 +29,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    await requireCurrentAppUser();
 
     // Parse optional body parameters
     const body = await request.json().catch(() => ({}));

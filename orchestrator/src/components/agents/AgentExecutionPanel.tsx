@@ -111,9 +111,9 @@ export function AgentExecutionPanel({
   };
 
   return (
-    <div className="border-t border-border bg-muted/20 p-4 space-y-4">
+    <div className="border-t border-border bg-muted/20 p-4 space-y-4" data-testid="agent-execution-form">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3" data-testid="agent-execution-header">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="font-medium">Execute Agent</span>
@@ -129,6 +129,7 @@ export function AgentExecutionPanel({
           )}
         </div>
         <Button
+          data-testid="close-agent-execution"
           type="button"
           variant="ghost"
           size="sm"
@@ -156,6 +157,7 @@ export function AgentExecutionPanel({
       {/* Feedback message */}
       {feedback && (
         <div
+          data-testid={feedback.type === "success" ? "agent-execution-success" : "agent-execution-error"}
           className={`flex items-center gap-2 p-3 rounded-md ${
             feedback.type === "success"
               ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
@@ -185,6 +187,7 @@ export function AgentExecutionPanel({
       {/* Action buttons */}
       <div className="flex items-center gap-2 pt-2">
         <Button
+          data-testid="confirm-execute-agent"
           type="button"
           onClick={handleExecute}
           disabled={isExecuting || feedback?.type === "success"}
@@ -203,6 +206,7 @@ export function AgentExecutionPanel({
           )}
         </Button>
         <Button
+          data-testid="cancel-execute-agent"
           type="button"
           variant="outline"
           onClick={onCancel}

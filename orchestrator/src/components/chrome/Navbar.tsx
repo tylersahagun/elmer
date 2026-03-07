@@ -13,12 +13,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Sun, Moon, Globe, Menu, LogOut, User, Settings } from "lucide-react";
+import { Sun, Moon, Globe, Menu, LogOut, User } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter, usePathname } from "next/navigation";
 import { useUser, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { type ReactNode } from "react";
+import { PresenceAvatarStack } from "@/components/presence/PresenceAvatarStack";
+import { usePresenceHeartbeat, useWorkspacePresence } from "@/hooks/usePresence";
 
 interface NavbarProps {
   /** Path to display (e.g., "~/elmer") */
@@ -206,7 +208,7 @@ export function SimpleNavbar({
     ? `/workspace/${workspaceId}/personas`
     : "/personas";
   const navItems = [
-    { label: "Dashboard", href: dashboardHref },
+    { label: "Projects", href: dashboardHref },
     { label: "Knowledge", href: knowledgeHref },
     { label: "Personas", href: personasHref },
     workspaceId && {
@@ -226,7 +228,7 @@ export function SimpleNavbar({
       href: `/workspace/${workspaceId}/swarm`,
     },
     workspaceId && {
-      label: "Agents",
+      label: "Agent Catalog",
       href: `/workspace/${workspaceId}/agents`,
     },
     workspaceId && {
@@ -242,6 +244,9 @@ export function SimpleNavbar({
       href: `/workspace/${workspaceId}/settings`,
     },
   ].filter(Boolean) as Array<{ label: string; href: string }>;
+
+  usePresenceHeartbeat(workspaceId, pathname ?? undefined);
+  const presence = useWorkspacePresence(workspaceId);
 
   return (
     <header
@@ -278,6 +283,11 @@ export function SimpleNavbar({
 
           {/* Right: Custom content + Hamburger Menu */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {presence && presence.length > 0 && (
+              <div className="hidden md:flex items-center gap-2 rounded-full border border-border px-2 py-1">
+                <PresenceAvatarStack entries={presence} max={4} size="sm" />
+              </div>
+            )}
             {rightContent}
 
             <DropdownMenu open={menuOpen} onOpenChange={onMenuOpenChange}>
@@ -301,8 +311,8 @@ export function SimpleNavbar({
                     )}
                   >
                     <span className="text-emerald-500">$</span>
-                    <span>cd</span>
-                    <span className="text-muted-foreground">~</span>
+                    <span>ls</span>
+                    <span className="text-muted-foreground">projects/</span>
                   </DropdownMenuItem>
                 </Link>
 
@@ -409,8 +419,8 @@ export function SimpleNavbar({
                         )}
                       >
                         <span className="text-emerald-500">$</span>
-                        <span>run</span>
-                        <span className="text-muted-foreground">agents</span>
+                        <span>open</span>
+                        <span className="text-muted-foreground">agent-catalog</span>
                       </DropdownMenuItem>
                     </Link>
 

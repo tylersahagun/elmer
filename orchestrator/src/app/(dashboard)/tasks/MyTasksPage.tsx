@@ -7,10 +7,10 @@ import { useRouter } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
+import { getProjectRoute } from "@/lib/projects/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import {
   CheckSquare,
   Square,
@@ -211,7 +211,12 @@ export function MyTasksPage() {
                     {task.projectId && projectMap[task.projectId] && (
                       <button
                         onClick={() =>
-                          router.push(`/projects/${task.projectId}`)
+                          router.push(
+                            getProjectRoute(
+                              task.projectId,
+                              task.workspaceId ? String(task.workspaceId) : undefined,
+                            ),
+                          )
                         }
                         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
                       >

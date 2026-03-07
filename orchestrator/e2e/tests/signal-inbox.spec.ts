@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { SignalInboxPage } from "../pages";
+import {
+  seedDirectionChangeInboxItem,
+  seedHighImpactInboxItem,
+} from "../fixtures/inbox";
 
 /**
  * Signal Inbox E2E tests — supersedes GTM-68
@@ -36,40 +40,39 @@ test.describe("Signal Inbox", () => {
     expect(hasSignals || hasEmptyState).toBe(true);
   });
 
-  test("signal card shows source label", async ({ page }) => {
+  test("seeded high-impact signal appears in the correct section", async ({
+    page,
+    request,
+  }) => {
     const inbox = new SignalInboxPage(page);
+    const suffix = `${Date.now()}`;
+    const seeded = await seedHighImpactInboxItem(request, suffix);
     await inbox.goto(workspaceId);
-
-    const count = await inbox.getSignalCount();
-    if (count === 0) {
-      test.skip();
-      return;
-    }
-
-    // Every signal card should show a source (slack, email, pylon, etc.)
-    const firstCard = page
-      .locator("[data-testid='signal-card'], [data-testid='inbox-item']")
-      .first();
-    await expect(firstCard).toBeVisible();
+    await expect(page.getByText(seeded.title)).toBeVisible();
+    await expect(page.locator("[data-testid='high-impact-section']")).toContainText(
+      seeded.title,
+    );
   });
 
-  test("clicking a signal opens its detail", async ({ page }) => {
+  test("seeded direction-change signal opens review panel and can be ignored", async ({
+    page,
+    request,
+  }) => {
     const inbox = new SignalInboxPage(page);
+    const suffix = `${Date.now()}`;
+    const seeded = await seedDirectionChangeInboxItem(request, suffix);
     await inbox.goto(workspaceId);
 
-    const count = await inbox.getSignalCount();
-    if (count === 0) {
-      test.skip();
-      return;
-    }
+    const seededCard = page.locator("[data-testid='inbox-item']").filter({
+      hasText: seeded.title,
+    });
+    await expect(seededCard).toBeVisible();
+    await seededCard.getByTestId("review-impact-button").click();
 
-    await inbox.openSignal(0);
-    // After opening, URL should change or a panel/modal should appear
-    const urlChanged = page.url().includes("/inbox/") || page.url().includes("?signal=");
-    const panelVisible = await page
-      .locator("[data-testid='signal-detail'], [role='dialog']")
-      .count()
-      .then((c) => c > 0);
-    expect(urlChanged || panelVisible).toBe(true);
+    await expect(page.getByTestId("review-impact-panel")).toBeVisible();
+    await expect(page.getByTestId("review-impact-panel")).toContainText(
+      "Seeded by Playwright to validate review-impact UX.",
+    );
+    await page.getByTestId("ignore-direction-change").click();
   });
 });

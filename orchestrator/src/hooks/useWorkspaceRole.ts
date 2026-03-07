@@ -1,12 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "convex/react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { WorkspaceRole } from "@/lib/db/schema";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 interface WorkspaceMember {
   id: string;
   userId: string;
+  clerkUserId?: string;
   role: WorkspaceRole;
-  joinedAt: string;
+  joinedAt: string | Date;
   user: {
     id: string;
     name: string | null;
@@ -31,22 +34,38 @@ interface UseWorkspaceRoleResult {
 export function useWorkspaceRole(workspaceId: string | null): UseWorkspaceRoleResult {
   const { user, isSignedIn } = useCurrentUser();
 
-  const { data: members, isLoading } = useQuery<WorkspaceMember[]>({
-    queryKey: ["workspace-members", workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      const res = await fetch(`/api/workspaces/${workspaceId}/members`);
-      if (!res.ok) {
-        if (res.status === 403 || res.status === 401) return [];
-        throw new Error("Failed to fetch members");
+  const rawMembership = useQuery(
+    api.memberships.getMyMembership,
+    workspaceId && isSignedIn ? { workspaceId: workspaceId as Id<"workspaces"> } : "skip",
+  ) as
+    | {
+        _id: string;
+        userId?: string;
+        clerkUserId: string;
+        role: WorkspaceRole;
+        joinedAt: number;
+        displayName?: string;
+        email?: string;
+        image?: string;
       }
-      return res.json();
-    },
-    enabled: !!workspaceId && isSignedIn,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
+    | null
+    | undefined;
 
-  const membership = members?.find((m) => m.userId === user?.id) || null;
+  const membership: WorkspaceMember | null = rawMembership
+    ? {
+        id: rawMembership._id,
+        userId: rawMembership.userId ?? user?.id ?? rawMembership.clerkUserId,
+        clerkUserId: rawMembership.clerkUserId,
+        role: rawMembership.role,
+        joinedAt: new Date(rawMembership.joinedAt),
+        user: {
+          id: rawMembership.userId ?? user?.id ?? rawMembership.clerkUserId,
+          name: rawMembership.displayName ?? user?.name ?? null,
+          email: rawMembership.email ?? user?.email ?? "",
+          image: rawMembership.image ?? user?.image ?? null,
+        },
+      }
+    : null;
   const role = membership?.role || null;
 
   return {
@@ -54,7 +73,7 @@ export function useWorkspaceRole(workspaceId: string | null): UseWorkspaceRoleRe
     isAdmin: role === "admin",
     canEdit: role === "admin" || role === "member",
     canView: role !== null,
-    isLoading,
+    isLoading: workspaceId ? rawMembership === undefined : false,
     membership,
   };
 }

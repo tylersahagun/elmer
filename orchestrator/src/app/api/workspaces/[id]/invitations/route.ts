@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  createInvitation,
-  getWorkspaceInvitations,
-  revokeInvitation,
-  getInvitationById,
-} from "@/lib/invitations";
+  createConvexInvitation,
+  listConvexWorkspaceInvitations,
+  revokeConvexInvitation,
+} from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -23,8 +22,38 @@ export async function GET(
     // Require admin access to view invitations
     await requireWorkspaceAccess(workspaceId, "admin");
 
-    const invitations = await getWorkspaceInvitations(workspaceId);
-    return NextResponse.json(invitations);
+    const invitations = await listConvexWorkspaceInvitations(workspaceId) as Array<{
+      _id: string;
+      email: string;
+      role: WorkspaceRole;
+      token: string;
+      expiresAt: number;
+      acceptedAt?: number;
+      inviterName?: string;
+      inviterEmail?: string;
+      _creationTime: number;
+    }>;
+    return NextResponse.json(
+      invitations.map((inv) => ({
+        id: inv._id,
+        email: inv.email,
+        role: inv.role,
+        token: inv.token,
+        expiresAt: new Date(inv.expiresAt).toISOString(),
+        acceptedAt: inv.acceptedAt ? new Date(inv.acceptedAt).toISOString() : null,
+        createdAt: new Date(inv._creationTime).toISOString(),
+        inviter: {
+          id: inv.inviterEmail ?? "unknown",
+          name: inv.inviterName ?? null,
+          email: inv.inviterEmail ?? "",
+        },
+        status: inv.acceptedAt
+          ? "accepted"
+          : inv.expiresAt < Date.now()
+            ? "expired"
+            : "pending",
+      })),
+    );
   } catch (error) {
     if (error instanceof PermissionError) {
       const { error: message, status } = handlePermissionError(error);
@@ -76,17 +105,35 @@ export async function POST(
       );
     }
 
-    const invitation = await createInvitation({
+    const invitation = await createConvexInvitation({
       workspaceId,
       email,
       role: role || "member",
       invitedBy: membership.userId,
+      inviterName: null,
+      inviterEmail: "",
+    }) as {
+      id: string;
+      token: string;
+      email: string;
+      role: WorkspaceRole;
+      expiresAt: number;
+    };
+
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "http://localhost:3000";
+    const responsePayload = {
+      id: invitation.id,
+      token: invitation.token,
+      email: invitation.email,
+      role: invitation.role,
+      expiresAt: new Date(invitation.expiresAt).toISOString(),
+      inviteUrl: `${baseUrl}/invite/${invitation.token}`,
     });
 
     // Log activity
     await logMemberInvited(workspaceId, membership.userId, email, role || "member");
 
-    return NextResponse.json(invitation, { status: 201 });
+    return NextResponse.json(responsePayload, { status: 201 });
   } catch (error) {
     if (error instanceof PermissionError) {
       const { error: message, status } = handlePermissionError(error);
@@ -121,23 +168,9 @@ export async function DELETE(
       );
     }
 
-    // Get invitation details before revoking for logging
-    const invitation = await getInvitationById(invitationId);
+    await revokeConvexInvitation(invitationId);
 
-    const success = await revokeInvitation(invitationId);
-
-    if (!success) {
-      return NextResponse.json(
-        { error: "Invitation not found" },
-        { status: 404 }
-      );
-    }
-
-    // Log activity
-    if (invitation) {
-      await logInvitationRevoked(workspaceId, membership.userId, invitation.email);
-    }
-
+    await logInvitationRevoked(workspaceId, membership.userId, invitationId);
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof PermissionError) {

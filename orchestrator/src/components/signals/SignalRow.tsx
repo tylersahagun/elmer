@@ -4,6 +4,7 @@ import { MoreHorizontal, Eye, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getProjectRoute } from "@/lib/projects/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 interface SignalRowProps {
   signal: {
     id: string;
+    workspaceId?: string;
     verbatim: string;
     interpretation?: string | null;
     status: "new" | "reviewed" | "linked" | "archived";
@@ -158,7 +160,10 @@ export function SignalRow({ signal, onView, onDelete, isSelected, onToggleSelect
           getLabel={(p) => p.name}
           getId={(p) => p.id}
           onNavigate={(projectId) => {
-            window.open(`/projects/${projectId}`, "_blank");
+            window.open(
+              getProjectRoute(projectId, signal.workspaceId),
+              "_blank",
+            );
           }}
         />
       </td>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
 
 export async function GET(request: NextRequest) {
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: "GitHub not connected",
-          connectUrl: "/api/auth/signin/github",
+          connectUrl: GITHUB_OAUTH_CONNECT_URL,
         },
         { status: 403 },
       );

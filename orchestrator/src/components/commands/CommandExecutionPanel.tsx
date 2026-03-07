@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/store";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   Terminal,
   FileText,
@@ -136,9 +138,9 @@ export function CommandExecutionPanel({
   currentStage,
   className,
 }: CommandExecutionPanelProps) {
-  const queryClient = useQueryClient();
   const openJobLogsDrawer = useUIStore((s) => s.openJobLogsDrawer);
   const [runningJob, setRunningJob] = useState<string | null>(null);
+  const [commandError, setCommandError] = useState<string | null>(null);
 
   // Filter available commands based on current stage
   const availableCommands = Object.entries(JOB_DEFINITIONS)
@@ -152,42 +154,26 @@ export function CommandExecutionPanel({
   );
 
   // Create job mutation
-  const createJobMutation = useMutation({
-    mutationFn: async (jobType: string) => {
-      const response = await fetch("/api/jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          workspaceId,
-          type: jobType,
-        }),
-      });
+  const createAndSchedule = useMutation(api.jobs.createAndSchedule);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create job");
-      }
-
-      return response.json();
-    },
-    onSuccess: (job) => {
-      // Refresh project data
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      
-      // Open job logs drawer
-      openJobLogsDrawer(job.id, projectName);
-      
-      setRunningJob(null);
-    },
-    onError: () => {
-      setRunningJob(null);
-    },
-  });
-
-  const handleRunCommand = (jobType: string) => {
+  const handleRunCommand = async (jobType: string) => {
     setRunningJob(jobType);
-    createJobMutation.mutate(jobType);
+    setCommandError(null);
+    try {
+      const jobId = await createAndSchedule({
+        workspaceId: workspaceId as Id<"workspaces">,
+        projectId: projectId as Id<"projects">,
+        type: jobType,
+        input: {},
+      });
+      openJobLogsDrawer(String(jobId), projectName);
+    } catch (error) {
+      setCommandError(
+        error instanceof Error ? error.message : "Failed to run command",
+      );
+    } finally {
+      setRunningJob(null);
+    }
   };
 
   return (
@@ -196,11 +182,14 @@ export function CommandExecutionPanel({
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <Terminal className="w-4 h-4" />
-          Available Commands
+          Recommended Next Actions
           <Badge variant="outline" className="ml-auto font-mono text-[10px]">
             {currentStage}
           </Badge>
         </h3>
+        <p className="text-xs text-muted-foreground">
+          Use these actions to move the project forward from its current stage.
+        </p>
 
         {availableCommands.length > 0 ? (
           <div className="grid gap-2">
@@ -239,8 +228,8 @@ export function CommandExecutionPanel({
                     size="sm"
                     variant="ghost"
                     onClick={() => handleRunCommand(type)}
-                    disabled={isRunning || createJobMutation.isPending}
-                    className="gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0"
+                    disabled={isRunning}
+                    className="gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0"
                   >
                     {isRunning ? (
                       <>
@@ -270,7 +259,7 @@ export function CommandExecutionPanel({
 
       {/* Error Display */}
       <AnimatePresence>
-        {createJobMutation.isError && (
+        {commandError && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -279,9 +268,7 @@ export function CommandExecutionPanel({
           >
             <p className="text-sm text-red-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
-              {createJobMutation.error instanceof Error
-                ? createJobMutation.error.message
-                : "Failed to run command"}
+              {commandError}
             </p>
           </motion.div>
         )}

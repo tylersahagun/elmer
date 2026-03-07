@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
 
 interface GitHubRepo {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
         {
           error: "GitHub not connected",
           message: "Please connect your GitHub account to access repositories",
-          connectUrl: "/api/auth/signin/github",
+          connectUrl: GITHUB_OAUTH_CONNECT_URL,
         },
         { status: 403 },
       );
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest) {
         {
           error: "GitHub token expired",
           message: "Please reconnect your GitHub account",
-          connectUrl: "/api/auth/signin/github",
+          connectUrl: GITHUB_OAUTH_CONNECT_URL,
         },
         { status: 401 },
       );

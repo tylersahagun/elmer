@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "convex/react";
 import { Loader2, Search } from "lucide-react";
 import {
   Dialog,
@@ -16,6 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 interface Signal {
   id: string;
@@ -52,7 +54,6 @@ export function SignalPickerModal({
 }: SignalPickerModalProps) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
-  const queryClient = useQueryClient();
 
   // Reset selection when modal opens/closes
   useEffect(() => {
@@ -65,55 +66,46 @@ export function SignalPickerModal({
   }, [isOpen]);
 
   // Fetch signals (unlinked to this project)
-  const { data: signalsData, isLoading: signalsLoading } = useQuery({
-    queryKey: ["signals", workspaceId, { forPicker: true }],
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/signals?workspaceId=${workspaceId}&pageSize=100`,
-      );
-      if (!res.ok) throw new Error("Failed to load signals");
-      return res.json();
-    },
-    enabled: isOpen,
-  });
+  const allSignals = useQuery(
+    api.signals.list,
+    isOpen ? { workspaceId: workspaceId as Id<"workspaces"> } : "skip",
+  );
+  const linkedSignals = useQuery(
+    api.signals.byProject,
+    isOpen ? { projectId: projectId as Id<"projects"> } : "skip",
+  );
+  const signalsLoading = allSignals === undefined || linkedSignals === undefined;
 
   // Filter out already-linked signals and apply search
-  const signals: Signal[] = (signalsData?.signals || []).filter((s: Signal) => {
-    // Exclude if already linked to this project
-    const isLinked = s.linkedProjects?.some((p) => p.id === projectId);
-    if (isLinked) return false;
-
-    // Apply search filter
-    if (search) {
-      return s.verbatim.toLowerCase().includes(search.toLowerCase());
-    }
-    return true;
-  });
+  const linkedIds = new Set(
+    (linkedSignals ?? []).map((s: { _id: string }) => s._id),
+  );
+  const signals: Signal[] = (allSignals ?? [])
+    .map((s: {
+      _id: string;
+      verbatim: string;
+      source: string;
+      status: string;
+      severity?: string | null;
+      _creationTime: number;
+    }) => ({
+      id: s._id,
+      verbatim: s.verbatim,
+      source: s.source,
+      status: s.status,
+      severity: s.severity ?? null,
+      createdAt: new Date(s._creationTime).toISOString(),
+      linkedProjects: [],
+    }))
+    .filter((s: Signal) => !linkedIds.has(s.id))
+    .filter((s: Signal) =>
+      search ? s.verbatim.toLowerCase().includes(search.toLowerCase()) : true,
+    );
 
   // Bulk link mutation
-  const linkMutation = useMutation({
-    mutationFn: async (signalIds: string[]) => {
-      // Link each signal sequentially
-      for (const signalId of signalIds) {
-        const res = await fetch(`/api/signals/${signalId}/projects`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId }),
-        });
-        if (!res.ok) {
-          throw new Error(`Failed to link signal ${signalId}`);
-        }
-      }
-      return { linked: signalIds.length };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["project-signals", projectId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["signals"] });
-      onClose();
-    },
-  });
+  const linkToProject = useMutation(api.signals.linkToProject);
+  const [isLinking, setIsLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   const toggleSelection = (signalId: string) => {
     setSelected((prev) =>
@@ -123,9 +115,24 @@ export function SignalPickerModal({
     );
   };
 
-  const handleLinkSelected = () => {
-    if (selected.length > 0) {
-      linkMutation.mutate(selected);
+  const handleLinkSelected = async () => {
+    if (selected.length === 0) return;
+    setLinkError(null);
+    setIsLinking(true);
+    try {
+      for (const signalId of selected) {
+        await linkToProject({
+          signalId: signalId as Id<"signals">,
+          projectId: projectId as Id<"projects">,
+        });
+      }
+      onClose();
+    } catch (error) {
+      setLinkError(
+        error instanceof Error ? error.message : "Failed to link signals",
+      );
+    } finally {
+      setIsLinking(false);
     }
   };
 
@@ -209,14 +216,17 @@ export function SignalPickerModal({
           </Button>
           <Button
             onClick={handleLinkSelected}
-            disabled={selected.length === 0 || linkMutation.isPending}
+            disabled={selected.length === 0 || isLinking}
           >
-            {linkMutation.isPending && (
+            {isLinking && (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             )}
             Link {selected.length} Signal{selected.length !== 1 ? "s" : ""}
           </Button>
         </DialogFooter>
+        {linkError && (
+          <p className="text-xs text-red-400 px-1 pb-1">{linkError}</p>
+        )}
       </DialogContent>
     </Dialog>
   );

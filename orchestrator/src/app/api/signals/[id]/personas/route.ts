@@ -10,6 +10,12 @@ import {
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+import {
+  linkConvexSignalPersona,
+  listConvexSignalPersonas,
+  listConvexPersonas,
+  unlinkConvexSignalPersona,
+} from "@/lib/convex/server";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -30,15 +36,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Verify membership (viewer can read)
     await requireWorkspaceAccess(signal.workspaceId, "viewer");
 
-    // Get signal with linked personas
-    const signalWithLinks = await getSignalWithLinks(signalId);
+    const signalPersonas = await listConvexSignalPersonas(signalId) as Array<{
+      persona: { _id: string; archetypeId: string } | null;
+      linkedAt: string;
+    }>;
 
     return NextResponse.json({
-      personas:
-        signalWithLinks?.personas.map((p) => ({
-          personaId: p.personaId,
-          linkedAt: p.linkedAt,
-        })) || [],
+      personas: signalPersonas.map((entry) => ({
+        personaId: entry.persona?._id ?? "",
+        archetypeId: entry.persona?.archetypeId,
+        linkedAt: entry.linkedAt,
+      })),
     });
   } catch (error) {
     if (error instanceof PermissionError) {
@@ -78,8 +86,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Verify membership (member can write)
     const membership = await requireWorkspaceAccess(signal.workspaceId, "member");
 
-    // Create link
-    await linkSignalToPersona(signalId, personaId, membership.userId);
+    await linkConvexSignalPersona({
+      signalId,
+      personaId,
+      linkedBy: membership.userId,
+    });
 
     // Note: Persona linking does NOT affect signal status (only project linking does)
 
@@ -120,8 +131,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     await requireWorkspaceAccess(signal.workspaceId, "member");
 
-    // Delete link
-    await unlinkSignalFromPersona(signalId, personaId);
+    await unlinkConvexSignalPersona(signalId, personaId);
 
     // Note: Persona unlinking does NOT affect signal status
 

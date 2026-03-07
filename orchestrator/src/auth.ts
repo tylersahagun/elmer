@@ -1,3 +1,7 @@
+/**
+ * Legacy NextAuth bridge for GitHub/repository flows that have not migrated to
+ * Clerk yet. App shell authentication is handled by Clerk + Convex.
+ */
 import NextAuth from "next-auth"
 import { DrizzleAdapter } from "@auth/drizzle-adapter"
 import Google from "next-auth/providers/google"

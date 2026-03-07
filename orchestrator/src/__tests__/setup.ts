@@ -4,8 +4,9 @@
  * This file runs before all tests to set up the test environment.
  */
 
-import { vi, beforeAll } from "vitest";
+import { beforeAll } from "vitest";
 import dotenv from "dotenv";
+import fs from "node:fs";
 import path from "path";
 import { neon } from "@neondatabase/serverless";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-http";
@@ -40,10 +41,12 @@ global.testUtils = {
 
 let migrationsApplied = false;
 const MIGRATION_LOCK_ID = 782134;
+const migrationsFolder = path.resolve(__dirname, "../../drizzle");
 
 beforeAll(async () => {
   if (migrationsApplied) return;
   if (!process.env.DATABASE_URL) return;
+  if (!fs.existsSync(migrationsFolder)) return;
 
   const dbUrl = process.env.DATABASE_URL;
   const isNeonDatabase =
@@ -53,13 +56,13 @@ beforeAll(async () => {
     const sql = neon(dbUrl);
     const db = drizzleNeon(sql);
     await sql`select pg_advisory_lock(${MIGRATION_LOCK_ID})`;
-    await migrateNeon(db, { migrationsFolder: "./drizzle" });
+    await migrateNeon(db, { migrationsFolder });
     await sql`select pg_advisory_unlock(${MIGRATION_LOCK_ID})`;
   } else {
     const pool = new pg.Pool({ connectionString: dbUrl });
     const db = drizzlePg(pool);
     await pool.query("select pg_advisory_lock($1)", [MIGRATION_LOCK_ID]);
-    await migratePg(db, { migrationsFolder: "./drizzle" });
+    await migratePg(db, { migrationsFolder });
     await pool.query("select pg_advisory_unlock($1)", [MIGRATION_LOCK_ID]);
     await pool.end();
   }

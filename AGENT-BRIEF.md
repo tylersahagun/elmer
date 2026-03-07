@@ -1,29 +1,38 @@
 # Elmer v2 — Agent Brief
 
 > For any AI agent building new features in `tylersahagun/elmer`
-> Generated: 2026-03-05 — Last updated: 2026-03-05
+> Generated: 2026-03-05 — Last updated: 2026-03-06
 > Scope: Complete context for the Convex rebuild of Elmer, the AskElephant internal PM command center
 
 ---
 
-## Current Build Status
+## How To Use This Brief
 
-**Phases 0–5 substantially complete. Phase 8 (Testing) infrastructure in place. ~32 of 53 Linear issues Done or In Progress.**
+- **Implementation source of truth:** the live Linear project for Elmer is canonical for issue state, sequencing, and what is currently done versus open.
+- **This file's role:** strategic and architectural context for agents building Elmer.
+- **Status language here is derived:** if status text in this brief conflicts with Linear, trust Linear first and then update the brief as a snapshot.
+- **Reset context:** see `pm-workspace-docs/status/elmer-reset-and-recalibration.md` and `pm-workspace-docs/status/elmer-source-of-truth-matrix.md` for the current reset framing and artifact trust rules.
 
-> Last updated: 2026-03-05 — Phase 5 MCP Apps built, Phase 8 (E2E Testing) scaffolded with Playwright, TDD rule active.
+---
+
+## Current Build Status (Derived Snapshot)
+
+**Phases 0–5 are substantially complete. The current critical path is platform reliability, deterministic E2E coverage, and Phase 7 Convex cutover work. GitHub App + webhook are verified. This status section is a derived snapshot of the Linear board, not the board itself.**
+
+> Last updated: 2026-03-06 — Playwright fixtures + agent-execution spec added, blame-chain attribution + minimal presence shipped, migration-readiness map written, and the first Convex migration tranche is in progress.
 
 | Phase | Status | Remaining |
 |---|---|---|
-| Phase 0: Foundation | ⚠️ Mostly done | GTM-33 In Progress (GitHub App — human action required), GTM-37 Backlog (elephant-ai submodule) |
+| Phase 0: Foundation | ✅ Complete | GTM-33 complete, GTM-37 remains optional follow-on (elephant-ai submodule hardening) |
 | Phase 1: Agent Execution | ⚠️ Mostly done | GTM-42 Backlog (Fly.io CLI sandbox) |
 | Phase 2: Sync + Memory Graph | ✅ Complete | — |
 | Phase 3: Documents + Tasks | ⚠️ Mostly done | GTM-53 Backlog (prototype variants) |
-| Phase 4: Signal Inbox | ⚠️ Nearly done | GTM-83 Todo (E2E tests — was GTM-68) |
+| Phase 4: Signal Inbox | ⚠️ Nearly done | GTM-83 In Progress (expanded E2E coverage; GTM-68 is now canceled as superseded) |
 | Phase 5: MCP Apps | ✅ Complete | All 5 apps built and served as MCP resources |
-| Phase 6: Team + Orchestrator | 🔲 Not started | GTM-55 to GTM-58, GTM-69, GTM-70 |
-| Phase 7: Full Migration | 🔲 Not started | GTM-59 to GTM-60 — **critical blocker** |
+| Phase 6: Team + Orchestrator | 🟡 In Progress | GTM-69 and GTM-70 have initial implementation; GTM-55 to GTM-58 remain |
+| Phase 7: Full Migration | 🟡 In Progress | Route-by-route migration map is complete in `orchestrator/MIGRATION-READINESS.md`; GTM-59 is active and GTM-99 to GTM-103 now track the named blocker tickets |
 | Phase 8: Chat & Agent Hub | 🔲 Not started | GTM-71 to GTM-77 |
-| Phase 9: E2E Testing | 🟡 In Progress | GTM-78–93: Playwright installed, config + e2e/ scaffold done, smoke + signal-inbox specs written |
+| Phase 9: E2E Testing | 🟡 In Progress | GTM-78–93: Playwright installed, config + e2e/ scaffold done, smoke + signal-inbox specs written; next wave is POM expansion + route coverage + signal-flow seeding |
 
 **What is live in Convex today:**
 - Full Convex schema (all tables including graph, tasks, prototypeVariants)
@@ -41,19 +50,174 @@
 - `e2e/` folder: `tests/`, `pages/` (POM classes), `fixtures/`, `auth.setup.ts`
 - Smoke tests: `e2e/tests/smoke.spec.ts` (all major routes, @smoke tag)
 - Signal inbox tests: `e2e/tests/signal-inbox.spec.ts`
+- Agent execution tests: `e2e/tests/agent-execution.spec.ts`
 - POM classes: `WorkspacePage`, `SignalInboxPage`, `AgentExecutionPage`
+- Convex-backed seed helpers: `e2e/fixtures/inbox.ts`, `e2e/fixtures/jobs.ts`
 - TDD Cursor rule: `.cursor/rules/test-driven-development.mdc` — active on all agent sessions
 - Run: `npm run test:e2e` | `npm run test:e2e:smoke` | `npm run test:e2e:ui`
 
-**GitHub auth:** `GITHUB_TOKEN` (OAuth token) is set in Convex env vars. `convex/tools/github-auth.ts` supports full GitHub App installation tokens (preferred when `GITHUB_APP_ID` + `GITHUB_APP_PRIVATE_KEY_B64` + `GITHUB_APP_INSTALLATION_ID` are set) with PAT fallback. GitHub App browser setup guide: `GITHUB-APP-SETUP.md`.
+**Team-awareness progress (Phase 6 — In Progress):**
+- Job attribution fields added to `orchestrator/convex/schema.ts`: `initiatedBy`, `initiatedByName`, `rootInitiator`, `rootInitiatorName`, `parentJobId`
+- Attribution now persists on the canonical Convex job path in `orchestrator/convex/jobs.ts`
+- Execution UI renders blame metadata via `orchestrator/src/components/jobs/AgentBlameChain.tsx`
+- Minimal live presence shipped: `orchestrator/convex/presence.ts`, `orchestrator/src/hooks/usePresence.ts`
+- Presence is currently surfaced in the navbar and document viewer
 
-**GTM-33 Remaining Steps (human action required — ~15 min):**
-1. Go to https://github.com/settings/apps/new → create "Elmer Bot" app (see `GITHUB-APP-SETUP.md` for full form values)
-2. Generate private key → `base64 < elmer-bot.pem | tr -d '\n'`
-3. Install app on `tylersahagun/elmer` + `AskElephant/elephant-ai` repos
-4. Note: App ID, Installation ID (from URL after install), Base64 private key
-5. In Convex dashboard → Settings → Environment variables: set `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY_B64`, `GITHUB_APP_INSTALLATION_ID`
-6. Mark GTM-33 Done in Linear
+**Migration-readiness progress (Phase 7 — In Progress):**
+- Route-by-route migration checklist created: `orchestrator/MIGRATION-READINESS.md`
+- Surfaces are categorized as `migrate-now`, `blocked`, or `intentional-server-side`
+- Recommended first migration tranche: `/`, `/workspace/[id]`, `/workspace/[id]/signals`, `/workspace/[id]/tasks`, `/workspace/[id]/inbox`
+- First migration tranche started:
+  - `/` now reads and creates workspaces through Convex
+  - `/workspace/[id]` now loads workspace and project spine from Convex
+  - `/workspace/[id]/signals` now uses Convex for workspace lookup and core signal list/create/update/delete flows
+- Second migration tranche checkpoint:
+  - `/workspace/[id]/agents` now reads agent definitions from Convex and toggles enabled state via Convex mutation
+  - `/projects/[id]` now merges Convex-backed project, workspace, and document state into the existing page model while blocked tabs remain on legacy boundaries
+- Third migration tranche checkpoint:
+  - core project-detail actions now use Convex where parity exists, including job scheduling and document save
+  - project detail continues to run as a compatibility layer: Convex-backed core model, legacy-only tabs and blocked edges still isolated behind existing server routes
+- Fourth migration tranche checkpoint:
+  - project-detail command execution and prototype iteration now queue jobs through Convex
+  - project signal linking now uses Convex queries/mutations instead of the legacy signal-link route for the picker flow
+- Fifth migration tranche checkpoint:
+  - project branch metadata updates now use Convex project mutation
+  - the linked-signals section in project detail now reads and unlinks through Convex-backed signal queries/mutations
+- Sixth migration tranche checkpoint:
+  - the project-detail prototype list now overlays Convex-backed prototype variants into the compatibility model
+  - manual prototype link and delete flows now use public Convex prototype mutations instead of the legacy project-prototypes routes
+- Membership/auth parity foundation checkpoint:
+  - Convex now owns `workspaceMembers` and `invitations`
+  - workspace create writes the creator's admin membership into Convex
+  - server-side permission checks now consult Convex membership first, with legacy Drizzle membership as a fallback during migration
+  - workspace member/invitation routes and invite-token route now proxy through the Convex-backed parity layer
+  - onboarding workspace lookup and the workspace-role hook now read from the Convex parity path
+- Membership/auth parity consumer checkpoint:
+  - workspace settings now reads members and invitations from the Convex parity layer
+  - workspace settings saves through the Convex workspace mutation path
+  - the invite modal now creates invitations directly through the Convex invitation mutation
+- Settings lane unblock checkpoint:
+  - the missing workspace-columns route is restored
+  - the settings page now sources its pipeline column state from the dedicated columns route instead of expecting `columnConfigs` on the Convex workspace object
+  - graduation criteria and column settings can load again under the new auth/membership layer
+- Activity parity checkpoint:
+  - Convex now stores workspace activity logs
+  - the legacy activity helper dual-writes new events into Convex during migration
+  - the workspace activity route now reads from the Convex-backed activity feed, so the settings activity tab no longer depends on the old Drizzle-only activity log path
+- Column / graduation parity checkpoint:
+  - Convex now stores `columnConfigs`
+  - the default pipeline columns are seeded into Convex for new or uninitialized workspaces
+  - the existing `/api/columns*` and `/api/workspaces/[id]/columns` bridges now point at the Convex-backed column source of truth
+  - `ColumnsSettingsCard` and `GraduationCriteriaCard` are now operating against the Convex-backed column model through the existing route layer
+- Settings lane status:
+  - the core settings surfaces now have parity across members, invitations, workspace save, activity feed, and pipeline columns / graduation criteria
+  - the remaining settings work is now the long tail: deeper admin/settings exceptions and external/file-backed integrations, not missing core source-of-truth models
+- Convex-native context lane checkpoint:
+  - Convex now owns first-class `personas` and `signalPersonas`
+  - Convex now exposes a unified workspace search surface across documents, memory, knowledgebase, and personas
+  - `/api/personas`, `/api/signals/[id]/personas`, `/api/search`, and knowledgebase runtime routes now bridge to Convex-backed sources of truth
+  - personas writes still dual-write to repo files for compatibility, but runtime reads are now Convex-first
+
+**GitHub auth:** `GITHUB_TOKEN` (OAuth token) is set in Convex env vars as a fallback. `convex/tools/githubAuth.ts` now supports full GitHub App installation tokens (preferred when `GITHUB_APP_ID` + `GITHUB_APP_PRIVATE_KEY_B64` + `GITHUB_APP_INSTALLATION_ID` are set) with PAT fallback.
+
+**GTM-33 Verification (complete):**
+1. GitHub App created and installed on Elmer
+2. Convex env vars configured: `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY_B64`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_WEBHOOK_SECRET`
+3. Webhook URL verified against `https://fortunate-parakeet-796.convex.site/webhooks/github`
+4. Signature verification confirmed: unsigned test requests return `401`, signed GitHub push returns `200`
+5. Webhook repo filter fixed to accept both `tylersahagun/elmer` (current) and `AskElephant/pm-workspace` (future)
+6. Convex module naming fixed (`githubAuth.ts`) so deployments succeed
+
+---
+
+## Swarm Plan — Next Wave
+
+Run the next push as five parallel lanes with one orchestrator agent coordinating handoffs and status updates. The goal is to stabilize auth/deployment first, keep the app testable during migration, and avoid premature work on Chat before the Convex foundation is ready.
+
+### Lane 0 — Platform Reliability
+
+**Owner agents:** platform / auth / deployment agents  
+**Linear issues:** `GTM-94`, `GTM-95`, `GTM-96`, `GTM-97`, `GTM-98`
+
+- Restore reliable Clerk asset loading on `elmer.studio`
+- Align Clerk, Convex, and app-origin configuration across local and deployed environments
+- Add lightweight auth/domain smoke checks so uptime and auth breakage are not conflated
+- Remove stale NextAuth/Auth.js migration debt after the Clerk path is confirmed stable
+- Update deployment/auth docs to reflect the real current stack and cutover sequence
+
+**Definition of done for this lane:**
+- `/login` loads reliably on the public URL
+- `npm run check:auth` is a trustworthy release gate
+- Deployment docs no longer mix legacy and target-state steps ambiguously
+
+### Lane A — Testing Completion
+
+**Owner agents:** `gsd-executor` or implementation agents focused on test infra  
+**Linear issues:** `GTM-78`, `GTM-82`, `GTM-83`, `GTM-84`
+
+- Expand the POM layer beyond `WorkspacePage`, `SignalInboxPage`, and `AgentExecutionPage`
+- Finish route smoke coverage for all major dashboard surfaces
+- Add seed/fixture path for signal inbox tests so tests don't depend on manual data
+- Add the first agent-execution E2E happy path using stub data
+
+**Definition of done for this lane:**
+- `npm run test:e2e:smoke` passes locally
+- Signal inbox specs cover seeded data and empty state
+- Route coverage is broad enough to catch page-level regressions
+
+### Lane B — Team Awareness Surfaces
+
+**Owner agents:** UI + Convex implementation agents  
+**Linear issues:** `GTM-69`, `GTM-70`, `GTM-55` to `GTM-58`
+
+- Persist job attribution fields (`initiatedBy`, `rootInitiator`, `parentJobId`)
+- Ship `ExecutionBadge` / blame-chain UI in existing execution surfaces
+- Add lightweight `presence` table and `usePresence` hook
+- Surface presence avatars in navbar, project detail, and document views
+
+**Definition of done for this lane:**
+- Every agent run is attributable end-to-end
+- Two or more users can see each other's active location in the app
+
+### Lane C — Migration Readiness
+
+**Owner agents:** architecture + implementation agents  
+**Linear issues:** `GTM-59`, `GTM-99`, `GTM-100`, `GTM-101`, `GTM-102`, `GTM-103`
+
+- Inventory all remaining PostgreSQL / Drizzle / REST / SSE dependencies still used by the UI
+- Create a route-by-route migration map from old data access to Convex `useQuery` / `useMutation`
+- Separate "can migrate now" pages from pages blocked by missing Convex hooks
+- Convert the named blocker categories into executable tickets:
+  - workspace membership + invitations parity
+  - connected-account / GitHub settings state
+  - personas + knowledgebase boundary decision
+  - Convex search strategy for documents + memory
+  - project detail page parity slices
+- Prepare the Clerk + Vercel cutover checklist so migration work can begin immediately after Phase 6
+
+**Definition of done for this lane:**
+- A route-level migration checklist exists
+- Every remaining legacy dependency is mapped to a Convex replacement, an intentional server-side boundary, or a named blocker ticket
+
+### Lane D — Chat Readiness (do not fully implement yet)
+
+**Owner agents:** design / planning agents  
+**Linear issues:** `GTM-71` to `GTM-77`
+
+- Finalize surface contracts for `ElmerPanel`, `Agent Hub`, `Context Peek`, and artifact panel
+- Define the exact Convex hooks and UI integration points these features will require post-migration
+- Do **not** fully implement the new chat surface before Lane C makes the UI Convex-native
+
+**Definition of done for this lane:**
+- Chat phase is implementation-ready but not prematurely built against legacy data paths
+
+### Recommended Execution Order
+
+1. Start **Lane 0** immediately and treat auth/deployment stability as the release gate
+2. Run **Lane A** and **Lane B** in parallel once the public auth path is stable enough to test against
+3. Keep **Lane C** running in parallel as the cutover-planning and blocker-burn-down stream
+4. Keep **Lane D** to planning/spec/contract work until Lane C has moved the main app surfaces onto Convex
+5. Start the full Chat implementation push only after platform stability, test confidence, and the first migration tranche are holding
 
 ---
 
@@ -233,7 +397,7 @@ Agents don't lose any capability vs. Cursor. All tools are available server-side
 | Category                               | Implementation                                                            |
 | -------------------------------------- | ------------------------------------------------------------------------- |
 | Slack, Linear, Notion, HubSpot, Google | Composio SDK (`@composio/core`) — already works, API key per workspace    |
-| GitHub file read/write                 | `convex/tools/github-auth.ts` — GitHub App installation tokens (RS256 JWT via `jose`), PAT fallback. `codebase.ts` tools: `read_file`, `write_file`, `list_directory`, `search_code` |
+| GitHub file read/write                 | `convex/tools/githubAuth.ts` — GitHub App installation tokens (RS256 JWT via `jose`), PAT fallback. `codebase.ts` tools: `read_file`, `write_file`, `list_directory`, `search_code` |
 | Codebase search                        | GitHub Code Search API — replaces `rg` shell command                      |
 | PostHog                                | Direct REST API calls                                                     |
 | Figma                                  | Direct REST API calls                                                     |
@@ -377,7 +541,7 @@ Two sync flows:
 - Full schema: `orchestrator/convex/schema.ts` — all 19 tables including graph, tasks, prototypeVariants
 - Agentic loop: `orchestrator/convex/agents.ts` — run, resume, sync, model routing, HITL
 - Server-side tools: `orchestrator/convex/tools/` — db, services (Composio/PostHog/Brave), codebase (GitHub)
-- GitHub auth: `orchestrator/convex/tools/github-auth.ts` — App tokens + PAT fallback
+- GitHub auth: `orchestrator/convex/tools/githubAuth.ts` — App tokens + PAT fallback
 - Signal inbox: `orchestrator/convex/inbox.ts`, `inboxItems.ts` — auto-classify, TL;DR, impact scoring
 - Memory graph: `orchestrator/convex/graph.ts` — 5 tables, reinforcement, decay
 - MCP server: `mcp-server/src/` — 20 P0 tools backed by Convex HTTP API
@@ -511,7 +675,7 @@ The observability and control surface for all running agents. Replaces the float
 
 ## Linear Project
 
-All 37+ issues are in Linear: https://linear.app/askelephant/project/elmer-e42608f6079d/overview
+The active roadmap is in Linear: https://linear.app/askelephant/project/elmer-e42608f6079d/overview
 
 Phase 0 (Foundation): GTM-33 to GTM-37
 Phase 1 (Agent Execution): GTM-38 to GTM-43
@@ -520,7 +684,9 @@ Phase 3 (Document + Task Views): GTM-48 to GTM-53
 Phase 4 (Signal Inbox): GTM-50, GTM-52
 Phase 5 (MCP Apps): GTM-54
 Phase 6 (Team + Orchestrator): GTM-55 to GTM-58, GTM-69, GTM-70
-Phase 7 (Full Migration): GTM-59 to GTM-60
+Phase 7 (Full Migration): GTM-59, GTM-99 to GTM-103
+Platform reliability: GTM-94 to GTM-98
+Graph analytics follow-on: GTM-60
 Phase 8 (Chat & Agent Hub): GTM-73, GTM-72, GTM-74, GTM-71, GTM-77, GTM-76, GTM-75
 
 ---

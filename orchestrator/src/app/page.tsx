@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Window, MiniWindow } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
@@ -37,10 +36,17 @@ import {
   UserPlus,
   Shield,
 } from "lucide-react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WaveV4D, ElmerWordmark } from "@/components/brand/ElmerLogo";
 import Link from "next/link";
 import type { WorkspaceRole } from "@/lib/db/schema";
+import {
+  useConvexAuth,
+  useMutation,
+  useQuery as useConvexQuery,
+} from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { canRunConvexQuery } from "@/lib/auth/convex";
+import { slugifyWorkspaceName } from "@/lib/workspaces/path";
 
 interface WorkspaceWithRole {
   id: string;
@@ -52,80 +58,57 @@ interface WorkspaceWithRole {
 
 function HomeContent() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { user, isLoaded, isSignedIn } = useCurrentUser();
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
   const [showNewWorkspace, setShowNewWorkspace] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState("");
-
-  // Track if session is invalid (401 from API despite being signed in)
-  const [sessionInvalid, setSessionInvalid] = useState(false);
-  const [lastUserId, setLastUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user?.id && user.id !== lastUserId) {
-      setSessionInvalid(false);
-      setLastUserId(user.id);
-    }
-  }, [user?.id, lastUserId]);
-
-  // Fetch workspaces (only if authenticated)
-  const { data: workspaces, isLoading } = useQuery<WorkspaceWithRole[]>({
-    queryKey: ["workspaces"],
-    queryFn: async () => {
-      const res = await fetch("/api/workspaces", {
-        credentials: "include", // Ensure cookies are sent
-      });
-      if (!res.ok) {
-        if (res.status === 401) {
-          // Session is invalid - mark it so we show login UI
-          setSessionInvalid(true);
-          return [];
-        }
-        throw new Error("Failed to fetch workspaces");
-      }
-      // Session is valid - make sure we clear invalid flag
-      setSessionInvalid(false);
-      return res.json();
-    },
-    enabled: isSignedIn,
-    // Refetch on window focus to pick up new session
-    refetchOnWindowFocus: true,
+  const canLoadConvexData = canRunConvexQuery({
+    isClerkLoaded: isLoaded,
+    isSignedIn,
+    isConvexAuthenticated,
   });
 
-  // Create workspace mutation
-  const createWorkspace = useMutation({
-    mutationFn: async (data: { name: string; description?: string }) => {
-      const res = await fetch("/api/workspaces", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+  const rawWorkspaces = useConvexQuery(
+    api.workspaces.list,
+    canLoadConvexData ? {} : "skip",
+  );
+  const workspaces: WorkspaceWithRole[] | undefined = rawWorkspaces?.map(
+    (workspace: {
+      _id: string;
+      name: string;
+      description?: string | null;
+      _creationTime: number;
+    }) => ({
+      id: workspace._id,
+      name: workspace.name,
+      description: workspace.description ?? null,
+      role: "admin",
+      updatedAt: new Date(workspace._creationTime).toISOString(),
+    }),
+  );
+  const isLoading = isSignedIn && (!canLoadConvexData || rawWorkspaces === undefined);
+
+  const createWorkspace = useMutation(api.workspaces.create);
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+
+  const handleCreateWorkspace = async () => {
+    if (!newWorkspaceName.trim()) return;
+    setIsCreatingWorkspace(true);
+    try {
+      const workspaceId = await createWorkspace({
+        name: newWorkspaceName.trim(),
+        slug: slugifyWorkspaceName(newWorkspaceName),
+        description: newWorkspaceDescription.trim() || undefined,
+        settings: {},
       });
-      if (!res.ok) {
-        if (res.status === 401) {
-          setSessionInvalid(true);
-          throw new Error("Session expired. Please sign in again.");
-        }
-        throw new Error("Failed to create workspace");
-      }
-      return res.json();
-    },
-    onSuccess: (workspace) => {
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       setShowNewWorkspace(false);
       setNewWorkspaceName("");
       setNewWorkspaceDescription("");
-      // Navigate to onboarding for new workspaces
-      router.push(`/workspace/${workspace.id}/onboarding`);
-    },
-  });
-
-  const handleCreateWorkspace = () => {
-    if (!newWorkspaceName.trim()) return;
-    createWorkspace.mutate({
-      name: newWorkspaceName.trim(),
-      description: newWorkspaceDescription.trim() || undefined,
-    });
+      router.push(`/workspace/${workspaceId}/onboarding`);
+    } finally {
+      setIsCreatingWorkspace(false);
+    }
   };
 
   const getRoleBadgeVariant = (role: WorkspaceRole) => {
@@ -141,8 +124,7 @@ function HomeContent() {
     }
   };
 
-  // Consider user unauthenticated if session is invalid (401 from API)
-  const isAuthenticated = isSignedIn && !sessionInvalid;
+  const isAuthenticated = isSignedIn;
   const isLoadingAuth = !isLoaded;
   const hasWorkspaces = workspaces && workspaces.length > 0;
 
@@ -269,7 +251,7 @@ function HomeContent() {
         {!isLoadingAuth && !isAuthenticated && (
           <Window title="auth.ts" className="animate-fade-up stagger-2">
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-linear-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
                 <Shield className="w-8 h-8 text-purple-500" />
               </div>
               <h3 className="font-semibold text-xl mb-2">Welcome to Elmer</h3>
@@ -299,7 +281,7 @@ function HomeContent() {
         {!isLoadingAuth && isAuthenticated && !isLoading && !hasWorkspaces && (
           <Window title="onboarding.ts" className="animate-fade-up stagger-2">
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-linear-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
                 <Sparkles className="w-8 h-8 text-emerald-500" />
               </div>
               <h3 className="font-semibold text-xl mb-2">
@@ -357,7 +339,7 @@ function HomeContent() {
                       onClick={() => router.push(`/workspace/${workspace.id}`)}
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
                           <FolderOpen className="w-5 h-5 text-purple-500 dark:text-purple-400" />
                         </div>
                         <div className="flex items-center gap-2">
@@ -440,16 +422,16 @@ function HomeContent() {
             <Button
               variant="ghost"
               onClick={() => setShowNewWorkspace(false)}
-              disabled={createWorkspace.isPending}
+              disabled={isCreatingWorkspace}
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreateWorkspace}
-              disabled={!newWorkspaceName.trim() || createWorkspace.isPending}
+              disabled={!newWorkspaceName.trim() || isCreatingWorkspace}
               className="gap-2"
             >
-              {createWorkspace.isPending ? (
+              {isCreatingWorkspace ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Creating...
@@ -468,13 +450,6 @@ function HomeContent() {
   );
 }
 
-// Wrap with QueryClientProvider for the home page
 export default function Home() {
-  const [queryClient] = useState(() => new QueryClient());
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <HomeContent />
-    </QueryClientProvider>
-  );
+  return <HomeContent />;
 }

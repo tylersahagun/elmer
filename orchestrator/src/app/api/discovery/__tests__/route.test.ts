@@ -27,6 +27,7 @@ vi.mock("@/lib/discovery", () => ({
 }));
 
 import { auth } from "@/auth";
+import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
 import { getWorkspace } from "@/lib/db/queries";
 import { scanRepository } from "@/lib/discovery";
@@ -141,7 +142,7 @@ describe("GET /api/discovery", () => {
 
       expect(response.status).toBe(403);
       expect(data.error).toBe("GitHub not connected");
-      expect(data.connectUrl).toBe("/api/auth/signin/github");
+      expect(data.connectUrl).toBe(GITHUB_OAUTH_CONNECT_URL);
     });
   });
 

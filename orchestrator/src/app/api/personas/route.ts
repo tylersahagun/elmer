@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { listConvexPersonas, upsertConvexPersona } from "@/lib/convex/server";
 
 export interface PersonaArchetype {
   archetype_id: string;
@@ -41,29 +42,35 @@ const PERSONAS_PATH = path.join(
 
 export async function GET() {
   try {
-    // Check if directory exists
-    try {
-      await fs.access(PERSONAS_PATH);
-    } catch {
-      // Try alternative path (might be running from project root)
-      const altPath = path.join(
-        process.cwd(),
-        "elmer-docs",
-        "personas",
-        "archetypes",
-      );
-      try {
-        await fs.access(altPath);
-        return await loadPersonasFromPath(altPath);
-      } catch {
-        return NextResponse.json({
-          personas: [],
-          error: "Personas directory not found",
-        });
-      }
-    }
-
-    return await loadPersonasFromPath(PERSONAS_PATH);
+    const workspaceId = "mn7e43jc0m7bc5jn708d3ye4e182a7me";
+    const personas = await listConvexPersonas(workspaceId) as Array<{
+      _id: string;
+      archetypeId: string;
+      name: string;
+      description: string;
+      role: PersonaArchetype["role"];
+      pains: string[];
+      successCriteria: string[];
+      evaluationHeuristics: string[];
+      typicalTools: string[];
+      fears: string[];
+      psychographicRanges: PersonaArchetype["psychographic_ranges"];
+    }>;
+    return NextResponse.json({
+      personas: personas.map((persona) => ({
+        id: persona._id,
+        archetype_id: persona.archetypeId,
+        name: persona.name,
+        description: persona.description,
+        role: persona.role,
+        pains: persona.pains,
+        success_criteria: persona.successCriteria,
+        evaluation_heuristics: persona.evaluationHeuristics,
+        typical_tools: persona.typicalTools,
+        fears: persona.fears,
+        psychographic_ranges: persona.psychographicRanges,
+      })),
+    });
   } catch (error) {
     console.error("[API /personas] GET error:", error);
     return NextResponse.json(
@@ -71,25 +78,6 @@ export async function GET() {
       { status: 500 },
     );
   }
-}
-
-async function loadPersonasFromPath(dirPath: string) {
-  const files = await fs.readdir(dirPath);
-  const jsonFiles = files.filter((f) => f.endsWith(".json"));
-
-  const personas: PersonaArchetype[] = [];
-
-  for (const file of jsonFiles) {
-    try {
-      const content = await fs.readFile(path.join(dirPath, file), "utf-8");
-      const persona = JSON.parse(content) as PersonaArchetype;
-      personas.push(persona);
-    } catch (e) {
-      console.warn(`Failed to parse persona file: ${file}`, e);
-    }
-  }
-
-  return NextResponse.json({ personas });
 }
 
 interface PersonaWriteRequest {
@@ -231,9 +219,10 @@ async function resolvePersonasPath() {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as PersonaWriteRequest;
-    if (!body?.path || !body?.content) {
+    const workspaceId = (body as PersonaWriteRequest & { workspaceId?: string }).workspaceId;
+    if (!body?.path || !body?.content || !workspaceId) {
       return NextResponse.json(
-        { error: "path and content are required" },
+        { error: "workspaceId, path and content are required" },
         { status: 400 },
       );
     }
@@ -244,6 +233,21 @@ export async function POST(request: NextRequest) {
     const filePath = path.join(personasPath, `${archetypeId}.json`);
 
     await fs.writeFile(filePath, JSON.stringify(persona, null, 2), "utf-8");
+    await upsertConvexPersona({
+      workspaceId,
+      archetypeId: persona.archetype_id,
+      name: persona.name,
+      description: persona.description,
+      role: persona.role,
+      pains: persona.pains,
+      successCriteria: persona.success_criteria,
+      evaluationHeuristics: persona.evaluation_heuristics,
+      typicalTools: persona.typical_tools,
+      fears: persona.fears,
+      psychographicRanges: persona.psychographic_ranges,
+      content: body.content,
+      filePath,
+    });
 
     return NextResponse.json({ success: true, persona });
   } catch (error) {
@@ -258,9 +262,10 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = (await request.json()) as PersonaWriteRequest;
-    if (!body?.path || !body?.content) {
+    const workspaceId = (body as PersonaWriteRequest & { workspaceId?: string }).workspaceId;
+    if (!body?.path || !body?.content || !workspaceId) {
       return NextResponse.json(
-        { error: "path and content are required" },
+        { error: "workspaceId, path and content are required" },
         { status: 400 },
       );
     }
@@ -271,6 +276,21 @@ export async function PUT(request: NextRequest) {
     const filePath = path.join(personasPath, `${archetypeId}.json`);
 
     await fs.writeFile(filePath, JSON.stringify(persona, null, 2), "utf-8");
+    await upsertConvexPersona({
+      workspaceId,
+      archetypeId: persona.archetype_id,
+      name: persona.name,
+      description: persona.description,
+      role: persona.role,
+      pains: persona.pains,
+      successCriteria: persona.success_criteria,
+      evaluationHeuristics: persona.evaluation_heuristics,
+      typicalTools: persona.typical_tools,
+      fears: persona.fears,
+      psychographicRanges: persona.psychographic_ranges,
+      content: body.content,
+      filePath,
+    });
 
     return NextResponse.json({ success: true, persona });
   } catch (error) {

@@ -16,11 +16,15 @@ interface PersonasPageClientProps {
   workspaceId: string;
 }
 
+interface ConvexPersonaArchetype extends PersonaArchetype {
+  id?: string;
+}
+
 /**
  * Transform API persona data into the KnowledgeBaseFile format for display
  */
 function transformPersonasToFileTree(
-  personas: PersonaArchetype[],
+  personas: ConvexPersonaArchetype[],
 ): KnowledgeBaseFile[] {
   if (!personas || personas.length === 0) {
     return [];
@@ -117,7 +121,7 @@ export function PersonasPageClient({ workspaceId }: PersonasPageClientProps) {
       const res = await fetch("/api/personas", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, content }),
+        body: JSON.stringify({ workspaceId, path, content }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -149,7 +153,7 @@ export function PersonasPageClient({ workspaceId }: PersonasPageClientProps) {
       const res = await fetch("/api/personas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, content }),
+        body: JSON.stringify({ workspaceId, path, content }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { getInvitationByToken, acceptInvitation } from "@/lib/invitations";
+import {
+  AppAuthenticationError,
+  requireCurrentAppUser,
+} from "@/lib/auth/server";
+import { getConvexInvitationByToken, acceptConvexInvitation } from "@/lib/convex/server";
 import { logMemberJoined } from "@/lib/activity";
+import type { WorkspaceRole } from "@/lib/db/schema";
 
 export async function GET(
   request: NextRequest,
@@ -10,7 +14,18 @@ export async function GET(
   try {
     const { token } = await params;
 
-    const invitation = await getInvitationByToken(token);
+    const invitation = await getConvexInvitationByToken(token) as {
+      _id: string;
+      email: string;
+      role: WorkspaceRole;
+      workspace?: { _id: string; name: string } | null;
+      inviterName?: string;
+      inviterEmail?: string;
+      expiresAt: number;
+      isExpired: boolean;
+      isAccepted: boolean;
+      isValid: boolean;
+    } | null;
 
     if (!invitation) {
       return NextResponse.json(
@@ -21,18 +36,18 @@ export async function GET(
 
     // Return invitation details (safe to show publicly)
     return NextResponse.json({
-      id: invitation.id,
+      id: invitation._id,
       email: invitation.email,
       role: invitation.role,
       workspace: {
-        id: invitation.workspace.id,
-        name: invitation.workspace.name,
+        id: invitation.workspace?._id ?? "",
+        name: invitation.workspace?.name ?? "",
       },
       inviter: {
-        name: invitation.inviter.name,
-        email: invitation.inviter.email,
+        name: invitation.inviterName ?? null,
+        email: invitation.inviterEmail ?? "",
       },
-      expiresAt: invitation.expiresAt,
+      expiresAt: new Date(invitation.expiresAt).toISOString(),
       isExpired: invitation.isExpired,
       isAccepted: invitation.isAccepted,
       isValid: invitation.isValid,
@@ -51,23 +66,22 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
+    const appUser = await requireCurrentAppUser();
 
     const { token } = await params;
 
     // Get invitation details before accepting for logging
-    const invitation = await getInvitationByToken(token);
+    const invitation = await getConvexInvitationByToken(token) as {
+      role: WorkspaceRole;
+    } | null;
 
-    const result = await acceptInvitation({
+    const result = await acceptConvexInvitation({
       token,
-      userId: session.user.id,
+      userId: appUser.id,
+      clerkUserId: appUser.clerkUserId,
+      email: appUser.email,
+      name: appUser.name ?? undefined,
+      image: appUser.image ?? undefined,
     });
 
     if (!result.success) {
@@ -78,8 +92,8 @@ export async function POST(
     }
 
     // Log activity for member joined
-    if (result.workspaceId && invitation) {
-      await logMemberJoined(result.workspaceId, session.user.id, invitation.role);
+    if ((result as { workspaceId?: string }).workspaceId && invitation) {
+      await logMemberJoined(result.workspaceId, appUser.id, invitation.role);
     }
 
     return NextResponse.json({
@@ -87,6 +101,9 @@ export async function POST(
       workspaceId: result.workspaceId,
     });
   } catch (error) {
+    if (error instanceof AppAuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     console.error("Failed to accept invitation:", error);
     return NextResponse.json(
       { error: "Failed to accept invitation" },

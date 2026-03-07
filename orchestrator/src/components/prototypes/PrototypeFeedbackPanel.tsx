@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Window } from "@/components/chrome/Window";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 interface IterationEntry {
   version: string;
@@ -50,7 +52,6 @@ export function PrototypeFeedbackPanel({
   iterationHistory = [],
   className,
 }: PrototypeFeedbackPanelProps) {
-  const queryClient = useQueryClient();
   const openJobLogsDrawer = useUIStore((s) => s.openJobLogsDrawer);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -60,46 +61,41 @@ export function PrototypeFeedbackPanel({
   );
 
   // Create iteration job mutation
-  const iterateMutation = useMutation({
-    mutationFn: async () => {
-      if (!feedbackText.trim()) throw new Error("Feedback is required");
+  const createAndSchedule = useMutation(api.jobs.createAndSchedule);
+  const [iterateError, setIterateError] = useState<string | null>(null);
+  const [isSubmittingIteration, setIsSubmittingIteration] = useState(false);
 
-      const res = await fetch("/api/jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceId,
-          projectId,
-          type: "iterate_prototype",
-          input: {
-            prototypeId,
-            prototypeName,
-            feedbackType,
-            feedback: feedbackText.trim(),
-            projectName,
-          },
-        }),
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackText.trim()) {
+      setIterateError("Feedback is required");
+      return;
+    }
+    setIterateError(null);
+    setIsSubmittingIteration(true);
+    try {
+      const jobId = await createAndSchedule({
+        workspaceId: workspaceId as Id<"workspaces">,
+        projectId: projectId as Id<"projects">,
+        type: "iterate_prototype",
+        input: {
+          prototypeId,
+          prototypeName,
+          feedbackType,
+          feedback: feedbackText.trim(),
+          projectName,
+        },
       });
-
-      if (!res.ok) throw new Error("Failed to create iteration job");
-      return res.json();
-    },
-    onSuccess: (job) => {
-      // Clear form
       setFeedbackText("");
       setIsOpen(false);
-
-      // Open job logs drawer
-      openJobLogsDrawer(job.id, projectName);
-
-      // Refresh project data
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    iterateMutation.mutate();
+      openJobLogsDrawer(String(jobId), projectName);
+    } catch (error) {
+      setIterateError(
+        error instanceof Error ? error.message : "Failed to start iteration",
+      );
+    } finally {
+      setIsSubmittingIteration(false);
+    }
   };
 
   return (
@@ -111,7 +107,7 @@ export function PrototypeFeedbackPanel({
           className="w-full flex items-center justify-between text-left"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
               <MessageSquare className="w-5 h-5 text-purple-400" />
             </div>
             <div>
@@ -199,10 +195,10 @@ export function PrototypeFeedbackPanel({
                   <Button
                     type="submit"
                     size="sm"
-                    disabled={!feedbackText.trim() || iterateMutation.isPending}
+                    disabled={!feedbackText.trim() || isSubmittingIteration}
                     className="gap-1.5"
                   >
-                    {iterateMutation.isPending ? (
+                    {isSubmittingIteration ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         Starting...
@@ -217,11 +213,9 @@ export function PrototypeFeedbackPanel({
                 </div>
 
                 {/* Error */}
-                {iterateMutation.isError && (
+                {iterateError && (
                   <p className="text-xs text-red-400">
-                    {iterateMutation.error instanceof Error
-                      ? iterateMutation.error.message
-                      : "Failed to start iteration"}
+                    {iterateError}
                   </p>
                 )}
               </form>

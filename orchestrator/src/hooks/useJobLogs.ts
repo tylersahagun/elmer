@@ -35,6 +35,11 @@ export interface JobState {
   errorMessage?: string | null;
   input?: Record<string, unknown> | null;
   output?: Record<string, unknown> | null;
+  initiatedBy?: string | null;
+  initiatedByName?: string | null;
+  rootInitiator?: string | null;
+  rootInitiatorName?: string | null;
+  parentJobId?: string | null;
 }
 
 interface UseJobLogsReturn {

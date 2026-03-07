@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { useUIStore, useKanbanStore, type ProjectCard } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { getProjectRoute } from "@/lib/projects/navigation";
 import { 
   FileText, 
   Mic, 
@@ -33,6 +35,7 @@ import { v4 as uuid } from "uuid";
 type InputType = "text" | "audio" | "video" | "link" | "files";
 
 export function NewProjectDialog() {
+  const router = useRouter();
   const isOpen = useUIStore((s) => s.newProjectModalOpen);
   const closeModal = useUIStore((s) => s.closeNewProjectModal);
   const addProject = useKanbanStore((s) => s.addProject);
@@ -98,6 +101,7 @@ export function NewProjectDialog() {
         
         resetForm();
         closeModal();
+        router.push(getProjectRoute(project.id, workspace.id));
       }
     } catch (error) {
       console.error("Failed to create project:", error);
@@ -116,6 +120,7 @@ export function NewProjectDialog() {
       await handleContextSubmit(newProject.id);
       resetForm();
       closeModal();
+      router.push(getProjectRoute(newProject.id, workspace.id));
     } finally {
       setIsSubmitting(false);
     }
@@ -205,11 +210,11 @@ export function NewProjectDialog() {
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
       <DialogContent 
         showCloseButton={false}
-        className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-[90vw] w-[900px] !p-0 !gap-0 h-[85vh] overflow-hidden"
+        className="rounded-2xl border border-border dark:border-[rgba(255,255,255,0.14)] bg-card dark:bg-card shadow-[0_1px_0_rgba(0,0,0,0.03)] dark:shadow-[0_1px_0_rgba(0,0,0,0.4)] max-w-[90vw] w-[900px] p-0! gap-0! h-[85vh] overflow-hidden"
       >
         <div className="flex flex-col h-full">
           {/* Header - macOS window style */}
-          <DialogHeader className="flex-shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
+          <DialogHeader className="shrink-0 h-10 px-4 border-b border-border dark:border-[rgba(255,255,255,0.14)] bg-muted/50 dark:bg-muted/20 flex flex-row items-center rounded-t-2xl">
             <TrafficLights 
               className="mr-3" 
               size={10} 

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { requireWorkspaceAccess } from "@/lib/permissions";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
@@ -30,12 +30,16 @@ export default async function OnboardingPage({ params }: OnboardingPageProps) {
   try {
     await requireWorkspaceAccess(id, "admin");
   } catch {
-    // If no access, redirect to login
-    redirect("/login");
+    // Clerk already guards this route; permission failures should return home.
+    redirect("/");
   }
 
   // Get workspace details
-  const workspace = await getWorkspace(id);
+  const workspace = await getConvexWorkspace(id) as {
+    _id: string;
+    name: string;
+    onboardingCompletedAt?: number;
+  } | null;
 
   if (!workspace) {
     notFound();

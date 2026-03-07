@@ -9,7 +9,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 
 export default defineConfig({
-  testDir: "./e2e/tests",
+  testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -18,7 +18,6 @@ export default defineConfig({
 
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
-    storageState: "e2e/.auth/user.json",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -35,7 +34,10 @@ export default defineConfig({
     // Primary browser — used in CI
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "e2e/.auth/user.json",
+      },
       dependencies: ["setup"],
     },
 
@@ -45,12 +47,18 @@ export default defineConfig({
       : [
           {
             name: "firefox",
-            use: { ...devices["Desktop Firefox"] },
+            use: {
+              ...devices["Desktop Firefox"],
+              storageState: "e2e/.auth/user.json",
+            },
             dependencies: ["setup"],
           },
           {
             name: "Mobile Chrome",
-            use: { ...devices["Pixel 5"] },
+            use: {
+              ...devices["Pixel 5"],
+              storageState: "e2e/.auth/user.json",
+            },
             dependencies: ["setup"],
           },
         ]),

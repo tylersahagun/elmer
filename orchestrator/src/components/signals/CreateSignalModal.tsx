@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -24,6 +24,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploadTab } from "./FileUploadTab";
 import { VideoLinkTab } from "./VideoLinkTab";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 interface CreateSignalModalProps {
   workspaceId: string;
@@ -46,8 +48,6 @@ export function CreateSignalModal({
   onClose,
   onSuccess,
 }: CreateSignalModalProps) {
-  const queryClient = useQueryClient();
-
   // Tab state
   const [activeTab, setActiveTab] = useState("paste");
 
@@ -58,24 +58,21 @@ export function CreateSignalModal({
   const [keepOpen, setKeepOpen] = useState(false);
 
   // Create mutation (for paste tab - existing)
-  const createMutation = useMutation({
-    mutationFn: async (data: {
-      verbatim: string;
-      interpretation?: string;
-      source: string;
-    }) => {
-      const res = await fetch("/api/signals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId, ...data }),
+  const createSignal = useMutation(api.signals.create);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreate = async () => {
+    if (!verbatim.trim()) return;
+    setKeepOpen(false);
+    setIsCreating(true);
+    try {
+      await createSignal({
+        workspaceId: workspaceId as Id<"workspaces">,
+        verbatim,
+        interpretation: interpretation || undefined,
+        source,
       });
-      if (!res.ok) throw new Error("Failed to create signal");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["signals", workspaceId] });
       if (keepOpen) {
-        // Clear form but keep modal open for batch entry
         setVerbatim("");
         setInterpretation("");
         setSource("paste");
@@ -83,27 +80,29 @@ export function CreateSignalModal({
         onSuccess();
         onClose();
       }
-    },
-  });
-
-  const handleCreate = () => {
-    if (!verbatim.trim()) return;
-    setKeepOpen(false);
-    createMutation.mutate({
-      verbatim,
-      interpretation: interpretation || undefined,
-      source,
-    });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const handleCreateAndAddAnother = () => {
+  const handleCreateAndAddAnother = async () => {
     if (!verbatim.trim()) return;
     setKeepOpen(true);
-    createMutation.mutate({
-      verbatim,
-      interpretation: interpretation || undefined,
-      source,
-    });
+    setIsCreating(true);
+    try {
+      await createSignal({
+        workspaceId: workspaceId as Id<"workspaces">,
+        verbatim,
+        interpretation: interpretation || undefined,
+        source,
+      });
+      setVerbatim("");
+      setInterpretation("");
+      setSource("paste");
+      onSuccess();
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleClose = () => {
@@ -186,18 +185,18 @@ export function CreateSignalModal({
               <Button
                 variant="outline"
                 onClick={handleCreateAndAddAnother}
-                disabled={!verbatim.trim() || createMutation.isPending}
+                disabled={!verbatim.trim() || isCreating}
               >
-                {createMutation.isPending && keepOpen ? (
+                {isCreating && keepOpen ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : null}
                 Create & Add Another
               </Button>
               <Button
                 onClick={handleCreate}
-                disabled={!verbatim.trim() || createMutation.isPending}
+                disabled={!verbatim.trim() || isCreating}
               >
-                {createMutation.isPending && !keepOpen ? (
+                {isCreating && !keepOpen ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : null}
                 Create Signal

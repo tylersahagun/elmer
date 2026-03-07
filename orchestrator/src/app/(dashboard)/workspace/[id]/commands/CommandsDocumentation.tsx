@@ -171,7 +171,10 @@ export function CommandsDocumentation({
     queryFn: async () => {
       const res = await fetch(`/api/stage-recipes?workspaceId=${workspaceId}`);
       if (!res.ok) throw new Error("Failed to load recipes");
-      return res.json();
+      const payload = (await res.json()) as
+        | StageRecipe[]
+        | { recipes?: StageRecipe[] };
+      return Array.isArray(payload) ? payload : payload.recipes ?? [];
     },
   });
 

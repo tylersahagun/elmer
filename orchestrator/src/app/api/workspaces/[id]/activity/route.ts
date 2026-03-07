@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspaceActivityLogs } from "@/lib/db/queries";
+import { listConvexWorkspaceActivity } from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -20,7 +20,7 @@ export async function GET(
     const limit = parseInt(searchParams.get("limit") || "20", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
 
-    const logs = await getWorkspaceActivityLogs(workspaceId, { limit, offset });
+    const logs = await listConvexWorkspaceActivity(workspaceId, { limit, offset });
 
     return NextResponse.json(logs);
   } catch (error) {

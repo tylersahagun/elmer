@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useConvexAuth, useMutation, useQuery as useConvexQuery } from "convex/react";
 import {
   Plus,
   ChevronUp,
@@ -19,6 +19,10 @@ import { BulkOperationsToolbar } from "./BulkOperationsToolbar";
 import { BulkLinkModal } from "./BulkLinkModal";
 import { BulkUnlinkModal } from "./BulkUnlinkModal";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { canRunConvexQuery } from "@/lib/auth/convex";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 interface Signal {
   id: string;
@@ -30,14 +34,6 @@ interface Signal {
   createdAt: string;
   linkedProjects?: Array<{ id: string; name: string }>;
   linkedPersonas?: Array<{ personaId: string }>;
-}
-
-interface SignalsResponse {
-  signals: Signal[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
 }
 
 interface SyncResult {
@@ -77,8 +73,13 @@ export function SignalsTable({
   onViewSignal,
   onCreateSignal,
 }: SignalsTableProps) {
-  const queryClient = useQueryClient();
-
+  const { isLoaded, isSignedIn } = useCurrentUser();
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+  const canLoadConvexData = canRunConvexQuery({
+    isClerkLoaded: isLoaded,
+    isSignedIn,
+    isConvexAuthenticated,
+  });
   // Filter state
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -101,6 +102,7 @@ export function SignalsTable({
   );
   const [showBulkLinkModal, setShowBulkLinkModal] = useState(false);
   const [showBulkUnlinkModal, setShowBulkUnlinkModal] = useState(false);
+  const [syncingSignals, setSyncingSignals] = useState(false);
 
   // Debounce search input
   useEffect(() => {
@@ -112,95 +114,129 @@ export function SignalsTable({
   useEffect(() => {
     if (page === 1) return;
     queueMicrotask(() => setPage(1));
-  }, [debouncedSearch, status, source, dateFrom, dateTo]);
+  }, [page, debouncedSearch, status, source, dateFrom, dateTo]);
 
-  // Fetch signals
-  const { data, isLoading, isError } = useQuery<SignalsResponse>({
-    queryKey: [
-      "signals",
-      workspaceId,
-      debouncedSearch,
-      status,
-      source,
-      dateFrom,
-      dateTo,
-      page,
-      pageSize,
-      sortBy,
-      sortOrder,
-    ],
-    queryFn: async () => {
-      const params = new URLSearchParams({ workspaceId });
-      if (debouncedSearch) params.set("search", debouncedSearch);
-      if (status && status !== "all") params.set("status", status);
-      if (source && source !== "all") params.set("source", source);
-      if (dateFrom) params.set("dateFrom", dateFrom);
-      if (dateTo) params.set("dateTo", dateTo);
-      params.set("page", String(page));
-      params.set("pageSize", String(pageSize));
-      params.set("sortBy", sortBy);
-      params.set("sortOrder", sortOrder);
+  const rawSignals = useConvexQuery(
+    api.signals.list,
+    canLoadConvexData
+      ? { workspaceId: workspaceId as Id<"workspaces"> }
+      : "skip",
+  );
+  const isLoading = isSignedIn && (!canLoadConvexData || rawSignals === undefined);
+  const isError = false;
 
-      const res = await fetch(`/api/signals?${params}`);
-      if (!res.ok) throw new Error("Failed to load signals");
-      return res.json();
-    },
+  const mappedSignals: Signal[] = (rawSignals ?? []).map((signal: {
+    _id: string;
+    verbatim: string;
+    interpretation?: string | null;
+    status: string;
+    source: string;
+    severity?: string | null;
+    _creationTime: number;
+  }) => ({
+    id: signal._id,
+    workspaceId,
+    verbatim: signal.verbatim,
+    interpretation: signal.interpretation ?? null,
+    status:
+      signal.status === "pending"
+        ? "new"
+        : signal.status === "assigned"
+          ? "linked"
+          : (signal.status as Signal["status"]),
+    source: signal.source,
+    severity: signal.severity ?? null,
+    createdAt: new Date(signal._creationTime).toISOString(),
+    linkedProjects: [],
+    linkedPersonas: [],
+  }));
+
+  const filteredSignals = mappedSignals
+    .filter((signal) =>
+      debouncedSearch
+        ? signal.verbatim.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          (signal.interpretation ?? "").toLowerCase().includes(debouncedSearch.toLowerCase())
+        : true,
+    )
+    .filter((signal) => (status && status !== "all" ? signal.status === status : true))
+    .filter((signal) => (source && source !== "all" ? signal.source === source : true))
+    .filter((signal) => {
+      if (!dateFrom && !dateTo) return true;
+      const createdAt = new Date(signal.createdAt).getTime();
+      if (dateFrom && createdAt < new Date(dateFrom).getTime()) return false;
+      if (dateTo && createdAt > new Date(dateTo).getTime() + 24 * 60 * 60 * 1000) return false;
+      return true;
+    });
+
+  filteredSignals.sort((a, b) => {
+    const direction = sortOrder === "asc" ? 1 : -1;
+    const getValue = (signal: Signal) => {
+      switch (sortBy) {
+        case "status":
+          return signal.status;
+        case "source":
+          return signal.source;
+        case "severity":
+          return signal.severity ?? "";
+        case "verbatim":
+          return signal.verbatim;
+        case "createdAt":
+        default:
+          return signal.createdAt;
+      }
+    };
+    return String(getValue(a)).localeCompare(String(getValue(b))) * direction;
   });
+
+  const total = filteredSignals.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const signals = filteredSignals.slice(startIndex, startIndex + pageSize);
 
   // Reset selection when signals change (page change, filter change, etc.)
   useEffect(() => {
     queueMicrotask(() => setSelectedSignals(new Set()));
-  }, [data?.signals]);
+  }, [signals.length, page, debouncedSearch, status, source, dateFrom, dateTo]);
 
   // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/signals/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["signals", workspaceId] });
-    },
-  });
+  const deleteSignal = useMutation(api.signals.remove);
 
   // Sync signals mutation
-  const syncMutation = useMutation({
-    mutationFn: async (): Promise<SyncResult> => {
+  const handleSyncSignals = async () => {
+    setSyncingSignals(true);
+    try {
       const res = await fetch(`/api/workspaces/${workspaceId}/syncSignals`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
+      const data = (await res.json()) as SyncResult | { error?: string };
       if (!res.ok) {
-        const error = await res.json().catch(() => ({}));
-        throw new Error(error.error || "Failed to sync signals");
+        throw new Error((data as { error?: string }).error || "Failed to sync signals");
       }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["signals", workspaceId] });
-      if (data.synced > 0) {
-        toast.success(`Synced ${data.synced} signals from workspace`, {
+      const result = data as SyncResult;
+      if (result.synced > 0) {
+        toast.success(`Synced ${result.synced} signals from workspace`, {
           description:
-            data.skipped > 0 ? `${data.skipped} already existed` : undefined,
+            result.skipped > 0 ? `${result.skipped} already existed` : undefined,
         });
-      } else if (data.skipped > 0) {
+      } else if (result.skipped > 0) {
         toast.info("All signals already synced", {
-          description: `${data.skipped} signals were already in the database`,
+          description: `${result.skipped} signals were already in the database`,
         });
       } else {
         toast.info("No signals found to sync", {
           description: "Check that your signals folder contains markdown files",
         });
       }
-    },
-    onError: (error) => {
+    } catch (error) {
       toast.error("Failed to sync signals", {
         description: error instanceof Error ? error.message : "Unknown error",
       });
-    },
-  });
+    } finally {
+      setSyncingSignals(false);
+    }
+  };
 
   // Handle column sort
   const handleSort = (field: SortField) => {
@@ -237,10 +273,6 @@ export function SignalsTable({
     setSelectedSignals(new Set());
   };
 
-  const signals = data?.signals || [];
-  const total = data?.total || 0;
-  const totalPages = data?.totalPages || 1;
-
   const startItem = (page - 1) * pageSize + 1;
   const endItem = Math.min(page * pageSize, total);
 
@@ -249,7 +281,7 @@ export function SignalsTable({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center shrink-0">
             <AlertCircle className="w-5 h-5 text-blue-400" />
           </div>
           <div className="min-w-0">
@@ -264,18 +296,18 @@ export function SignalsTable({
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Button
-            onClick={() => syncMutation.mutate()}
+            onClick={handleSyncSignals}
             size="sm"
             variant="outline"
             className="gap-1.5"
-            disabled={syncMutation.isPending}
+            disabled={syncingSignals}
           >
-            {syncMutation.isPending ? (
+            {syncingSignals ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <FolderSync className="w-3.5 h-3.5" />
             )}
-            {syncMutation.isPending ? "Syncing..." : "Sync from Workspace"}
+            {syncingSignals ? "Syncing..." : "Sync from Workspace"}
           </Button>
           <Button onClick={onCreateSignal} size="sm" className="gap-1.5">
             <Plus className="w-3.5 h-3.5" />
@@ -436,7 +468,7 @@ export function SignalsTable({
                     key={signal.id}
                     signal={signal}
                     onView={onViewSignal}
-                    onDelete={(id) => deleteMutation.mutate(id)}
+                    onDelete={(id) => deleteSignal({ signalId: id as Id<"signals"> })}
                     isSelected={selectedSignals.has(signal.id)}
                     onToggleSelect={toggleSignalSelection}
                   />

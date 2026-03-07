@@ -108,13 +108,13 @@ To confirm commits come from the Bot:
 ## How It Works in the Code
 
 ```
-convex/tools/github-auth.ts   ← generates App tokens
-convex/tools/codebase.ts      ← uses github-auth for all file read/write/search
-convex/agents.ts              ← uses github-auth for pm-workspace sync
+convex/tools/githubAuth.ts    ← generates App tokens
+convex/tools/codebase.ts      ← uses githubAuth for all file read/write/search
+convex/agents.ts              ← uses githubAuth for pm-workspace sync
 convex/http.ts                ← verifies webhook signatures with GITHUB_WEBHOOK_SECRET
 ```
 
-Auth priority in `github-auth.ts`:
+Auth priority in `githubAuth.ts`:
 1. GitHub App installation token (preferred — uses GITHUB_APP_* vars)
 2. Workspace `settings.githubToken` override (per-workspace PAT, for migration)
 3. `GITHUB_TOKEN` env var (PAT fallback for local development only)

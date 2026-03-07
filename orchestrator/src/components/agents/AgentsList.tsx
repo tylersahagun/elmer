@@ -1,8 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useAction, useQuery as useConvexQuery } from "convex/react";
+import {
+  useAction,
+  useConvexAuth,
+  useMutation as useConvexMutation,
+  useQuery as useConvexQuery,
+} from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -16,6 +20,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { canRunConvexQuery } from "@/lib/auth/convex";
 import { AgentCard } from "./AgentCard";
 import type { AgentDefinitionType } from "@/lib/db/schema";
 
@@ -53,27 +59,60 @@ const TYPE_ORDER: Array<{
   { type: "rule", label: "Rules", labelSingular: "Rule" },
 ];
 
-async function fetchAgents(workspaceId: string): Promise<AgentDefinition[]> {
-  const response = await fetch(`/api/agents?workspaceId=${workspaceId}`);
-  if (!response.ok) {
-    // Extract actual error message from API response
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage =
-      errorData.error || `Failed to fetch agents (${response.status})`;
-    throw new Error(errorMessage);
-  }
-  const data = await response.json();
-  return data.agents;
-}
-
 export function AgentsList({ workspaceId }: AgentsListProps) {
-  const {
-    data: agents,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["agents", workspaceId],
-    queryFn: () => fetchAgents(workspaceId),
+  const { isLoaded, isSignedIn } = useCurrentUser();
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+  const canLoadConvexData = canRunConvexQuery({
+    isClerkLoaded: isLoaded,
+    isSignedIn,
+    isConvexAuthenticated,
+  });
+  const rawAgents = useConvexQuery(
+    api.agentDefinitions.list,
+    canLoadConvexData
+      ? { workspaceId: workspaceId as Id<"workspaces"> }
+      : "skip",
+  );
+  const setEnabled = useConvexMutation(api.agentDefinitions.setEnabled);
+  const isLoading = isSignedIn && (!canLoadConvexData || rawAgents === undefined);
+  const error: unknown = null;
+  const agents: AgentDefinition[] | undefined = rawAgents?.map((agent: {
+    _id: string;
+    workspaceId: string;
+    type: string;
+    name: string;
+    description?: string | null;
+    triggers?: string[] | null;
+    content: string;
+    metadata?: unknown;
+    enabled: boolean;
+    _creationTime: number;
+  }) => {
+    const metadata = (agent.metadata ?? null) as Record<string, unknown> | null;
+    const sourcePath =
+      (metadata?.filePath as string | undefined) ??
+      (metadata?.sourcePath as string | undefined) ??
+      `${agent.type}/${agent.name}`;
+    const sourceRepo =
+      (metadata?.sourceRepo as string | undefined) ?? "tylersahagun/elmer";
+    const sourceRef = (metadata?.sourceRef as string | undefined) ?? "main";
+    const createdAt = new Date(agent._creationTime).toISOString();
+    return {
+      id: agent._id,
+      workspaceId: agent.workspaceId,
+      sourceRepo,
+      sourceRef,
+      sourcePath,
+      type: agent.type as AgentDefinitionType,
+      name: agent.name,
+      description: agent.description ?? null,
+      triggers: agent.triggers ?? null,
+      content: agent.content,
+      metadata,
+      enabled: agent.enabled,
+      syncedAt: createdAt,
+      createdAt,
+    };
   });
 
   // Convex sync actions
@@ -195,7 +234,7 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
         </div>
         <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 space-y-2">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
             <p className="text-sm font-medium text-destructive">
               {isAuthError
                 ? "Authentication Required"
@@ -238,12 +277,19 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="agents-page">
       {/* Header with count + sync buttons */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <Bot className="h-6 w-6 text-muted-foreground" />
-          <h1 className="text-2xl font-semibold">Agents</h1>
+          <div>
+            <h1 className="text-2xl font-semibold" data-testid="agents-header">
+              Agent Catalog
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Manage imported definitions here. Run project work from the project cockpit or Elmer.
+            </p>
+          </div>
           <Badge variant="secondary" className="text-sm">
             {agents.length} {agents.length === 1 ? "item" : "items"}
           </Badge>
@@ -255,6 +301,7 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
             </span>
           )}
           <Button
+            data-testid="sync-agents-button"
             size="sm"
             variant="outline"
             onClick={handleSyncAgents}
@@ -267,6 +314,7 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
             Sync Agents
           </Button>
           <Button
+            data-testid="sync-docs-button"
             size="sm"
             variant="outline"
             onClick={handleSyncDocs}
@@ -297,9 +345,9 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
                   className="w-full flex items-center gap-2 p-4 text-left hover:bg-accent/50 transition-colors rounded-t-lg"
                 >
                   {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                   ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}
                   <span className="font-medium">{displayLabel}</span>
                   <Badge variant="outline" className="text-xs ml-auto">
@@ -315,6 +363,12 @@ export function AgentsList({ workspaceId }: AgentsListProps) {
                         key={agent.id}
                         agent={agent}
                         workspaceId={workspaceId}
+                        onToggleEnabled={async (agentId, enabled) => {
+                          await setEnabled({
+                            id: agentId as Id<"agentDefinitions">,
+                            enabled,
+                          });
+                        }}
                       />
                     ))}
                   </div>

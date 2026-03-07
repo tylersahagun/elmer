@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation as useTanstackMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { LinkedTag } from "./LinkedTag";
 import { ProjectLinkCombobox } from "./ProjectLinkCombobox";
 import { PersonaLinkCombobox } from "./PersonaLinkCombobox";
@@ -39,6 +40,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/lib/store";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 // Signal type matching API response
 interface Signal {
@@ -80,6 +83,7 @@ interface LinkedPersona {
 }
 
 interface PersonaArchetype {
+  id?: string;
   archetype_id: string;
   name: string;
 }
@@ -136,6 +140,24 @@ export function SignalDetailModal({
   onDelete,
 }: SignalDetailModalProps) {
   const queryClient = useQueryClient();
+  const convexSignal = useConvexQuery(
+    api.signals.get,
+    signal?.id ? { signalId: signal.id as Id<"signals"> } : "skip",
+  );
+  const liveSignal =
+    signal && convexSignal
+      ? {
+          ...signal,
+          verbatim: convexSignal.verbatim,
+          interpretation: convexSignal.interpretation ?? null,
+          source: convexSignal.source,
+          severity: convexSignal.severity ?? null,
+          status:
+            convexSignal.status === "pending"
+              ? "new"
+              : (convexSignal.status as Signal["status"]),
+        }
+      : signal;
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -146,14 +168,14 @@ export function SignalDetailModal({
 
   // Sync edited values when signal changes or edit mode is entered
   useEffect(() => {
-    if (signal && isEditing) {
+    if (liveSignal && isEditing) {
       queueMicrotask(() => {
-        setEditedVerbatim(signal.verbatim);
-        setEditedInterpretation(signal.interpretation || "");
-        setEditedStatus(signal.status);
+        setEditedVerbatim(liveSignal.verbatim);
+        setEditedInterpretation(liveSignal.interpretation || "");
+        setEditedStatus(liveSignal.status);
       });
     }
-  }, [signal, isEditing]);
+  }, [liveSignal, isEditing]);
 
   // Reset edit mode when modal closes
   useEffect(() => {
@@ -166,36 +188,24 @@ export function SignalDetailModal({
   }, [isOpen]);
 
   // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: async (data: Partial<Signal>) => {
-      if (!signal) throw new Error("No signal to update");
-      const res = await fetch(`/api/signals/${signal.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update signal");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["signals"] });
-      setIsEditing(false);
-      onUpdate();
-    },
-  });
+  const updateSignal = useConvexMutation(api.signals.update);
+  const [isUpdatingSignal, setIsUpdatingSignal] = useState(false);
 
   // Delete mutation
-  const deleteMutation = useMutation({
+  const removeSignal = useConvexMutation(api.signals.remove);
+  const [isDeletingSignal, setIsDeletingSignal] = useState(false);
+  const deleteMutation = useTanstackMutation({
     mutationFn: async () => {
-      if (!signal) throw new Error("No signal to delete");
-      const res = await fetch(`/api/signals/${signal.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete signal");
-      return res.json();
+      if (!liveSignal) throw new Error("No signal to delete");
+      setIsDeletingSignal(true);
+      try {
+        await removeSignal({ signalId: liveSignal.id as Id<"signals"> });
+        return { success: true };
+      } finally {
+        setIsDeletingSignal(false);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["signals"] });
       onDelete();
       onClose();
     },
@@ -203,13 +213,13 @@ export function SignalDetailModal({
 
   // Fetch linked projects and personas
   const { data: linkedData, refetch: refetchLinks } = useQuery({
-    queryKey: ["signal-links", signal?.id],
+    queryKey: ["signal-links", liveSignal?.id],
     queryFn: async () => {
-      if (!signal) return { projects: [], personas: [] };
+      if (!liveSignal) return { projects: [], personas: [] };
 
       const [projectsRes, personasRes] = await Promise.all([
-        fetch(`/api/signals/${signal.id}/projects`),
-        fetch(`/api/signals/${signal.id}/personas`),
+        fetch(`/api/signals/${liveSignal.id}/projects`),
+        fetch(`/api/signals/${liveSignal.id}/personas`),
       ]);
 
       const projects = projectsRes.ok
@@ -221,7 +231,7 @@ export function SignalDetailModal({
 
       return { projects, personas };
     },
-    enabled: !!signal && isOpen,
+    enabled: !!liveSignal && isOpen,
   });
 
   // Fetch persona names for display
@@ -236,7 +246,11 @@ export function SignalDetailModal({
 
   // Map persona IDs to names
   const personaNameMap = new Map(
-    (personasData?.personas || []).map((p) => [p.archetype_id, p.name]),
+    (personasData?.personas || []).flatMap((p) => {
+      const entries: Array<[string, string]> = [[p.archetype_id, p.name]];
+      if (p.id) entries.push([p.id, p.name]);
+      return entries;
+    }),
   );
 
   // Get the job logs drawer opener from store
@@ -244,14 +258,14 @@ export function SignalDetailModal({
 
   // Fetch available agents for this workspace
   const { data: agentsData } = useQuery({
-    queryKey: ["agents", signal?.workspaceId],
+    queryKey: ["agents", liveSignal?.workspaceId],
     queryFn: async () => {
-      if (!signal?.workspaceId) return { agents: [] };
-      const res = await fetch(`/api/agents?workspaceId=${signal.workspaceId}`);
+      if (!liveSignal?.workspaceId) return { agents: [] };
+      const res = await fetch(`/api/agents?workspaceId=${liveSignal.workspaceId}`);
       if (!res.ok) return { agents: [] };
       return res.json() as Promise<{ agents: AgentDefinition[] }>;
     },
-    enabled: !!signal?.workspaceId && isOpen,
+    enabled: !!liveSignal?.workspaceId && isOpen,
   });
 
   // Filter to executable agent types (commands and skills)
@@ -260,16 +274,16 @@ export function SignalDetailModal({
   );
 
   // Execute agent mutation
-  const executeAgentMutation = useMutation({
+  const executeAgentMutation = useTanstackMutation({
     mutationFn: async (agentDefinitionId: string) => {
-      if (!signal) throw new Error("No signal selected");
+      if (!liveSignal) throw new Error("No signal selected");
       const res = await fetch("/api/agents/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          workspaceId: signal.workspaceId,
+          workspaceId: liveSignal.workspaceId,
           agentDefinitionId,
-          signalId: signal.id,
+          signalId: liveSignal.id,
         }),
       });
       if (!res.ok) {
@@ -282,15 +296,15 @@ export function SignalDetailModal({
       // Open job logs drawer to show execution progress
       const jobId = data.id || data.jobId;
       if (jobId) {
-        openJobLogsDrawer(jobId, signal?.verbatim.slice(0, 50) || "Signal");
+        openJobLogsDrawer(jobId, liveSignal?.verbatim.slice(0, 50) || "Signal");
       }
     },
   });
 
   // Link/unlink project mutations
-  const linkProjectMutation = useMutation({
+  const linkProjectMutation = useTanstackMutation({
     mutationFn: async (projectId: string) => {
-      const res = await fetch(`/api/signals/${signal!.id}/projects`, {
+      const res = await fetch(`/api/signals/${liveSignal!.id}/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId }),
@@ -304,9 +318,9 @@ export function SignalDetailModal({
     },
   });
 
-  const unlinkProjectMutation = useMutation({
+  const unlinkProjectMutation = useTanstackMutation({
     mutationFn: async (projectId: string) => {
-      const res = await fetch(`/api/signals/${signal!.id}/projects`, {
+      const res = await fetch(`/api/signals/${liveSignal!.id}/projects`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId }),
@@ -321,9 +335,9 @@ export function SignalDetailModal({
   });
 
   // Link/unlink persona mutations
-  const linkPersonaMutation = useMutation({
+  const linkPersonaMutation = useTanstackMutation({
     mutationFn: async (personaId: string) => {
-      const res = await fetch(`/api/signals/${signal!.id}/personas`, {
+      const res = await fetch(`/api/signals/${liveSignal!.id}/personas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ personaId }),
@@ -337,9 +351,9 @@ export function SignalDetailModal({
     },
   });
 
-  const unlinkPersonaMutation = useMutation({
+  const unlinkPersonaMutation = useTanstackMutation({
     mutationFn: async (personaId: string) => {
-      const res = await fetch(`/api/signals/${signal!.id}/personas`, {
+      const res = await fetch(`/api/signals/${liveSignal!.id}/personas`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ personaId }),
@@ -354,39 +368,54 @@ export function SignalDetailModal({
   });
 
   const handleSave = () => {
-    updateMutation.mutate({
+    if (!liveSignal) return;
+    setIsUpdatingSignal(true);
+    void updateSignal({
+      signalId: liveSignal.id as Id<"signals">,
       verbatim: editedVerbatim,
-      interpretation: editedInterpretation || null,
-      status: editedStatus as Signal["status"],
-    });
+      interpretation: editedInterpretation || undefined,
+      status: editedStatus === "new" ? "pending" : editedStatus,
+      severity: liveSignal.severity ?? undefined,
+    })
+      .then(() => {
+        setIsEditing(false);
+        onUpdate();
+      })
+      .finally(() => setIsUpdatingSignal(false));
   };
 
   const handleQuickStatusChange = (newStatus: string) => {
-    updateMutation.mutate({ status: newStatus as Signal["status"] });
+    if (!liveSignal) return;
+    setIsUpdatingSignal(true);
+    void updateSignal({
+      signalId: liveSignal.id as Id<"signals">,
+      status: newStatus === "new" ? "pending" : newStatus,
+      severity: liveSignal.severity ?? undefined,
+    }).finally(() => setIsUpdatingSignal(false));
   };
 
   const handleStartEdit = () => {
-    if (signal) {
-      setEditedVerbatim(signal.verbatim);
-      setEditedInterpretation(signal.interpretation || "");
-      setEditedStatus(signal.status);
+    if (liveSignal) {
+      setEditedVerbatim(liveSignal.verbatim);
+      setEditedInterpretation(liveSignal.interpretation || "");
+      setEditedStatus(liveSignal.status);
       setIsEditing(true);
     }
   };
 
-  if (!signal) return null;
+  if (!liveSignal) return null;
 
   return (
     <Dialog
-      open={isOpen && !!signal}
+      open={isOpen && !!liveSignal}
       onOpenChange={(open) => !open && onClose()}
     >
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Signal Details
-            <Badge className={cn("text-xs", STATUS_COLORS[signal.status])}>
-              {signal.status}
+            <Badge className={cn("text-xs", STATUS_COLORS[liveSignal.status])}>
+              {liveSignal.status}
             </Badge>
           </DialogTitle>
         </DialogHeader>
@@ -439,18 +468,18 @@ export function SignalDetailModal({
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Feedback</Label>
               <div className="p-3 bg-muted/50 rounded-lg text-sm whitespace-pre-wrap">
-                {signal.verbatim}
+                {liveSignal.verbatim}
               </div>
             </div>
 
             {/* Interpretation (if present) */}
-            {signal.interpretation && (
+            {liveSignal.interpretation && (
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">
                   Interpretation
                 </Label>
                 <div className="p-3 bg-muted/30 rounded-lg text-sm whitespace-pre-wrap">
-                  {signal.interpretation}
+                  {liveSignal.interpretation}
                 </div>
               </div>
             )}
@@ -460,48 +489,48 @@ export function SignalDetailModal({
               <Badge
                 className={cn(
                   "text-xs",
-                  SOURCE_COLORS[signal.source] || SOURCE_COLORS.other,
+                  SOURCE_COLORS[liveSignal.source] || SOURCE_COLORS.other,
                 )}
               >
-                {signal.source}
+                {liveSignal.source}
               </Badge>
-              {signal.severity && (
+              {liveSignal.severity && (
                 <Badge
                   className={cn(
                     "text-xs",
-                    SEVERITY_COLORS[signal.severity] || SEVERITY_COLORS.low,
+                    SEVERITY_COLORS[liveSignal.severity] || SEVERITY_COLORS.low,
                   )}
                 >
-                  {signal.severity}
+                  {liveSignal.severity}
                 </Badge>
               )}
-              {signal.frequency && (
+              {liveSignal.frequency && (
                 <Badge className="text-xs bg-slate-500/20 text-slate-300 border-slate-500/30">
-                  {signal.frequency}
+                  {liveSignal.frequency}
                 </Badge>
               )}
-              {signal.userSegment && (
+              {liveSignal.userSegment && (
                 <Badge className="text-xs bg-slate-500/20 text-slate-300 border-slate-500/30">
-                  {signal.userSegment}
+                  {liveSignal.userSegment}
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground ml-auto">
-                Created {new Date(signal.createdAt).toLocaleDateString()}
+                Created {new Date(liveSignal.createdAt).toLocaleDateString()}
               </span>
             </div>
 
             {/* Quick status actions */}
-            {signal.status !== "archived" && (
+            {liveSignal.status !== "archived" && (
               <div className="flex items-center gap-2 pt-2 border-t border-border">
                 <span className="text-xs text-muted-foreground">
                   Quick actions:
                 </span>
-                {signal.status === "new" && (
+                {liveSignal.status === "new" && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleQuickStatusChange("reviewed")}
-                    disabled={updateMutation.isPending}
+                    disabled={isUpdatingSignal}
                     className="h-7 text-xs gap-1"
                   >
                     <CheckCircle className="w-3 h-3" />
@@ -512,7 +541,7 @@ export function SignalDetailModal({
                   variant="outline"
                   size="sm"
                   onClick={() => handleQuickStatusChange("archived")}
-                  disabled={updateMutation.isPending}
+                  disabled={isUpdatingSignal}
                   className="h-7 text-xs gap-1"
                 >
                   <Archive className="w-3 h-3" />
@@ -570,7 +599,7 @@ export function SignalDetailModal({
                   />
                 ))}
                 <ProjectLinkCombobox
-                  workspaceId={signal.workspaceId}
+                  workspaceId={liveSignal.workspaceId}
                   excludeProjectIds={(linkedData?.projects || []).map(
                     (p) => p.id,
                   )}
@@ -631,46 +660,46 @@ export function SignalDetailModal({
                 <div className="mt-3 space-y-2 text-xs">
                   <div className="grid grid-cols-[120px_1fr] gap-2">
                     <span className="text-muted-foreground">Signal ID:</span>
-                    <span className="font-mono">{signal.id}</span>
+                    <span className="font-mono">{liveSignal.id}</span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2">
                     <span className="text-muted-foreground">Workspace ID:</span>
-                    <span className="font-mono">{signal.workspaceId}</span>
+                    <span className="font-mono">{liveSignal.workspaceId}</span>
                   </div>
-                  {signal.sourceRef && (
+                  {liveSignal.sourceRef && (
                     <div className="grid grid-cols-[120px_1fr] gap-2">
                       <span className="text-muted-foreground">Source Ref:</span>
                       <span className="font-mono break-all">
-                        {signal.sourceRef}
+                        {liveSignal.sourceRef}
                       </span>
                     </div>
                   )}
-                  {signal.sourceMetadata &&
-                    Object.keys(signal.sourceMetadata).length > 0 && (
+                  {liveSignal.sourceMetadata &&
+                    Object.keys(liveSignal.sourceMetadata).length > 0 && (
                       <div className="grid grid-cols-[120px_1fr] gap-2">
                         <span className="text-muted-foreground">
                           Source Metadata:
                         </span>
                         <pre className="font-mono text-[10px] bg-muted/50 p-2 rounded overflow-x-auto">
-                          {JSON.stringify(signal.sourceMetadata, null, 2)}
+                          {JSON.stringify(liveSignal.sourceMetadata, null, 2)}
                         </pre>
                       </div>
                     )}
                   <div className="grid grid-cols-[120px_1fr] gap-2">
                     <span className="text-muted-foreground">Created At:</span>
-                    <span>{new Date(signal.createdAt).toLocaleString()}</span>
+                    <span>{new Date(liveSignal.createdAt).toLocaleString()}</span>
                   </div>
                   <div className="grid grid-cols-[120px_1fr] gap-2">
                     <span className="text-muted-foreground">Updated At:</span>
-                    <span>{new Date(signal.updatedAt).toLocaleString()}</span>
+                    <span>{new Date(liveSignal.updatedAt).toLocaleString()}</span>
                   </div>
-                  {signal.processedAt && (
+                  {liveSignal.processedAt && (
                     <div className="grid grid-cols-[120px_1fr] gap-2">
                       <span className="text-muted-foreground">
                         Processed At:
                       </span>
                       <span>
-                        {new Date(signal.processedAt).toLocaleString()}
+                        {new Date(liveSignal.processedAt).toLocaleString()}
                       </span>
                     </div>
                   )}
@@ -688,9 +717,9 @@ export function SignalDetailModal({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={updateMutation.isPending || !editedVerbatim.trim()}
+                disabled={isUpdatingSignal || !editedVerbatim.trim()}
               >
-                {updateMutation.isPending && (
+                {isUpdatingSignal && (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 )}
                 Save Changes
@@ -702,9 +731,9 @@ export function SignalDetailModal({
                 variant="outline"
                 className="text-red-500 hover:text-red-400"
                 onClick={() => deleteMutation.mutate()}
-                disabled={deleteMutation.isPending}
+                disabled={isDeletingSignal || deleteMutation.isPending}
               >
-                {deleteMutation.isPending && (
+                {(isDeletingSignal || deleteMutation.isPending) && (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 )}
                 Delete

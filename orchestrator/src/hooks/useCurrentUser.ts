@@ -1,7 +1,7 @@
 "use client";
 
-import { useUser, useAuth } from "@clerk/nextjs";
-import { useConvexAuth } from "convex/react";
+import { useEffect, useState } from "react";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 export interface CurrentUser {
   id: string;
@@ -19,25 +19,72 @@ export function useCurrentUser(): {
   isLoaded: boolean;
   isSignedIn: boolean;
 } {
-  const { user, isLoaded } = useUser();
-  const { isAuthenticated } = useConvexAuth();
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { isSignedIn } = useAuth();
+  const [resolvedUser, setResolvedUser] = useState<{
+    clerkUserId: string;
+    user: CurrentUser;
+  } | null>(null);
 
-  if (!isLoaded) {
+  useEffect(() => {
+    if (!isClerkLoaded || !isSignedIn || !clerkUser) {
+      return;
+    }
+
+    if (resolvedUser?.clerkUserId === clerkUser.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fallbackUser: CurrentUser = {
+      id: clerkUser.id,
+      name: clerkUser.fullName ?? clerkUser.username ?? null,
+      email: clerkUser.primaryEmailAddress?.emailAddress ?? "",
+      image: clerkUser.imageUrl ?? null,
+    };
+
+    void fetch("/api/auth/me", { credentials: "include" })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error("Failed to resolve current app user");
+        }
+        return (await res.json()) as CurrentUser;
+      })
+      .then((appUser) => {
+        if (!cancelled) {
+          setResolvedUser({ clerkUserId: clerkUser.id, user: appUser });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setResolvedUser({ clerkUserId: clerkUser.id, user: fallbackUser });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clerkUser, isClerkLoaded, isSignedIn, resolvedUser?.clerkUserId]);
+
+  const isResolvingUser = Boolean(
+    isClerkLoaded &&
+      isSignedIn &&
+      clerkUser &&
+      resolvedUser?.clerkUserId !== clerkUser.id,
+  );
+
+  if (!isClerkLoaded || (isSignedIn && isResolvingUser)) {
     return { user: null, isLoaded: false, isSignedIn: false };
   }
 
-  if (!user) {
+  if (!isSignedIn || !clerkUser) {
     return { user: null, isLoaded: true, isSignedIn: false };
   }
 
   return {
-    user: {
-      id: user.id,
-      name: user.fullName ?? user.username ?? null,
-      email: user.primaryEmailAddress?.emailAddress ?? "",
-      image: user.imageUrl ?? null,
-    },
+    user: resolvedUser?.user ?? null,
     isLoaded: true,
-    isSignedIn: isAuthenticated,
+    isSignedIn: Boolean(isSignedIn),
   };
 }

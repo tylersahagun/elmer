@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "node:path";
+import { WorkspacePage, type WorkspaceRoute } from "../pages";
+
+dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
 
 /**
  * Smoke tests — @smoke
@@ -7,71 +12,87 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("Smoke: Core routes @smoke", () => {
-  test("workspace dashboard loads after auth", async ({ page }) => {
-    await page.goto("/");
-    // Should redirect to workspace, not login (auth storageState is active)
-    await expect(page).not.toHaveURL(/\/login/);
-    await expect(page).toHaveURL(/\/workspace\//);
+  let workspaceId: string;
+
+  test.beforeEach(async ({ page }) => {
+    const workspace = new WorkspacePage(page);
+    await workspace.gotoHome();
+
+    let homeState: "authenticated" | "unauthenticated" | "loading" = "loading";
+    await expect
+      .poll(
+        async () => {
+          if (await workspace.isAuthenticatedHomeReady()) {
+            homeState = "authenticated";
+            return homeState;
+          }
+          if (await workspace.isUnauthenticatedHomeReady()) {
+            homeState = "unauthenticated";
+            return homeState;
+          }
+          homeState = "loading";
+          return homeState;
+        },
+        { timeout: 30_000 },
+      )
+      .not.toBe("loading");
+
+    if (homeState === "unauthenticated") {
+      const email = process.env.E2E_TEST_EMAIL;
+      const password = process.env.E2E_TEST_PASSWORD;
+
+      if (!email || !password) {
+        throw new Error(
+          "E2E_TEST_EMAIL and E2E_TEST_PASSWORD must be set in .env.local for smoke auth recovery",
+        );
+      }
+
+      await workspace.signIn(email, password);
+    }
+
+    await workspace.expectAuthenticatedHome();
+    workspaceId = await workspace.openFirstWorkspaceFromHome();
+    expect(workspaceId).toBeTruthy();
   });
 
-  test("workspace/agents renders Agent Hub", async ({ page }) => {
-    await page.goto("/");
-    const workspaceUrl = page.url();
-    const wsId = workspaceUrl.match(/\/workspace\/([^/]+)/)?.[1];
-    expect(wsId).toBeTruthy();
-
-    await page.goto(`/workspace/${wsId}/agents`);
-    await expect(page).not.toHaveURL(/\/login/);
-    // Page title or key element should be present
-    await expect(page.locator("h1, h2, [data-testid='agents-header']").first()).toBeVisible();
+  test("authenticated home opens the first workspace dashboard", async ({
+    page,
+  }) => {
+    const workspace = new WorkspacePage(page);
+    await workspace.expectRouteLoaded("dashboard");
   });
 
-  test("workspace/inbox renders Signal Inbox", async ({ page }) => {
-    await page.goto("/");
-    const wsId = page.url().match(/\/workspace\/([^/]+)/)?.[1];
-    await page.goto(`/workspace/${wsId}/inbox`);
-    await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
-  });
+  const routeCoverage: Array<{
+    route: Exclude<WorkspaceRoute, "dashboard">;
+    label: string;
+  }> = [
+    { route: "agents", label: "Agent Hub" },
+    { route: "inbox", label: "Signal Inbox" },
+    { route: "signals", label: "signals table" },
+    { route: "tasks", label: "tasks page" },
+    { route: "knowledgebase", label: "knowledge base" },
+    { route: "settings", label: "settings" },
+    { route: "personas", label: "personas page" },
+    { route: "commands", label: "commands page" },
+    { route: "onboarding", label: "onboarding route" },
+  ];
 
-  test("workspace/signals renders signals table", async ({ page }) => {
-    await page.goto("/");
-    const wsId = page.url().match(/\/workspace\/([^/]+)/)?.[1];
-    await page.goto(`/workspace/${wsId}/signals`);
-    await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
-  });
+  for (const { route, label } of routeCoverage) {
+    test(`workspace/${route} renders ${label}`, async ({ page }) => {
+      const workspace = new WorkspacePage(page);
+      await workspace.navigateTo(route, workspaceId);
+    });
+  }
 
-  test("workspace/tasks renders tasks page", async ({ page }) => {
-    await page.goto("/");
-    const wsId = page.url().match(/\/workspace\/([^/]+)/)?.[1];
-    await page.goto(`/workspace/${wsId}/tasks`);
-    await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
-  });
-
-  test("workspace/knowledgebase renders KB", async ({ page }) => {
-    await page.goto("/");
-    const wsId = page.url().match(/\/workspace\/([^/]+)/)?.[1];
-    await page.goto(`/workspace/${wsId}/knowledgebase`);
-    await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
-  });
-
-  test("workspace/settings renders settings", async ({ page }) => {
-    await page.goto("/");
-    const wsId = page.url().match(/\/workspace\/([^/]+)/)?.[1];
-    await page.goto(`/workspace/${wsId}/settings`);
-    await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.locator("body")).not.toContainText("500");
-  });
-
-  test("unauthenticated request redirects to login", async ({ browser }) => {
+  test("unauthenticated home exposes sign-in entry points", async ({
+    browser,
+  }) => {
     // Use a fresh context with NO storageState to simulate logged-out user
     const freshCtx = await browser.newContext({ storageState: undefined });
     const page = await freshCtx.newPage();
-    await page.goto("/");
-    await expect(page).toHaveURL(/\/login|\/sign-in/);
+    const workspace = new WorkspacePage(page);
+    await workspace.gotoHome();
+    await workspace.expectUnauthenticatedHome();
     await freshCtx.close();
   });
 });

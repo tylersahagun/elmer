@@ -7,9 +7,62 @@ export default defineSchema({
     slug: v.string(),
     description: v.optional(v.string()),
     githubRepo: v.optional(v.string()),
+    contextPath: v.optional(v.string()),
     settings: v.any(),
     clerkOrgId: v.optional(v.string()),
+    onboardingCompletedAt: v.optional(v.number()),
+    onboardingData: v.optional(v.any()),
   }).index("by_slug", ["slug"]),
+
+  workspaceMembers: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.optional(v.string()),
+    clerkUserId: v.string(),
+    email: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    image: v.optional(v.string()),
+    role: v.string(),
+    joinedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_clerk_workspace", ["clerkUserId", "workspaceId"])
+    .index("by_user_workspace", ["userId", "workspaceId"]),
+
+  invitations: defineTable({
+    workspaceId: v.id("workspaces"),
+    email: v.string(),
+    role: v.string(),
+    token: v.string(),
+    invitedBy: v.optional(v.string()),
+    invitedByClerkUserId: v.optional(v.string()),
+    inviterName: v.optional(v.string()),
+    inviterEmail: v.optional(v.string()),
+    expiresAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_token", ["token"])
+    .index("by_email_workspace", ["email", "workspaceId"]),
+
+  columnConfigs: defineTable({
+    workspaceId: v.id("workspaces"),
+    stage: v.string(),
+    displayName: v.string(),
+    order: v.number(),
+    color: v.optional(v.string()),
+    autoTriggerJobs: v.optional(v.array(v.string())),
+    agentTriggers: v.optional(v.array(v.any())),
+    requiredDocuments: v.optional(v.array(v.string())),
+    requiredApprovals: v.optional(v.number()),
+    aiIterations: v.optional(v.number()),
+    rules: v.optional(v.any()),
+    humanInLoop: v.optional(v.boolean()),
+    enabled: v.optional(v.boolean()),
+    graduationCriteria: v.optional(v.any()),
+    enforceGraduation: v.optional(v.boolean()),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_stage", ["workspaceId", "stage"]),
 
   projects: defineTable({
     workspaceId: v.id("workspaces"),
@@ -192,6 +245,21 @@ export default defineSchema({
     .index("by_workspace_status", ["workspaceId", "status"])
     .index("by_user", ["userId", "status"]),
 
+  activityLogs: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.optional(v.string()),
+    action: v.string(),
+    targetType: v.optional(v.string()),
+    targetId: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    actorName: v.optional(v.string()),
+    actorEmail: v.optional(v.string()),
+    actorImage: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_workspace_created", ["workspaceId", "createdAt"])
+    .index("by_user_created", ["userId", "createdAt"]),
+
   presence: defineTable({
     workspaceId: v.id("workspaces"),
     userId: v.string(),
@@ -288,6 +356,33 @@ export default defineSchema({
     filePath: v.optional(v.string()),
     version: v.number(),
   }).index("by_workspace_type", ["workspaceId", "type"]),
+
+  personas: defineTable({
+    workspaceId: v.id("workspaces"),
+    archetypeId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    role: v.any(),
+    pains: v.array(v.string()),
+    successCriteria: v.array(v.string()),
+    evaluationHeuristics: v.array(v.string()),
+    typicalTools: v.array(v.string()),
+    fears: v.array(v.string()),
+    psychographicRanges: v.any(),
+    content: v.string(),
+    filePath: v.optional(v.string()),
+    version: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_archetype", ["workspaceId", "archetypeId"]),
+
+  signalPersonas: defineTable({
+    signalId: v.id("signals"),
+    personaId: v.id("personas"),
+    linkedBy: v.optional(v.string()),
+  })
+    .index("by_signal", ["signalId"])
+    .index("by_persona", ["personaId"]),
 
   prototypeVariants: defineTable({
     workspaceId: v.id("workspaces"),

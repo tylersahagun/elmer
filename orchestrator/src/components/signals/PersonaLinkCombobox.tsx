@@ -11,6 +11,7 @@ import {
 import { Loader2 } from "lucide-react";
 
 interface Persona {
+  id?: string;
   archetype_id: string;
   name: string;
 }
@@ -71,7 +72,10 @@ export function PersonaLinkCombobox({
       </SelectTrigger>
       <SelectContent>
         {availablePersonas.map((persona) => (
-          <SelectItem key={persona.archetype_id} value={persona.archetype_id}>
+          <SelectItem
+            key={persona.id ?? persona.archetype_id}
+            value={persona.id ?? persona.archetype_id}
+          >
             {persona.name}
           </SelectItem>
         ))}

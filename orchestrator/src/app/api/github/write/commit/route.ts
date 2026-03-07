@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
 
 interface WriteFile {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     const octokit = await getGitHubClient(session.user.id);
     if (!octokit) {
       return NextResponse.json(
-        { error: "GitHub not connected", connectUrl: "/api/auth/signin/github" },
+        { error: "GitHub not connected", connectUrl: GITHUB_OAUTH_CONNECT_URL },
         { status: 403 }
       );
     }

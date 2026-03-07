@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "convex/react";
 import {
   Select,
   SelectContent,
@@ -9,6 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 interface Project {
   id: string;
@@ -29,19 +31,14 @@ export function ProjectLinkCombobox({
   isLoading = false,
 }: ProjectLinkComboboxProps) {
   // Fetch workspace projects
-  const { data: projectsData, isLoading: projectsLoading } = useQuery({
-    queryKey: ["projects", workspaceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/workspaces/${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to load workspace");
-      const workspace = await res.json();
-      return workspace.projects as Project[];
-    },
+  const projectsData = useQuery(api.projects.list, {
+    workspaceId: workspaceId as Id<"workspaces">,
   });
+  const projectsLoading = projectsData === undefined;
 
-  const availableProjects = (projectsData || []).filter(
-    (p) => !excludeProjectIds.includes(p.id)
-  );
+  const availableProjects = (projectsData || [])
+    .map((p: { _id: string; name: string }) => ({ id: p._id, name: p.name }))
+    .filter((p: { id: string; name: string }) => !excludeProjectIds.includes(p.id));
 
   if (projectsLoading) {
     return (
@@ -69,7 +66,7 @@ export function ProjectLinkCombobox({
         <SelectValue placeholder="Link to project..." />
       </SelectTrigger>
       <SelectContent>
-        {availableProjects.map((project) => (
+        {availableProjects.map((project: { id: string; name: string }) => (
           <SelectItem key={project.id} value={project.id}>
             {project.name}
           </SelectItem>

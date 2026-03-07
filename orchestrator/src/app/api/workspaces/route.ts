@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import {
+  AppAuthenticationError,
+  requireCurrentAppUser,
+} from "@/lib/auth/server";
 import { getWorkspacesForUser, createWorkspace } from "@/lib/db/queries";
 import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
 import { getGitHubClient } from "@/lib/github/auth";
 
 export async function GET() {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-
-    const workspaces = await getWorkspacesForUser(session.user.id);
+    const appUser = await requireCurrentAppUser();
+    const workspaces = await getWorkspacesForUser(appUser.id);
     return NextResponse.json(workspaces);
   } catch (error) {
+    if (error instanceof AppAuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     console.error("Failed to get workspaces:", error);
     return NextResponse.json(
       { error: "Failed to get workspaces" },
@@ -28,15 +26,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-
+    const appUser = await requireCurrentAppUser();
     const body = await request.json();
     const { name, description, githubRepo, contextPath } = body;
 
@@ -49,14 +39,14 @@ export async function POST(request: NextRequest) {
       description,
       githubRepo,
       contextPath,
-      userId: session.user.id, // Creator becomes admin
+      userId: appUser.id, // Creator becomes admin
     });
 
     // Automatically sync knowledge base on workspace creation
     // This populates the initial knowledgebase entries from the context files
     if (workspace?.id) {
       try {
-        const octokit = await getGitHubClient(session.user.id);
+        const octokit = await getGitHubClient(appUser.id);
         const syncResult = await syncKnowledgeBase(workspace.id, { octokit: octokit ?? undefined });
         console.log(
           `📚 Knowledge base synced for new workspace: ${syncResult.synced} entries`,
@@ -69,6 +59,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(workspace, { status: 201 });
   } catch (error) {
+    if (error instanceof AppAuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     console.error("Failed to create workspace:", error);
     return NextResponse.json(
       { error: "Failed to create workspace" },

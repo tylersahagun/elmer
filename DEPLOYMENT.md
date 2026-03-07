@@ -1,6 +1,7 @@
 # Elmer Deployment Guide
 
 > **Note:** This guide covers the current local stack (PostgreSQL + Cloudflare Tunnel). A Post-Convex section at the bottom covers how deployment changes after the Convex migration completes (Phases 7–8). The new Chat & Agent Hub feature is Convex-first and will not function on the legacy PostgreSQL backend.
+> **Source-of-truth note:** Linear is canonical for implementation and milestone status. This guide is the operational runbook for auth, deployment, release gates, and cutover behavior.
 
 **Infrastructure:** Local PostgreSQL + Cloudflare Tunnel  
 **Public URL:** https://elmer.studio  
@@ -15,7 +16,7 @@ Elmer runs as a self-hosted application:
 │                     Your Mac                                │
 │  ┌─────────────────┐  ┌─────────────────┐                  │
 │  │   Next.js App   │  │   PostgreSQL    │                  │
-│  │  localhost:3000 │──│  localhost:5432 │                  │
+│  │  localhost:3000 │──│  localhost:5433 │                  │
 │  └────────┬────────┘  └─────────────────┘                  │
 │           │                                                 │
 │  ┌────────▼────────┐                                       │
@@ -62,7 +63,7 @@ docker compose up -d
 docker exec elmer-postgres pg_isready -U elmer -d orchestrator
 
 # Run migrations
-DATABASE_URL="postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator" npm run db:migrate
+DATABASE_URL="postgresql://elmer:elmer_local_dev@localhost:5433/orchestrator" npm run db:migrate
 
 # Start dev server
 npm run dev
@@ -73,14 +74,26 @@ cloudflared tunnel run elmer
 
 ---
 
-## Pre-Deployment Checklist (v1.1)
+## Current Release Gate
 
-### Code Readiness
+### Platform Readiness
 
-- [x] All 10 phases complete (45 plans executed)
-- [x] All 40 requirements satisfied
-- [x] TypeScript compiles without errors
-- [x] Integration quality: 100%
+- [ ] Clerk frontend API, app origin, and Convex envs are aligned (`GTM-94`, `GTM-96`)
+- [ ] `npm run check:auth` passes against the intended environment (`GTM-98`)
+- [ ] The public login route is healthy at `https://elmer.studio/login`
+- [ ] GitHub App webhook is still verified against the active Convex deployment
+
+`npm run check:auth` should fail if the Clerk publishable key cannot be decoded,
+if `CLERK_JWT_ISSUER_DOMAIN` disagrees with that frontend API host, if
+`AUTH_URL` and `NEXTAUTH_URL` disagree, or if `NEXT_PUBLIC_CONVEX_URL` is
+missing before it performs DNS and `/login` HTTP checks.
+
+### Delivery Readiness
+
+- [ ] The first Convex migration tranche is stable on `/`, `/workspace/[id]`, and `/workspace/[id]/signals`
+- [ ] Playwright smoke coverage is reliable enough to gate deploys (`GTM-78`, `GTM-82`, `GTM-83`, `GTM-84`)
+- [ ] Remaining Phase 7 blockers are tracked as named tickets, not hidden in broad migration epics
+- [ ] Deployment docs match the real current stack and the intended cutover sequence
 
 ### Database Requirements
 
@@ -105,7 +118,7 @@ Create/update `.env.local` in the `orchestrator/` directory:
 
 ```bash
 # Database (local PostgreSQL)
-DATABASE_URL=postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator
+DATABASE_URL=postgresql://elmer:elmer_local_dev@localhost:5433/orchestrator
 
 # Authentication
 AUTH_SECRET=<generate with: openssl rand -base64 32>
@@ -148,7 +161,7 @@ npm run db:migrate
 
 **Container:** `elmer-postgres`  
 **Image:** `pgvector/pgvector:pg16`  
-**Port:** 5432
+**Port:** 5433
 
 ```bash
 # Start
@@ -170,7 +183,7 @@ docker exec -it elmer-postgres psql -U elmer -d orchestrator
 **Connection Details:**
 
 - Host: `localhost`
-- Port: `5432`
+- Port: `5433`
 - Database: `orchestrator`
 - User: `elmer`
 - Password: `elmer_local_dev`
@@ -184,13 +197,20 @@ docker exec -it elmer-postgres psql -U elmer -d orchestrator
 npm run dev
 
 # Or with explicit database URL
-DATABASE_URL="postgresql://elmer:elmer_local_dev@localhost:5432/orchestrator" npm run dev
+DATABASE_URL="postgresql://elmer:elmer_local_dev@localhost:5433/orchestrator" npm run dev
 ```
 
 ### Cloudflare Tunnel
 
 **Tunnel Name:** `elmer`  
 **Public URL:** https://elmer.studio
+
+The app tunnel only serves `elmer.studio`. Clerk uses separate DNS records for
+its hosted frontend API and account portal. For the current custom-domain
+configuration, these records must also exist:
+
+- `clerk.elmer.studio` -> `frontend-api.clerk.services`
+- `accounts.elmer.studio` -> `accounts.clerk.services`
 
 ```bash
 # Start tunnel
@@ -404,7 +424,7 @@ docker compose down -v
 
 | Service        | URL/Port       | Start Command                  |
 | -------------- | -------------- | ------------------------------ |
-| PostgreSQL     | localhost:5432 | `docker compose up -d`         |
+| PostgreSQL     | localhost:5433 | `docker compose up -d`         |
 | Dev Server     | localhost:3000 | `npm run dev`                  |
 | Tunnel         | elmer.studio   | `cloudflared tunnel run elmer` |
 | Drizzle Studio | localhost:4983 | `npm run db:studio`            |
@@ -440,6 +460,7 @@ When the Convex migration completes, the deployment model changes significantly:
 # Clerk auth
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<from Clerk dashboard>
 CLERK_SECRET_KEY=<from Clerk dashboard>
+CLERK_JWT_ISSUER_DOMAIN=<must match Clerk frontend API origin>
 
 # Convex
 NEXT_PUBLIC_CONVEX_URL=<from Convex dashboard>
@@ -456,6 +477,11 @@ OPENAI_API_KEY=<for embeddings via text-embedding-3-small>
 COMPOSIO_API_KEY=<for Slack, Linear, Notion, HubSpot>
 BRAVE_SEARCH_API_KEY=<for web search>
 ```
+
+If you use Clerk on a custom domain, `CLERK_JWT_ISSUER_DOMAIN` must match the
+same frontend API host encoded in `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`. A
+mismatch causes login pages to load partially while Clerk JS assets fail to
+resolve.
 
 ### Chat & Agent Hub (Convex-required)
 
@@ -478,6 +504,7 @@ vercel --prod
 # Set environment variables
 vercel env add NEXT_PUBLIC_CONVEX_URL production
 vercel env add CLERK_SECRET_KEY production
+vercel env add CLERK_JWT_ISSUER_DOMAIN production
 # (etc. for all vars above)
 ```
 
@@ -525,6 +552,25 @@ Before running E2E tests, create `e2e/.auth/user.json` by running:
 npm run test:e2e -- --project=setup
 ```
 
+### Deterministic E2E Fixtures
+
+The current E2E suite now uses Convex-backed deterministic seed helpers for repeatable scenarios:
+
+- `orchestrator/e2e/fixtures/inbox.ts`
+- `orchestrator/e2e/fixtures/jobs.ts`
+
+These seed through the Convex MCP HTTP surface and require:
+
+```bash
+CONVEX_SITE_URL=https://fortunate-parakeet-796.convex.site
+MCP_SECRET=elmer-mcp-internal
+```
+
+The new dev-only seed routes are:
+
+- `POST /mcp/e2e/inbox`
+- `POST /mcp/e2e/questions`
+
 ---
 
 ## MCP UI Apps
@@ -541,7 +587,112 @@ Apps are automatically served as MCP resources when `mcp-server` runs.
 
 ---
 
-**Deployment Guide Version:** 2.2  
-**Last Updated:** 2026-03-05  
+## GitHub App Verification
+
+The GitHub App for Elmer is configured and verified against the active Convex webhook.
+
+### Verified Working
+
+- GitHub App installed on the Elmer repo
+- Convex env vars set: `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY_B64`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_WEBHOOK_SECRET`
+- Webhook URL active: `https://fortunate-parakeet-796.convex.site/webhooks/github`
+- Signed GitHub pushes return `200`
+- Unsigned test requests return `401` (expected, confirms HMAC verification is active)
+
+### Important Current Behavior
+
+- The active webhook currently targets the **dev Convex deployment** (`fortunate-parakeet-796`)
+- The webhook route accepts pushes from both:
+  - `tylersahagun/elmer` — current source of agent definitions and docs
+  - `AskElephant/pm-workspace` — future repo split
+- MCP HTTP routes require:
+
+```bash
+Authorization: Bearer <MCP_SECRET>
+```
+
+Not `x-mcp-secret`.
+
+### Before Prod Cutover
+
+When Phase 7 migration is ready and production traffic moves fully to the production Convex deployment, update the GitHub App webhook URL from the dev deployment to the production Convex URL.
+
+---
+
+## Swarm Execution Order
+
+Recommended next swarm after the Phase 0-5 work and GTM-33 completion:
+
+1. **Platform-reliability lane** — finish `GTM-94`, `GTM-95`, `GTM-96`, `GTM-97`, `GTM-98`
+2. **Testing lane** — finish `GTM-78`, `GTM-82`, `GTM-83`, `GTM-84`, then extend the CI/test baseline
+3. **Team-awareness lane** — ship `GTM-69`, `GTM-70`, then `GTM-55` to `GTM-58`
+4. **Migration lane** — continue `GTM-59` and burn down `GTM-99` to `GTM-103`
+5. **Chat-readiness lane** — keep `GTM-71` to `GTM-77` at spec/contract level until migration is holding
+
+The best parallelism pattern right now is:
+- Lane 0: Clerk/app-origin/auth reliability
+- Lane A: E2E / Playwright / POM expansion
+- Lane B: Presence + blame thread + orchestrator surfaces
+- Lane C: Migration inventory + named blocker tickets + Clerk/Vercel cutover prep
+- Lane D: Chat surface contracts only
+
+Current checkpoint after this wave:
+- Lane 0 added auth-health checks in `orchestrator/scripts/check-auth-health.ts`
+- Lane A shipped seeded inbox fixtures, expanded smoke coverage, and the first agent-execution spec
+- Lane B shipped canonical job attribution and minimal live presence
+- Lane C shipped `orchestrator/MIGRATION-READINESS.md` and spun the named blocker tickets out of the migration epic
+- Migration tranche 1 has started:
+  - `/` is now Convex-backed for workspace list/create
+  - `/workspace/[id]` is now Convex-backed for workspace/project loading
+  - `/workspace/[id]/signals` is now Convex-backed for core signal list/create/update/delete flows
+- Migration tranche 2 checkpoint:
+  - `/workspace/[id]/agents` is now Convex-backed for agent definition list + enabled toggle
+  - `/projects/[id]` now consumes Convex-backed project/workspace/document state through a compatibility merge while blocked tabs remain on legacy paths
+- Migration tranche 3 checkpoint:
+  - core project-detail actions now use Convex-backed job scheduling and document save flows
+  - project detail still intentionally preserves legacy-only publish / file-backed / blocked tab edges until their parity work lands
+- Migration tranche 4 checkpoint:
+  - project-detail command execution and prototype iteration now queue jobs through Convex
+  - project signal linking in the picker flow now uses Convex-backed signal queries and link mutations
+- Migration tranche 5 checkpoint:
+  - project branch metadata updates now use Convex-backed project mutation
+  - the linked-signals section in project detail now uses Convex-backed signal queries and unlink mutation
+- Migration tranche 6 checkpoint:
+  - the project-detail prototype list now overlays Convex-backed prototype variants
+  - manual prototype link and delete flows now use Convex prototype mutations rather than the legacy prototype routes
+- Membership/auth parity foundation checkpoint:
+  - Convex now stores workspace members and invitations
+  - the existing workspace member/invitation/token routes are bridged to the Convex-backed parity layer
+  - permission checks now consult Convex membership first, with legacy fallback during migration
+- Membership/auth parity consumer checkpoint:
+  - workspace settings now consumes the Convex-backed member/invitation parity layer
+  - workspace settings saves now flow through the Convex workspace mutation path
+  - invite creation in the modal now goes directly to the Convex invitation mutation
+- Settings lane unblock checkpoint:
+  - the missing workspace-columns route is restored
+  - the settings page now rehydrates pipeline columns from the dedicated columns route under the new auth/membership layer
+  - graduation criteria and column settings can load again without depending on the old `workspace.columnConfigs` response shape
+- Activity parity checkpoint:
+  - Convex now stores workspace activity logs
+  - the legacy activity helper dual-writes new events into Convex during migration
+  - the workspace activity route now reads from the Convex-backed activity feed, so the settings activity tab is no longer a Drizzle-only surface
+- Column / graduation parity checkpoint:
+  - Convex now stores `columnConfigs`
+  - default pipeline columns are seeded into Convex for new or uninitialized workspaces
+  - the `/api/columns*` and `/api/workspaces/[id]/columns` bridges now point at the Convex-backed column model
+  - the settings page’s column and graduation cards now operate on that Convex-backed source of truth through the existing route layer
+- Settings lane status:
+  - the core settings surfaces now have parity across members, invitations, workspace save, activity feed, and pipeline columns / graduation criteria
+  - remaining settings work is concentrated in narrower admin/settings exceptions and external/file-backed edges
+- Convex-native context lane checkpoint:
+  - Convex now stores first-class personas and signal-persona links
+  - Convex now backs the workspace search surface across documents, memory, knowledgebase, and personas
+  - runtime personas, signal-persona links, search, and knowledgebase routes now bridge to Convex-backed sources of truth
+  - persona writes still dual-write to repo files for compatibility while runtime reads are Convex-first
+
+---
+
+**Deployment Guide Version:** 2.17  
+**Last Updated:** 2026-03-06  
 **Infrastructure (current):** Local PostgreSQL + Cloudflare Tunnel  
 **Infrastructure (post-migration):** Vercel + Convex + Neon

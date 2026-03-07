@@ -1,12 +1,32 @@
 import { SignIn } from "@clerk/nextjs";
 
-export default function LoginPage() {
+interface LoginPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function normalizeRedirectTarget(
+  value: string | string[] | undefined,
+  fallback: string,
+) {
+  const redirectTarget = Array.isArray(value) ? value[0] : value;
+  return redirectTarget?.startsWith("/") ? redirectTarget : fallback;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const redirectTarget = normalizeRedirectTarget(params?.callbackUrl, "/");
+  const signUpUrl =
+    redirectTarget === "/"
+      ? "/signup"
+      : `/signup?callbackUrl=${encodeURIComponent(redirectTarget)}`;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted/30 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background to-muted/30 p-4">
       <SignIn
         routing="hash"
-        signUpUrl="/signup"
-        fallbackRedirectUrl="/workspace"
+        signUpUrl={signUpUrl}
+        fallbackRedirectUrl={redirectTarget}
+        forceRedirectUrl={redirectTarget}
         appearance={{
           elements: {
             rootBox: "w-full max-w-md",

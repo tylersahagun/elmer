@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireCurrentAppUser } from "@/lib/auth/server";
 import { getWorkspace } from "@/lib/db/queries";
 import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
 import { getGitHubClient } from "@/lib/github/auth";
@@ -24,11 +24,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    const appUser = await requireCurrentAppUser();
 
     const body = await request.json().catch(() => ({}));
     const repoOwner =
@@ -57,7 +53,7 @@ export async function POST(
     const [defaultOwner, defaultRepo] = workspace.githubRepo?.split("/") || [];
 
     // Run the sync
-    const octokit = await getGitHubClient(session.user.id);
+    const octokit = await getGitHubClient(appUser.id);
     const result = await syncKnowledgeBase(id, {
       octokit: octokit ?? undefined,
       repoRef: repoRef || workspace.settings?.baseBranch || undefined,

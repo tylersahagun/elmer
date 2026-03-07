@@ -114,6 +114,7 @@ export function GraduationCriteriaCard({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          workspaceId,
           graduationCriteria: criteria,
           enforceGraduation: enforced,
         }),

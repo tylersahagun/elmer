@@ -37,7 +37,6 @@ import {
   type WorkspaceSettings,
   type NotificationMetadata,
   type KnowledgebaseType,
-  type WorkspaceRole,
   type SignalStatus,
   type SignalSource,
   type SignalSeverity,
@@ -73,6 +72,61 @@ import { v4 as uuid } from "uuid";
 // ============================================
 // WORKSPACE QUERIES
 // ============================================
+
+export async function getUserByEmail(email: string) {
+  return db.query.users.findFirst({
+    where: eq(users.email, email.trim().toLowerCase()),
+  });
+}
+
+export async function upsertUserByEmail(data: {
+  email: string;
+  name?: string | null;
+  image?: string | null;
+}) {
+  const normalizedEmail = data.email.trim().toLowerCase();
+  const now = new Date();
+  const existing = await getUserByEmail(normalizedEmail);
+
+  if (existing) {
+    const nextName = data.name ?? existing.name;
+    const nextImage = data.image ?? existing.image;
+
+    if (
+      existing.email !== normalizedEmail ||
+      existing.name !== nextName ||
+      existing.image !== nextImage
+    ) {
+      await db
+        .update(users)
+        .set({
+          email: normalizedEmail,
+          name: nextName,
+          image: nextImage,
+          updatedAt: now,
+        })
+        .where(eq(users.id, existing.id));
+    }
+
+    return db.query.users.findFirst({
+      where: eq(users.id, existing.id),
+    });
+  }
+
+  const [createdUser] = await db
+    .insert(users)
+    .values({
+      id: uuid(),
+      email: normalizedEmail,
+      name: data.name ?? null,
+      image: data.image ?? null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  return createdUser;
+}
 
 export async function getWorkspaces() {
   return db.query.workspaces.findMany({

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { QuestionModal, type PendingQuestionView } from "./QuestionModal";
 import { useJobLogs } from "@/hooks/useJobLogs";
+import { AgentBlameChain } from "./AgentBlameChain";
 
 interface LogEntry {
   id: string;
@@ -234,6 +235,17 @@ export function ExecutionPanel({
               </h3>
               {projectName && (
                 <p className="text-xs text-muted-foreground">{projectName}</p>
+              )}
+              {job && (
+                <div className="mt-1.5">
+                  <AgentBlameChain
+                    initiatedBy={job.initiatedBy}
+                    initiatedByName={job.initiatedByName}
+                    rootInitiator={job.rootInitiator}
+                    rootInitiatorName={job.rootInitiatorName}
+                    parentJobId={job.parentJobId}
+                  />
+                </div>
               )}
             </div>
           </div>

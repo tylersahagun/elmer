@@ -1,5 +1,7 @@
 # Product Roadmap
 
+> **Stale artifact for Elmer:** This auto-generated file is not the current source of truth for Elmer roadmap or execution tracking. Use the live Linear project, `pm-workspace-docs/roadmap/roadmap-analysis.md`, and `pm-workspace-docs/roadmap/elmer-sequenced-execution-checklist.md` instead.
+
 **Generated:** 2026-03-04 09:02
 **Total Initiatives:** 0
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { TrafficLights } from "@/components/chrome/TrafficLights";
 import { useUIStore, useKanbanStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { getProjectRoute } from "@/lib/projects/navigation";
 import { DocumentViewer } from "@/components/documents";
 import type { DocumentType, KnowledgebaseType, ProjectStatus } from "@/lib/db/schema";
 import {
@@ -41,6 +42,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { AddDocumentDialog } from "./AddDocumentDialog";
+import { PresenceAvatarStack } from "@/components/presence/PresenceAvatarStack";
+import {
+  filterPresenceByProject,
+  useWorkspacePresence,
+} from "@/hooks/usePresence";
 
 // Stage color mapping
 const stageColors: Record<string, { bg: string; text: string }> = {
@@ -55,16 +61,6 @@ const stageColors: Record<string, { bg: string; text: string }> = {
   alpha: { bg: "bg-cyan-100 dark:bg-cyan-500/20", text: "text-cyan-700 dark:text-cyan-300" },
   beta: { bg: "bg-indigo-100 dark:bg-indigo-500/20", text: "text-indigo-700 dark:text-indigo-300" },
   ga: { bg: "bg-emerald-100 dark:bg-emerald-500/20", text: "text-emerald-700 dark:text-emerald-300" },
-};
-
-const documentStageMap: Partial<Record<DocumentType, string>> = {
-  research: "discovery",
-  prd: "prd",
-  design_brief: "design",
-  prototype_notes: "prototype",
-  jury_report: "validate",
-  engineering_spec: "tickets",
-  gtm_brief: "prd",
 };
 
 const knowledgebaseLabels: Record<KnowledgebaseType, string> = {
@@ -141,6 +137,7 @@ interface ProjectDetails {
     createdAt: string;
   }>;
   workspace?: {
+    id?: string;
     settings?: {
       storybookPort?: number;
       knowledgebaseMapping?: Record<DocumentType, KnowledgebaseType>;
@@ -160,8 +157,6 @@ export function ProjectDetailModal() {
   const [isRunningIterations, setIsRunningIterations] = useState(false);
   const [addDocumentDialogOpen, setAddDocumentDialogOpen] = useState(false);
 
-  const queryClient = useQueryClient();
-
   const { data: project, isLoading, error, refetch } = useQuery<ProjectDetails>({
     queryKey: ["project", activeProjectId],
     queryFn: async () => {
@@ -171,6 +166,11 @@ export function ProjectDetailModal() {
     },
     enabled: !!activeProjectId && isOpen,
   });
+  const workspacePresence = useWorkspacePresence(project?.workspace?.id);
+  const projectPresence = useMemo(
+    () => filterPresenceByProject(workspacePresence, project?.id),
+    [workspacePresence, project?.id],
+  );
 
   // Reset states when modal closes
   useEffect(() => {
@@ -385,9 +385,20 @@ export function ProjectDetailModal() {
                     <DialogTitle className="text-sm font-mono text-muted-foreground">
                       {project.name}
                     </DialogTitle>
+                    <Badge variant="outline" className="text-[10px] h-5">
+                      Preview
+                    </Badge>
                     <Badge className={cn("text-xs h-5", stageColor.bg, stageColor.text)}>
                       {project.stage}
                     </Badge>
+                    {projectPresence.length > 0 && (
+                      <div className="ml-2 hidden md:flex items-center gap-2 rounded-full border border-border px-2 py-1">
+                        <PresenceAvatarStack entries={projectPresence} max={3} size="sm" />
+                        <span className="text-xs text-muted-foreground">
+                          {projectPresence.length} active
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ) : null}
                 <DialogDescription className="sr-only">
@@ -457,7 +468,15 @@ export function ProjectDetailModal() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => window.open(`/projects/${project.id}`, '_blank')}
+                                  onClick={() =>
+                                    window.open(
+                                      getProjectRoute(
+                                        project.id,
+                                        project.workspace?.id,
+                                      ),
+                                      "_blank",
+                                    )
+                                  }
                                   className="gap-1.5"
                                 >
                                   <ExternalLink className="w-3.5 h-3.5" />
@@ -769,6 +788,8 @@ export function ProjectDetailModal() {
                                     createdAt: new Date(selectedDocument.createdAt),
                                     updatedAt: new Date(selectedDocument.updatedAt),
                                   }}
+                                  workspaceId={project.workspace?.id}
+                                  presenceDocumentId={selectedDocument.id}
                                   onSave={(content) => handleSaveDocument(selectedDocument.id, content)}
                                   onRegenerate={() => handleRegenerateDocument(selectedDocument.id)}
                                   onPublish={() => handlePublishDocument(selectedDocument.id)}

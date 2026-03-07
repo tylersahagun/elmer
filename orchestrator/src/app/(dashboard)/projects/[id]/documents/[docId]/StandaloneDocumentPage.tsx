@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../../convex/_generated/dataModel";
@@ -10,8 +10,14 @@ import { DocumentViewer } from "@/components/documents/DocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { DocumentType } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
+import {
+  getProjectDocumentRoute,
+  getProjectRoute,
+  getProjectRouteWithTab,
+} from "@/lib/projects/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -23,7 +29,6 @@ import {
   Loader2,
   Link2,
   CheckSquare,
-  MessageSquare,
   History,
   PanelRight,
   PanelRightClose,
@@ -40,6 +45,8 @@ export function StandaloneDocumentPage({
   docId,
 }: StandaloneDocumentPageProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [saving, setSaving] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [rightTab, setRightTab] = useState<"tasks" | "signals" | "history">("tasks");
@@ -54,6 +61,20 @@ export function StandaloneDocumentPage({
   const allDocs = useQuery(api.documents.byProject, {
     projectId: projectId as Id<"projects">,
   });
+
+  useEffect(() => {
+    if (!project?.workspaceId || !pathname.startsWith("/projects/")) {
+      return;
+    }
+
+    const nextHref = getProjectDocumentRoute(
+      projectId,
+      docId,
+      project.workspaceId,
+    );
+    const query = searchParams.toString();
+    router.replace(query ? `${nextHref}?${query}` : nextHref, { scroll: false });
+  }, [docId, pathname, project?.workspaceId, projectId, router, searchParams]);
 
   // Right panel data
   const tasks = useQuery(
@@ -136,7 +157,9 @@ export function StandaloneDocumentPage({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => router.push(`/projects/${projectId}`)}
+              onClick={() =>
+                router.push(getProjectRoute(projectId, project?.workspaceId))
+              }
               className="gap-1.5 text-xs"
             >
               <ArrowLeft className="w-3 h-3" />
@@ -151,7 +174,9 @@ export function StandaloneDocumentPage({
         <aside className="w-56 shrink-0 border-r border-border bg-card/50 hidden md:flex flex-col">
           <div className="p-3 border-b border-border">
             <button
-              onClick={() => router.push(`/projects/${projectId}`)}
+              onClick={() =>
+                router.push(getProjectRoute(projectId, project?.workspaceId))
+              }
               className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors w-full text-left truncate"
             >
               <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
@@ -168,7 +193,13 @@ export function StandaloneDocumentPage({
                 <button
                   key={d._id}
                   onClick={() =>
-                    router.push(`/projects/${projectId}/documents/${d._id}`)
+                    router.push(
+                      getProjectDocumentRoute(
+                        projectId,
+                        d._id,
+                        project?.workspaceId,
+                      ),
+                    )
                   }
                   className={cn(
                     "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left text-sm transition-colors",
@@ -255,7 +286,13 @@ export function StandaloneDocumentPage({
                   variant="outline"
                   className="gap-1.5 text-xs"
                   onClick={() =>
-                    router.push(`/projects/${projectId}?tab=documents`)
+                    router.push(
+                      getProjectRouteWithTab(
+                        projectId,
+                        "documents",
+                        project?.workspaceId,
+                      ),
+                    )
                   }
                 >
                   <ExternalLink className="w-3 h-3" />
@@ -270,7 +307,7 @@ export function StandaloneDocumentPage({
             <DocumentViewer
               document={{
                 id: document._id,
-                type: document.type as any,
+                type: document.type as DocumentType,
                 title: document.title,
                 content: document.content,
                 version: document.version,
@@ -284,6 +321,8 @@ export function StandaloneDocumentPage({
                 createdAt: new Date(document._creationTime),
                 updatedAt: new Date(document._creationTime),
               }}
+              workspaceId={project.workspaceId}
+              presenceDocumentId={document._id}
               onSave={handleSave}
               className="h-full"
             />

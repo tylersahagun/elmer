@@ -51,6 +51,55 @@ export const linkedProjects = query({
   },
 });
 
+export const byProject = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const links = await ctx.db
+      .query("signalProjects")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect();
+    const signals = await Promise.all(
+      links.map((link) => ctx.db.get(link.signalId)),
+    );
+    return signals.filter(Boolean);
+  },
+});
+
+export const byProjectDetailed = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const links = await ctx.db
+      .query("signalProjects")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect();
+
+    const rows = await Promise.all(
+      links.map(async (link) => {
+        const signal = await ctx.db.get(link.signalId);
+        if (!signal) return null;
+        return {
+          id: signal._id,
+          verbatim: signal.verbatim,
+          source: signal.source,
+          severity: signal.severity,
+          createdAt: new Date(signal._creationTime).toISOString(),
+          linkedAt: new Date(link._creationTime).toISOString(),
+          confidence: link.confidence ?? null,
+          linkedBy: link.linkedBy
+            ? { id: link.linkedBy, name: link.linkedBy }
+            : null,
+        };
+      }),
+    );
+
+    return rows.filter(Boolean);
+  },
+});
+
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
 export const create = mutation({
@@ -159,6 +208,33 @@ export const linkToProject = mutation({
     }
 
     return linkId;
+  },
+});
+
+export const unlinkFromProject = mutation({
+  args: {
+    signalId: v.id("signals"),
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, { signalId, projectId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const existing = await ctx.db
+      .query("signalProjects")
+      .withIndex("by_signal", (q) => q.eq("signalId", signalId))
+      .filter((q) => q.eq(q.field("projectId"), projectId))
+      .unique();
+    if (!existing) return null;
+    await ctx.db.delete(existing._id);
+
+    const remaining = await ctx.db
+      .query("signalProjects")
+      .withIndex("by_signal", (q) => q.eq("signalId", signalId))
+      .collect();
+    if (remaining.length === 0) {
+      await ctx.db.patch(signalId, { status: "reviewed" });
+    }
+    return existing._id;
   },
 });
 

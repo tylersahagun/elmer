@@ -8,7 +8,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { buildCursorDeepLink } from "@/lib/cursor/links";
-import { springPresets } from "@/lib/animations";
+import { getProjectRoute } from "@/lib/projects/navigation";
 import {
   useKanbanStore,
   useUIStore,
@@ -134,6 +134,8 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
       : typeof stageConfidence?.score === "number"
         ? "Confidence"
         : "Confidence (auto)";
+  const projectTldr =
+    typeof project.metadata?.tldr === "string" ? project.metadata.tldr : null;
 
   const {
     attributes,
@@ -161,7 +163,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
       return;
     }
     // Default: Navigate to project page
-    router.push(`/projects/${project.id}`);
+    router.push(getProjectRoute(project.id, workspace?.id));
   };
 
   // Quick View - opens the modal
@@ -174,7 +176,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
   // Open full project page
   const handleOpenPage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push(`/projects/${project.id}`);
+    router.push(getProjectRoute(project.id, workspace?.id));
   };
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -377,9 +379,9 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         </div>
       </div>
 
-      {(project.metadata as any)?.tldr && (
+      {projectTldr && (
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
-          {((project.metadata as any).tldr as string).split('.')[0]}.
+          {projectTldr.split(".")[0]}.
         </p>
       )}
 

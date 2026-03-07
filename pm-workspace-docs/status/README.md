@@ -33,3 +33,14 @@ dashboard snapshots.
 - Portfolio: `status/portfolio/snapshots/`, `status/portfolio/history.json`
 - Workflow: `status/workflow/dashboards/`, `status/workflow/plans/`,
   `status/workflow/initiatives/`, `status/workflow/notes/`, `status/workflow/reviews/`
+
+## Elmer Reset Docs
+
+- `elmer-reset-and-recalibration.md` - current reset summary for what Elmer is, what is done, what remains, and why the roadmap is sequenced the way it is
+- `elmer-source-of-truth-matrix.md` - artifact trust rules; use this before relying on local docs for implementation status
+
+## Elmer Swarm Docs
+
+- `swarm/elmer-swarm-operating-contract.md` - lane model, gate rules, Linear-first update discipline, daily execution loop
+- `swarm/elmer-swarm-dashboard.md` - current lane snapshot, blockers, next actions, and gate status
+- `swarm/elmer-lane-playbooks.md` - per-lane entry criteria, exit criteria, validation, evidence, and update rules

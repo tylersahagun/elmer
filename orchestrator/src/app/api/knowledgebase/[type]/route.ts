@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspace, getKnowledgebaseEntryByType, upsertKnowledgebaseEntry } from "@/lib/db/queries";
+import { getConvexWorkspace, listConvexKnowledge, upsertConvexKnowledge } from "@/lib/convex/server";
 import { resolveKnowledgePath, readKnowledgeFile, writeKnowledgeFile } from "@/lib/knowledgebase";
 import type { KnowledgebaseType } from "@/lib/db/schema";
 
@@ -15,7 +15,10 @@ export async function GET(
     return NextResponse.json({ error: "workspaceId is required" }, { status: 400 });
   }
 
-  const workspace = await getWorkspace(workspaceId);
+  const workspace = await getConvexWorkspace(workspaceId) as {
+    contextPath?: string | null;
+    settings?: { contextPaths?: string[] } | null;
+  } | null;
   if (!workspace) {
     return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
   }
@@ -26,17 +29,24 @@ export async function GET(
     "elmer-docs/";
   const filePath = resolveKnowledgePath(contextRoot, type as KnowledgebaseType);
   const content = await readKnowledgeFile(filePath);
-  const entry = await getKnowledgebaseEntryByType(workspaceId, type as KnowledgebaseType);
+  const entries = await listConvexKnowledge(workspaceId, type) as Array<{
+    _id: string;
+    title: string;
+    content: string;
+    filePath?: string;
+    version?: number;
+  }>;
+  const entry = entries[0];
 
   return NextResponse.json({
     type,
-    content,
+    content: entry?.content ?? content,
     filePath,
     entry: entry
       ? {
-          id: entry.id,
+          id: entry._id,
           title: entry.title,
-          updatedAt: entry.updatedAt,
+          updatedAt: new Date().toISOString(),
         }
       : null,
   });
@@ -54,7 +64,10 @@ export async function PUT(
     return NextResponse.json({ error: "workspaceId and title are required" }, { status: 400 });
   }
 
-  const workspace = await getWorkspace(workspaceId);
+  const workspace = await getConvexWorkspace(workspaceId) as {
+    contextPath?: string | null;
+    settings?: { contextPaths?: string[] } | null;
+  } | null;
   if (!workspace) {
     return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
   }
@@ -66,7 +79,7 @@ export async function PUT(
   const resolvedPath = resolveKnowledgePath(contextRoot, type as KnowledgebaseType, filePath);
   await writeKnowledgeFile(resolvedPath, content || "");
 
-  const entry = await upsertKnowledgebaseEntry({
+  const entry = await upsertConvexKnowledge({
     workspaceId,
     type: type as KnowledgebaseType,
     title,

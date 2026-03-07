@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +29,7 @@ interface AgentCardProps {
   };
   workspaceId: string;
   onExecute?: (jobId: string) => void;
+  onToggleEnabled?: (agentId: string, enabled: boolean) => Promise<void>;
 }
 
 // Icon mapping by agent type
@@ -65,8 +65,7 @@ const TYPE_BADGES: Record<AgentDefinitionType, { label: string; className: strin
   },
 };
 
-export function AgentCard({ agent, workspaceId, onExecute }: AgentCardProps) {
-  const queryClient = useQueryClient();
+export function AgentCard({ agent, workspaceId, onExecute, onToggleEnabled }: AgentCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
   const [isEnabled, setIsEnabled] = useState(agent.enabled !== false);
@@ -84,18 +83,10 @@ export function AgentCard({ agent, workspaceId, onExecute }: AgentCardProps) {
     setIsUpdating(true);
 
     try {
-      const response = await fetch(`/api/agents/${agent.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: newEnabled }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update agent");
+      if (!onToggleEnabled) {
+        throw new Error("Agent toggle handler not configured");
       }
-
-      // Invalidate agents query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["agents", workspaceId] });
+      await onToggleEnabled(agent.id, newEnabled);
     } catch {
       // Revert on error
       setIsEnabled(!newEnabled);
@@ -118,10 +109,16 @@ export function AgentCard({ agent, workspaceId, onExecute }: AgentCardProps) {
   };
 
   return (
-    <div className={`rounded-lg border border-border bg-card overflow-hidden transition-opacity ${!isEnabled ? "opacity-50" : ""}`}>
+    <div
+      data-testid="agent-card"
+      data-agent-name={name}
+      data-agent-enabled={isEnabled ? "true" : "false"}
+      className={`rounded-lg border border-border bg-card overflow-hidden transition-opacity ${!isEnabled ? "opacity-50" : ""}`}
+    >
       {/* Header - clickable to expand */}
       <div className="flex items-start">
         <button
+          data-testid="agent-card-toggle"
           onClick={() => {
             setIsExpanded(!isExpanded);
             setShowExecutionPanel(false); // Close execution panel when expanding
@@ -132,13 +129,13 @@ export function AgentCard({ agent, workspaceId, onExecute }: AgentCardProps) {
           <motion.div
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 mt-0.5"
+            className="shrink-0 mt-0.5"
           >
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </motion.div>
 
           {/* Type icon */}
-          <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <Icon className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
 
           {/* Main content */}
           <div className="flex-1 min-w-0">
@@ -175,7 +172,7 @@ export function AgentCard({ agent, workspaceId, onExecute }: AgentCardProps) {
         </button>
 
         {/* Toggle and Execute buttons */}
-        <div className="p-4 flex-shrink-0 flex items-center gap-3">
+        <div className="p-4 shrink-0 flex items-center gap-3">
           {/* Enable/disable toggle */}
           <div onClick={handleToggleEnabled} className="cursor-pointer">
             <Switch
@@ -191,6 +188,7 @@ export function AgentCard({ agent, workspaceId, onExecute }: AgentCardProps) {
               <TooltipTrigger asChild>
                 <span>
                   <Button
+                    data-testid="execute-agent-button"
                     variant="ghost"
                     size="sm"
                     onClick={handleExecuteClick}
@@ -217,6 +215,7 @@ export function AgentCard({ agent, workspaceId, onExecute }: AgentCardProps) {
       <AnimatePresence>
         {isExpanded && (
           <motion.div
+            data-testid="agent-execution-panel"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

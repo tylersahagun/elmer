@@ -6,7 +6,14 @@ export const list = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
-    return await ctx.db.query("workspaces").collect();
+    const memberships = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_clerk_workspace", (q) => q.eq("clerkUserId", identity.subject))
+      .collect();
+    const workspaces = await Promise.all(
+      memberships.map((membership) => ctx.db.get(membership.workspaceId)),
+    );
+    return workspaces.filter(Boolean);
   },
 });
 
@@ -15,6 +22,13 @@ export const get = query({
   handler: async (ctx, { workspaceId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    const membership = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_clerk_workspace", (q) =>
+        q.eq("clerkUserId", identity.subject).eq("workspaceId", workspaceId),
+      )
+      .unique();
+    if (!membership) return null;
     return await ctx.db.get(workspaceId);
   },
 });
@@ -35,9 +49,15 @@ export const create = mutation({
   args: {
     name: v.string(),
     slug: v.string(),
+    description: v.optional(v.string()),
+    contextPath: v.optional(v.string()),
     githubRepo: v.optional(v.string()),
     settings: v.optional(v.any()),
     clerkOrgId: v.optional(v.string()),
+    actorUserId: v.optional(v.string()),
+    actorEmail: v.optional(v.string()),
+    actorName: v.optional(v.string()),
+    actorImage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -50,13 +70,26 @@ export const create = mutation({
       .unique();
     if (existing) throw new Error(`Workspace slug "${args.slug}" already taken`);
 
-    return await ctx.db.insert("workspaces", {
+    const workspaceId = await ctx.db.insert("workspaces", {
       name: args.name,
       slug: args.slug,
+      description: args.description,
+      contextPath: args.contextPath ?? "elmer-docs/",
       githubRepo: args.githubRepo,
       settings: args.settings ?? {},
       clerkOrgId: args.clerkOrgId,
     });
+    await ctx.db.insert("workspaceMembers", {
+      workspaceId,
+      userId: args.actorUserId,
+      clerkUserId: identity.subject,
+      email: args.actorEmail,
+      displayName: args.actorName,
+      image: args.actorImage,
+      role: "admin",
+      joinedAt: Date.now(),
+    });
+    return workspaceId;
   },
 });
 
@@ -64,14 +97,27 @@ export const update = mutation({
   args: {
     workspaceId: v.id("workspaces"),
     name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    contextPath: v.optional(v.string()),
     githubRepo: v.optional(v.string()),
     settings: v.optional(v.any()),
   },
   handler: async (ctx, { workspaceId, ...patch }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    const membership = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_clerk_workspace", (q) =>
+        q.eq("clerkUserId", identity.subject).eq("workspaceId", workspaceId),
+      )
+      .unique();
+    if (!membership || membership.role !== "admin") {
+      throw new Error("Not authorized");
+    }
     const updates: Record<string, unknown> = {};
     if (patch.name !== undefined) updates.name = patch.name;
+    if (patch.description !== undefined) updates.description = patch.description;
+    if (patch.contextPath !== undefined) updates.contextPath = patch.contextPath;
     if (patch.githubRepo !== undefined) updates.githubRepo = patch.githubRepo;
     if (patch.settings !== undefined) updates.settings = patch.settings;
     await ctx.db.patch(workspaceId, updates);

@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
+import { getProjectRoute } from "@/lib/projects/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -116,7 +117,7 @@ function ReviewImpactPanel({
   const matchedProject = projects.find((p) => p._id === dc?.projectId);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end" data-testid="review-impact-panel">
       <div
         className="flex-1 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
@@ -241,6 +242,7 @@ function ReviewImpactPanel({
         {/* Actions */}
         <div className="px-6 py-4 border-t border-border shrink-0 flex gap-3">
           <Button
+            data-testid="accept-direction-change"
             className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700"
             onClick={() => onAccept(item._id)}
           >
@@ -248,6 +250,7 @@ function ReviewImpactPanel({
             Accept
           </Button>
           <Button
+            data-testid="ignore-direction-change"
             variant="outline"
             className="flex-1 gap-1.5"
             onClick={() => onIgnore(item._id)}
@@ -289,6 +292,10 @@ function InboxCard({
 
   return (
     <div
+      data-testid="inbox-item"
+      data-impact-level={
+        item.suggestsVisionUpdate ? "direction-change" : (item.impactScore ?? 0) > 70 ? "high" : "normal"
+      }
       className={cn(
         "rounded-2xl border p-4 space-y-3 transition-colors",
         item.suggestsVisionUpdate
@@ -331,8 +338,13 @@ function InboxCard({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {item.impactScore != null && <ImpactBar score={item.impactScore} />}
+          {item.impactScore != null && (
+            <div data-testid="impact-badge" data-impact-level={(item.impactScore ?? 0) > 70 ? "high" : "normal"}>
+              <ImpactBar score={item.impactScore} />
+            </div>
+          )}
           <button
+            data-testid="dismiss-inbox-item"
             onClick={() => onDismiss(item._id)}
             className="text-muted-foreground hover:text-foreground transition-colors ml-1"
           >
@@ -360,7 +372,9 @@ function InboxCard({
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <FolderOpen className="w-3 h-3" />
           <button
-            onClick={() => router.push(`/projects/${matchedProject._id}`)}
+            onClick={() =>
+              router.push(getProjectRoute(String(matchedProject._id), workspaceId))
+            }
             className="hover:text-primary transition-colors"
           >
             {matchedProject.name}
@@ -375,6 +389,7 @@ function InboxCard({
 
       {/* Raw content toggle */}
       <button
+        data-testid="toggle-raw-content"
         onClick={() => setShowRaw((v) => !v)}
         className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
       >
@@ -397,6 +412,7 @@ function InboxCard({
       <div className="flex items-center gap-2 flex-wrap pt-0.5">
         {item.suggestsVisionUpdate && item.projectDirectionChange && (
           <Button
+            data-testid="review-impact-button"
             size="sm"
             variant="outline"
             onClick={() => onReviewImpact(item)}
@@ -407,6 +423,7 @@ function InboxCard({
           </Button>
         )}
         <Button
+          data-testid="create-task-button"
           size="sm"
           variant="outline"
           onClick={() => onCreateTask(item)}
@@ -417,6 +434,7 @@ function InboxCard({
         </Button>
         {!matchedProject && projects.length > 0 && (
           <select
+            data-testid="link-project-select"
             className="text-xs rounded-lg border border-border bg-background px-2 h-7 text-muted-foreground hover:text-foreground transition-colors"
             defaultValue=""
             onChange={(e) => {
@@ -508,7 +526,7 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
     (i) => !i.suggestsVisionUpdate && (i.impactScore ?? 0) <= 70,
   );
 
-  const projectList = (projects ?? []).map((p) => ({
+  const projectList = (projects ?? []).map((p: { _id: string; name: string }) => ({
     _id: p._id,
     name: p.name,
   }));
@@ -523,7 +541,7 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-testid="inbox-page">
       <SimpleNavbar
         path="~/inbox"
         rightContent={
@@ -541,7 +559,7 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center justify-between gap-4 flex-wrap" data-testid="inbox-header">
           <div className="flex items-center gap-3">
             <Inbox className="w-6 h-6 text-muted-foreground" />
             <h1 className="text-2xl font-semibold">Inbox</h1>
@@ -576,7 +594,7 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
 
         {/* Empty */}
         {items?.length === 0 && (
-          <div className="text-center py-20 text-muted-foreground">
+          <div className="text-center py-20 text-muted-foreground" data-testid="empty-inbox">
             <Inbox className="w-10 h-10 mx-auto mb-4 opacity-40" />
             <p className="text-sm">Inbox is empty</p>
             <p className="text-xs mt-1 opacity-70">
@@ -587,7 +605,7 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
 
         {/* ⚡ SUGGESTS DIRECTION CHANGE */}
         {directionItems.length > 0 && (
-          <section className="space-y-3">
+          <section className="space-y-3" data-testid="direction-change-section">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-amber-400" />
               <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wide">
@@ -607,7 +625,7 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
 
         {/* 🔴 HIGH IMPACT */}
         {highImpactItems.length > 0 && (
-          <section className="space-y-3">
+          <section className="space-y-3" data-testid="high-impact-section">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400" />
               <h2 className="text-sm font-semibold text-red-400 uppercase tracking-wide">
@@ -627,7 +645,7 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
 
         {/* Standard items */}
         {standardItems.length > 0 && (
-          <section className="space-y-3">
+          <section className="space-y-3" data-testid="standard-inbox-section">
             <div className="flex items-center gap-2">
               <Inbox className="w-4 h-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">

@@ -401,7 +401,10 @@ export function ColumnsSettingsCard({
       const res = await fetch(`/api/columns/${columnId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildColumnPayload(column, updates)),
+        body: JSON.stringify({
+          workspaceId,
+          ...buildColumnPayload(column, updates),
+        }),
       });
       if (!res.ok) throw new Error("Failed to update column");
       const updated = await res.json();

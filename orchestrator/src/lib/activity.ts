@@ -1,6 +1,7 @@
 import { db } from "./db";
-import { activityLogs } from "./db/schema";
+import { activityLogs, users } from "./db/schema";
 import { nanoid } from "nanoid";
+import { createConvexWorkspaceActivity } from "./convex/server";
 
 /**
  * Activity action types for consistent logging
@@ -93,6 +94,22 @@ export async function logActivity(
 ) {
   const { targetType, targetId, metadata } = options || {};
 
+  let actorName: string | undefined;
+  let actorEmail: string | undefined;
+  let actorImage: string | undefined;
+  if (userId) {
+    try {
+      const user = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.id, userId),
+      });
+      actorName = user?.name ?? undefined;
+      actorEmail = user?.email ?? undefined;
+      actorImage = user?.image ?? undefined;
+    } catch {
+      // best-effort only
+    }
+  }
+
   const entry = await db
     .insert(activityLogs)
     .values({
@@ -106,6 +123,23 @@ export async function logActivity(
       createdAt: new Date(),
     })
     .returning();
+
+  // Dual-write to Convex during migration so activity feed parity can advance
+  try {
+    await createConvexWorkspaceActivity({
+      workspaceId,
+      userId: userId ?? undefined,
+      action,
+      targetType,
+      targetId,
+      metadata,
+      actorName,
+      actorEmail,
+      actorImage,
+    });
+  } catch {
+    // best-effort only; keep legacy activity logging non-blocking
+  }
 
   return entry[0];
 }

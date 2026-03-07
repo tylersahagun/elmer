@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
+import { getProjectRoute } from "@/lib/projects/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -248,7 +249,7 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
               <button
                 onClick={() =>
                   projectId !== "_none" &&
-                  router.push(`/projects/${projectId}`)
+                  router.push(getProjectRoute(projectId, workspaceId))
                 }
                 className={cn(
                   "flex items-center gap-2 text-sm font-medium",

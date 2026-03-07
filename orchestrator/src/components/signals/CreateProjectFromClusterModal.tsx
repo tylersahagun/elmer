@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { SignalCluster } from "@/lib/classification";
+import { getProjectRoute } from "@/lib/projects/navigation";
 
 interface CreateProjectFromClusterModalProps {
   isOpen: boolean;
@@ -60,7 +61,7 @@ export function CreateProjectFromClusterModal({
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["signals"] });
       onClose();
-      router.push(`/projects/${data.projectId}`);
+      router.push(getProjectRoute(data.projectId, workspaceId));
     },
   });
 

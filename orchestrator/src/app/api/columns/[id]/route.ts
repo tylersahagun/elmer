@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  updateColumnConfig,
-  deleteColumnConfig,
-  getColumnConfigById,
-} from "@/lib/db/queries";
+import { deleteConvexColumn, updateConvexColumn } from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -16,16 +12,14 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const column = await getColumnConfigById(id);
-    if (!column) {
-      return NextResponse.json({ error: "Column not found" }, { status: 404 });
-    }
-
-    await requireWorkspaceAccess(column.workspaceId, "member");
-
     const body = await request.json();
-    const updatedColumn = await updateColumnConfig(id, body);
-    return NextResponse.json(updatedColumn);
+    const workspaceId = body.workspaceId as string | undefined;
+    if (!workspaceId) {
+      return NextResponse.json({ error: "workspaceId is required" }, { status: 400 });
+    }
+    await requireWorkspaceAccess(workspaceId, "admin");
+    const column = await updateConvexColumn(id, body);
+    return NextResponse.json(column);
   } catch (error) {
     if (error instanceof PermissionError) {
       const { error: message, status } = handlePermissionError(error);
@@ -42,14 +36,13 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const column = await getColumnConfigById(id);
-    if (!column) {
-      return NextResponse.json({ error: "Column not found" }, { status: 404 });
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get("workspaceId");
+    if (!workspaceId) {
+      return NextResponse.json({ error: "workspaceId is required" }, { status: 400 });
     }
-
-    await requireWorkspaceAccess(column.workspaceId, "admin");
-
-    await deleteColumnConfig(id);
+    await requireWorkspaceAccess(workspaceId, "admin");
+    await deleteConvexColumn(id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof PermissionError) {

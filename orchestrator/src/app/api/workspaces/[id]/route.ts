@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspace, updateWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace, updateConvexWorkspace } from "@/lib/convex/server";
 import { getResolvedPaths } from "@/lib/knowledgebase/sync";
 import {
   requireWorkspaceAccess,
@@ -17,7 +17,16 @@ export async function GET(
     // Require at least viewer access to see workspace details
     await requireWorkspaceAccess(id, "viewer");
 
-    const workspace = await getWorkspace(id);
+    const workspace = await getConvexWorkspace(id) as {
+      _id: string;
+      name: string;
+      description?: string;
+      githubRepo?: string;
+      contextPath?: string;
+      settings?: Record<string, unknown>;
+      onboardingCompletedAt?: number;
+      onboardingData?: unknown;
+    } | null;
 
     if (!workspace) {
       return NextResponse.json(
@@ -34,7 +43,17 @@ export async function GET(
     });
 
     return NextResponse.json({
-      ...workspace,
+      id: workspace._id,
+      name: workspace.name,
+      description: workspace.description ?? null,
+      githubRepo: workspace.githubRepo ?? null,
+      contextPath: workspace.contextPath ?? null,
+      settings: workspace.settings ?? {},
+      onboardingComplete: !!workspace.onboardingCompletedAt,
+      onboardedAt: workspace.onboardingCompletedAt
+        ? new Date(workspace.onboardingCompletedAt).toISOString()
+        : undefined,
+      onboardingStats: workspace.onboardingData as unknown,
       resolvedPaths,
     });
   } catch (error) {
@@ -63,7 +82,7 @@ export async function PATCH(
     const body = await request.json();
     const { name, description, githubRepo, contextPath, settings } = body;
 
-    const updated = await updateWorkspace(id, {
+    const updated = await updateConvexWorkspace(id, {
       name,
       description,
       githubRepo,

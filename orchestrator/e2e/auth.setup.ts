@@ -1,4 +1,6 @@
 import { test as setup, expect } from "@playwright/test";
+import dotenv from "dotenv";
+import fs from "node:fs";
 import path from "path";
 
 /**
@@ -13,6 +15,8 @@ import path from "path";
 
 const authFile = path.join(__dirname, ".auth/user.json");
 
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
+
 setup("authenticate", async ({ page }) => {
   const email = process.env.E2E_TEST_EMAIL;
   const password = process.env.E2E_TEST_PASSWORD;
@@ -26,17 +30,26 @@ setup("authenticate", async ({ page }) => {
   await page.goto("/login");
 
   // Clerk renders an email input — fill and continue
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByRole("button", { name: /continue|next|sign in/i }).first().click();
+  await page
+    .locator('input[type="email"], input[name="identifier"], input[name="emailAddress"]')
+    .first()
+    .fill(email);
+  await page.getByRole("button", { name: /^Continue$/ }).click();
 
   // Password step
-  await page.getByLabel(/password/i).fill(password);
-  await page.getByRole("button", { name: /sign in|continue/i }).first().click();
+  await page
+    .locator('input[name="password"], input[type="password"]')
+    .first()
+    .fill(password);
+  await page.getByRole("button", { name: /^Continue$/ }).click();
 
-  // Wait for successful redirect to workspace
-  await page.waitForURL(/\/workspace\//, { timeout: 30_000 });
-  await expect(page).toHaveURL(/\/workspace\//);
+  // The signed-in landing page is the workspace selector at `/`.
+  await expect
+    .poll(() => page.url(), { timeout: 30_000 })
+    .toMatch(/\/($|workspace\/)/);
+  await expect(page).not.toHaveURL(/\/login|\/sign-in/);
 
   // Save auth state — reused by all tests
+  fs.mkdirSync(path.dirname(authFile), { recursive: true });
   await page.context().storageState({ path: authFile });
 });

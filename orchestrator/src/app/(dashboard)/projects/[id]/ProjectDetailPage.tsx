@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { motion } from "framer-motion";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Window } from "@/components/chrome/Window";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { Progress } from "@/components/ui/progress";
+import { useUIStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
   FileText,
@@ -41,6 +44,7 @@ import {
   Link2,
   Ticket,
   CheckSquare,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -65,18 +69,139 @@ import { CommandExecutionPanel } from "@/components/commands";
 import { PrototypeFeedbackPanel } from "@/components/prototypes";
 import { SignalPickerModal } from "@/components/projects/SignalPickerModal";
 import { ProjectCommitHistory } from "@/components/projects/ProjectCommitHistory";
+import { PresenceAvatarStack } from "@/components/presence/PresenceAvatarStack";
 import { useProjectFiles, fetchFileContent } from "@/hooks/useProjectFiles";
-import { useMutation as useConvexMutation } from "convex/react";
+import {
+  filterPresenceByProject,
+  useWorkspacePresence,
+} from "@/hooks/usePresence";
+import {
+  getProjectRoute,
+  getProjectRouteWithTab,
+  getProjectTabFromSearchParam,
+} from "@/lib/projects/navigation";
 import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
 import { InitiativeDashboardEmbed } from "@/components/agents/InitiativeDashboardEmbed";
 
 interface ProjectDetailPageProps {
   projectId: string;
 }
 
+type ConvexProject = {
+  _id: string;
+  workspaceId: string;
+  name: string;
+  description?: string;
+  stage: string;
+  status: string;
+  priority?: string;
+  metadata?: Record<string, unknown>;
+};
+
+type ConvexWorkspace = {
+  _id: string;
+  name: string;
+  githubRepo?: string;
+  settings?: Record<string, unknown>;
+};
+
+type ProjectOverviewAction = {
+  label: string;
+  description: string;
+  tab: "signals" | "documents" | "prototypes" | "tasks" | "commands" | "validation" | "tickets";
+};
+
+function getProjectOverviewAction(project: {
+  stage?: string;
+  signalCount?: number;
+  documents?: Array<unknown>;
+  prototypes?: Array<unknown>;
+  tickets?: Array<unknown>;
+}) : ProjectOverviewAction {
+  if (!project.signalCount || project.signalCount === 0) {
+    return {
+      label: "Review signals",
+      description: "Link the evidence that should inform this project first.",
+      tab: "signals",
+    };
+  }
+
+  if (!project.documents?.length) {
+    return {
+      label: "Create the first artifact",
+      description: "Start the initial project document or run a stage command.",
+      tab: "documents",
+    };
+  }
+
+  switch (project.stage) {
+    case "inbox":
+    case "discovery":
+      return {
+        label: "Run discovery work",
+        description: "Use project commands to analyze research and generate the next artifact.",
+        tab: "commands",
+      };
+    case "prd":
+    case "design":
+      return {
+        label: "Advance the specification",
+        description: "Review the current docs and run the next project command.",
+        tab: "commands",
+      };
+    case "prototype":
+      if (!project.prototypes?.length) {
+        return {
+          label: "Build a prototype",
+          description: "Create the first prototype from the current project artifacts.",
+          tab: "commands",
+        };
+      }
+      return {
+        label: "Review prototype output",
+        description: "Open the prototype list and decide what to iterate next.",
+        tab: "prototypes",
+      };
+    case "validate":
+      return {
+        label: "Run validation",
+        description: "Check the latest artifacts and queue the validation step.",
+        tab: "validation",
+      };
+    case "tickets":
+      if (!project.tickets?.length) {
+        return {
+          label: "Generate tickets",
+          description: "Turn the validated work into implementation tickets.",
+          tab: "commands",
+        };
+      }
+      return {
+        label: "Review generated tickets",
+        description: "Inspect ticket output and sync it downstream if needed.",
+        tab: "tickets",
+      };
+    default:
+      return {
+        label: "Review project tasks",
+        description: "Open the current task list and move the project forward from there.",
+        tab: "tasks",
+      };
+  }
+}
+
 export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("documents");
+  const openElmerPanelWithContext = useUIStore(
+    (s) => s.openElmerPanelWithContext,
+  );
+  const [activeTab, setActiveTab] = useState(() =>
+    getProjectTabFromSearchParam(searchParams.get("tab")),
+  );
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -84,9 +209,11 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const [ticketSyncing, setTicketSyncing] = useState<string | null>(null);
 
   const createAndSchedule = useConvexMutation(api.jobs.createAndSchedule);
+  const updateDocument = useConvexMutation(api.documents.update);
+  const answerPendingQuestion = useConvexMutation(api.pendingQuestions.answer);
 
   // Fetch project data
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { data: legacyProject, isLoading: projectLoading } = useQuery({
     queryKey: ["project", projectId],
     queryFn: async () => {
       const res = await fetch(`/api/projects/${projectId}`);
@@ -94,12 +221,160 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
       return res.json();
     },
   });
+  const convexProject = useConvexQuery(api.projects.get, {
+    projectId: projectId as Id<"projects">,
+  }) as ConvexProject | null | undefined;
+  const convexWorkspace = useConvexQuery(
+    api.workspaces.get,
+    convexProject ? { workspaceId: convexProject.workspaceId as Id<"workspaces"> } : "skip",
+  ) as ConvexWorkspace | null | undefined;
+  const convexDocuments = useConvexQuery(
+    api.documents.byProject,
+    convexProject ? { projectId: convexProject._id as Id<"projects"> } : "skip",
+  );
+  const convexPrototypes = useConvexQuery(
+    api.prototypes.listByProjectDetailed,
+    convexProject ? { projectId: convexProject._id as Id<"projects"> } : "skip",
+  );
+  const projectJobs = useConvexQuery(
+    api.jobs.byProject,
+    convexProject ? { projectId: convexProject._id as Id<"projects"> } : "skip",
+  );
+  const workspacePendingQuestions = useConvexQuery(
+    api.pendingQuestions.listPending,
+    convexProject
+      ? {
+          workspaceId: convexProject.workspaceId as Id<"workspaces">,
+          status: "pending",
+        }
+      : "skip",
+  );
+  const workspacePresence = useWorkspacePresence(convexProject?.workspaceId);
+
+  const handleTabChange = useCallback(
+    (nextTab: string) => {
+      const resolvedTab = getProjectTabFromSearchParam(nextTab);
+      setActiveTab(resolvedTab);
+
+      const params = new URLSearchParams(searchParams.toString());
+      if (resolvedTab === "documents") {
+        params.delete("tab");
+      } else {
+        params.set("tab", resolvedTab);
+      }
+
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  useEffect(() => {
+    const tabFromUrl = getProjectTabFromSearchParam(searchParams.get("tab"));
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [activeTab, searchParams]);
+
+  const project = useMemo(() => {
+    if (!legacyProject && !convexProject) return null;
+    const base = (legacyProject ?? {}) as Record<string, unknown>;
+    const baseWorkspace = ((base.workspace ?? {}) as Record<string, unknown>);
+    const mappedDocuments = convexDocuments
+      ? convexDocuments.map((doc: {
+          _id: string;
+          type: string;
+          title: string;
+          content: string;
+          version: number;
+          reviewStatus: string;
+          generatedByAgent?: string;
+          _creationTime: number;
+        }) => ({
+          id: doc._id,
+          type: doc.type,
+          title: doc.title,
+          content: doc.content,
+          version: doc.version,
+          createdAt: new Date(doc._creationTime).toISOString(),
+          updatedAt: new Date(doc._creationTime).toISOString(),
+          metadata: {
+            generatedBy: doc.generatedByAgent ? "ai" : "user",
+            reviewStatus: doc.reviewStatus,
+          },
+        }))
+      : ((base.documents as unknown[]) ?? []);
+    const mappedPrototypes = convexPrototypes
+      ? convexPrototypes.map((proto: {
+          id: string;
+          name: string;
+          type: string;
+          status: string;
+          chromaticUrl?: string;
+          chromaticStorybookUrl?: string;
+          storybookPath?: string;
+          metadata?: Record<string, unknown>;
+        }) => ({
+          id: proto.id,
+          name: proto.name,
+          type: proto.type,
+          status: proto.status,
+          chromaticUrl: proto.chromaticUrl,
+          chromaticStorybookUrl: proto.chromaticStorybookUrl,
+          storybookPath: proto.storybookPath,
+          metadata: proto.metadata,
+        }))
+      : ((base.prototypes as unknown[]) ?? []);
+
+    return {
+      ...base,
+      id: convexProject?._id ?? (base.id as string) ?? projectId,
+      _id: convexProject?._id ?? (base.id as string) ?? projectId,
+      workspaceId:
+        convexProject?.workspaceId ?? (base.workspaceId as string) ?? (baseWorkspace.id as string),
+      name: convexProject?.name ?? (base.name as string),
+      description: convexProject?.description ?? (base.description as string | undefined),
+      stage: convexProject?.stage ?? (base.stage as string),
+      status: convexProject?.status ?? (base.status as string),
+      priority: base.priority ?? 0,
+      metadata: {
+        ...((base.metadata as Record<string, unknown>) ?? {}),
+        ...((convexProject?.metadata as Record<string, unknown>) ?? {}),
+      },
+      documents: mappedDocuments,
+      prototypes: mappedPrototypes,
+      workspace: {
+        ...baseWorkspace,
+        id: convexWorkspace?._id ?? (baseWorkspace.id as string),
+        name: convexWorkspace?.name ?? (baseWorkspace.name as string),
+        githubRepo: convexWorkspace?.githubRepo ?? (baseWorkspace.githubRepo as string | undefined),
+        settings: {
+          ...(((baseWorkspace.settings as Record<string, unknown>) ?? {})),
+          ...((convexWorkspace?.settings as Record<string, unknown>) ?? {}),
+        },
+      },
+    };
+  }, [legacyProject, convexProject, convexWorkspace, convexDocuments, convexPrototypes, projectId]);
+
+  useEffect(() => {
+    if (!project?.workspaceId || !pathname.startsWith("/projects/")) {
+      return;
+    }
+
+    const canonicalTab = getProjectTabFromSearchParam(searchParams.get("tab"));
+    const nextHref =
+      canonicalTab === "documents"
+        ? getProjectRoute(projectId, project.workspaceId)
+        : getProjectRouteWithTab(projectId, canonicalTab, project.workspaceId);
+
+    router.replace(nextHref, { scroll: false });
+  }, [pathname, project?.workspaceId, projectId, router, searchParams]);
 
   const { data: columns } = useQuery({
     queryKey: ["columns", project?.workspaceId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/columns?workspaceId=${project.workspaceId}`,
+        `/api/columns?workspaceId=${project?.workspaceId ?? ""}`,
       );
       if (!res.ok) throw new Error("Failed to load columns");
       return res.json();
@@ -160,19 +435,12 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     async (type: string) => {
       if (!project) return;
       try {
-        const res = await fetch("/api/jobs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workspaceId: project.workspaceId,
-            projectId: project.id,
-            type,
-          }),
+        await createAndSchedule({
+          workspaceId: project.workspaceId as Id<"workspaces">,
+          projectId: project.id as Id<"projects">,
+          type,
+          input: {},
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || "Failed to create job");
-        }
         toast.success(`Job queued: ${type.replace(/_/g, " ")}`);
       } catch (error) {
         toast.error(
@@ -180,7 +448,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
         );
       }
     },
-    [project],
+    [createAndSchedule, project],
   );
 
   const handleSyncTickets = useCallback(
@@ -215,6 +483,43 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const selectedDoc =
     project?.documents?.find((d: { id: string }) => d.id === selectedDocId) ||
     project?.documents?.[0];
+  const overviewAction = useMemo(
+    () => (project ? getProjectOverviewAction(project) : null),
+    [project],
+  );
+  const activeProjectJobs = useMemo(() => {
+    if (!projectJobs?.length) {
+      return [];
+    }
+
+    return projectJobs
+      .filter((job: { status: string }) =>
+        ["pending", "running", "waiting_input"].includes(job.status),
+      )
+      .sort(
+        (
+          a: { _creationTime: number },
+          b: { _creationTime: number },
+        ) => b._creationTime - a._creationTime,
+      )
+      .slice(0, 5);
+  }, [projectJobs]);
+  const projectPendingQuestions = useMemo(() => {
+    if (!workspacePendingQuestions?.length || !project?.id) {
+      return [];
+    }
+
+    return workspacePendingQuestions
+      .filter(
+        (question: { projectId?: string | null }) =>
+          question.projectId === project.id,
+      )
+      .slice(0, 5);
+  }, [project?.id, workspacePendingQuestions]);
+  const projectPresence = useMemo(
+    () => filterPresenceByProject(workspacePresence, project?.id),
+    [workspacePresence, project?.id],
+  );
 
   const handlePublishNotion = useCallback(async () => {
     if (!project || !selectedDoc) return;
@@ -235,6 +540,26 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const handleUploadSuccess = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["project", projectId] });
   }, [queryClient, projectId]);
+
+  const handleAnswerPendingQuestion = useCallback(
+    async (
+      questionId: string,
+      response: string,
+    ) => {
+      try {
+        await answerPendingQuestion({
+          questionId: questionId as Id<"pendingQuestions">,
+          response,
+        });
+        toast.success("Agent resumed");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to answer question",
+        );
+      }
+    },
+    [answerPendingQuestion],
+  );
 
   // Extract GitHub repo info for file fetching
   const githubInfo = useMemo(() => {
@@ -275,15 +600,10 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     async (content: string) => {
       if (!selectedDoc) return;
 
-      const res = await fetch(`/api/documents/${selectedDoc.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+      await updateDocument({
+        documentId: selectedDoc.id as Id<"documents">,
+        content,
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to save document");
-      }
 
       const repoPath = resolveRepoFilePath(selectedDoc.filePath);
       if (githubInfo && repoPath) {
@@ -305,11 +625,9 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
         }
       }
 
-      // Refresh project data to get updated document
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       toast.success("Document saved");
     },
-    [selectedDoc, queryClient, projectId, githubInfo, resolveRepoFilePath],
+    [selectedDoc, updateDocument, githubInfo, resolveRepoFilePath],
   );
 
   // Fetch files from GitHub
@@ -447,6 +765,14 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                     </Badge>
                   )}
                 </div>
+                {projectPresence.length > 0 && (
+                  <div className="flex items-center gap-2 rounded-full border border-border px-2 py-1">
+                    <PresenceAvatarStack entries={projectPresence} max={4} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      {projectPresence.length} active here
+                    </span>
+                  </div>
+                )}
                 {stageConfidence && (
                   <div className="w-48">
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground">
@@ -489,7 +815,146 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Window title="active-work" className="mb-6">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h2 className="text-sm font-medium">Active Work</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Track what is currently running on this project and resolve approvals without leaving the cockpit.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() =>
+                    openElmerPanelWithContext("project", projectId, project.name)
+                  }
+                >
+                  Open in Elmer
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-mono text-muted-foreground">
+                      Active runs
+                    </h3>
+                    <Badge variant="outline" className="text-[10px]">
+                      {activeProjectJobs.length}
+                    </Badge>
+                  </div>
+                  {activeProjectJobs.length > 0 ? (
+                    activeProjectJobs.map((job) => (
+                      <ActiveWorkJobRow
+                        key={job._id}
+                        job={job}
+                        onOpenInElmer={() =>
+                          openElmerPanelWithContext("project", projectId, project.name)
+                        }
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-border bg-card/30 p-3 text-sm text-muted-foreground">
+                      No active jobs right now. Use the project commands when you are ready to move this work forward.
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-mono text-muted-foreground">
+                      Pending approvals
+                    </h3>
+                    <Badge variant="outline" className="text-[10px]">
+                      {projectPendingQuestions.length}
+                    </Badge>
+                  </div>
+                  {projectPendingQuestions.length > 0 ? (
+                    projectPendingQuestions.map((question) => (
+                      <div
+                        key={question._id}
+                        className="rounded-xl border border-border bg-card/30 p-3 space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {question.questionType === "approval"
+                                ? "Approval required"
+                                : "Agent needs input"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {question.questionText}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px] capitalize">
+                            {question.questionType}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {question.questionType === "approval" ? (
+                            <>
+                              <Button
+                                size="sm"
+                                className="gap-1.5"
+                                onClick={() =>
+                                  handleAnswerPendingQuestion(
+                                    String(question._id),
+                                    question.choices?.[0] ?? "approve",
+                                  )
+                                }
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                onClick={() =>
+                                  handleAnswerPendingQuestion(
+                                    String(question._id),
+                                    question.choices?.[1] ?? "reject",
+                                  )
+                                }
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                Reject
+                              </Button>
+                            </>
+                          ) : null}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1.5"
+                            onClick={() =>
+                              openElmerPanelWithContext(
+                                "project",
+                                projectId,
+                                project.name,
+                              )
+                            }
+                          >
+                            Reply in Elmer
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-border bg-card/30 p-3 text-sm text-muted-foreground">
+                      No pending approvals for this project right now.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Window>
+
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <div className="overflow-x-auto -mx-4 sm:-mx-8 px-4 sm:px-8 pb-2">
               <TabsList
                 className={cn(
@@ -497,6 +962,15 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                   "bg-muted/50 border border-border dark:border-[rgba(255,255,255,0.14)]",
                 )}
               >
+                <TabsTrigger
+                  value="overview"
+                  className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap"
+                >
+                  <Check className="w-4 h-4" />
+                  <span className="hidden sm:inline font-mono text-xs">
+                    Overview
+                  </span>
+                </TabsTrigger>
                 <TabsTrigger
                   value="documents"
                   className="gap-1.5 rounded-xl data-[state=active]:bg-card data-[state=active]:shadow-sm whitespace-nowrap"
@@ -590,6 +1064,180 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
               </TabsList>
             </div>
 
+            <TabsContent value="overview" className="mt-6">
+              <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+                <Window title="project-overview">
+                  <div className="space-y-5">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <button
+                        onClick={() => handleTabChange("signals")}
+                        className="rounded-xl border border-border bg-card/40 p-4 text-left transition-colors hover:bg-card/70"
+                      >
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Evidence
+                        </p>
+                        <p className="mt-1 text-2xl font-heading">
+                          {project.signalCount ?? 0}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          linked signals informing this project
+                        </p>
+                      </button>
+                      <button
+                        onClick={() => handleTabChange("documents")}
+                        className="rounded-xl border border-border bg-card/40 p-4 text-left transition-colors hover:bg-card/70"
+                      >
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Artifacts
+                        </p>
+                        <p className="mt-1 text-2xl font-heading">
+                          {project.documents?.length ?? 0}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          documents available to review or edit
+                        </p>
+                      </button>
+                      <button
+                        onClick={() => handleTabChange("prototypes")}
+                        className="rounded-xl border border-border bg-card/40 p-4 text-left transition-colors hover:bg-card/70"
+                      >
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Prototype
+                        </p>
+                        <p className="mt-1 text-2xl font-heading">
+                          {project.prototypes?.length ?? 0}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          prototype outputs currently linked
+                        </p>
+                      </button>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-muted/30 p-4">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-[11px] font-mono text-muted-foreground">
+                            Next best action
+                          </p>
+                          <h3 className="mt-1 text-lg font-medium">
+                            {overviewAction?.label}
+                          </h3>
+                          <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
+                            {overviewAction?.description}
+                          </p>
+                        </div>
+                        {overviewAction && (
+                          <Button
+                            onClick={() => handleTabChange(overviewAction.tab)}
+                            className="gap-1.5"
+                          >
+                            Open {overviewAction.label}
+                            <ArrowRight className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="rounded-xl border border-border bg-card/40 p-4">
+                        <h3 className="text-sm font-medium">Project summary</h3>
+                        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                          {project.metadata?.tldr
+                            ? (project.metadata.tldr as string)
+                            : "No TL;DR is available yet. Generate or refine one as the project evolves."}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-card/40 p-4">
+                        <h3 className="text-sm font-medium">Current footing</h3>
+                        <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center justify-between gap-3">
+                            <span>Stage</span>
+                            <span className="font-medium text-foreground capitalize">
+                              {project.stage}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span>Status</span>
+                            <span className="font-medium text-foreground capitalize">
+                              {project.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span>Presence</span>
+                            <span className="font-medium text-foreground">
+                              {projectPresence.length} active
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span>Commands available</span>
+                            <span className="font-medium text-foreground">
+                              Open Execution
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Window>
+
+                <div className="space-y-4">
+                  <Window title="readiness">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          {stageConfidence?.label ?? "Readiness"}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {Math.round((stageConfidence?.score ?? 0) * 100)}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={(stageConfidence?.score ?? 0) * 100}
+                        className="h-2 [&>div]:bg-linear-to-r [&>div]:from-emerald-400 [&>div]:to-teal-400"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {stageConfidence?.label
+                          ? "This score reflects the project's current footing for the active stage."
+                          : "Readiness will appear here once enough project context is available."}
+                      </p>
+                    </div>
+                  </Window>
+
+                  <Window title="evidence-and-execution">
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-border bg-card/40 p-3">
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Evidence status
+                        </p>
+                        <p className="mt-1 text-sm">
+                          {project.signalCount && project.signalCount > 0
+                            ? `${project.signalCount} signals currently inform this project.`
+                            : "No linked signals yet. Review evidence before advancing the project."}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-card/40 p-3">
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Execution path
+                        </p>
+                        <p className="mt-1 text-sm">
+                          Use project commands for stage-specific work, and treat the other tabs as supporting surfaces.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 gap-1.5"
+                          onClick={() => handleTabChange("commands")}
+                        >
+                          Open execution
+                          <Terminal className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Window>
+                </div>
+              </div>
+            </TabsContent>
+
             <TabsContent value="documents" className="mt-6">
               <div className="flex flex-col lg:flex-row gap-4 min-h-[calc(100vh-320px)]">
                 <DocumentSidebar
@@ -630,6 +1278,8 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                         createdAt: new Date(selectedDoc.createdAt),
                         updatedAt: new Date(selectedDoc.updatedAt),
                       }}
+                      workspaceId={project.workspaceId}
+                      presenceDocumentId={selectedDoc.id}
                       onSave={handleDocumentSave}
                       onPublish={handlePublishNotion}
                       publishLabel="Publish to Notion"
@@ -1078,6 +1728,68 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   );
 }
 
+function ActiveWorkJobRow({
+  job,
+  onOpenInElmer,
+}: {
+  job: {
+    _id: string;
+    _creationTime: number;
+    type: string;
+    status: string;
+    progress?: number | null;
+    initiatedByName?: string | null;
+  };
+  onOpenInElmer: () => void;
+}) {
+  const lastLog = useConvexQuery(api.jobs.getLastLog, {
+    jobId: job._id as Id<"jobs">,
+  }) as { message?: string; stepKey?: string } | null | undefined;
+
+  const title = job.type.replace(/_/g, " ");
+  const stepLabel = lastLog?.stepKey
+    ? lastLog.stepKey.replace(/_/g, " ")
+    : lastLog?.message ?? "Waiting for the next step";
+
+  return (
+    <div className="rounded-xl border border-border bg-card/30 p-3 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium capitalize">{title}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {stepLabel}
+          </p>
+        </div>
+        <Badge variant="outline" className="text-[10px] capitalize">
+          {job.status}
+        </Badge>
+      </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-[11px] text-muted-foreground">
+          Started {new Date(job._creationTime).toLocaleString()}
+          {job.initiatedByName ? ` · ${job.initiatedByName}` : ""}
+        </div>
+        <div className="flex items-center gap-2">
+          {typeof job.progress === "number" && (
+            <span className="text-[11px] text-muted-foreground">
+              {Math.round(job.progress)}%
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1.5"
+            onClick={onOpenInElmer}
+          >
+            Open in Elmer
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============================================
 // Prototypes Section with Storybook/Chromatic Embed
 // ============================================
@@ -1175,22 +1887,19 @@ function GitBranchEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [branchValue, setBranchValue] = useState(currentBranch || "");
   const [isSaving, setIsSaving] = useState(false);
+  const updateProject = useConvexMutation(api.projects.update);
 
   const handleSave = async () => {
     if (!branchValue.trim()) return;
 
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metadata: { gitBranch: branchValue.trim() } }),
+      await updateProject({
+        projectId: projectId as Id<"projects">,
+        metadata: { gitBranch: branchValue.trim() },
       });
-
-      if (res.ok) {
-        setIsEditing(false);
-        onBranchUpdated();
-      }
+      setIsEditing(false);
+      onBranchUpdated();
     } catch (error) {
       console.error("Failed to update branch:", error);
     } finally {
@@ -1265,10 +1974,12 @@ function GitBranchEditor({
  */
 function LinkPrototypeDialog({
   projectId,
+  workspaceId,
   gitBranch,
   onPrototypeLinked,
 }: {
   projectId: string;
+  workspaceId: string;
   gitBranch?: string;
   onPrototypeLinked: () => void;
 }) {
@@ -1284,6 +1995,7 @@ function LinkPrototypeDialog({
     placementLocation: "",
     placementPatterns: "",
   });
+  const createVariant = useConvexMutation(api.prototypes.createVariant);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1291,18 +2003,23 @@ function LinkPrototypeDialog({
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/prototypes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          type: formData.type,
+      await createVariant({
+        workspaceId: workspaceId as Id<"workspaces">,
+        projectId: projectId as Id<"projects">,
+        platform: formData.type,
+        outputType: "iframe_url",
+        title: formData.name.trim(),
+        url: formData.storybookPath.trim() || undefined,
+        chromaticUrl: formData.chromaticStorybookUrl.trim() || undefined,
+        metadata: {
+          prototypeType: formData.type,
           storybookPath: formData.storybookPath.trim() || undefined,
           chromaticStorybookUrl:
             formData.chromaticStorybookUrl.trim() || undefined,
           versionLabel: formData.versionLabel.trim() || undefined,
           branch: formData.branch.trim() || undefined,
-          placement:
+          manuallyLinked: true,
+          placementAnalysis:
             formData.placementLocation.trim() ||
             formData.placementPatterns.trim()
               ? {
@@ -1314,23 +2031,20 @@ function LinkPrototypeDialog({
                     .filter(Boolean),
                 }
               : undefined,
-        }),
+        },
       });
-
-      if (res.ok) {
-        setOpen(false);
-        setFormData({
-          name: "",
-          type: "standalone",
-          storybookPath: "",
-          chromaticStorybookUrl: "",
-          versionLabel: "",
-          branch: gitBranch || "",
-          placementLocation: "",
-          placementPatterns: "",
-        });
-        onPrototypeLinked();
-      }
+      setOpen(false);
+      setFormData({
+        name: "",
+        type: "standalone",
+        storybookPath: "",
+        chromaticStorybookUrl: "",
+        versionLabel: "",
+        branch: gitBranch || "",
+        placementLocation: "",
+        placementPatterns: "",
+      });
+      onPrototypeLinked();
     } catch (error) {
       console.error("Failed to link prototype:", error);
     } finally {
@@ -1525,6 +2239,7 @@ function PrototypesSection({
       null,
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const deleteVariant = useConvexMutation(api.prototypes.deleteVariant);
 
   const handleBranchUpdated = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["project", projectId] });
@@ -1538,28 +2253,21 @@ function PrototypesSection({
 
       setDeletingProtoId(protoId);
       try {
-        const res = await fetch(
-          `/api/projects/${projectId}/prototypes/${protoId}`,
-          {
-            method: "DELETE",
-          },
-        );
-        if (res.ok) {
-          // If we deleted the selected prototype, clear selection
-          if (selectedPrototype?.id === protoId) {
-            setSelectedPrototype(
-              prototypes.find((p) => p.id !== protoId) || null,
-            );
-          }
-          handleBranchUpdated();
+        await deleteVariant({ variantId: protoId as Id<"prototypeVariants"> });
+        // If we deleted the selected prototype, clear selection
+        if (selectedPrototype?.id === protoId) {
+          setSelectedPrototype(
+            prototypes.find((p) => p.id !== protoId) || null,
+          );
         }
+        handleBranchUpdated();
       } catch (error) {
         console.error("Failed to delete prototype:", error);
       } finally {
         setDeletingProtoId(null);
       }
     },
-    [projectId, selectedPrototype, prototypes, handleBranchUpdated],
+    [deleteVariant, selectedPrototype, prototypes, handleBranchUpdated],
   );
 
   // Check if there's any prototype with a Storybook URL (direct or constructed)
@@ -1584,6 +2292,7 @@ function PrototypesSection({
             />
             <LinkPrototypeDialog
               projectId={projectId}
+              workspaceId={workspaceId}
               gitBranch={gitBranch}
               onPrototypeLinked={handleBranchUpdated}
             />
@@ -1617,6 +2326,7 @@ function PrototypesSection({
             )}
             <LinkPrototypeDialog
               projectId={projectId}
+              workspaceId={workspaceId}
               gitBranch={gitBranch}
               onPrototypeLinked={handleBranchUpdated}
             />
@@ -1943,38 +2653,17 @@ function SignalsSection({
   workspaceId,
   onOpenPicker,
 }: SignalsSectionProps) {
-  const queryClient = useQueryClient();
-
   // Fetch linked signals
-  const { data: signalsData, isLoading } = useQuery({
-    queryKey: ["project-signals", projectId],
-    queryFn: async () => {
-      const res = await fetch(`/api/projects/${projectId}/signals`);
-      if (!res.ok) throw new Error("Failed to load signals");
-      return res.json();
-    },
+  const signalsData = useConvexQuery(api.signals.byProjectDetailed, {
+    projectId: projectId as Id<"projects">,
   });
+  const isLoading = signalsData === undefined;
 
   // Unlink mutation
-  const unlinkMutation = useMutation({
-    mutationFn: async (signalId: string) => {
-      const res = await fetch(`/api/signals/${signalId}/projects`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId }),
-      });
-      if (!res.ok) throw new Error("Failed to unlink signal");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["project-signals", projectId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["signals"] });
-    },
-  });
+  const unlinkSignal = useConvexMutation(api.signals.unlinkFromProject);
+  const [unlinkingSignalId, setUnlinkingSignalId] = useState<string | null>(null);
 
-  const signals: LinkedSignal[] = signalsData?.signals || [];
+  const signals: LinkedSignal[] = (signalsData ?? []) as LinkedSignal[];
 
   if (isLoading) {
     return (
@@ -2090,11 +2779,21 @@ function SignalsSection({
                   size="icon"
                   variant="ghost"
                   className="h-7 w-7 text-destructive hover:text-destructive"
-                  onClick={() => unlinkMutation.mutate(signal.id)}
-                  disabled={unlinkMutation.isPending}
+                  onClick={async () => {
+                    setUnlinkingSignalId(signal.id);
+                    try {
+                      await unlinkSignal({
+                        signalId: signal.id as Id<"signals">,
+                        projectId: projectId as Id<"projects">,
+                      });
+                    } finally {
+                      setUnlinkingSignalId(null);
+                    }
+                  }}
+                  disabled={unlinkingSignalId === signal.id}
                   title="Unlink signal"
                 >
-                  {unlinkMutation.isPending ? (
+                  {unlinkingSignalId === signal.id ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <AlertCircle className="w-3.5 h-3.5" />

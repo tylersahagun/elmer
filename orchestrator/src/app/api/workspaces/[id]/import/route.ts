@@ -25,7 +25,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGitHubClient } from "@/lib/github/auth";
 import { runPopulationEngine } from "@/lib/discovery/population-engine";
-import { auth } from "@/auth";
+import { requireCurrentAppUser } from "@/lib/auth/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -46,14 +46,7 @@ export async function POST(
     // Require admin access to import (modifies workspace data)
     await requireWorkspaceAccess(workspaceId, "admin");
 
-    // Get authenticated user
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
-    }
+    const appUser = await requireCurrentAppUser();
 
     // Parse request body
     const body = await request.json();
@@ -86,7 +79,7 @@ export async function POST(
     }
 
     // Get GitHub client for the user
-    const octokit = await getGitHubClient(session.user.id);
+    const octokit = await getGitHubClient(appUser.id);
     if (!octokit) {
       return NextResponse.json(
         { error: "GitHub authentication required. Please reconnect your GitHub account." },
