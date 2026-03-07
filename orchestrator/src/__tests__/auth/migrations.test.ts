@@ -14,6 +14,7 @@ import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { assignOrphanedWorkspaces } from "@/lib/migrations/assign-workspaces";
 import { backfillActors } from "@/lib/migrations/backfill-actors";
+import { describeIfDatabase } from "../helpers/database";
 
 // Test fixtures
 const TEST_USER_ID = `user_mig_${nanoid(8)}`;
@@ -21,7 +22,7 @@ const TEST_ORPHAN_WS_1 = `ws_orphan1_${nanoid(8)}`;
 const TEST_ORPHAN_WS_2 = `ws_orphan2_${nanoid(8)}`;
 const TEST_OWNED_WS = `ws_owned_${nanoid(8)}`;
 
-describe("Migration Script Tests", () => {
+describeIfDatabase("Migration Script Tests", () => {
   beforeAll(async () => {
     // Create test user (oldest user for migration)
     await db.insert(users).values({

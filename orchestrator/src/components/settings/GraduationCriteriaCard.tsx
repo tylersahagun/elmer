@@ -92,7 +92,7 @@ export function GraduationCriteriaCard({
   const { data: columns, isLoading } = useQuery<ColumnConfig[]>({
     queryKey: ["column-configs", workspaceId],
     queryFn: async () => {
-      const res = await fetch(`/api/workspaces/${workspaceId}/columns`);
+      const res = await fetch(`/api/columns?workspaceId=${workspaceId}`);
       if (!res.ok) throw new Error("Failed to fetch columns");
       return res.json();
     },

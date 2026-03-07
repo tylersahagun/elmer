@@ -13,6 +13,7 @@ import { db } from "@/lib/db";
 import { workspaces, skills, stageRecipes } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { describeIfDatabase } from "../helpers/database";
 import {
   createSkill,
   createStageRecipe,
@@ -30,7 +31,7 @@ import {
 // Test fixtures
 const TEST_WORKSPACE_ID = `test_ws_${nanoid(8)}`;
 
-describe("Stage Recipes Contract Tests", () => {
+describeIfDatabase("Stage Recipes Contract Tests", () => {
   beforeAll(async () => {
     // Create test workspace
     await db.insert(workspaces).values({

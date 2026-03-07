@@ -7,6 +7,11 @@
 
 import { NextResponse } from "next/server";
 import {
+  requireWorkspaceAccess,
+  handlePermissionError,
+  PermissionError,
+} from "@/lib/permissions";
+import {
   getSkills,
   searchSkills,
   createSkill,
@@ -37,20 +42,33 @@ export async function GET(request: Request) {
           { status: 400 },
         );
       }
+      if (workspaceId) {
+        await requireWorkspaceAccess(workspaceId, "viewer");
+      }
       const results = await searchSkillsMP(query, { semantic });
       return NextResponse.json(results);
     }
 
     // Search local skills
     if (query) {
+      if (workspaceId) {
+        await requireWorkspaceAccess(workspaceId, "viewer");
+      }
       const skills = await searchSkills(query, workspaceId);
       return NextResponse.json({ skills });
     }
 
     // List all skills
+    if (workspaceId) {
+      await requireWorkspaceAccess(workspaceId, "viewer");
+    }
     const skills = await getSkills(workspaceId);
     return NextResponse.json({ skills });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("[API /skills] GET error:", error);
     return NextResponse.json(
       { error: "Failed to fetch skills" },
@@ -75,6 +93,7 @@ export async function POST(request: Request) {
             { status: 400 },
           );
         }
+        await requireWorkspaceAccess(workspaceId, "member");
         const skillId = await importFromSkillsMP({
           workspaceId,
           skillsmpId,
@@ -106,6 +125,7 @@ export async function POST(request: Request) {
             { status: 400 },
           );
         }
+        await requireWorkspaceAccess(workspaceId, "member");
         const count = await syncLocalSkills(workspaceId, skillsPath);
 
         // Log the sync activity
@@ -134,6 +154,13 @@ export async function POST(request: Request) {
         if (!input.name) {
           return NextResponse.json({ error: "name required" }, { status: 400 });
         }
+        if (!input.workspaceId) {
+          return NextResponse.json(
+            { error: "workspaceId required" },
+            { status: 400 },
+          );
+        }
+        await requireWorkspaceAccess(input.workspaceId, "member");
         const skillId = await createSkill(input);
 
         // Log the creation activity
@@ -154,6 +181,10 @@ export async function POST(request: Request) {
         );
     }
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("[API /skills] POST error:", error);
     return NextResponse.json(
       { error: "Failed to process skill action" },

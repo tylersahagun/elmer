@@ -14,6 +14,7 @@ import { workspaces, projects, stageRuns, artifacts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { GateDefinition } from "@/lib/db/schema";
+import { describeIfDatabase } from "../helpers/database";
 
 // Test fixtures
 const TEST_WORKSPACE_ID = `test_ws_${nanoid(8)}`;
@@ -139,7 +140,7 @@ async function evaluateGate(
   }
 }
 
-describe("Gates System Contract Tests", () => {
+describeIfDatabase("Gates System Contract Tests", () => {
   beforeAll(async () => {
     // Create test workspace
     await db.insert(workspaces).values({

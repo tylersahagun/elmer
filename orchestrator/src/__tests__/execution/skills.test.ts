@@ -13,6 +13,7 @@ import { db } from "@/lib/db";
 import { workspaces, skills } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { describeIfDatabase } from "../helpers/database";
 import {
   createSkill,
   getSkillById,
@@ -27,7 +28,7 @@ import {
 // Test fixtures
 const TEST_WORKSPACE_ID = `test_ws_${nanoid(8)}`;
 
-describe("Skills System Contract Tests", () => {
+describeIfDatabase("Skills System Contract Tests", () => {
   beforeAll(async () => {
     // Create test workspace
     await db.insert(workspaces).values({

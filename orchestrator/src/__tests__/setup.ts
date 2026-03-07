@@ -21,7 +21,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
 if (!process.env.DATABASE_URL) {
   console.warn("⚠️  DATABASE_URL not set - integration tests will fail");
   console.warn(
-    '   Run: export DATABASE_URL="postgresql://elmer:elmer_local_dev@127.0.0.1:5432/orchestrator"',
+    '   Run: export DATABASE_URL="postgresql://elmer:elmer_local_dev@127.0.0.1:5433/orchestrator"',
   );
 }
 if (!process.env.ANTHROPIC_API_KEY) {

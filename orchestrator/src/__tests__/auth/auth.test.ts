@@ -16,6 +16,7 @@ import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
 import { NextRequest } from "next/server";
 import { POST as signupHandler } from "@/app/api/auth/signup/route";
+import { describeIfDatabase } from "../helpers/database";
 
 // Test fixtures
 const TEST_USER_EMAIL = `test_${nanoid(8)}@example.com`;
@@ -62,7 +63,7 @@ describe("Authentication System Tests", () => {
     });
   });
 
-  describe("User Creation", () => {
+  describeIfDatabase("User Creation", () => {
     afterAll(async () => {
       // Cleanup test user
       await db.delete(users).where(eq(users.email, TEST_USER_EMAIL));
@@ -104,7 +105,7 @@ describe("Authentication System Tests", () => {
     });
   });
 
-  describe("Signup Validation", () => {
+  describeIfDatabase("Signup Validation", () => {
     const SIGNUP_TEST_EMAIL = `signup_${nanoid(8)}@example.com`;
     const callSignup = async (body: Record<string, unknown>) => {
       const request = global.testUtils.createMockRequest("/api/auth/signup", {
@@ -177,7 +178,7 @@ describe("Authentication System Tests", () => {
     });
   });
 
-  describe("Login Validation", () => {
+  describeIfDatabase("Login Validation", () => {
     const LOGIN_TEST_EMAIL = `login_${nanoid(8)}@example.com`;
     const LOGIN_TEST_PASSWORD = "LoginTestPassword123";
 

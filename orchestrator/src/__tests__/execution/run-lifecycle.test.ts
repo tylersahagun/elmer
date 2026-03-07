@@ -15,6 +15,7 @@ import { db } from "@/lib/db";
 import { workspaces, projects, stageRuns, runLogs, artifacts } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { describeIfDatabase } from "../helpers/database";
 import {
   createRun,
   retryRun,
@@ -39,7 +40,7 @@ const TEST_WORKSPACE_ID = `test_ws_${nanoid(8)}`;
 const TEST_PROJECT_ID = `test_proj_${nanoid(8)}`;
 const TEST_WORKER_ID = `test_worker_${nanoid(8)}`;
 
-describe("Run Lifecycle Contract Tests", () => {
+describeIfDatabase("Run Lifecycle Contract Tests", () => {
   beforeAll(async () => {
     // Create test workspace
     await db.insert(workspaces).values({
