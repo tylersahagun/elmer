@@ -4,10 +4,12 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard, GlassPanel } from "@/components/glass";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { staggerContainer, staggerItem } from "@/lib/animations";
+import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   TrendingDown,
@@ -16,8 +18,8 @@ import {
   FileText,
   Layers,
   MessageSquare,
-  Target,
-  Zap,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -261,6 +263,59 @@ export function MetricsDashboard({
     },
   ];
 
+  const releaseStageRows = useMemo(
+    () =>
+      (["alpha", "beta", "ga"] as const).map((stage) => {
+        const threshold = thresholdState[stage];
+        const checks = [
+          {
+            label: "Users",
+            passed: currentMetrics.users >= threshold.users,
+            detail: `${currentMetrics.users} / ${threshold.users}`,
+          },
+          {
+            label: "Engagement",
+            passed: currentMetrics.engagement >= threshold.engagement,
+            detail: `${currentMetrics.engagement} / ${threshold.engagement}`,
+          },
+          {
+            label: "Errors",
+            passed: currentMetrics.errors <= threshold.errors,
+            detail: `${currentMetrics.errors} / ${threshold.errors}`,
+          },
+          {
+            label: "Satisfaction",
+            passed: currentMetrics.satisfaction >= threshold.satisfaction,
+            detail: `${currentMetrics.satisfaction} / ${threshold.satisfaction}`,
+          },
+        ];
+
+        return {
+          stage,
+          checks,
+          passed: checks.every((check) => check.passed),
+          isCurrent: projectStage === stage,
+        };
+      }),
+    [currentMetrics, projectStage, thresholdState],
+  );
+
+  const measurementReadiness = useMemo(() => {
+    const hasThresholds = releaseStageRows.some((row) => row.checks.length > 0);
+    const hasCurrentMetrics = Object.values(currentMetrics).some((value) => value > 0);
+    if (posthogConnected && hasThresholds && hasCurrentMetrics) return "instrumented";
+    if (posthogConnected || hasThresholds || hasCurrentMetrics) return "partial";
+    return "missing";
+  }, [currentMetrics, posthogConnected, releaseStageRows]);
+
+  const recommendedEvents = [
+    "feature_viewed",
+    "feature_started",
+    "feature_completed",
+    "feature_error",
+    "feedback_submitted",
+  ];
+
   return (
     <motion.div
       variants={staggerContainer}
@@ -325,48 +380,108 @@ export function MetricsDashboard({
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <GlassPanel className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Usage Over Time</h3>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm">
-                  7D
-                </Button>
-                <Button variant="ghost" size="sm">
-                  30D
-                </Button>
-                <Button variant="ghost" size="sm">
-                  90D
-                </Button>
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <GlassPanel className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Usage Over Time</h3>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm">
+                    7D
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    30D
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    90D
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div className="h-64 flex items-center justify-center border border-dashed border-white/20 rounded-xl">
-              <div className="text-center text-muted-foreground">
-                <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">
-                  {posthogConnected
-                    ? "No PostHog data available yet"
-                    : "Connect PostHog to see metrics"}
+              <div className="h-64 flex items-center justify-center border border-dashed border-white/20 rounded-xl">
+                <div className="text-center text-muted-foreground">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">
+                    {posthogConnected
+                      ? "No PostHog data available yet"
+                      : "Connect PostHog to see metrics"}
+                  </p>
+                  <p className="text-xs">Metrics will appear once data flows</p>
+                </div>
+              </div>
+            </GlassPanel>
+
+            <GlassPanel className="p-6 space-y-4">
+              <div>
+                <h3 className="font-semibold">Measurement readiness</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Current instrumentation status for release decisions.
                 </p>
-                <p className="text-xs">Metrics will appear once data flows</p>
               </div>
-            </div>
-          </GlassPanel>
+              <div className="flex items-center gap-3">
+                {measurementReadiness === "instrumented" ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                ) : (
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                )}
+                <div>
+                  <div className="font-medium capitalize">{measurementReadiness}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {measurementReadiness === "instrumented"
+                      ? "Thresholds, current metrics, and connection are available."
+                      : measurementReadiness === "partial"
+                        ? "Some metrics configuration exists, but release readiness is incomplete."
+                        : "Set thresholds, current values, and analytics connection to enable gating."}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-dashed border-white/20 p-4 text-sm text-muted-foreground">
+                {posthogConnected
+                  ? "PostHog is connected. Populate current values and thresholds to unlock stage gating."
+                  : "PostHog is not connected yet. You can still define thresholds now and wire analytics later."}
+              </div>
+            </GlassPanel>
+          </div>
         </TabsContent>
 
         <TabsContent value="release" className="mt-6">
-          <GlassPanel className="p-6">
-            <h3 className="font-semibold mb-4">Release Stage Readiness</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {posthogConnected
-                ? "Stage thresholds will appear once metrics are configured."
-                : "Connect PostHog to enable release gating."}
-            </p>
-            <div className="h-40 flex items-center justify-center border border-dashed border-white/20 rounded-xl">
-              <div className="text-center text-muted-foreground">
-                <Zap className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Release gating not configured</p>
-              </div>
+          <GlassPanel className="p-6 space-y-4">
+            <div>
+              <h3 className="font-semibold mb-1">Release Stage Readiness</h3>
+              <p className="text-sm text-muted-foreground">
+                Compare current metrics with gate thresholds to decide when a project can progress.
+              </p>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {releaseStageRows.map((row) => (
+                <div
+                  key={row.stage}
+                  className={cn(
+                    "rounded-xl border p-4 space-y-3",
+                    row.isCurrent && "border-purple-400/40 bg-purple-500/5",
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium uppercase">{row.stage}</div>
+                    <Badge variant={row.passed ? "secondary" : "outline"}>
+                      {row.passed ? "Ready" : "Blocked"}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {row.checks.map((check) => (
+                      <div key={check.label} className="flex items-center justify-between gap-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          {check.passed ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-amber-400" />
+                          )}
+                          <span>{check.label}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{check.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
               {projectStage === "alpha" && evaluateGate("alpha") && (
@@ -461,43 +576,27 @@ export function MetricsDashboard({
         </TabsContent>
 
         <TabsContent value="events" className="mt-6">
-          <GlassPanel className="p-6">
-            <h3 className="font-semibold mb-4">Tracked Events</h3>
-            <div className="mb-6">
+          <GlassPanel className="p-6 space-y-4">
+            <div>
+              <h3 className="font-semibold mb-1">Tracked Events</h3>
               <p className="text-sm text-muted-foreground">
-                PostHog surface map (stubbed)
+                Recommended instrumentation to support validation and release decisions.
               </p>
-              <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-muted-foreground">
-                {[
-                  "Dashboards",
-                  "Insights",
-                  "Funnels",
-                  "Paths",
-                  "Retention",
-                  "Cohorts",
-                  "Feature Flags",
-                  "Experiments",
-                  "Session Replay",
-                  "Surveys",
-                  "Notebooks",
-                  "Alerts",
-                  "Data Management",
-                ].map((label) => (
-                  <div
-                    key={label}
-                    className="border border-dashed border-white/20 rounded-lg px-2 py-1"
-                  >
-                    {label}
-                  </div>
-                ))}
-              </div>
             </div>
-            <div className="h-48 flex items-center justify-center border border-dashed border-white/20 rounded-xl">
-              <div className="text-center text-muted-foreground">
-                <Target className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No events configured yet</p>
-                <p className="text-xs">Define events after PostHog connects</p>
-              </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {recommendedEvents.map((eventName) => (
+                <div
+                  key={eventName}
+                  className="rounded-lg border border-dashed border-white/20 px-3 py-2 text-sm"
+                >
+                  {eventName}
+                </div>
+              ))}
+            </div>
+            <div className="rounded-xl border border-dashed border-white/20 p-4 text-sm text-muted-foreground">
+              {posthogConnected
+                ? "PostHog is connected. Use these events as the baseline contract for dashboards, funnels, and release reviews."
+                : "Connect PostHog, then instrument these events to move measurement readiness from missing → partial → instrumented."}
             </div>
           </GlassPanel>
         </TabsContent>
