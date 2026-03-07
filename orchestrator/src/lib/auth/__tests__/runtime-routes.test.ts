@@ -52,6 +52,8 @@ async function waitForServer(url: string, logs: string[]) {
 
 async function stopServer(serverProcess: ChildProcessWithoutNullStreams) {
   if (serverProcess.exitCode !== null || serverProcess.killed) {
+    serverProcess.stdout.destroy();
+    serverProcess.stderr.destroy();
     return;
   }
 
@@ -69,10 +71,15 @@ async function stopServer(serverProcess: ChildProcessWithoutNullStreams) {
       serverProcess.kill("SIGKILL");
     }, 5_000);
 
-    serverProcess.once("close", () => {
+    const handleExit = () => {
       clearTimeout(forceKillTimer);
+      serverProcess.stdout.destroy();
+      serverProcess.stderr.destroy();
       finish();
-    });
+    };
+
+    serverProcess.once("exit", handleExit);
+    serverProcess.once("close", handleExit);
 
     serverProcess.kill("SIGINT");
   });
