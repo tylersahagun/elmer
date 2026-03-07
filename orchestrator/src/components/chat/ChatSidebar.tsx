@@ -187,6 +187,14 @@ const SLASH_COMMANDS: CommandItem[] = [
     requiresProject: false,
   },
   {
+    command: "/swarm",
+    label: "Swarm",
+    icon: Users,
+    description: "Open workspace swarm presets",
+    jobType: null,
+    requiresProject: false,
+  },
+  {
     command: "/roadmap",
     label: "Roadmap",
     icon: BarChart3,
@@ -807,6 +815,22 @@ export function ChatSidebar() {
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, assistantMessage]);
+          setIsLoading(false);
+          return;
+        }
+
+        if (command.command === "/swarm" && workspace?.id) {
+          const preset = args.trim() || "flagship";
+          router.push(`/workspace/${workspace.id}/swarm?preset=${preset}`);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: "assistant",
+              content: `Opening the **${preset}** swarm preset for this workspace.`,
+              timestamp: new Date(),
+            },
+          ]);
           setIsLoading(false);
           return;
         }

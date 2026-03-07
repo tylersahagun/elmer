@@ -2,65 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getWorkspace } from "@/lib/db/queries";
 import { buildWorkspaceStatusReport } from "@/lib/status/portfolio-status";
 import { writeSwarmReport } from "@/lib/swarm/report-writer";
-import type { SwarmReport } from "@/lib/swarm/types";
+import { buildSwarmReport, getAvailableSwarmPresets } from "@/lib/swarm/planner";
+import type { SwarmPreset, SwarmReport } from "@/lib/swarm/types";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
 
-function buildDefaultSwarmReport(params: {
-  workspaceId: string;
-  workspaceName: string;
-  backlog: string[];
-}): SwarmReport {
-  return {
-    workspaceId: params.workspaceId,
-    workspaceName: params.workspaceName,
-    generatedAt: new Date().toISOString(),
-    objective:
-      "Coordinate agent lanes to move priority initiatives forward with clear owners, blockers, and evidence.",
-    backlog: params.backlog,
-    lanes: [
-      {
-        id: "memory-platform",
-        name: "Memory Platform",
-        owner: "workspace-admin",
-        focus: "Knowledge, context, and durable workspace artifacts",
-        blockers: [],
-      },
-      {
-        id: "integrations",
-        name: "Integrations",
-        owner: "signals-processor",
-        focus: "Inbox, sync, and external signal ingestion",
-        blockers: [],
-      },
-      {
-        id: "agent-runtime",
-        name: "Agent Runtime",
-        owner: "validator",
-        focus: "Execution quality, approvals, and observability",
-        blockers: [],
-      },
-      {
-        id: "desktop-experience",
-        name: "Desktop Experience",
-        owner: "proto-builder",
-        focus: "Control-plane UX, status visibility, and project workflows",
-        blockers: [],
-      },
-    ],
-    blockers: [],
-    validationChecks: [
-      { label: "Status dashboard builds", evidence: "Workspace status routes" },
-      { label: "Execution UI renders", evidence: "Execution panel and project cards" },
-    ],
-  };
-}
-
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -76,11 +27,20 @@ export async function GET(
       status?.actionQueue.map(
         (item) => `${item.projectName}: ${item.reason} → ${item.command}`,
       ) ?? [];
+    const presetParam = request.nextUrl.searchParams.get("preset") as
+      | SwarmPreset
+      | null;
+    const preset = getAvailableSwarmPresets().includes(
+      (presetParam || "flagship") as SwarmPreset,
+    )
+      ? ((presetParam || "flagship") as SwarmPreset)
+      : "flagship";
 
     return NextResponse.json(
-      buildDefaultSwarmReport({
+      buildSwarmReport({
         workspaceId: id,
         workspaceName: workspace.name,
+        preset,
         backlog,
       }),
     );
@@ -109,6 +69,7 @@ export async function POST(
     const report: SwarmReport = {
       ...body,
       workspaceId: id,
+      preset: body.preset || "flagship",
       generatedAt: new Date().toISOString(),
     };
     const saved = await writeSwarmReport(report);

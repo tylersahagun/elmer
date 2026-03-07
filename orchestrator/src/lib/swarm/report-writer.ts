@@ -24,6 +24,7 @@ export function formatSwarmMarkdown(report: SwarmReport) {
     `# Workspace Swarm Status`,
     ``,
     `**Workspace:** ${report.workspaceName}`,
+    `**Preset:** ${report.preset}`,
     `**Generated:** ${report.generatedAt}`,
     ``,
     `## Objective`,
@@ -66,7 +67,7 @@ export function formatSwarmMarkdown(report: SwarmReport) {
 
 export async function writeSwarmReport(report: SwarmReport) {
   const root = await resolveSwarmRoot();
-  const filename = `workspace-swarm-${toDateStamp()}.md`;
+  const filename = `${report.preset}-swarm-${toDateStamp()}.md`;
   const filePath = path.join(root, filename);
   await writeFile(filePath, formatSwarmMarkdown(report), "utf8");
   return { filePath };

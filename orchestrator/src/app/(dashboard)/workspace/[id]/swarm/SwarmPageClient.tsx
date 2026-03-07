@@ -2,28 +2,39 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
-import type { SwarmReport } from "@/lib/swarm/types";
+import type { SwarmPreset, SwarmReport } from "@/lib/swarm/types";
 import { SwarmStatusArtifactCard } from "@/components/swarm/SwarmStatusArtifactCard";
+import { SwarmLauncher } from "@/components/swarm/SwarmLauncher";
+import { SwarmLaneBoard } from "@/components/swarm/SwarmLaneBoard";
 
 interface SwarmPageClientProps {
   workspaceId: string;
 }
 
 export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
+  const searchParams = useSearchParams();
+  const requestedPreset = (searchParams.get("preset") || "flagship") as SwarmPreset;
+  const [preset, setPreset] = useState<SwarmPreset>(requestedPreset);
+
+  useEffect(() => {
+    setPreset(requestedPreset);
+  }, [requestedPreset]);
   const { data, isLoading, refetch } = useQuery<SwarmReport>({
-    queryKey: ["swarm-report", workspaceId],
+    queryKey: ["swarm-report", workspaceId, preset],
     queryFn: async () => {
-      const res = await fetch(`/api/workspaces/${workspaceId}/swarm`);
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/swarm?preset=${preset}`,
+      );
       if (!res.ok) throw new Error("Failed to load swarm report");
       return res.json();
     },
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && !!preset,
   });
 
   const [report, setReport] = useState<SwarmReport | null>(null);
@@ -117,50 +128,17 @@ export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
               </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              {report.lanes.map((lane, index) => (
-                <div key={lane.id} className="rounded-lg border p-4 space-y-3">
-                  <div className="font-medium">{lane.name}</div>
-                  <Input
-                    value={lane.owner}
-                    onChange={(event) =>
-                      setReport((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              lanes: prev.lanes.map((item, itemIndex) =>
-                                itemIndex === index
-                                  ? { ...item, owner: event.target.value }
-                                  : item,
-                              ),
-                            }
-                          : prev,
-                      )
-                    }
-                    placeholder="Lane owner"
-                  />
-                  <Textarea
-                    value={lane.focus}
-                    onChange={(event) =>
-                      setReport((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              lanes: prev.lanes.map((item, itemIndex) =>
-                                itemIndex === index
-                                  ? { ...item, focus: event.target.value }
-                                  : item,
-                              ),
-                            }
-                          : prev,
-                      )
-                    }
-                    rows={4}
-                    placeholder="Lane focus"
-                  />
-                </div>
-              ))}
-            </div>
+            <SwarmLauncher
+              activePreset={preset}
+              onPresetChange={setPreset}
+            />
+
+            <SwarmLaneBoard
+              lanes={report.lanes}
+              onChange={(lanes) =>
+                setReport((prev) => (prev ? { ...prev, lanes } : prev))
+              }
+            />
 
             <SwarmStatusArtifactCard report={report} />
           </>

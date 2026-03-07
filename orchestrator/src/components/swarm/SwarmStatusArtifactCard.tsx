@@ -13,6 +13,9 @@ export function SwarmStatusArtifactCard({ report }: SwarmStatusArtifactCardProps
       <p className="text-sm text-muted-foreground mb-3">{report.objective}</p>
       <div className="space-y-2 text-sm">
         <div>
+          <span className="font-medium">Preset:</span> {report.preset}
+        </div>
+        <div>
           <span className="font-medium">Backlog items:</span> {report.backlog.length}
         </div>
         <div>
