@@ -632,6 +632,7 @@ export const syncWebhook = internalAction({
   handler: async (ctx, { repoFullName: _ }) => {
     const workspaces = await ctx.runQuery(api.workspaces.list, {});
     for (const ws of workspaces) {
+      if (!ws) continue;
       await ctx.scheduler.runAfter(0, internal.agents.syncAgentsInternal, { workspaceId: ws._id });
       await ctx.scheduler.runAfter(0, internal.agents.syncPmWorkspaceDocsInternal, { workspaceId: ws._id });
     }

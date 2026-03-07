@@ -92,6 +92,7 @@ describe("auth server helpers", () => {
 
     await expect(getAppUserByEmail("User@Example.com")).resolves.toEqual({
       id: "local_user_2",
+      clerkUserId: "local_user_2",
       email: "user@example.com",
       name: "User Example",
       image: null,

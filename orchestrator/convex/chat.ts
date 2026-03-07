@@ -7,7 +7,7 @@ import {
   httpAction,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import {
   findReusableContextThread,
@@ -448,7 +448,7 @@ export const generatePeekSummary = action({
     entityType: v.string(), // "project" | "document" | "signal"
     entityId: v.string(),
   },
-  handler: async (ctx, { entityType, entityId }) => {
+  handler: async (ctx, { entityType, entityId }): Promise<string | null> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -465,7 +465,7 @@ export const generatePeekSummary = action({
       const p = await ctx.runQuery(internal.chat.getEntityForPeek, {
         table: "projects",
         entityId,
-      });
+      }) as Doc<"projects"> | null;
       if (p) {
         const meta = p.metadata as Record<string, unknown> | null | undefined;
         entityText = `Project: ${p.name}\nStage: ${p.stage}\nStatus: ${p.status}\nTL;DR: ${meta?.tldr ?? "not available"}`;
@@ -474,7 +474,7 @@ export const generatePeekSummary = action({
       const d = await ctx.runQuery(internal.chat.getEntityForPeek, {
         table: "documents",
         entityId,
-      });
+      }) as Doc<"documents"> | null;
       if (d) {
         entityText = `Document: ${d.title}\nType: ${d.type}\nContent preview: ${(d.content ?? "").slice(0, 500)}`;
       }
@@ -482,7 +482,7 @@ export const generatePeekSummary = action({
       const s = await ctx.runQuery(internal.chat.getEntityForPeek, {
         table: "signals",
         entityId,
-      });
+      }) as Doc<"signals"> | null;
       if (s) {
         entityText = `Signal from ${s.source}: ${s.verbatim.slice(0, 300)}`;
       }

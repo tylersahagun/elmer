@@ -17,6 +17,7 @@ export const runSignalAutomation = internalAction({
     const workspaces = await ctx.runQuery(api.workspaces.list, {});
     let total = 0;
     for (const ws of workspaces) {
+      if (!ws) continue;
       const result = await ctx.scheduler.runAfter(
         0,
         internal.inbox.batchProcess,

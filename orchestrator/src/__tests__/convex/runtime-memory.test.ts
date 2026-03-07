@@ -28,6 +28,8 @@ describe("runtime memory contract", () => {
         source: "pm_workspace_sync",
         filePath: "pm-workspace-docs/company-context/product-vision.md",
         metadataSource: undefined,
+        actor: undefined,
+        sourceArtifactId: "pm-workspace-docs/company-context/product-vision.md",
       },
       projectId: undefined,
     });

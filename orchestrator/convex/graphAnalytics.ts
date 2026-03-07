@@ -1,4 +1,4 @@
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { readRuntimeNodeMetadata } from "./runtimeMemory";
 
 type AnalyticsNode = Pick<
@@ -102,7 +102,7 @@ export function assignGraphCommunities(
   edges: AnalyticsEdge[],
 ) {
   const nodeIds = nodes.map((node) => node._id).sort();
-  const adjacency = new Map<string, Set<string>>();
+  const adjacency = new Map<Id<"graphNodes">, Set<Id<"graphNodes">>>();
   for (const nodeId of nodeIds) {
     adjacency.set(nodeId, new Set());
   }
@@ -113,17 +113,17 @@ export function assignGraphCommunities(
     adjacency.get(edge.toNodeId)?.add(edge.fromNodeId);
   }
 
-  const visited = new Set<string>();
+  const visited = new Set<Id<"graphNodes">>();
   const communities: Array<{
     communityId: string;
-    memberIds: string[];
+    memberIds: Id<"graphNodes">[];
     theme?: string;
   }> = [];
 
   for (const startNodeId of nodeIds) {
     if (visited.has(startNodeId)) continue;
-    const queue = [startNodeId];
-    const memberIds: string[] = [];
+    const queue: Id<"graphNodes">[] = [startNodeId];
+    const memberIds: Id<"graphNodes">[] = [];
     visited.add(startNodeId);
 
     while (queue.length > 0) {

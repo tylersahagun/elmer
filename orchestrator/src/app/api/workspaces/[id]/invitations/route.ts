@@ -128,7 +128,7 @@ export async function POST(
       role: invitation.role,
       expiresAt: new Date(invitation.expiresAt).toISOString(),
       inviteUrl: `${baseUrl}/invite/${invitation.token}`,
-    });
+    };
 
     // Log activity
     await logMemberInvited(workspaceId, membership.userId, email, role || "member");

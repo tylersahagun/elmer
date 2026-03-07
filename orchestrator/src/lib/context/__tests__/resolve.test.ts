@@ -1,13 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/convex/server", () => ({
-  getConvexProjectWithDocuments: vi.fn(),
-  listConvexKnowledge: vi.fn(),
-  listConvexPersonas: vi.fn(),
-}));
-
-vi.mock("@/lib/db/queries", () => ({
-  getProject: vi.fn(),
+  getConvexProjectRuntimeContext: vi.fn(),
+  listConvexWorkspaceRuntimeContext: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -25,14 +20,14 @@ import {
   getWorkspaceContext,
 } from "../resolve";
 import {
-  getConvexProjectWithDocuments,
-  listConvexKnowledge,
-  listConvexPersonas,
+  getConvexProjectRuntimeContext,
+  listConvexWorkspaceRuntimeContext,
 } from "@/lib/convex/server";
 
-const mockGetConvexProjectWithDocuments = vi.mocked(getConvexProjectWithDocuments);
-const mockListConvexKnowledge = vi.mocked(listConvexKnowledge);
-const mockListConvexPersonas = vi.mocked(listConvexPersonas);
+const mockGetConvexProjectRuntimeContext = vi.mocked(getConvexProjectRuntimeContext);
+const mockListConvexWorkspaceRuntimeContext = vi.mocked(
+  listConvexWorkspaceRuntimeContext,
+);
 
 describe("context resolver", () => {
   beforeEach(() => {
@@ -40,25 +35,27 @@ describe("context resolver", () => {
   });
 
   it("builds workspace context from Convex knowledge and personas", async () => {
-    mockListConvexKnowledge.mockResolvedValue([
-      {
-        type: "company_context",
-        title: "Company Context",
-        content: "Ship a faster PM workflow.",
-      },
-      {
-        type: "strategic_guardrails",
-        title: "Strategic Guardrails",
-        content: "Avoid generic dashboard work.",
-      },
-    ]);
-    mockListConvexPersonas.mockResolvedValue([
-      {
-        name: "PM Lead",
-        description: "Owns product direction.",
-        content: "# PM Lead\n\nCares about fast validation.",
-      },
-    ]);
+    mockListConvexWorkspaceRuntimeContext.mockResolvedValue({
+      items: [
+        {
+          entityType: "context",
+          type: "company_context",
+          title: "Company Context",
+          content: "Ship a faster PM workflow.",
+        },
+        {
+          entityType: "context",
+          type: "strategic_guardrails",
+          title: "Strategic Guardrails",
+          content: "Avoid generic dashboard work.",
+        },
+        {
+          entityType: "persona",
+          title: "PM Lead",
+          content: "Cares about fast validation.",
+        },
+      ],
+    });
 
     const result = await getWorkspaceContext("ws_123");
 
@@ -66,49 +63,59 @@ describe("context resolver", () => {
     expect(result).toContain("Ship a faster PM workflow.");
     expect(result).toContain("# Strategic Guardrails");
     expect(result).toContain("Avoid generic dashboard work.");
-    expect(result).toContain("# PM Lead");
-    expect(mockListConvexKnowledge).toHaveBeenCalledWith("ws_123");
-    expect(mockListConvexPersonas).toHaveBeenCalledWith("ws_123");
+    expect(result).toContain("# Persona: PM Lead");
+    expect(mockListConvexWorkspaceRuntimeContext).toHaveBeenCalledWith("ws_123", [
+      "company_context",
+      "strategic_guardrails",
+      "personas",
+    ]);
   });
 
-  it("falls back to Convex knowledge personas when persona records are absent", async () => {
-    mockListConvexKnowledge.mockResolvedValue([
-      {
-        type: "personas",
-        title: "Personas",
-        content: "# Researcher\n\nNeeds clear evidence.",
-      },
-      {
-        type: "strategic_guardrails",
-        title: "Strategic Guardrails",
-        content: "Do not ship dual authority.",
-      },
-      {
-        type: "company_context",
-        title: "Company Context",
-        content: "Convex-first product operations.",
-      },
-    ]);
-    mockListConvexPersonas.mockResolvedValue([]);
+  it("builds verification context from runtime authority records", async () => {
+    mockListConvexWorkspaceRuntimeContext.mockResolvedValue({
+      items: [
+        {
+          entityType: "persona",
+          type: "personas",
+          title: "Researcher",
+          content: "Needs clear evidence.",
+        },
+        {
+          entityType: "context",
+          type: "strategic_guardrails",
+          title: "Strategic Guardrails",
+          content: "Do not ship dual authority.",
+        },
+        {
+          entityType: "context",
+          type: "company_context",
+          title: "Company Context",
+          content: "Convex-first product operations.",
+        },
+      ],
+    });
 
     const result = await getAllVerificationContext("ws_456");
 
-    expect(result.personas).toBe("# Researcher\n\nNeeds clear evidence.");
+    expect(result.personas).toBe("# Persona: Researcher\n\nNeeds clear evidence.");
     expect(result.guardrails).toBe("Do not ship dual authority.");
     expect(result.companyContext).toBe("Convex-first product operations.");
   });
 
-  it("builds project context from Convex project and document data", async () => {
-    mockGetConvexProjectWithDocuments.mockResolvedValue({
+  it("builds project context from runtime project and document data", async () => {
+    mockGetConvexProjectRuntimeContext.mockResolvedValue({
       project: {
         name: "Convex Cutover",
         description: "Remove legacy runtime authority.",
         metadata: { tags: ["migration", "convex"] },
       },
-      documents: [
+      items: [
         {
-          type: "research",
+          entityType: "document",
+          projectId: "proj_123",
+          title: "Research",
           content: "Users are confused by compatibility seams.",
+          type: "research",
         },
       ],
     });
@@ -118,18 +125,21 @@ describe("context resolver", () => {
     expect(result).toContain("# Project: Convex Cutover");
     expect(result).toContain("Remove legacy runtime authority.");
     expect(result).toContain("Tags: migration, convex");
-    expect(result).toContain("## Research");
+    expect(result).toContain("# Research");
     expect(result).toContain("Users are confused by compatibility seams.");
   });
 
   it("returns raw guardrails content for PRD context from Convex", async () => {
-    mockListConvexKnowledge.mockResolvedValue([
-      {
-        type: "strategic_guardrails",
-        title: "Strategic Guardrails",
-        content: "Push back on ambiguous requirements.",
-      },
-    ]);
+    mockListConvexWorkspaceRuntimeContext.mockResolvedValue({
+      items: [
+        {
+          entityType: "context",
+          type: "strategic_guardrails",
+          title: "Strategic Guardrails",
+          content: "Push back on ambiguous requirements.",
+        },
+      ],
+    });
 
     const result = await getPRDContext("ws_789");
 
