@@ -1,3 +1,4 @@
+import type { JobType } from "@/lib/db/schema";
 import type { SwarmPreset, SwarmReport } from "./types";
 
 const SWARM_PRESETS: Record<
@@ -10,6 +11,7 @@ const SWARM_PRESETS: Record<
       owner: string;
       focus: string;
     }>;
+    jobTypes: JobType[];
     validationChecks: Array<{ label: string; evidence?: string }>;
   }
 > = {
@@ -42,6 +44,7 @@ const SWARM_PRESETS: Record<
         focus: "Control-plane UX, projects, status, and workflow clarity",
       },
     ],
+    jobTypes: ["score_stage_alignment", "execute_agent_definition"],
     validationChecks: [
       { label: "Workspace status report saves", evidence: "status-all snapshot" },
       { label: "Execution surfaces render active context", evidence: "job logs + pending question UI" },
@@ -64,6 +67,7 @@ const SWARM_PRESETS: Record<
         focus: "Webhook intake, sync flows, and project signal coverage",
       },
     ],
+    jobTypes: ["synthesize_signals", "score_stage_alignment"],
     validationChecks: [
       { label: "Webhook intake documented", evidence: "Inbox webhook setup" },
       { label: "Status artifacts persist", evidence: "pm-workspace-docs/status/" },
@@ -86,6 +90,7 @@ const SWARM_PRESETS: Record<
         focus: "Stage recipe visibility, command parity, and execution history",
       },
     ],
+    jobTypes: ["execute_agent_definition", "score_stage_alignment"],
     validationChecks: [
       { label: "Pending questions are actionable", evidence: "Question inbox + modal" },
       { label: "Runtime context visible", evidence: "Execution panel input/output" },
@@ -108,6 +113,7 @@ const SWARM_PRESETS: Record<
         focus: "Repo context mapping, workflow defaults, and guided setup",
       },
     ],
+    jobTypes: ["score_stage_alignment", "execute_agent_definition"],
     validationChecks: [
       { label: "Status page available", evidence: "/workspace/[id]/status" },
       { label: "Swarm page available", evidence: "/workspace/[id]/swarm" },
@@ -132,6 +138,13 @@ export function buildSwarmReport(params: {
     lanes: presetConfig.lanes.map((lane) => ({
       ...lane,
       blockers: [],
+      jobs: presetConfig.jobTypes.map((jobType, index) => ({
+        id: `${lane.id}-${jobType}-${index}`,
+        type: jobType,
+        label: jobType.replaceAll("_", " "),
+        status: "pending",
+        progress: 0,
+      })),
     })),
     blockers: [],
     validationChecks: presetConfig.validationChecks,

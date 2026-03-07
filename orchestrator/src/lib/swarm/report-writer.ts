@@ -39,11 +39,11 @@ export function formatSwarmMarkdown(report: SwarmReport) {
     ``,
     `## Lane Ownership`,
     ``,
-    `| Lane | Owner | Focus | Blockers |`,
-    `| --- | --- | --- | --- |`,
+    `| Lane | Owner | Focus | Jobs | Blockers |`,
+    `| --- | --- | --- | --- | --- |`,
     ...report.lanes.map(
       (lane) =>
-        `| ${lane.name} | ${lane.owner} | ${lane.focus} | ${lane.blockers.join(", ") || "None"} |`,
+        `| ${lane.name} | ${lane.owner} | ${lane.focus} | ${lane.jobs.map((job) => `${job.label} (${job.status})`).join(", ") || "None"} | ${lane.blockers.join(", ") || "None"} |`,
     ),
     ``,
     `## Blockers`,

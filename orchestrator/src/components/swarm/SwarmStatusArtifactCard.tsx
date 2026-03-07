@@ -22,6 +22,10 @@ export function SwarmStatusArtifactCard({ report }: SwarmStatusArtifactCardProps
           <span className="font-medium">Lanes:</span> {report.lanes.length}
         </div>
         <div>
+          <span className="font-medium">Lane jobs:</span>{" "}
+          {report.lanes.reduce((count, lane) => count + lane.jobs.length, 0)}
+        </div>
+        <div>
           <span className="font-medium">Validation checks:</span>{" "}
           {report.validationChecks.length}
         </div>

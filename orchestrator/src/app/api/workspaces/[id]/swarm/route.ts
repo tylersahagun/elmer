@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspace } from "@/lib/db/queries";
+import { createJob, getWorkspace } from "@/lib/db/queries";
 import { buildWorkspaceStatusReport } from "@/lib/status/portfolio-status";
 import { writeSwarmReport } from "@/lib/swarm/report-writer";
 import { buildSwarmReport, getAvailableSwarmPresets } from "@/lib/swarm/planner";
@@ -65,15 +65,70 @@ export async function POST(
     const { id } = await params;
     await requireWorkspaceAccess(id, "member");
 
-    const body = (await request.json()) as SwarmReport;
+    const body = (await request.json()) as SwarmReport & {
+      launchJobs?: boolean;
+      projectId?: string;
+    };
+    const createdJobs: Array<{
+      laneId: string;
+      jobId: string;
+      type: string;
+      label: string;
+    }> = [];
+
+    if (body.launchJobs && body.projectId) {
+      for (const lane of body.lanes) {
+        for (const laneJob of lane.jobs || []) {
+          const job = await createJob({
+            workspaceId: id,
+            projectId: body.projectId,
+            type: laneJob.type as never,
+            input: {
+              swarmPreset: body.preset || "flagship",
+              swarmLaneId: lane.id,
+              swarmLaneName: lane.name,
+              swarmObjective: body.objective,
+            },
+          });
+          if (job) {
+            createdJobs.push({
+              laneId: lane.id,
+              jobId: job.id,
+              type: laneJob.type,
+              label: laneJob.label,
+            });
+          }
+        }
+      }
+    }
+
     const report: SwarmReport = {
       ...body,
       workspaceId: id,
       preset: body.preset || "flagship",
       generatedAt: new Date().toISOString(),
+      lanes: body.lanes.map((lane) => ({
+        ...lane,
+        jobs: lane.jobs.map((laneJob) => {
+          const created = createdJobs.find(
+            (item) =>
+              item.laneId === lane.id &&
+              item.type === laneJob.type &&
+              item.label === laneJob.label,
+          );
+          return created
+            ? {
+                ...laneJob,
+                id: created.jobId,
+                status: "pending",
+                progress: 0,
+              }
+            : laneJob;
+        }),
+      })),
     };
     const saved = await writeSwarmReport(report);
-    return NextResponse.json({ report, saved });
+    return NextResponse.json({ report, saved, createdJobs });
   } catch (error) {
     if (error instanceof PermissionError) {
       const { error: message, status } = handlePermissionError(error);

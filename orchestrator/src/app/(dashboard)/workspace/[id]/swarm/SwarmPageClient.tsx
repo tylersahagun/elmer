@@ -12,6 +12,7 @@ import type { SwarmPreset, SwarmReport } from "@/lib/swarm/types";
 import { SwarmStatusArtifactCard } from "@/components/swarm/SwarmStatusArtifactCard";
 import { SwarmLauncher } from "@/components/swarm/SwarmLauncher";
 import { SwarmLaneBoard } from "@/components/swarm/SwarmLaneBoard";
+import { useKanbanStore } from "@/lib/store";
 
 interface SwarmPageClientProps {
   workspaceId: string;
@@ -19,8 +20,10 @@ interface SwarmPageClientProps {
 
 export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
   const searchParams = useSearchParams();
+  const projects = useKanbanStore((state) => state.projects);
   const requestedPreset = (searchParams.get("preset") || "flagship") as SwarmPreset;
   const [preset, setPreset] = useState<SwarmPreset>(requestedPreset);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
   useEffect(() => {
     setPreset(requestedPreset);
@@ -48,13 +51,21 @@ export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
       const res = await fetch(`/api/workspaces/${workspaceId}/swarm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(report),
+        body: JSON.stringify({
+          ...report,
+          launchJobs: Boolean(selectedProjectId),
+          projectId: selectedProjectId || undefined,
+        }),
       });
       if (!res.ok) throw new Error("Failed to save swarm artifact");
       return res.json();
     },
     onSuccess: () => {
-      toast.success("Swarm artifact saved");
+      toast.success(
+        selectedProjectId
+          ? "Swarm launched and artifact saved"
+          : "Swarm artifact saved",
+      );
       refetch();
     },
     onError: (error) => {
@@ -94,6 +105,24 @@ export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
         ) : (
           <>
             <div className="rounded-lg border p-4 space-y-4">
+              <div>
+                <div className="text-sm font-medium mb-2">Launch target project</div>
+                <select
+                  value={selectedProjectId}
+                  onChange={(event) => setSelectedProjectId(event.target.value)}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Save artifact only</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Choose a project to launch lane jobs immediately. Leave empty to save planning artifact only.
+                </p>
+              </div>
               <div>
                 <div className="text-sm font-medium mb-2">Sprint objective</div>
                 <Textarea

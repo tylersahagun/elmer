@@ -1,6 +1,7 @@
 "use client";
 
 import type { SwarmLane } from "@/lib/swarm/types";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -15,6 +16,13 @@ export function SwarmLaneBoard({ lanes, onChange }: SwarmLaneBoardProps) {
       {lanes.map((lane, index) => (
         <div key={lane.id} className="rounded-lg border p-4 space-y-3">
           <div className="font-medium">{lane.name}</div>
+          <div className="flex flex-wrap gap-2">
+            {lane.jobs.map((job) => (
+              <Badge key={job.id} variant="outline">
+                {job.label}
+              </Badge>
+            ))}
+          </div>
           <Input
             value={lane.owner}
             onChange={(event) =>
