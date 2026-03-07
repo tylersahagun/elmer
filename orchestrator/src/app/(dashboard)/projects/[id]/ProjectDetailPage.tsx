@@ -199,6 +199,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const openElmerPanelWithContext = useUIStore(
     (s) => s.openElmerPanelWithContext,
   );
+  const openJobLogsDrawer = useUIStore((s) => s.openJobLogsDrawer);
   const [activeTab, setActiveTab] = useState(() =>
     getProjectTabFromSearchParam(searchParams.get("tab")),
   );
@@ -852,6 +853,9 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                       <ActiveWorkJobRow
                         key={job._id}
                         job={job}
+                        onOpenTrace={() =>
+                          openJobLogsDrawer(String(job._id), project.name)
+                        }
                         onOpenInElmer={() =>
                           openElmerPanelWithContext("project", projectId, project.name)
                         }
@@ -1730,6 +1734,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
 
 function ActiveWorkJobRow({
   job,
+  onOpenTrace,
   onOpenInElmer,
 }: {
   job: {
@@ -1740,6 +1745,7 @@ function ActiveWorkJobRow({
     progress?: number | null;
     initiatedByName?: string | null;
   };
+  onOpenTrace: () => void;
   onOpenInElmer: () => void;
 }) {
   const lastLog = useConvexQuery(api.jobs.getLastLog, {
@@ -1775,6 +1781,15 @@ function ActiveWorkJobRow({
               {Math.round(job.progress)}%
             </span>
           )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1.5"
+            onClick={onOpenTrace}
+          >
+            Trace
+            <Terminal className="w-3.5 h-3.5" />
+          </Button>
           <Button
             size="sm"
             variant="ghost"
