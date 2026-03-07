@@ -3,8 +3,20 @@
  * Called from http.ts routes — no user auth required (system-level access).
  */
 
+import { internal } from "./_generated/api";
 import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  archivePromotedMirrorNode,
+  buildWorkspaceContextItems,
+  buildWorkspaceRuntimeSearch,
+  buildProjectRuntimeItems,
+  isWorkspaceAuthorityContextItem,
+  loadWorkspaceGraphNodeMap,
+  matchesRuntimeContextTypes,
+  sortRuntimeRecords,
+  upsertPromotedMirrorNode,
+} from "./runtimeMemory";
 
 // ── Projects ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +59,7 @@ export const createProject = internalMutation({
     priority: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("projects", {
+    const projectId = await ctx.db.insert("projects", {
       workspaceId: args.workspaceId,
       name: args.name,
       description: args.description,
@@ -56,6 +68,12 @@ export const createProject = internalMutation({
       priority: args.priority,
       metadata: {},
     });
+    await ctx.scheduler.runAfter(0, internal.graph.autoCreateProjectNode, {
+      workspaceId: args.workspaceId,
+      projectId,
+      projectName: args.name,
+    });
+    return projectId;
   },
 });
 
@@ -100,13 +118,21 @@ export const createSignal = internalMutation({
     severity: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("signals", {
+    const signalId = await ctx.db.insert("signals", {
       workspaceId: args.workspaceId,
       verbatim: args.verbatim,
       source: args.source,
       severity: args.severity,
       status: "new",
     });
+    await ctx.scheduler.runAfter(0, internal.graph.autoCreateSignalNode, {
+      workspaceId: args.workspaceId,
+      signalId,
+      verbatim: args.verbatim,
+      source: args.source,
+      severity: args.severity,
+    });
+    return signalId;
   },
 });
 
@@ -351,6 +377,18 @@ export const upsertKnowledge = internalMutation({
         filePath: args.filePath,
         version: existing.version + 1,
       });
+      await upsertPromotedMirrorNode(ctx as never, {
+        workspaceId: args.workspaceId,
+        entityType: "context",
+        entityId: existing._id,
+        title: args.title,
+        content: args.content,
+        domain: args.type,
+        mirrorTable: "knowledgebaseEntries",
+        mirrorId: existing._id,
+        filePath: args.filePath,
+        decayRate: 0.002,
+      });
       return await ctx.db.get(existing._id);
     }
 
@@ -362,7 +400,31 @@ export const upsertKnowledge = internalMutation({
       filePath: args.filePath,
       version: 1,
     });
+    await upsertPromotedMirrorNode(ctx as never, {
+      workspaceId: args.workspaceId,
+      entityType: "context",
+      entityId: id,
+      title: args.title,
+      content: args.content,
+      domain: args.type,
+      mirrorTable: "knowledgebaseEntries",
+      mirrorId: id,
+      filePath: args.filePath,
+      decayRate: 0.002,
+    });
     return await ctx.db.get(id);
+  },
+});
+
+export const removeKnowledge = internalMutation({
+  args: { id: v.id("knowledgebaseEntries") },
+  handler: async (ctx, { id }) => {
+    await archivePromotedMirrorNode(ctx as never, {
+      entityType: "context",
+      entityId: id,
+    });
+    await ctx.db.delete(id);
+    return { ok: true, archivedPromotionState: "superseded" as const };
   },
 });
 
@@ -745,11 +807,35 @@ export const upsertPersona = internalMutation({
         ...args,
         version: existing.version + 1,
       });
+      await upsertPromotedMirrorNode(ctx as never, {
+        workspaceId: args.workspaceId,
+        entityType: "persona",
+        entityId: existing._id,
+        title: args.name,
+        content: args.content,
+        domain: args.archetypeId,
+        mirrorTable: "personas",
+        mirrorId: existing._id,
+        filePath: args.filePath,
+        decayRate: 0.002,
+      });
       return await ctx.db.get(existing._id);
     }
     const id = await ctx.db.insert("personas", {
       ...args,
       version: 1,
+    });
+    await upsertPromotedMirrorNode(ctx as never, {
+      workspaceId: args.workspaceId,
+      entityType: "persona",
+      entityId: id,
+      title: args.name,
+      content: args.content,
+      domain: args.archetypeId,
+      mirrorTable: "personas",
+      mirrorId: id,
+      filePath: args.filePath,
+      decayRate: 0.002,
     });
     return await ctx.db.get(id);
   },
@@ -783,7 +869,17 @@ export const linkSignalPersona = internalMutation({
       .filter((q) => q.eq(q.field("personaId"), args.personaId))
       .unique();
     if (existing) return existing._id;
-    return await ctx.db.insert("signalPersonas", args);
+    const linkId = await ctx.db.insert("signalPersonas", args);
+    const signal = await ctx.db.get(args.signalId);
+    const persona = await ctx.db.get(args.personaId);
+    if (signal && persona) {
+      await ctx.scheduler.runAfter(0, internal.graph.linkSignalToPersonaNode, {
+        workspaceId: signal.workspaceId,
+        signalId: args.signalId,
+        personaId: args.personaId,
+      });
+    }
+    return linkId;
   },
 });
 
@@ -800,6 +896,14 @@ export const unlinkSignalPersona = internalMutation({
       .unique();
     if (!existing) return null;
     await ctx.db.delete(existing._id);
+    const signal = await ctx.db.get(args.signalId);
+    if (signal) {
+      await ctx.scheduler.runAfter(0, internal.graph.unlinkSignalFromPersonaNode, {
+        workspaceId: signal.workspaceId,
+        signalId: args.signalId,
+        personaId: args.personaId,
+      });
+    }
     return existing._id;
   },
 });
@@ -810,72 +914,57 @@ export const searchWorkspace = internalQuery({
     q: v.string(),
   },
   handler: async (ctx, args) => {
-    const normalized = args.q.trim().toLowerCase();
-    if (!normalized) return { documents: [], memory: [], knowledgebase: [], personas: [] };
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
-      .collect();
-    const documents = (
-      await Promise.all(
-        projects.map((project) =>
-          ctx.db
-            .query("documents")
-            .withIndex("by_project", (q) => q.eq("projectId", project._id))
-            .collect(),
-        ),
-      )
-    ).flat();
-    const [memory, knowledgebase, personas] = await Promise.all([
-      ctx.db
-        .query("memoryEntries")
-        .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
-        .collect(),
-      ctx.db
-        .query("knowledgebaseEntries")
-        .withIndex("by_workspace_type", (q) => q.eq("workspaceId", args.workspaceId))
-        .collect(),
-      ctx.db
-        .query("personas")
-        .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
-        .collect(),
+    return await buildWorkspaceRuntimeSearch(ctx as never, args.workspaceId, args.q);
+  },
+});
+
+export const listWorkspaceRuntimeContext = internalQuery({
+  args: {
+    workspaceId: v.id("workspaces"),
+    types: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, { workspaceId, types }) => {
+    const graphNodeMap = await loadWorkspaceGraphNodeMap(ctx as never, workspaceId);
+    const items = await buildWorkspaceContextItems(
+      ctx as never,
+      workspaceId,
+      graphNodeMap,
+    );
+    return types?.length
+      ? { items: items.filter((item) => matchesRuntimeContextTypes(item, types)) }
+      : { items };
+  },
+});
+
+export const getProjectRuntimeContext = internalQuery({
+  args: {
+    projectId: v.id("projects"),
+    q: v.optional(v.string()),
+  },
+  handler: async (ctx, { projectId, q }) => {
+    const project = await ctx.db.get(projectId);
+    if (!project) return null;
+
+    const graphNodeMap = await loadWorkspaceGraphNodeMap(
+      ctx as never,
+      project.workspaceId,
+    );
+    const [workspaceItems, projectItems] = await Promise.all([
+      buildWorkspaceContextItems(
+        ctx as never,
+        project.workspaceId,
+        graphNodeMap,
+        q,
+      ),
+      buildProjectRuntimeItems(ctx as never, projectId, graphNodeMap, q),
     ]);
 
-    const includes = (value?: string) => (value ?? "").toLowerCase().includes(normalized);
     return {
-      documents: documents
-        .filter((doc) => includes(doc.title) || includes(doc.content))
-        .map((doc) => ({
-          id: doc._id,
-          projectId: doc.projectId,
-          title: doc.title,
-          content: doc.content,
-          type: doc.type,
-        })),
-      memory: memory
-        .filter((entry) => includes(entry.content))
-        .map((entry) => ({
-          id: entry._id,
-          projectId: entry.projectId,
-          content: entry.content,
-          type: entry.type,
-        })),
-      knowledgebase: knowledgebase
-        .filter((entry) => includes(entry.title) || includes(entry.content))
-        .map((entry) => ({
-          id: entry._id,
-          title: entry.title,
-          content: entry.content,
-          type: entry.type,
-        })),
-      personas: personas
-        .filter((persona) => includes(persona.name) || includes(persona.description) || includes(persona.content))
-        .map((persona) => ({
-          id: persona._id,
-          archetypeId: persona.archetypeId,
-          name: persona.name,
-          description: persona.description,
-        })),
+      project,
+      items: sortRuntimeRecords([
+        ...workspaceItems.filter((item) => isWorkspaceAuthorityContextItem(item)),
+        ...projectItems,
+      ]),
     };
   },
 });
@@ -888,14 +977,36 @@ export const storeMemory = internalMutation({
     projectId: v.optional(v.id("projects")),
     type: v.string(),
     content: v.string(),
+    metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("memoryEntries", {
+    const id = await ctx.db.insert("memoryEntries", {
       workspaceId: args.workspaceId,
       projectId: args.projectId,
       type: args.type,
       content: args.content,
+      metadata: args.metadata,
     });
+    const label = args.type.replace(/_/g, " ");
+    const firstLine = args.content.trim().split("\n")[0] ?? "";
+    const preview = firstLine.length > 64 ? `${firstLine.slice(0, 61)}...` : firstLine;
+    await upsertPromotedMirrorNode(ctx as never, {
+      workspaceId: args.workspaceId,
+      entityType: "memory",
+      entityId: id,
+      title: `${label}: ${preview || "entry"}`,
+      content: args.content,
+      domain: args.type,
+      mirrorTable: "memoryEntries",
+      mirrorId: id,
+      projectId: args.projectId,
+      metadataSource:
+        typeof args.metadata?.source === "string" ? args.metadata.source : undefined,
+      provenanceSource:
+        typeof args.metadata?.source === "string" ? args.metadata.source : undefined,
+      decayRate: 0.015,
+    });
+    return id;
   },
 });
 
@@ -966,6 +1077,3 @@ export const updateProjectSlackChannel = internalMutation({
     await ctx.db.patch(projectId, { slackChannelId, slackChannelName });
   },
 });
-
-// Need to import internal for the answerQuestion scheduler call
-import { internal } from "./_generated/api";

@@ -1,5 +1,9 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  archivePromotedMirrorNode,
+  upsertPromotedMirrorNode,
+} from "./runtimeMemory";
 
 export const listByWorkspace = query({
   args: {
@@ -65,10 +69,22 @@ export const upsert = mutation({
         filePath: args.filePath,
         version: existing.version + 1,
       });
+      await upsertPromotedMirrorNode(ctx as never, {
+        workspaceId: args.workspaceId,
+        entityType: "context",
+        entityId: existing._id,
+        title: args.title,
+        content: args.content,
+        domain: args.type,
+        mirrorTable: "knowledgebaseEntries",
+        mirrorId: existing._id,
+        filePath: args.filePath,
+        decayRate: 0.002,
+      });
       return existing._id;
     }
 
-    return await ctx.db.insert("knowledgebaseEntries", {
+    const id = await ctx.db.insert("knowledgebaseEntries", {
       workspaceId: args.workspaceId,
       type: args.type,
       title: args.title,
@@ -76,6 +92,19 @@ export const upsert = mutation({
       filePath: args.filePath,
       version: 1,
     });
+    await upsertPromotedMirrorNode(ctx as never, {
+      workspaceId: args.workspaceId,
+      entityType: "context",
+      entityId: id,
+      title: args.title,
+      content: args.content,
+      domain: args.type,
+      mirrorTable: "knowledgebaseEntries",
+      mirrorId: id,
+      filePath: args.filePath,
+      decayRate: 0.002,
+    });
+    return id;
   },
 });
 
@@ -84,6 +113,11 @@ export const remove = mutation({
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    await archivePromotedMirrorNode(ctx as never, {
+      entityType: "context",
+      entityId: id,
+    });
     await ctx.db.delete(id);
+    return { ok: true, archivedPromotionState: "superseded" as const };
   },
 });

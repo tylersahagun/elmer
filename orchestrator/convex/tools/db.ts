@@ -336,39 +336,27 @@ export function buildDbTools(ctx: ActionCtx, jctx: JobContext) {
         const project = await ctx.runQuery(api.projects.get, { projectId });
         if (!project) return { error: "Project not found" };
 
-        // Load all documents
-        const documents = await ctx.runQuery(api.documents.byProject, { projectId });
-
-        // Load memory entries
-        const memory = await ctx.runQuery(api.memory.listByProject, { projectId });
-
-        // Load recent signals
-        // Count signals linked to this project
-        const projectSignals = await ctx.runQuery(api.signals.list, {
-          workspaceId: project.workspaceId,
+        const runtimeContext = await ctx.runQuery(api.memory.getProjectRuntimeContext, {
+          projectId,
         });
-        const linkedSignalCount = projectSignals.filter((_s: unknown) => false).length; // simplified
-
-        // Load graph node for this project
         const projectNode = await ctx.runQuery(api.graph.getNodeByEntity, {
           entityType: "project",
           entityId: projectId as unknown as string,
         });
-
-        // Load graph observations (depth 0 = summaries)
-        const observations = projectNode
-          ? await ctx.runQuery(api.graph.getObservations, {
-              nodeId: projectNode._id,
-              depth: 0,
-            })
-          : [];
-
-        // Load edges (what other nodes are connected)
         const edges = projectNode
           ? await ctx.runQuery(api.graph.getEdgesFrom, { fromNodeId: projectNode._id })
           : [];
+        const documents = runtimeContext?.documents ?? [];
+        const memory = runtimeContext?.memory ?? [];
+        const observations = runtimeContext?.items
+          ?.filter((item: { promotionState: string }) => item.promotionState === "promoted")
+          .slice(0, 12)
+          .map((item: { title: string; snippet: string; provenance: { source: string } }) => ({
+            depth: 0,
+            content: `${item.title}\n${item.snippet}\nsource=${item.provenance.source}`,
+          })) ?? [];
+        const linkedSignalCount = runtimeContext?.signals?.length ?? 0;
 
-        // Reinforce the node's access weight
         if (projectNode) {
           await ctx.runMutation(internal.graph.reinforceNode, { nodeId: projectNode._id });
         }
@@ -392,13 +380,13 @@ export function buildDbTools(ctx: ActionCtx, jctx: JobContext) {
             tldr: (project.metadata as Record<string, unknown> | undefined)?.tldr,
             metadata: project.metadata,
           },
-          documents: (documents as Array<{ _id: string; type: string; title: string; content: string }>).map((d) => ({
-            id: d._id,
+          documents: (documents as Array<{ id?: string; _id?: string; type: string; title: string; content: string }>).map((d) => ({
+            id: d.id ?? d._id,
             type: d.type,
             title: d.title,
             content: ["prd", "research", "design_brief"].includes(d.type)
-              ? (d.content?.slice(0, 8000) ?? "")
-              : d.content?.slice(0, 2000) ?? "",
+              ? ((d.content as string | undefined)?.slice(0, 8000) ?? "")
+              : ((d.content as string | undefined)?.slice(0, 2000) ?? ""),
           })),
           memory: (memory as Array<{ type: string; content: string }>).slice(0, 20).map((m) => ({
             type: m.type,
@@ -413,6 +401,7 @@ export function buildDbTools(ctx: ActionCtx, jctx: JobContext) {
             toNodeId: e.toNodeId,
           })),
           signalCount: linkedSignalCount,
+          runtimeMemory: runtimeContext?.items ?? [],
         };
       },
     },

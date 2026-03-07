@@ -171,7 +171,7 @@ export const create = internalMutation({
     generatedByJobId: v.optional(v.id("jobs")),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("prototypeVariants", {
+    const variantId = await ctx.db.insert("prototypeVariants", {
       workspaceId: args.workspaceId,
       projectId: args.projectId,
       platform: args.platform,
@@ -185,6 +185,14 @@ export const create = internalMutation({
       iterationCount: args.iterationCount ?? 0,
       generatedByJobId: args.generatedByJobId,
     });
+    await ctx.scheduler.runAfter(0, internal.graph.autoCreatePrototypeNode, {
+      workspaceId: args.workspaceId,
+      projectId: args.projectId,
+      variantId,
+      title: args.title,
+      outputType: args.outputType,
+    });
+    return variantId;
   },
 });
 
@@ -211,11 +219,20 @@ export const linkSignalToVariant = internalMutation({
       .filter((q) => q.eq(q.field("prototypeVariantId"), args.prototypeVariantId))
       .unique();
     if (existing) return existing._id;
-    return await ctx.db.insert("signalProtoVariants", {
+    const linkId = await ctx.db.insert("signalProtoVariants", {
       signalId: args.signalId,
       prototypeVariantId: args.prototypeVariantId,
       feedbackSource: args.feedbackSource,
     });
+    const signal = await ctx.db.get(args.signalId);
+    if (signal) {
+      await ctx.scheduler.runAfter(0, internal.graph.linkSignalToPrototypeNode, {
+        workspaceId: signal.workspaceId,
+        signalId: args.signalId,
+        variantId: args.prototypeVariantId,
+      });
+    }
+    return linkId;
   },
 });
 
@@ -243,11 +260,19 @@ export const createVariant = mutation({
       iterationCount = (parent?.iterationCount ?? 0) + 1;
     }
 
-    return await ctx.db.insert("prototypeVariants", {
+    const variantId = await ctx.db.insert("prototypeVariants", {
       ...args,
       status: "ready",
       iterationCount,
     });
+    await ctx.scheduler.runAfter(0, internal.graph.autoCreatePrototypeNode, {
+      workspaceId: args.workspaceId,
+      projectId: args.projectId,
+      variantId,
+      title: args.title,
+      outputType: args.outputType,
+    });
+    return variantId;
   },
 });
 

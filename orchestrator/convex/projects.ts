@@ -67,6 +67,11 @@ export const create = mutation({
       metadata: args.metadata ?? {},
       isLocked: false,
     });
+    await ctx.scheduler.runAfter(0, internal.graph.autoCreateProjectNode, {
+      workspaceId: args.workspaceId,
+      projectId,
+      projectName: args.name,
+    });
     await ctx.scheduler.runAfter(2000, internal.projects.generateProjectTldr, { projectId });
     return projectId;
   },

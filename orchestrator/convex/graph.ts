@@ -14,6 +14,13 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import {
+  assignGraphCommunities,
+  computeGraphPageRank,
+  inferGraphEdges,
+  selectPromotedGraphNodes,
+} from "./graphAnalytics";
+import { buildRuntimeNodeMetadata, ensureProjectGraphNode } from "./runtimeMemory";
 
 // ── Graph Nodes ───────────────────────────────────────────────────────────────
 
@@ -399,7 +406,15 @@ export const autoCreateSignalNode = internalMutation({
       domain: args.source,
       accessWeight: 1.0,
       decayRate: 0.02, // signals decay faster than projects/docs
-      metadata: { severity: args.severity },
+      metadata: {
+        ...buildRuntimeNodeMetadata({
+          mirrorTable: "signals",
+          mirrorId: args.signalId as unknown as string,
+          metadataSource: args.source,
+          provenanceSource: "agent",
+        }),
+        severity: args.severity,
+      },
     });
   },
 });
@@ -457,6 +472,93 @@ export const linkSignalToProjectNode = internalMutation({
   },
 });
 
+export const linkSignalToPersonaNode = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    signalId: v.id("signals"),
+    personaId: v.id("personas"),
+  },
+  handler: async (ctx, args) => {
+    const signalNode = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "signal").eq("entityId", args.signalId as unknown as string),
+      )
+      .first();
+
+    const personaNode = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "persona").eq("entityId", args.personaId as unknown as string),
+      )
+      .first();
+
+    if (!signalNode || !personaNode) return null;
+
+    const existing = await ctx.db
+      .query("graphEdges")
+      .withIndex("by_from", (q) => q.eq("fromNodeId", signalNode._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("toNodeId"), personaNode._id),
+          q.eq(q.field("relationType"), "relevant_to_persona"),
+        ),
+      )
+      .first();
+    if (existing) return existing._id;
+
+    return await ctx.db.insert("graphEdges", {
+      workspaceId: args.workspaceId,
+      fromNodeId: signalNode._id,
+      toNodeId: personaNode._id,
+      relationType: "relevant_to_persona",
+      weight: 1.0,
+      confidence: 1.0,
+      source: "agent",
+    });
+  },
+});
+
+export const unlinkSignalFromPersonaNode = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    signalId: v.id("signals"),
+    personaId: v.id("personas"),
+  },
+  handler: async (ctx, args) => {
+    const signalNode = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "signal").eq("entityId", args.signalId as unknown as string),
+      )
+      .first();
+
+    const personaNode = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "persona").eq("entityId", args.personaId as unknown as string),
+      )
+      .first();
+
+    if (!signalNode || !personaNode) return null;
+
+    const existing = await ctx.db
+      .query("graphEdges")
+      .withIndex("by_from", (q) => q.eq("fromNodeId", signalNode._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("toNodeId"), personaNode._id),
+          q.eq(q.field("relationType"), "relevant_to_persona"),
+        ),
+      )
+      .first();
+    if (!existing) return null;
+
+    await ctx.db.delete(existing._id);
+    return existing._id;
+  },
+});
+
 /**
  * Auto-create a graph node when a project is created.
  * Called from projects.create — Phase 2 will wire this.
@@ -468,13 +570,222 @@ export const autoCreateProjectNode = internalMutation({
     projectName: v.string(),
   },
   handler: async (ctx, { workspaceId, projectId, projectName }) => {
-    return await ctx.db.insert("graphNodes", {
+    return await ensureProjectGraphNode(ctx as never, {
       workspaceId,
-      entityType: "project",
-      entityId: projectId,
-      name: projectName,
+      projectId,
+      projectName,
+    });
+  },
+});
+
+export const autoCreatePrototypeNode = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.id("projects"),
+    variantId: v.id("prototypeVariants"),
+    title: v.string(),
+    outputType: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "prototype").eq("entityId", args.variantId as unknown as string),
+      )
+      .first();
+    if (existing) return existing._id;
+
+    const prototypeNodeId = await ctx.db.insert("graphNodes", {
+      workspaceId: args.workspaceId,
+      entityType: "prototype",
+      entityId: args.variantId as unknown as string,
+      name: args.title,
+      domain: args.outputType,
       accessWeight: 1.0,
-      decayRate: 0.005,
+      decayRate: 0.01,
+      metadata: {
+        runtimeAuthority: "graph",
+        promotionState: "promoted",
+        provenance: { source: "agent" },
+        projectId: args.projectId,
+      },
+    });
+
+    const projectNodeId = await ensureProjectGraphNode(ctx as never, {
+      workspaceId: args.workspaceId,
+      projectId: args.projectId,
+    });
+    await ctx.db.insert("graphEdges", {
+      workspaceId: args.workspaceId,
+      fromNodeId: prototypeNodeId,
+      toNodeId: projectNodeId,
+      relationType: "produced_for",
+      weight: 1.0,
+      source: "agent",
+    });
+
+    return prototypeNodeId;
+  },
+});
+
+export const runGraphAnalytics = internalMutation({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, { workspaceId }) => {
+    const nodes = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_workspace_type", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+
+    const edges = Array.from(
+      new Map(
+        (
+          await Promise.all(
+            nodes.map((node) =>
+              ctx.db
+                .query("graphEdges")
+                .withIndex("by_from", (q) => q.eq("fromNodeId", node._id))
+                .collect(),
+            ),
+          )
+        )
+          .flat()
+          .filter((edge) => edge.workspaceId === workspaceId)
+          .map((edge) => [edge._id, edge]),
+      ).values(),
+    );
+
+    const observations = (
+      await Promise.all(
+        nodes.map((node) =>
+          ctx.db
+            .query("graphObservations")
+            .withIndex("by_node", (q) => q.eq("nodeId", node._id))
+            .collect(),
+        ),
+      )
+    )
+      .flat()
+      .filter((observation) => observation.workspaceId === workspaceId);
+
+    const promotedNodes = selectPromotedGraphNodes(nodes);
+    const promotedNodeIds = new Set(promotedNodes.map((node) => node._id));
+    const promotedEdges = edges.filter(
+      (edge) =>
+        promotedNodeIds.has(edge.fromNodeId) && promotedNodeIds.has(edge.toNodeId),
+    );
+
+    const communities = assignGraphCommunities(promotedNodes, promotedEdges);
+    const pagerankByNodeId = computeGraphPageRank(promotedNodes, promotedEdges);
+    const communityByNodeId = new Map<string, string>();
+    for (const community of communities) {
+      for (const memberId of community.memberIds) {
+        communityByNodeId.set(memberId, community.communityId);
+      }
+    }
+
+    for (const node of nodes) {
+      await ctx.db.patch(node._id, {
+        pagerank: promotedNodeIds.has(node._id)
+          ? pagerankByNodeId[node._id] ?? 0
+          : undefined,
+        communityId: promotedNodeIds.has(node._id)
+          ? communityByNodeId.get(node._id)
+          : undefined,
+      });
+    }
+
+    const existingCommunities = await ctx.db
+      .query("graphCommunities")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+
+    for (const community of communities) {
+      const existing = existingCommunities.find(
+        (entry) => entry.name === community.communityId,
+      );
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          theme: community.theme,
+          memberCount: community.memberIds.length,
+        });
+      } else {
+        await ctx.db.insert("graphCommunities", {
+          workspaceId,
+          name: community.communityId,
+          theme: community.theme,
+          memberCount: community.memberIds.length,
+        });
+      }
+    }
+
+    const inferredEdges = inferGraphEdges(
+      promotedNodes,
+      promotedEdges,
+      observations,
+    );
+
+    for (const edge of inferredEdges) {
+      await ctx.db.insert("graphEdges", {
+        workspaceId,
+        fromNodeId: edge.fromNodeId as Id<"graphNodes">,
+        toNodeId: edge.toNodeId as Id<"graphNodes">,
+        relationType: edge.relationType,
+        weight: edge.weight,
+        confidence: edge.confidence,
+        source: edge.source,
+      });
+    }
+
+    return {
+      promotedNodeCount: promotedNodes.length,
+      communityCount: communities.length,
+      inferredEdgeCount: inferredEdges.length,
+    };
+  },
+});
+
+export const linkSignalToPrototypeNode = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    signalId: v.id("signals"),
+    variantId: v.id("prototypeVariants"),
+  },
+  handler: async (ctx, args) => {
+    const signalNode = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "signal").eq("entityId", args.signalId as unknown as string),
+      )
+      .first();
+    const prototypeNode = await ctx.db
+      .query("graphNodes")
+      .withIndex("by_entity", (q) =>
+        q.eq("entityType", "prototype").eq("entityId", args.variantId as unknown as string),
+      )
+      .first();
+
+    if (!signalNode || !prototypeNode) return null;
+
+    const existing = await ctx.db
+      .query("graphEdges")
+      .withIndex("by_from", (q) => q.eq("fromNodeId", signalNode._id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("toNodeId"), prototypeNode._id),
+          q.eq(q.field("relationType"), "feedback_for"),
+        ),
+      )
+      .first();
+    if (existing) return existing._id;
+
+    return await ctx.db.insert("graphEdges", {
+      workspaceId: args.workspaceId,
+      fromNodeId: signalNode._id,
+      toNodeId: prototypeNode._id,
+      relationType: "feedback_for",
+      weight: 1.0,
+      confidence: 1.0,
+      source: "agent",
     });
   },
 });
@@ -500,6 +811,12 @@ export const autoCreateDocumentNode = internalMutation({
       domain: args.documentType,
       accessWeight: 1.0,
       decayRate: 0.01,
+      metadata: buildRuntimeNodeMetadata({
+        mirrorTable: "documents",
+        mirrorId: args.documentId,
+        projectId: args.projectId,
+        provenanceSource: "agent",
+      }),
     });
 
     // Find or create the project node

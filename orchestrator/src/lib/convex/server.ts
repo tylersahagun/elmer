@@ -205,6 +205,37 @@ export async function searchConvexWorkspace(workspaceId: string, q: string) {
   return await res.json();
 }
 
+export async function listConvexWorkspaceRuntimeContext(
+  workspaceId: string,
+  types?: string[],
+) {
+  const params = new URLSearchParams({ workspaceId });
+  if (types?.length) params.set("types", types.join(","));
+  const res = await convexFetch(`/mcp/runtime-context?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch runtime context");
+  return await res.json();
+}
+
+export async function getConvexProjectRuntimeContext(
+  projectId: string,
+  q?: string,
+) {
+  const params = new URLSearchParams({ projectId });
+  if (q) params.set("q", q);
+  const res = await convexFetch(`/mcp/project-runtime-context?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch project runtime context");
+  return await res.json();
+}
+
+export async function storeConvexMemory(data: Record<string, unknown>) {
+  const res = await convexFetch(`/mcp/memory`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to store memory");
+  return await res.json();
+}
+
 export async function listConvexKnowledge(workspaceId: string, type?: string) {
   const params = new URLSearchParams({ workspaceId });
   if (type) params.set("type", type);
@@ -221,4 +252,3 @@ export async function upsertConvexKnowledge(data: Record<string, unknown>) {
   if (!res.ok) throw new Error("Failed to update knowledge entry");
   return await res.json();
 }
-
