@@ -5,6 +5,7 @@ import {
   getClerkFrontendApiOrigin,
   getClerkJwtIssuerDomain,
   getClerkProviderProps,
+  hasClerkRuntimeConfiguration,
   toHttpsOrigin,
 } from "../clerk";
 
@@ -69,6 +70,48 @@ describe("clerk auth config helpers", () => {
     });
   });
 
+  it("treats placeholder Clerk env vars as missing config", () => {
+    expect(
+      getClerkProviderProps({
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_your_publishable_key",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toEqual({
+      publishableKey: undefined,
+      signInUrl: undefined,
+      signUpUrl: undefined,
+      afterSignInUrl: undefined,
+      afterSignUpUrl: undefined,
+    });
+
+    expect(
+      getAuthConfigurationChecks({
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_your_publishable_key",
+        CLERK_SECRET_KEY: "sk_test_your_secret_key",
+        CLERK_JWT_ISSUER_DOMAIN: "https://your-frontend-api.clerk.accounts.dev",
+        AUTH_URL: "https://elmer.studio",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          name: "Clerk publishable key",
+          ok: false,
+          detail: "missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        },
+        {
+          name: "Clerk secret key",
+          ok: false,
+          detail: "missing CLERK_SECRET_KEY",
+        },
+        {
+          name: "Clerk issuer domain",
+          ok: false,
+          detail:
+            "missing CLERK_JWT_ISSUER_DOMAIN and unable to derive it from NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        },
+      ]),
+    );
+  });
+
   it("returns the frontend API origin from the publishable key", () => {
     expect(
       getClerkFrontendApiOrigin({
@@ -131,5 +174,23 @@ describe("clerk auth config helpers", () => {
       detail:
         "AUTH_URL/NEXTAUTH_URL points at the Clerk frontend API host (clerk.elmer.studio); it should point at the app host instead",
     });
+  });
+
+  it("requires non-placeholder publishable and secret keys for runtime Clerk config", () => {
+    expect(
+      hasClerkRuntimeConfiguration({
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: encodePublishableKeyHost(
+          "clerk.elmer.studio",
+        ),
+        CLERK_SECRET_KEY: "sk_test_example",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toBe(true);
+
+    expect(
+      hasClerkRuntimeConfiguration({
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_your_publishable_key",
+        CLERK_SECRET_KEY: "sk_test_your_secret_key",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toBe(false);
   });
 });

@@ -20,7 +20,9 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
 
 // Fallback for CI/CD or environments without .env.local
 if (!process.env.DATABASE_URL) {
-  console.warn("⚠️  DATABASE_URL not set - integration tests will fail");
+  console.warn(
+    "⚠️  DATABASE_URL not set - legacy SQL-backed tests and migration coverage will be skipped",
+  );
   console.warn(
     '   Run: export DATABASE_URL="postgresql://elmer:elmer_local_dev@127.0.0.1:5433/orchestrator"',
   );

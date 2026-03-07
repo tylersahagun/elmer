@@ -13,8 +13,22 @@ type ConvexUrlValidationResult = {
   normalizedUrl: string | null;
 };
 
+const CONVEX_PLACEHOLDER_HOSTS = [
+  "your-deployment.convex.cloud",
+  "your-deployment.convex.site",
+];
+
 function normalizeConfiguredUrl(value?: string | null) {
   return value?.trim().replace(/\/+$/, "") || null;
+}
+
+function isPlaceholderConvexUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return CONVEX_PLACEHOLDER_HOSTS.includes(parsed.host);
+  } catch {
+    return false;
+  }
 }
 
 export function validateConvexDeploymentUrl(
@@ -22,7 +36,7 @@ export function validateConvexDeploymentUrl(
 ): ConvexUrlValidationResult {
   const normalizedUrl = normalizeConfiguredUrl(value);
 
-  if (!normalizedUrl) {
+  if (!normalizedUrl || isPlaceholderConvexUrl(normalizedUrl)) {
     return {
       ok: false,
       detail: "missing NEXT_PUBLIC_CONVEX_URL",

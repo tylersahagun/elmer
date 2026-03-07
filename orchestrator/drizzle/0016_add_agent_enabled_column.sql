@@ -1,0 +1,1 @@
+ALTER TABLE "agent_definitions" ADD COLUMN IF NOT EXISTS "enabled" boolean DEFAULT true;

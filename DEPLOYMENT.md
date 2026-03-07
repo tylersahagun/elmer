@@ -98,7 +98,7 @@ returns HTML with Clerk bootstrap markers and performs Clerk DNS checks.
 
 ### Database Requirements
 
-**PostgreSQL with pgvector extension:**
+**PostgreSQL with pgvector extension for the remaining legacy SQL path:**
 
 ```bash
 # Connect to local database
@@ -111,7 +111,10 @@ SELECT * FROM pg_extension WHERE extname = 'vector';
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-**Note:** The official PostgreSQL Docker image includes pgvector. If using a different setup, ensure pgvector 0.5+ is installed.
+**Note:** Convex is the intended primary runtime store, but the current branch
+still needs PostgreSQL for the leftover Drizzle migrations, parity checks, and
+DB-backed tests. The official PostgreSQL Docker image includes pgvector. If
+using a different setup, ensure pgvector 0.5+ is installed.
 
 ### Environment Variables
 

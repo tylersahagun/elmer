@@ -62,6 +62,16 @@ describe("validateConvexDeploymentUrl", () => {
     });
   });
 
+  it("treats placeholder deployment URLs as missing", () => {
+    expect(
+      validateConvexDeploymentUrl("https://your-deployment.convex.cloud"),
+    ).toEqual({
+      ok: false,
+      detail: "missing NEXT_PUBLIC_CONVEX_URL",
+      normalizedUrl: null,
+    });
+  });
+
   it("rejects convex site URLs", () => {
     expect(
       validateConvexDeploymentUrl("https://helpful-otter-123.convex.site"),

@@ -50,6 +50,11 @@ This starts a PostgreSQL 16 container with:
 - **Password**: elmer_local_dev
 
 > **Note**: Data persists in a Docker volume. Use `docker compose down -v` to reset.
+>
+> **Current migration state**: Convex is the target runtime source of truth, but
+> the repository still carries a legacy SQL path for migrations, parity checks,
+> and DB-backed tests. Keep local PostgreSQL available until that cutover is
+> complete.
 
 ### 4. Initialize Database
 
@@ -190,7 +195,7 @@ npm run db:studio    # Open Drizzle Studio
 
 ## Database
 
-Uses Docker PostgreSQL with pgvector extension:
+Uses Docker PostgreSQL with pgvector extension for the remaining legacy SQL path:
 
 ```bash
 # Start PostgreSQL

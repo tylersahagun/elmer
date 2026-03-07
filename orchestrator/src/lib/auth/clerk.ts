@@ -1,4 +1,8 @@
 const CLERK_PUBLISHABLE_KEY_PREFIX = /^pk_(?:live|test)_/;
+const CLERK_PLACEHOLDER_PUBLISHABLE_KEY = "pk_test_your_publishable_key";
+const CLERK_PLACEHOLDER_SECRET_KEY = "sk_test_your_secret_key";
+const CLERK_PLACEHOLDER_ISSUER_DOMAIN =
+  "https://your-frontend-api.clerk.accounts.dev";
 
 export type AuthConfigurationCheck = {
   name: string;
@@ -10,10 +14,31 @@ function trimTrailingSentinel(value: string) {
   return value.endsWith("$") ? value.slice(0, -1) : value;
 }
 
+function normalizeConfiguredValue(value?: string | null) {
+  const normalized = value?.trim();
+  return normalized || null;
+}
+
+function normalizeConfiguredUrl(value?: string | null) {
+  return normalizeConfiguredValue(value)?.replace(/\/+$/, "") || null;
+}
+
+function isPlaceholderClerkPublishableKey(value?: string | null) {
+  return normalizeConfiguredValue(value) === CLERK_PLACEHOLDER_PUBLISHABLE_KEY;
+}
+
+function isPlaceholderClerkSecretKey(value?: string | null) {
+  return normalizeConfiguredValue(value) === CLERK_PLACEHOLDER_SECRET_KEY;
+}
+
+function isPlaceholderClerkIssuerDomain(value?: string | null) {
+  return normalizeConfiguredUrl(value) === CLERK_PLACEHOLDER_ISSUER_DOMAIN;
+}
+
 export function decodeClerkFrontendApiHost(
   publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 ) {
-  if (!publishableKey) {
+  if (!publishableKey || isPlaceholderClerkPublishableKey(publishableKey)) {
     return null;
   }
 
@@ -31,10 +56,6 @@ export function decodeClerkFrontendApiHost(
   } catch {
     return null;
   }
-}
-
-function normalizeConfiguredUrl(value?: string | null) {
-  return value?.trim().replace(/\/+$/, "") || null;
 }
 
 function isAbsoluteUrl(value: string) {
@@ -71,18 +92,37 @@ export function getClerkFrontendApiOrigin(env = process.env) {
 
 export function getClerkJwtIssuerDomain(env = process.env) {
   return (
-    toHttpsOrigin(env.CLERK_JWT_ISSUER_DOMAIN) ||
+    (isPlaceholderClerkIssuerDomain(env.CLERK_JWT_ISSUER_DOMAIN)
+      ? null
+      : toHttpsOrigin(env.CLERK_JWT_ISSUER_DOMAIN)) ||
     getClerkFrontendApiOrigin(env)
+  );
+}
+
+export function hasClerkRuntimeConfiguration(env = process.env) {
+  return Boolean(
+    !isPlaceholderClerkPublishableKey(env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
+      normalizeConfiguredValue(env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
+      !isPlaceholderClerkSecretKey(env.CLERK_SECRET_KEY) &&
+      normalizeConfiguredValue(env.CLERK_SECRET_KEY),
   );
 }
 
 export function getAuthConfigurationChecks(
   env = process.env,
 ): AuthConfigurationCheck[] {
-  const publishableKey = env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
-  const frontendApiHost = decodeClerkFrontendApiHost(publishableKey);
+  const publishableKey = isPlaceholderClerkPublishableKey(
+    env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  )
+    ? null
+    : normalizeConfiguredValue(env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+  const frontendApiHost = decodeClerkFrontendApiHost(publishableKey ?? undefined);
   const frontendApiOrigin = getClerkFrontendApiOrigin(env);
-  const explicitIssuerDomain = normalizeConfiguredUrl(env.CLERK_JWT_ISSUER_DOMAIN);
+  const explicitIssuerDomain = isPlaceholderClerkIssuerDomain(
+    env.CLERK_JWT_ISSUER_DOMAIN,
+  )
+    ? null
+    : normalizeConfiguredUrl(env.CLERK_JWT_ISSUER_DOMAIN);
   const authUrl = normalizeConfiguredUrl(env.AUTH_URL);
   const nextAuthUrl = normalizeConfiguredUrl(env.NEXTAUTH_URL);
   const appOrigin = authUrl || nextAuthUrl;
@@ -106,7 +146,8 @@ export function getAuthConfigurationChecks(
           ok: false,
           detail: "missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
         },
-    env.CLERK_SECRET_KEY?.trim()
+    !isPlaceholderClerkSecretKey(env.CLERK_SECRET_KEY) &&
+    normalizeConfiguredValue(env.CLERK_SECRET_KEY)
       ? {
           name: "Clerk secret key",
           ok: true,
@@ -200,7 +241,11 @@ export function getAuthConfigurationChecks(
 
 export function getClerkProviderProps(env = process.env) {
   return {
-    publishableKey: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    publishableKey: isPlaceholderClerkPublishableKey(
+      env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    )
+      ? undefined
+      : env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     signInUrl: env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
     signUpUrl: env.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
     afterSignInUrl: env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
