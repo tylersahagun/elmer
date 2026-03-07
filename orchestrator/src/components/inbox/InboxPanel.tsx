@@ -32,6 +32,8 @@ import {
   Wand2,
 } from "lucide-react";
 import { InboxItemInsights } from "./InboxItemInsights";
+import { CreateProjectFromInboxDialog } from "./CreateProjectFromInboxDialog";
+import { WebhookSetupCard } from "./WebhookSetupCard";
 
 // Type icons
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -128,6 +130,7 @@ export function InboxPanel({ workspaceId, className }: InboxPanelProps) {
   const [uploadContent, setUploadContent] = useState("");
   const [assigningTo, setAssigningTo] = useState<string | null>(null);
   const [assignMode, setAssignMode] = useState<"project" | "persona">("project");
+  const [createProjectItem, setCreateProjectItem] = useState<InboxItem | null>(null);
 
   // Fetch inbox items
   const { data: items, isLoading } = useQuery<InboxItem[]>({
@@ -284,6 +287,25 @@ export function InboxPanel({ workspaceId, className }: InboxPanelProps) {
     updateMutation.mutate({ id: itemId, status: "dismissed" });
   };
 
+  const handleCreateProjectFromItem = async (project: { id: string; name: string }) => {
+    if (!createProjectItem) return;
+
+    await updateMutation.mutateAsync({
+      id: createProjectItem.id,
+      status: "assigned",
+      assignedProjectId: project.id,
+      assignedAction: "project_created",
+    });
+
+    processItemMutation.mutate({
+      itemId: createProjectItem.id,
+      projectId: project.id,
+      action: "research",
+    });
+
+    setCreateProjectItem(null);
+  };
+
   const pendingItems = items?.filter(i => i.status === "pending") || [];
   const processedItems = items?.filter(i => i.status !== "pending") || [];
 
@@ -397,54 +419,61 @@ export function InboxPanel({ workspaceId, className }: InboxPanelProps) {
 
       {/* Empty State */}
       {!isLoading && pendingItems.length === 0 && !showUploadForm && (
-        <Window title="ls ./inbox">
-          <div className="py-12 text-center">
-            <Inbox className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-            <h3 className="text-lg font-medium mb-2">Inbox Empty</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
-              Upload transcripts, documents, or connect webhooks to receive content automatically.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowUploadForm(true)}
-              className="gap-1.5"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Upload Content
-            </Button>
-          </div>
-        </Window>
+        <div className="space-y-4">
+          <Window title="ls ./inbox">
+            <div className="py-12 text-center">
+              <Inbox className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+              <h3 className="text-lg font-medium mb-2">Inbox Empty</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
+                Upload transcripts, documents, or connect webhooks to receive content automatically.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUploadForm(true)}
+                className="gap-1.5"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload Content
+              </Button>
+            </div>
+          </Window>
+          <WebhookSetupCard workspaceId={workspaceId} />
+        </div>
       )}
 
       {/* Pending Items */}
       {!isLoading && pendingItems.length > 0 && (
-        <Window title="ls ./inbox --pending">
-          <ScrollArea className="max-h-[400px]">
-            <div className="space-y-2">
-              {pendingItems.map((item) => (
-                <InboxItemCard
-                  key={item.id}
-                  item={item}
-                  isSelected={selectedItem?.id === item.id}
-                  onSelect={() => setSelectedItem(item)}
-                  onAssignProject={(projectId) => handleAssignProject(item.id, projectId)}
-                  onAssignPersona={(personaId) => handleAssignPersona(item.id, personaId)}
-                  onSmartProcess={() => smartProcessMutation.mutate(item.id)}
-                  onDismiss={() => handleDismiss(item.id)}
-                  projects={projects}
-                  personas={personas}
-                  isAssigning={processItemMutation.isPending || updateMutation.isPending}
-                  isProcessing={smartProcessMutation.isPending && smartProcessMutation.variables === item.id}
-                  assigningTo={assigningTo}
-                  setAssigningTo={setAssigningTo}
-                  assignMode={assignMode}
-                  setAssignMode={setAssignMode}
-                />
-              ))}
-            </div>
-          </ScrollArea>
-        </Window>
+        <div className="space-y-4">
+          <WebhookSetupCard workspaceId={workspaceId} />
+          <Window title="ls ./inbox --pending">
+            <ScrollArea className="max-h-[400px]">
+              <div className="space-y-2">
+                {pendingItems.map((item) => (
+                  <InboxItemCard
+                    key={item.id}
+                    item={item}
+                    isSelected={selectedItem?.id === item.id}
+                    onSelect={() => setSelectedItem(item)}
+                    onAssignProject={(projectId) => handleAssignProject(item.id, projectId)}
+                    onAssignPersona={(personaId) => handleAssignPersona(item.id, personaId)}
+                    onCreateProject={() => setCreateProjectItem(item)}
+                    onSmartProcess={() => smartProcessMutation.mutate(item.id)}
+                    onDismiss={() => handleDismiss(item.id)}
+                    projects={projects}
+                    personas={personas}
+                    isAssigning={processItemMutation.isPending || updateMutation.isPending}
+                    isProcessing={smartProcessMutation.isPending && smartProcessMutation.variables === item.id}
+                    assigningTo={assigningTo}
+                    setAssigningTo={setAssigningTo}
+                    assignMode={assignMode}
+                    setAssignMode={setAssignMode}
+                  />
+                ))}
+              </div>
+            </ScrollArea>
+          </Window>
+        </div>
       )}
 
       {/* Processed Items (collapsed) */}
@@ -574,6 +603,25 @@ export function InboxPanel({ workspaceId, className }: InboxPanelProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CreateProjectFromInboxDialog
+        open={Boolean(createProjectItem)}
+        onOpenChange={(open) => {
+          if (!open) setCreateProjectItem(null);
+        }}
+        workspaceId={workspaceId}
+        initialName={
+          createProjectItem?.metadata?.suggestedProjectName ||
+          createProjectItem?.title ||
+          "New initiative"
+        }
+        initialDescription={
+          createProjectItem?.aiSummary ||
+          createProjectItem?.rawContent?.slice(0, 280) ||
+          ""
+        }
+        onCreated={handleCreateProjectFromItem}
+      />
     </div>
   );
 }
@@ -585,6 +633,7 @@ function InboxItemCard({
   onSelect,
   onAssignProject,
   onAssignPersona,
+  onCreateProject,
   onSmartProcess,
   onDismiss,
   projects,
@@ -601,6 +650,7 @@ function InboxItemCard({
   onSelect: () => void;
   onAssignProject: (projectId: string) => void;
   onAssignPersona: (personaId: string) => void;
+  onCreateProject: () => void;
   onSmartProcess: () => void;
   onDismiss: () => void;
   projects: { id: string; name: string; stage: string }[];
@@ -752,6 +802,15 @@ function InboxItemCard({
               <>
                 <p className="text-xs text-muted-foreground mb-2">Assign to project:</p>
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={onCreateProject}
+                    className="text-xs h-7"
+                  >
+                    <Plus className="w-3 h-3 mr-1 flex-shrink-0" />
+                    New project
+                  </Button>
                   {projects.slice(0, 5).map((project) => (
                     <Button
                       key={project.id}
