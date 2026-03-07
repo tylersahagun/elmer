@@ -17,6 +17,8 @@ export class WorkspacePage {
   readonly nav: Locator;
   readonly workspaceSelectorText: Locator;
   readonly firstWorkspaceButton: Locator;
+  readonly projectCards: Locator;
+  readonly workspaceMenuTrigger: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -27,6 +29,8 @@ export class WorkspacePage {
     this.firstWorkspaceButton = page.getByRole("button", {
       name: "Create Your First Workspace",
     });
+    this.projectCards = page.locator("[data-testid='project-card']");
+    this.workspaceMenuTrigger = page.getByTestId("workspace-menu-trigger");
   }
 
   async gotoHome() {
@@ -249,7 +253,10 @@ export class WorkspacePage {
         break;
       case "agents":
         await expect(
-          this.page.getByRole("heading", { name: "Agents", exact: true }),
+          this.page.getByRole("heading", {
+            name: "Agent Catalog",
+            exact: true,
+          }),
         ).toBeVisible();
         break;
       case "inbox":
@@ -357,5 +364,26 @@ export class WorkspacePage {
         }
         break;
     }
+  }
+
+  async ensureProjectExists() {
+    if ((await this.projectCards.count()) > 0) {
+      return;
+    }
+
+    await this.workspaceMenuTrigger.click();
+    await this.page.getByRole("menuitem", { name: /new project/i }).click();
+
+    const projectName = `Smoke Project ${Date.now()}`;
+    await this.page.getByLabel("Project Name").fill(projectName);
+    await this.page.getByRole("button", { name: "Create Project" }).click();
+
+    await expect(this.projectCards.first()).toBeVisible({ timeout: 30_000 });
+  }
+
+  async openFirstProject() {
+    await this.ensureProjectExists();
+    await this.projectCards.first().click();
+    await expect(this.page).toHaveURL(/\/workspace\/[^/]+\/projects\/[^/]+/);
   }
 }
