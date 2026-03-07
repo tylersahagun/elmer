@@ -98,9 +98,11 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
   const isLocked =
     project.isLocked ||
     project.activeJobStatus === "running" ||
-    project.activeJobStatus === "pending";
+    project.activeJobStatus === "pending" ||
+    project.activeJobStatus === "waiting_input";
 
   const hasFailed = project.activeJobStatus === "failed";
+  const needsInput = project.activeJobStatus === "waiting_input";
   const stageQuality = project.metadata?.stageQuality?.[project.stage];
   const stageConfidence = project.metadata?.stageConfidence?.[project.stage];
   const derivedConfidence = React.useMemo(() => {
@@ -229,6 +231,8 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
         // Border color based on state
         hasFailed
           ? "border-red-400/50 dark:border-red-500/30"
+          : needsInput
+            ? "border-amber-400/50 dark:border-amber-500/30"
           : isLocked
             ? "border-purple-400/50 dark:border-purple-500/30"
             : "border-slate-200 dark:border-slate-700",
@@ -242,13 +246,20 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
           "z-50",
         ],
         // Locked/processing state
-        isLocked && "ring-2 ring-purple-400/30 dark:ring-purple-500/20",
+        isLocked &&
+          !needsInput &&
+          "ring-2 ring-purple-400/30 dark:ring-purple-500/20",
+        needsInput && "ring-2 ring-amber-400/30 dark:ring-amber-500/20",
         hasFailed && "ring-2 ring-red-400/30 dark:ring-red-500/20",
       )}
     >
       {/* Locked overlay indicator - subtle background only, icon moved to footer */}
-      {isLocked && (
+      {isLocked && !needsInput && (
         <div className="absolute inset-0 rounded-xl bg-purple-500/5 pointer-events-none" />
+      )}
+
+      {needsInput && (
+        <div className="absolute inset-0 rounded-xl bg-amber-500/5 pointer-events-none" />
       )}
 
       {/* Failed state overlay */}
@@ -411,7 +422,16 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
           )}
 
           {/* Lock icon - bottom right */}
-          {isLocked && (
+          {needsInput ? (
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="flex items-center justify-center"
+              title="Agent waiting for input"
+            >
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+            </motion.div>
+          ) : isLocked ? (
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -419,7 +439,7 @@ export function ProjectCard({ project, isDragging = false }: ProjectCardProps) {
             >
               <Lock className="w-4 h-4 text-purple-400" />
             </motion.div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -593,6 +613,26 @@ function JobStatusIndicator({
             />
           ))}
         </motion.div>
+      </motion.button>
+    );
+  }
+
+  if (status === "waiting_input") {
+    return (
+      <motion.button
+        onClick={handleClick}
+        className={cn(
+          "flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/15 border border-amber-500/30",
+          baseClasses,
+        )}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        title="Click to review the question and logs"
+      >
+        <AlertCircle className="w-3.5 h-3.5 text-amber-300" />
+        <span className="text-xs text-amber-300 font-medium">Needs Input</span>
       </motion.button>
     );
   }

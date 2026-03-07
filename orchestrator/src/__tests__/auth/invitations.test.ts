@@ -13,6 +13,7 @@ import { db } from "@/lib/db";
 import { workspaces, workspaceMembers, users, invitations } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { describeIfDatabase } from "../helpers/database";
 import {
   createInvitation,
   getInvitationByToken,
@@ -26,7 +27,7 @@ const TEST_WORKSPACE_ID = `test_ws_inv_${nanoid(8)}`;
 const TEST_ADMIN_ID = `user_admin_${nanoid(8)}`;
 const TEST_INVITEE_ID = `user_invitee_${nanoid(8)}`;
 
-describe("Invitation System Tests", () => {
+describeIfDatabase("Invitation System Tests", () => {
   beforeAll(async () => {
     // Create test workspace
     await db.insert(workspaces).values({

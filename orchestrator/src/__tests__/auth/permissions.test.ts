@@ -16,6 +16,7 @@ import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getWorkspaceMembership } from "@/lib/db/queries";
 import type { WorkspaceRole } from "@/lib/db/schema";
+import { describeIfDatabase } from "../helpers/database";
 
 // Test fixtures
 const TEST_WORKSPACE_ID = `test_ws_perm_${nanoid(8)}`;
@@ -41,7 +42,7 @@ function hasPermission(userRole: WorkspaceRole, requiredRole: WorkspaceRole): bo
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
 }
 
-describe("Permission Enforcement Tests", () => {
+describeIfDatabase("Permission Enforcement Tests", () => {
   beforeAll(async () => {
     // Create test workspace
     await db.insert(workspaces).values({

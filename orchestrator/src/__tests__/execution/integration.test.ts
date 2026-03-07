@@ -15,6 +15,7 @@ import { db } from "@/lib/db";
 import { workspaces, projects, stageRuns, runLogs, artifacts, stageRecipes, skills } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { describeIfDatabase } from "../helpers/database";
 import {
   createRun,
   claimRun,
@@ -35,7 +36,7 @@ const TEST_WORKSPACE_ID = `test_int_ws_${nanoid(8)}`;
 const TEST_PROJECT_ID = `test_int_proj_${nanoid(8)}`;
 const TEST_WORKER_ID = `test_int_worker_${nanoid(8)}`;
 
-describe("Integration Tests: Full Execution Flow", () => {
+describeIfDatabase("Integration Tests: Full Execution Flow", () => {
   beforeAll(async () => {
     // Create test workspace
     await db.insert(workspaces).values({

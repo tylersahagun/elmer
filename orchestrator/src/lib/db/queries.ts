@@ -899,6 +899,52 @@ export async function listPendingQuestions(workspaceId: string) {
       eq(pendingQuestions.status, "pending"),
     ),
     orderBy: [desc(pendingQuestions.createdAt)],
+    with: {
+      project: {
+        columns: {
+          id: true,
+          name: true,
+          stage: true,
+        },
+      },
+      job: {
+        columns: {
+          id: true,
+          type: true,
+          status: true,
+          progress: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+}
+
+export async function listPendingQuestionsForJob(jobId: string) {
+  return db.query.pendingQuestions.findMany({
+    where: and(
+      eq(pendingQuestions.jobId, jobId),
+      eq(pendingQuestions.status, "pending"),
+    ),
+    orderBy: [desc(pendingQuestions.createdAt)],
+    with: {
+      project: {
+        columns: {
+          id: true,
+          name: true,
+          stage: true,
+        },
+      },
+      job: {
+        columns: {
+          id: true,
+          type: true,
+          status: true,
+          progress: true,
+          createdAt: true,
+        },
+      },
+    },
   });
 }
 

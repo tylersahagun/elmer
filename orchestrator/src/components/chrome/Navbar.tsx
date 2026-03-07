@@ -173,6 +173,9 @@ export function SimpleNavbar({
   const isKnowledgebaseActive = pathname?.includes("/knowledgebase");
   const isPersonasActive = pathname?.includes("/personas");
   const isSignalsActive = pathname?.includes("/signals");
+  const isStatusActive = pathname?.includes("/status");
+  const isControlCenterActive = pathname?.includes("/control-center");
+  const isSwarmActive = pathname?.includes("/swarm");
   const isAgentsActive = pathname?.includes("/agents");
   const isSettingsActive = pathname?.includes("/settings");
   const isDashboardActive =
@@ -181,6 +184,9 @@ export function SimpleNavbar({
       !isKnowledgebaseActive &&
       !isPersonasActive &&
       !isSignalsActive &&
+      !isStatusActive &&
+      !isControlCenterActive &&
+      !isSwarmActive &&
       !isAgentsActive &&
       !isSettingsActive);
 
@@ -201,6 +207,18 @@ export function SimpleNavbar({
     workspaceId && {
       label: "Signals",
       href: `/workspace/${workspaceId}/signals`,
+    },
+    workspaceId && {
+      label: "Status",
+      href: `/workspace/${workspaceId}/status`,
+    },
+    workspaceId && {
+      label: "Control",
+      href: `/workspace/${workspaceId}/control-center`,
+    },
+    workspaceId && {
+      label: "Swarm",
+      href: `/workspace/${workspaceId}/swarm`,
     },
     workspaceId && {
       label: "Agents",
@@ -320,6 +338,54 @@ export function SimpleNavbar({
                     </Link>
 
                     <Link
+                      href={`/workspace/${workspaceId}/status`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isStatusActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>cat</span>
+                        <span className="text-muted-foreground">status/</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
+                      href={`/workspace/${workspaceId}/control-center`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isControlCenterActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>open</span>
+                        <span className="text-muted-foreground">control-center</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
+                      href={`/workspace/${workspaceId}/swarm`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isSwarmActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>run</span>
+                        <span className="text-muted-foreground">swarm</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
                       href={`/workspace/${workspaceId}/agents`}
                       className="w-full"
                     >
@@ -412,6 +478,10 @@ export function SimpleNavbar({
                   isKnowledgebaseActive) ||
                 (item.href.includes("personas") && isPersonasActive) ||
                 (item.href.includes("signals") && isSignalsActive) ||
+                (item.href.includes("/status") && isStatusActive) ||
+                (item.href.includes("/control-center") &&
+                  isControlCenterActive) ||
+                (item.href.includes("/swarm") && isSwarmActive) ||
                 (item.href.includes("agents") && isAgentsActive) ||
                 (item.href.includes("settings") && isSettingsActive);
               return (

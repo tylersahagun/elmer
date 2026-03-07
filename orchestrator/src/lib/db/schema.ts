@@ -1518,6 +1518,24 @@ export const jobRunsRelations = relations(jobRuns, ({ one }) => ({
   }),
 }));
 
+export const pendingQuestionsRelations = relations(
+  pendingQuestions,
+  ({ one }) => ({
+    job: one(jobs, {
+      fields: [pendingQuestions.jobId],
+      references: [jobs.id],
+    }),
+    project: one(projects, {
+      fields: [pendingQuestions.projectId],
+      references: [projects.id],
+    }),
+    workspace: one(workspaces, {
+      fields: [pendingQuestions.workspaceId],
+      references: [workspaces.id],
+    }),
+  }),
+);
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [notifications.workspaceId],

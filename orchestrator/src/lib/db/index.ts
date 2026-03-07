@@ -4,34 +4,67 @@ import { neon } from "@neondatabase/serverless";
 import pg from "pg";
 import * as schema from "./schema";
 
+type DatabaseClient = ReturnType<typeof drizzlePg<typeof schema>>;
+
 // Get database URL from environment
 const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required");
-}
-
-// Non-null assertion since we've already checked above
-const DB_URL: string = DATABASE_URL;
+const DB_URL = DATABASE_URL ?? "";
+export const isDatabaseConfigured = DB_URL.length > 0;
 
 // Detect if we're using Neon (serverless) or standard PostgreSQL
 // Neon URLs contain "neon.tech" or start with specific patterns
-const isNeonDatabase = DB_URL.includes("neon.tech") || DB_URL.includes("neon.database");
+const isNeonDatabase =
+  isDatabaseConfigured &&
+  (DB_URL.includes("neon.tech") || DB_URL.includes("neon.database"));
+
+class DatabaseNotConfiguredError extends Error {
+  constructor() {
+    super("DATABASE_URL environment variable is required");
+    this.name = "DatabaseNotConfiguredError";
+  }
+}
+
+function createMissingDbProxy(): DatabaseClient {
+  const throwMissingDbError = () => {
+    throw new DatabaseNotConfiguredError();
+  };
+
+  const proxyTarget = () => undefined;
+  return new Proxy(proxyTarget, {
+    apply: throwMissingDbError,
+    get(_target, property) {
+      if (property === "then") return undefined;
+      return new Proxy(proxyTarget, {
+        apply: throwMissingDbError,
+        get: throwMissingDbError,
+      });
+    },
+  }) as unknown as DatabaseClient;
+}
 
 // Create the appropriate Drizzle instance based on the database URL
-function createDb() {
+function createDb(): DatabaseClient {
+  if (!isDatabaseConfigured) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        "DATABASE_URL environment variable is not configured. Database access will fail at runtime until it is set.",
+      );
+    }
+    return createMissingDbProxy();
+  }
+
   if (isNeonDatabase) {
     // Use Neon serverless HTTP driver (optimized for edge/serverless)
     console.log("Using Neon serverless database driver");
     const sql = neon(DB_URL);
-    return drizzleNeon(sql, { schema });
+    return drizzleNeon(sql, { schema }) as unknown as DatabaseClient;
   } else {
     // Use standard pg driver (for local development or self-hosted PostgreSQL)
     console.log("Using standard PostgreSQL driver");
     const pool = new pg.Pool({
       connectionString: DB_URL,
     });
-    return drizzlePg(pool, { schema });
+    return drizzlePg(pool, { schema }) as DatabaseClient;
   }
 }
 

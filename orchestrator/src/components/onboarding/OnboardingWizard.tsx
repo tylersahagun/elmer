@@ -16,6 +16,7 @@ import { OnboardingErrorBoundary } from "./OnboardingErrorBoundary";
 import { ConnectGitHubStep } from "./steps/ConnectGitHubStep";
 import { SelectRepoStep } from "./steps/SelectRepoStep";
 import { DiscoveryStep } from "./steps/DiscoveryStep";
+import { ContextMappingStep } from "./steps/ContextMappingStep";
 
 /**
  * GitHub repo type from SelectRepoStep (different from store's GitHubRepo)
@@ -43,6 +44,7 @@ const STEP_CONFIGS: StepConfig[] = [
   { id: "welcome", label: "Welcome" },
   { id: "connect-github", label: "Connect GitHub" },
   { id: "select-repo", label: "Select Repository" },
+  { id: "map-context", label: "Map Context" },
   { id: "discover", label: "Populate Workspace" },
   { id: "complete", label: "Complete" },
 ];
@@ -72,10 +74,15 @@ export function OnboardingWizard({
     selectedRepo,
     selectedBranch,
     useTemplate,
+    contextPaths,
+    prototypesPath,
+    automationMode,
+    automationStopStage,
     completeStep,
     skipStep,
     setRepo,
     setTemplate,
+    setContextMapping,
     initForWorkspace,
   } = useOnboardingStore();
 
@@ -168,6 +175,12 @@ export function OnboardingWizard({
             repo: selectedRepo?.fullName,
             branch: selectedBranch,
             template: useTemplate,
+            settings: {
+              contextPaths,
+              prototypesPath,
+              automationMode,
+              automationStopStage,
+            },
             repoDetails: selectedRepo
               ? {
                   id: selectedRepo.id,
@@ -207,6 +220,10 @@ export function OnboardingWizard({
     selectedRepo,
     selectedBranch,
     useTemplate,
+    contextPaths,
+    prototypesPath,
+    automationMode,
+    automationStopStage,
     workspaceId,
     completeStep,
     hasSeenTour,
@@ -262,8 +279,28 @@ export function OnboardingWizard({
               onUseTemplate={() => {
                 setTemplate(true);
                 completeStep("select-repo");
+                skipStep("map-context");
                 skipStep("discover");
               }}
+            />
+          </OnboardingStepWrapper>
+        );
+
+      case "map-context":
+        return (
+          <OnboardingStepWrapper
+            step="map-context"
+            title="Map repo context"
+            description="Choose where PM docs live, where prototypes should be written, and how automated the workflow should be by default."
+            onNext={() => completeStep("map-context")}
+            onValidate={() => contextPaths.length > 0 && Boolean(prototypesPath)}
+          >
+            <ContextMappingStep
+              initialContextPaths={contextPaths}
+              initialPrototypesPath={prototypesPath || "prototypes/"}
+              initialAutomationMode={automationMode}
+              initialAutomationStopStage={automationStopStage}
+              onChange={setContextMapping}
             />
           </OnboardingStepWrapper>
         );

@@ -22,11 +22,12 @@ export async function POST(
       );
     }
 
-    await requireWorkspaceAccess(workspaceId, "member");
+    const membership = await requireWorkspaceAccess(workspaceId, "member");
 
     await updatePendingQuestion(questionId, {
       status: "answered",
       response: { value: response },
+      respondedBy: membership.userId,
       respondedAt: new Date(),
     });
 

@@ -10,6 +10,11 @@ import { db } from "@/lib/db";
 import { jobs } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { processJob, cancelJob, retryJob } from "@/lib/jobs";
+import {
+  requireWorkspaceAccess,
+  handlePermissionError,
+  PermissionError,
+} from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
@@ -29,8 +34,14 @@ export async function GET(
       );
     }
 
+    await requireWorkspaceAccess(job.workspaceId, "viewer");
+
     return NextResponse.json(job);
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to get job:", error);
     return NextResponse.json(
       { error: "Failed to get job" },
@@ -47,6 +58,21 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
     const { action } = body;
+    const job = await db.query.jobs.findFirst({
+      where: eq(jobs.id, id),
+    });
+
+    if (!job) {
+      return NextResponse.json(
+        { error: "Job not found" },
+        { status: 404 }
+      );
+    }
+
+    await requireWorkspaceAccess(
+      job.workspaceId,
+      action === "cancel" ? "member" : "viewer",
+    );
 
     switch (action) {
       case "process":
@@ -80,6 +106,10 @@ export async function POST(
         );
     }
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Job action error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Action failed" },

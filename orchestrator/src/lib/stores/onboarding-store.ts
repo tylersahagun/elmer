@@ -8,6 +8,7 @@ export type OnboardingStep =
   | "welcome"
   | "connect-github"
   | "select-repo"
+  | "map-context"
   | "discover" // Discovery and import step
   | "complete";
 
@@ -18,6 +19,7 @@ const STEP_ORDER: OnboardingStep[] = [
   "welcome",
   "connect-github",
   "select-repo",
+  "map-context",
   "discover", // After repo selection, before complete
   "complete",
 ];
@@ -64,6 +66,10 @@ export interface OnboardingState {
   selectedRepo: GitHubRepo | null;
   selectedBranch: string | null;
   useTemplate: boolean;
+  contextPaths: string[];
+  prototypesPath: string | null;
+  automationMode: "manual" | "auto_to_stage" | "auto_all";
+  automationStopStage: string | null;
 
   // Error state (excluded from persistence)
   lastError: OnboardingError | null;
@@ -80,6 +86,12 @@ export interface OnboardingState {
   goBack: () => void;
   setRepo: (repo: GitHubRepo, branch: string) => void;
   setTemplate: (enabled: boolean) => void;
+  setContextMapping: (data: {
+    contextPaths: string[];
+    prototypesPath: string;
+    automationMode: "manual" | "auto_to_stage" | "auto_all";
+    automationStopStage?: string | null;
+  }) => void;
   setError: (error: OnboardingError | null) => void;
   reset: () => void;
   getProgress: () => { current: number; total: number; percentage: number };
@@ -100,6 +112,10 @@ const initialState = {
   selectedRepo: null,
   selectedBranch: null,
   useTemplate: false,
+  contextPaths: ["elmer-docs/"],
+  prototypesPath: "prototypes/",
+  automationMode: "manual" as const,
+  automationStopStage: null,
   lastError: null,
   startedAt: null,
   lastUpdatedAt: null,
@@ -223,6 +239,16 @@ export const useOnboardingStore = create<OnboardingState>()(
         });
       },
 
+      setContextMapping: (data) => {
+        set({
+          contextPaths: data.contextPaths,
+          prototypesPath: data.prototypesPath,
+          automationMode: data.automationMode,
+          automationStopStage: data.automationStopStage ?? null,
+          lastUpdatedAt: new Date().toISOString(),
+        });
+      },
+
       setError: (error) => {
         set({ lastError: error });
       },
@@ -283,6 +309,10 @@ export const useOnboardingStore = create<OnboardingState>()(
         selectedRepo: state.selectedRepo,
         selectedBranch: state.selectedBranch,
         useTemplate: state.useTemplate,
+        contextPaths: state.contextPaths,
+        prototypesPath: state.prototypesPath,
+        automationMode: state.automationMode,
+        automationStopStage: state.automationStopStage,
         startedAt: state.startedAt,
         lastUpdatedAt: state.lastUpdatedAt,
       }),
