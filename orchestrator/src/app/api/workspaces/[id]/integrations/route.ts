@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -8,14 +8,22 @@ import {
 import { composioService } from "@/lib/composio/service";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
     await requireWorkspaceAccess(id, "viewer");
 
-    const workspace = await getWorkspace(id);
+    const workspace = (await getConvexWorkspace(id)) as {
+      settings?: {
+        composio?: {
+          apiKey?: string;
+          enabled?: boolean;
+          connectedServices?: string[];
+        };
+      };
+    } | null;
     const composio = workspace?.settings?.composio;
 
     return NextResponse.json({

@@ -243,6 +243,7 @@ http.route({
       status: body.status as string | undefined,
       priority: body.priority as string | undefined,
       description: body.description as string | undefined,
+      metadata: body.metadata,
     });
     // Handle Slack channel linking as part of project update
     if (body.slackChannelId) {
@@ -253,6 +254,54 @@ http.route({
       });
     }
     return jsonOk({ ok: true });
+  }),
+});
+
+// DELETE /mcp/project?id=<projectId>
+http.route({
+  path: "/mcp/project",
+  method: "DELETE",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (!id) return jsonError("Missing id");
+    await ctx.runMutation(internal.mcp.deleteProject, {
+      projectId: id as Id<"projects">,
+    });
+    return jsonOk({ id });
+  }),
+});
+
+// GET /mcp/project-prototypes?projectId=<projectId>
+http.route({
+  path: "/mcp/project-prototypes",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const projectId = url.searchParams.get("projectId");
+    if (!projectId) return jsonError("Missing projectId");
+    const rows = await ctx.runQuery(internal.mcp.listProjectPrototypes, {
+      projectId: projectId as Id<"projects">,
+    });
+    return jsonOk(rows);
+  }),
+});
+
+// GET /mcp/project-signals?projectId=<projectId>
+http.route({
+  path: "/mcp/project-signals",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const projectId = url.searchParams.get("projectId");
+    if (!projectId) return jsonError("Missing projectId");
+    const rows = await ctx.runQuery(internal.mcp.listProjectSignals, {
+      projectId: projectId as Id<"projects">,
+    });
+    return jsonOk(rows);
   }),
 });
 

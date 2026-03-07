@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import { listConvexPersonas, upsertConvexPersona } from "@/lib/convex/server";
+import { runSecondaryExport } from "@/lib/export-sync";
 
 export interface PersonaArchetype {
   archetype_id: string;
@@ -40,9 +41,17 @@ const PERSONAS_PATH = path.join(
   "archetypes",
 );
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const workspaceId = "mn7e43jc0m7bc5jn708d3ye4e182a7me";
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get("workspaceId");
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: "workspaceId is required" },
+        { status: 400 },
+      );
+    }
+
     const personas = await listConvexPersonas(workspaceId) as Array<{
       _id: string;
       archetypeId: string;
@@ -231,8 +240,6 @@ export async function POST(request: NextRequest) {
     const persona = parsePersonaMarkdown(body.content, archetypeId);
     const personasPath = await resolvePersonasPath();
     const filePath = path.join(personasPath, `${archetypeId}.json`);
-
-    await fs.writeFile(filePath, JSON.stringify(persona, null, 2), "utf-8");
     await upsertConvexPersona({
       workspaceId,
       archetypeId: persona.archetype_id,
@@ -249,7 +256,19 @@ export async function POST(request: NextRequest) {
       filePath,
     });
 
-    return NextResponse.json({ success: true, persona });
+    const exportResult = await runSecondaryExport("personas", async () => {
+      await fs.writeFile(filePath, JSON.stringify(persona, null, 2), "utf-8");
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        authority: "convex",
+        persona,
+        export: exportResult,
+      },
+      { status: exportResult.status === "failed" ? 207 : 200 },
+    );
   } catch (error) {
     console.error("[API /personas] POST error:", error);
     return NextResponse.json(
@@ -274,8 +293,6 @@ export async function PUT(request: NextRequest) {
     const persona = parsePersonaMarkdown(body.content, archetypeId);
     const personasPath = await resolvePersonasPath();
     const filePath = path.join(personasPath, `${archetypeId}.json`);
-
-    await fs.writeFile(filePath, JSON.stringify(persona, null, 2), "utf-8");
     await upsertConvexPersona({
       workspaceId,
       archetypeId: persona.archetype_id,
@@ -292,7 +309,19 @@ export async function PUT(request: NextRequest) {
       filePath,
     });
 
-    return NextResponse.json({ success: true, persona });
+    const exportResult = await runSecondaryExport("personas", async () => {
+      await fs.writeFile(filePath, JSON.stringify(persona, null, 2), "utf-8");
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        authority: "convex",
+        persona,
+        export: exportResult,
+      },
+      { status: exportResult.status === "failed" ? 207 : 200 },
+    );
   } catch (error) {
     console.error("[API /personas] PUT error:", error);
     return NextResponse.json(

@@ -1,55 +1,125 @@
-import { getKnowledgebaseEntries, getProject, getWorkspace, getDocuments } from "@/lib/db/queries";
-import { resolveKnowledgePath, readKnowledgeFile } from "@/lib/knowledgebase";
+import {
+  getConvexProjectWithDocuments,
+  listConvexKnowledge,
+  listConvexPersonas,
+} from "@/lib/convex/server";
 import type { KnowledgebaseType, DocumentType } from "@/lib/db/schema";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
+type ConvexKnowledgeEntry = {
+  type: string;
+  title: string;
+  content: string;
+};
+
+type ConvexPersona = {
+  name: string;
+  description: string;
+  content?: string;
+};
+
+type ConvexProjectDocument = {
+  type: string;
+  content: string;
+};
+
+type ConvexProjectBundle = {
+  project: {
+    name: string;
+    description?: string;
+    metadata?: {
+      tags?: string[];
+    };
+  } | null;
+  documents: ConvexProjectDocument[];
+};
+
+const KNOWLEDGE_CONTEXT_TYPES: KnowledgebaseType[] = [
+  "company_context",
+  "strategic_guardrails",
+];
+
+function formatKnowledgeEntry(entry: ConvexKnowledgeEntry) {
+  return `# ${entry.title}\n\n${entry.content}`;
+}
+
+function formatPersona(persona: ConvexPersona) {
+  if (persona.content?.trim()) {
+    return persona.content.trim();
+  }
+
+  const description = persona.description?.trim();
+  return description ? `# ${persona.name}\n\n${description}` : `# ${persona.name}`;
+}
+
+function joinSections(parts: Array<string | null | undefined>) {
+  return parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join("\n\n---\n\n");
+}
+
+async function loadWorkspaceRuntimeContext(workspaceId: string) {
+  const [knowledgeEntries, personas] = await Promise.all([
+    listConvexKnowledge(workspaceId) as Promise<ConvexKnowledgeEntry[]>,
+    listConvexPersonas(workspaceId) as Promise<ConvexPersona[]>,
+  ]);
+
+  return { knowledgeEntries, personas };
+}
+
+function getKnowledgeContent(
+  knowledgeEntries: ConvexKnowledgeEntry[],
+  type: KnowledgebaseType,
+) {
+  return joinSections(
+    knowledgeEntries
+      .filter((entry) => entry.type === type && entry.content?.trim())
+      .map(formatKnowledgeEntry),
+  );
+}
+
+function getKnowledgeBodyContent(
+  knowledgeEntries: ConvexKnowledgeEntry[],
+  type: KnowledgebaseType,
+) {
+  return joinSections(
+    knowledgeEntries
+      .filter((entry) => entry.type === type && entry.content?.trim())
+      .map((entry) => entry.content),
+  );
+}
+
+function getPersonasContent(
+  knowledgeEntries: ConvexKnowledgeEntry[],
+  personas: ConvexPersona[],
+) {
+  const personaSections = personas
+    .map(formatPersona)
+    .filter((content) => content.trim().length > 0);
+
+  if (personaSections.length > 0) {
+    return joinSections(personaSections);
+  }
+
+  return getKnowledgeBodyContent(knowledgeEntries, "personas");
+}
+
 /**
- * Load company context for PRD and other document generation.
- * 
- * Priority:
- * 1. Database knowledgebase entries (if populated)
- * 2. File-based context from elmer-docs/company-context/
- * 
- * This ensures AI generation always has access to product vision,
- * strategic guardrails, and personas.
+ * Load Convex-native workspace context for generation and verification flows.
  */
 export async function getWorkspaceContext(workspaceId: string) {
-  // First, try database entries
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  
-  if (entries.length > 0) {
-    return entries.map((e) => `# ${e.title}\n\n${e.content}`).join("\n\n");
-  }
+  const { knowledgeEntries, personas } = await loadWorkspaceRuntimeContext(workspaceId);
 
-  // Fall back to reading files directly
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
+  const knowledgeSections = KNOWLEDGE_CONTEXT_TYPES.map((type) =>
+    getKnowledgeContent(knowledgeEntries, type),
+  );
+  const personasContent = getPersonasContent(knowledgeEntries, personas);
 
-  const contextTypes: KnowledgebaseType[] = [
-    "company_context",
-    "strategic_guardrails", 
-    "personas",
-  ];
-
-  const contextParts: string[] = [];
-
-  for (const type of contextTypes) {
-    try {
-      const filePath = resolveKnowledgePath(contextRoot, type);
-      const content = await readKnowledgeFile(filePath);
-      if (content) {
-        const title = type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-        contextParts.push(`# ${title}\n\n${content}`);
-      }
-    } catch (error) {
-      console.warn(`Failed to load context file for ${type}:`, error);
-    }
-  }
-
-  return contextParts.join("\n\n---\n\n");
+  return joinSections([...knowledgeSections, personasContent]);
 }
 
 /**
@@ -57,8 +127,10 @@ export async function getWorkspaceContext(workspaceId: string) {
  * This provides AI with research, existing PRD, etc. for context.
  */
 export async function getProjectContext(projectId: string) {
-  const project = await getProject(projectId);
-  if (!project) return "";
+  const bundle = await getConvexProjectWithDocuments(projectId) as ConvexProjectBundle | null;
+  if (!bundle?.project) return "";
+
+  const { project, documents: projectDocuments } = bundle;
 
   const parts: string[] = [];
 
@@ -72,10 +144,8 @@ export async function getProjectContext(projectId: string) {
   }
 
   // Get existing documents for context
-  const docs = await getDocuments(projectId);
-  
   // Include research if available (important for PRD generation)
-  const research = docs.find((d) => d.type === "research");
+  const research = projectDocuments.find((doc) => doc.type === "research");
   if (research?.content) {
     parts.push(`\n## Research\n\n${research.content}`);
   }
@@ -88,21 +158,8 @@ export async function getProjectContext(projectId: string) {
  * This ensures generated PRDs follow the workspace's PRD format.
  */
 export async function getPRDContext(workspaceId: string) {
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  // Load strategic guardrails which contain pushback triggers
-  try {
-    const guardrailsPath = resolveKnowledgePath(contextRoot, "strategic_guardrails");
-    const guardrails = await readKnowledgeFile(guardrailsPath);
-    if (guardrails) {
-      return guardrails;
-    }
-  } catch {
-    // Guardrails file not found, continue
-  }
-
-  return "";
+  const knowledgeEntries = await listConvexKnowledge(workspaceId) as ConvexKnowledgeEntry[];
+  return getKnowledgeBodyContent(knowledgeEntries, "strategic_guardrails");
 }
 
 // ============================================
@@ -114,29 +171,8 @@ export async function getPRDContext(workspaceId: string) {
  * Used by AI verification to check persona alignment.
  */
 export async function getPersonasForVerification(workspaceId: string): Promise<string> {
-  // First, try database entries
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  const personasEntry = entries.find((e) => e.type === "personas");
-  
-  if (personasEntry?.content) {
-    return personasEntry.content;
-  }
-
-  // Fall back to reading files directly
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  try {
-    const filePath = resolveKnowledgePath(contextRoot, "personas");
-    const content = await readKnowledgeFile(filePath);
-    if (content) {
-      return content;
-    }
-  } catch {
-    // File not found, continue
-  }
-
-  return "";
+  const { personas } = await getAllVerificationContext(workspaceId);
+  return personas;
 }
 
 /**
@@ -144,29 +180,8 @@ export async function getPersonasForVerification(workspaceId: string): Promise<s
  * Used by AI verification to check strategic alignment.
  */
 export async function getGuardrailsForVerification(workspaceId: string): Promise<string> {
-  // First, try database entries
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  const guardrailsEntry = entries.find((e) => e.type === "strategic_guardrails");
-  
-  if (guardrailsEntry?.content) {
-    return guardrailsEntry.content;
-  }
-
-  // Fall back to reading files directly
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  try {
-    const filePath = resolveKnowledgePath(contextRoot, "strategic_guardrails");
-    const content = await readKnowledgeFile(filePath);
-    if (content) {
-      return content;
-    }
-  } catch {
-    // File not found, continue
-  }
-
-  return "";
+  const { guardrails } = await getAllVerificationContext(workspaceId);
+  return guardrails;
 }
 
 /**
@@ -174,29 +189,8 @@ export async function getGuardrailsForVerification(workspaceId: string): Promise
  * Used by AI verification to ensure alignment with product direction.
  */
 export async function getCompanyContextForVerification(workspaceId: string): Promise<string> {
-  // First, try database entries
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  const companyEntry = entries.find((e) => e.type === "company_context");
-  
-  if (companyEntry?.content) {
-    return companyEntry.content;
-  }
-
-  // Fall back to reading files directly
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  try {
-    const filePath = resolveKnowledgePath(contextRoot, "company_context");
-    const content = await readKnowledgeFile(filePath);
-    if (content) {
-      return content;
-    }
-  } catch {
-    // File not found, continue
-  }
-
-  return "";
+  const { companyContext } = await getAllVerificationContext(workspaceId);
+  return companyContext;
 }
 
 /**
@@ -208,39 +202,13 @@ export async function getAllVerificationContext(workspaceId: string): Promise<{
   guardrails: string;
   companyContext: string;
 }> {
-  // Try database entries first
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  
-  let personas = entries.find((e) => e.type === "personas")?.content || "";
-  let guardrails = entries.find((e) => e.type === "strategic_guardrails")?.content || "";
-  let companyContext = entries.find((e) => e.type === "company_context")?.content || "";
-  
-  // If any are missing from DB, try loading from files
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-  
-  if (!personas) {
-    try {
-      const filePath = resolveKnowledgePath(contextRoot, "personas");
-      personas = await readKnowledgeFile(filePath);
-    } catch { /* File not found */ }
-  }
-  
-  if (!guardrails) {
-    try {
-      const filePath = resolveKnowledgePath(contextRoot, "strategic_guardrails");
-      guardrails = await readKnowledgeFile(filePath);
-    } catch { /* File not found */ }
-  }
-  
-  if (!companyContext) {
-    try {
-      const filePath = resolveKnowledgePath(contextRoot, "company_context");
-      companyContext = await readKnowledgeFile(filePath);
-    } catch { /* File not found */ }
-  }
-  
-  return { personas, guardrails, companyContext };
+  const { knowledgeEntries, personas } = await loadWorkspaceRuntimeContext(workspaceId);
+
+  return {
+    personas: getPersonasContent(knowledgeEntries, personas),
+    guardrails: getKnowledgeBodyContent(knowledgeEntries, "strategic_guardrails"),
+    companyContext: getKnowledgeBodyContent(knowledgeEntries, "company_context"),
+  };
 }
 
 // ============================================
@@ -335,9 +303,10 @@ _Last updated: ${now.toISOString()}_
       .where(eq(documents.id, existing[0].id));
   } else {
     // Create new
-    const project = await getProject(projectId);
-    const projectSlug = project?.name?.toLowerCase().replace(/\s+/g, '-') || 'project';
-    
+    const bundle = await getConvexProjectWithDocuments(projectId) as ConvexProjectBundle;
+    const projectSlug =
+      bundle?.project?.name?.toLowerCase().replace(/\s+/g, "-") || "project";
+
     await db.insert(documents).values({
       id: `doc_${nanoid()}`,
       projectId,

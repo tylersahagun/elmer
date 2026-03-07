@@ -144,12 +144,13 @@ export function InboxPanel({ workspaceId, className }: InboxPanelProps) {
 
   // Fetch personas
   const { data: personasData } = useQuery<{ personas: PersonaArchetype[] }>({
-    queryKey: ["personas"],
+    queryKey: ["personas", workspaceId],
     queryFn: async () => {
-      const res = await fetch("/api/personas");
+      const res = await fetch(`/api/personas?workspaceId=${workspaceId}`);
       if (!res.ok) throw new Error("Failed to load personas");
       return res.json();
     },
+    enabled: !!workspaceId,
   });
   
   const personas = personasData?.personas || [];

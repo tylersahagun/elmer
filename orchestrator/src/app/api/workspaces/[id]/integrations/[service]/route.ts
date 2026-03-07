@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -8,14 +8,20 @@ import {
 import { composioService } from "@/lib/composio/service";
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string; service: string }> }
 ) {
   try {
     const { id, service } = await params;
     await requireWorkspaceAccess(id, "admin");
 
-    const workspace = await getWorkspace(id);
+    const workspace = (await getConvexWorkspace(id)) as {
+      settings?: {
+        composio?: {
+          connectedServices?: string[];
+        };
+      };
+    } | null;
     const connected = workspace?.settings?.composio?.connectedServices || [];
     const next = connected.filter((s) => s !== service);
 

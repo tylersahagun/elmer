@@ -17,12 +17,14 @@ interface Persona {
 }
 
 interface PersonaLinkComboboxProps {
+  workspaceId: string;
   excludePersonaIds?: string[];
   onSelect: (personaId: string) => void;
   isLoading?: boolean;
 }
 
 export function PersonaLinkCombobox({
+  workspaceId,
   excludePersonaIds = [],
   onSelect,
   isLoading = false,
@@ -31,14 +33,15 @@ export function PersonaLinkCombobox({
   const { data: personasData, isLoading: personasLoading } = useQuery<{
     personas: Persona[];
   }>({
-    queryKey: ["personas"],
+    queryKey: ["personas", workspaceId],
     queryFn: async () => {
-      const res = await fetch("/api/personas");
+      const res = await fetch(`/api/personas?workspaceId=${workspaceId}`);
       if (!res.ok) return { personas: [] };
       const data = await res.json();
       // Ensure we always return the expected shape
       return { personas: Array.isArray(data.personas) ? data.personas : [] };
     },
+    enabled: !!workspaceId,
   });
 
   const availablePersonas = (personasData?.personas || []).filter(
