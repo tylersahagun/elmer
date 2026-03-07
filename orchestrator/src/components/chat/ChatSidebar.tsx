@@ -811,6 +811,85 @@ export function ChatSidebar() {
           return;
         }
 
+        if (command.command === "/status" && workspace?.id) {
+          const matchedProject =
+            projectName
+              ? projects.find((project) =>
+                  project.name.toLowerCase().includes(projectName.toLowerCase()),
+                )
+              : activeProject;
+          const query = matchedProject
+            ? `?projectId=${matchedProject.id}`
+            : "";
+          const response = await fetch(
+            `/api/workspaces/${workspace.id}/status${query}`,
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            const content =
+              "initiative" in data
+                ? formatInitiativeStatusMessage(data.initiative)
+                : formatWorkspaceStatusMessage(data);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                role: "assistant",
+                content,
+                timestamp: new Date(),
+                suggestions: ["Open Status Page"],
+              },
+            ]);
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                role: "assistant",
+                content: "❌ Failed to load workspace status.",
+                timestamp: new Date(),
+              },
+            ]);
+          }
+
+          setIsLoading(false);
+          return;
+        }
+
+        if (command.command === "/status-all" && workspace?.id) {
+          const response = await fetch(
+            `/api/workspaces/${workspace.id}/status-all`,
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                role: "assistant",
+                content: formatPortfolioStatusMessage(data),
+                timestamp: new Date(),
+                suggestions: ["Open Status Page"],
+              },
+            ]);
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                role: "assistant",
+                content: "❌ Failed to load portfolio status.",
+                timestamp: new Date(),
+              },
+            ]);
+          }
+
+          setIsLoading(false);
+          return;
+        }
+
         if (
           command.jobType === "execute_agent_definition" &&
           !(command as { agentDefinitionId?: string }).agentDefinitionId
@@ -1134,10 +1213,12 @@ export function ChatSidebar() {
                           <button
                             key={i}
                             onClick={() =>
-                              handleQuickAction(
-                                quickActions.find((a) => a.label === suggestion)
-                                  ?.prompt || suggestion,
-                              )
+                              suggestion === "Open Status Page" && workspace?.id
+                                ? router.push(`/workspace/${workspace.id}/status`)
+                                : handleQuickAction(
+                                    quickActions.find((a) => a.label === suggestion)
+                                      ?.prompt || suggestion,
+                                  )
                             }
                             className="text-xs px-2 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                           >
@@ -1395,4 +1476,103 @@ function generateLocalResponse(
   }
 
   return "I can help you with:\n\n• **Project status** - Overview of active projects\n• **Next steps** - Suggestions for what to focus on\n• **Blocked items** - Find stalled projects\n• **Create issues** - Turn feedback into actionable items\n\nWhat would you like to know?";
+}
+
+function formatWorkspaceStatusMessage(data: {
+  healthScore?: number;
+  summary?: {
+    totalProjects?: number;
+    readyToAdvance?: number;
+    needsAttention?: number;
+    staleProjects?: number;
+  };
+  actionQueue?: Array<{ projectName: string; command: string; reason: string }>;
+}) {
+  return `## Workspace Status
+
+- Health score: **${data.healthScore ?? 0}/100**
+- Total projects: **${data.summary?.totalProjects ?? 0}**
+- Ready to advance: **${data.summary?.readyToAdvance ?? 0}**
+- Needs attention: **${data.summary?.needsAttention ?? 0}**
+- Stale projects: **${data.summary?.staleProjects ?? 0}**
+
+${
+  data.actionQueue && data.actionQueue.length > 0
+    ? `### Top actions
+${data.actionQueue
+  .slice(0, 3)
+  .map(
+    (action) =>
+      `- **${action.projectName}** → \`${action.command}\` (${action.reason})`,
+  )
+  .join("\n")}`
+    : "No urgent actions right now."
+}
+`;
+}
+
+function formatInitiativeStatusMessage(initiative: {
+  name: string;
+  stage: string;
+  readinessScore: number;
+  readinessLabel: string;
+  measurementReadiness: string;
+  blockers: string[];
+  nextSuggestedCommand: string;
+}) {
+  return `## ${initiative.name}
+
+- Stage: **${initiative.stage}**
+- Readiness: **${Math.round(initiative.readinessScore * 100)}%** (${initiative.readinessLabel})
+- Measurement: **${initiative.measurementReadiness}**
+- Next command: \`${initiative.nextSuggestedCommand}\`
+
+${
+  initiative.blockers.length > 0
+    ? `### Blockers
+${initiative.blockers.map((blocker) => `- ${blocker}`).join("\n")}`
+    : "No blockers currently detected."
+}
+`;
+}
+
+function formatPortfolioStatusMessage(data: {
+  healthScore?: number;
+  attentionRequired?: Array<{ name: string; stage: string; blockers: string[] }>;
+  readyToAdvance?: Array<{ name: string; nextSuggestedCommand: string }>;
+}) {
+  return `## Portfolio Status
+
+- Health score: **${data.healthScore ?? 0}/100**
+- Attention required: **${data.attentionRequired?.length ?? 0}**
+- Ready to advance: **${data.readyToAdvance?.length ?? 0}**
+
+${
+  data.attentionRequired && data.attentionRequired.length > 0
+    ? `### Attention required
+${data.attentionRequired
+  .slice(0, 3)
+  .map(
+    (initiative) =>
+      `- **${initiative.name}** (${initiative.stage}) — ${
+        initiative.blockers[0] || "needs review"
+      }`,
+  )
+  .join("\n")}`
+    : "No urgent blockers detected."
+}
+
+${
+  data.readyToAdvance && data.readyToAdvance.length > 0
+    ? `### Ready to advance
+${data.readyToAdvance
+  .slice(0, 3)
+  .map(
+    (initiative) =>
+      `- **${initiative.name}** → \`${initiative.nextSuggestedCommand}\``,
+  )
+  .join("\n")}`
+    : ""
+}
+`;
 }
