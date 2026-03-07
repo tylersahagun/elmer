@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { SignalInboxPage } from "../pages";
+import { SignalInboxPage, WorkspacePage } from "../pages";
 import {
   seedDirectionChangeInboxItem,
   seedHighImpactInboxItem,
 } from "../fixtures/inbox";
+import { cleanupSeededData } from "../fixtures/jobs";
 
 /**
  * Signal Inbox E2E tests — supersedes GTM-68
@@ -12,11 +13,19 @@ import {
 
 test.describe("Signal Inbox", () => {
   let workspaceId: string;
+  const cleanupTags = new Set<string>();
 
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-    workspaceId = page.url().match(/\/workspace\/([^/]+)/)?.[1] ?? "";
+    const workspace = new WorkspacePage(page);
+    workspaceId = await workspace.openWorkspace(process.env.E2E_WORKSPACE_ID);
     expect(workspaceId).toBeTruthy();
+  });
+
+  test.afterEach(async ({ request }) => {
+    for (const seedTag of cleanupTags) {
+      await cleanupSeededData(request, workspaceId, seedTag);
+    }
+    cleanupTags.clear();
   });
 
   test("inbox page loads without errors", async ({ page }) => {
@@ -45,8 +54,9 @@ test.describe("Signal Inbox", () => {
     request,
   }) => {
     const inbox = new SignalInboxPage(page);
-    const suffix = `${Date.now()}`;
-    const seeded = await seedHighImpactInboxItem(request, suffix);
+    const seedTag = `signal-${Date.now()}`;
+    cleanupTags.add(seedTag);
+    const seeded = await seedHighImpactInboxItem(request, workspaceId, seedTag);
     await inbox.goto(workspaceId);
     await expect(page.getByText(seeded.title)).toBeVisible();
     await expect(page.locator("[data-testid='high-impact-section']")).toContainText(
@@ -59,8 +69,13 @@ test.describe("Signal Inbox", () => {
     request,
   }) => {
     const inbox = new SignalInboxPage(page);
-    const suffix = `${Date.now()}`;
-    const seeded = await seedDirectionChangeInboxItem(request, suffix);
+    const seedTag = `direction-${Date.now()}`;
+    cleanupTags.add(seedTag);
+    const seeded = await seedDirectionChangeInboxItem(
+      request,
+      workspaceId,
+      seedTag,
+    );
     await inbox.goto(workspaceId);
 
     const seededCard = page.locator("[data-testid='inbox-item']").filter({

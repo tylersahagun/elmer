@@ -4,7 +4,16 @@
  */
 
 import { internalQuery, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import {
+  buildE2eMetadata,
+  buildStubJobInput,
+  hasSeedTag,
+  hasTaggedText,
+  STUB_HITL_INITIAL_LOGS,
+  STUB_HITL_SCENARIO,
+} from "./e2eHelpers";
 
 // ── Projects ──────────────────────────────────────────────────────────────────
 
@@ -45,6 +54,7 @@ export const createProject = internalMutation({
     description: v.optional(v.string()),
     stage: v.string(),
     priority: v.string(),
+    metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("projects", {
@@ -54,7 +64,7 @@ export const createProject = internalMutation({
       stage: args.stage,
       status: "on_track",
       priority: args.priority,
-      metadata: {},
+      metadata: args.metadata ?? {},
     });
   },
 });
@@ -186,6 +196,7 @@ export const createJob = internalMutation({
 export const seedInboxItem = internalMutation({
   args: {
     workspaceId: v.id("workspaces"),
+    seedTag: v.optional(v.string()),
     source: v.string(),
     title: v.string(),
     rawContent: v.string(),
@@ -211,7 +222,9 @@ export const seedInboxItem = internalMutation({
       assignedProjectId: args.assignedProjectId,
       projectDirectionChange: args.projectDirectionChange,
       extractedProblems: args.extractedProblems,
-      aiSummary: "Seeded by E2E fixture",
+      aiSummary: args.seedTag
+        ? `Seeded by E2E fixture (${args.seedTag})`
+        : "Seeded by E2E fixture",
     });
   },
 });
@@ -220,6 +233,8 @@ export const seedPendingQuestionScenario = internalMutation({
   args: {
     workspaceId: v.id("workspaces"),
     projectId: v.optional(v.id("projects")),
+    seedTag: v.optional(v.string()),
+    questionType: v.optional(v.string()),
     questionText: v.string(),
     choices: v.optional(v.array(v.string())),
   },
@@ -229,7 +244,11 @@ export const seedPendingQuestionScenario = internalMutation({
       projectId: args.projectId,
       type: "execute_agent_definition",
       status: "waiting_input",
-      input: { seeded: true, scenario: "pending-question" },
+      input: {
+        seeded: true,
+        scenario: "pending-question",
+        seedTag: args.seedTag,
+      },
       output: null,
       attempt: 0,
       progress: 0.5,
@@ -243,10 +262,13 @@ export const seedPendingQuestionScenario = internalMutation({
       jobId,
       workspaceId: args.workspaceId,
       projectId: args.projectId,
-      questionType: args.choices && args.choices.length > 0 ? "choice" : "blocking",
+      questionType: args.questionType ?? "choice",
       questionText: args.questionText,
       choices: args.choices,
-      context: { hint: "Seeded by E2E fixture" },
+      context: {
+        hint: "Seeded by E2E fixture",
+        seedTag: args.seedTag,
+      },
       status: "pending",
     });
 
@@ -259,6 +281,91 @@ export const seedPendingQuestionScenario = internalMutation({
     });
 
     return { jobId, questionId };
+  },
+});
+
+export const seedStubAgentRun = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    seedTag: v.string(),
+    projectId: v.optional(v.id("projects")),
+    projectName: v.optional(v.string()),
+    questionText: v.optional(v.string()),
+    choices: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const resolvedProjectId =
+      args.projectId ??
+      (await ctx.db.insert("projects", {
+        workspaceId: args.workspaceId,
+        name: args.projectName ?? `[${args.seedTag}] E2E stub project`,
+        description: `Seeded stub project for ${args.seedTag}`,
+        stage: "inbox",
+        status: "on_track",
+        priority: "P2",
+        metadata: buildE2eMetadata(args.seedTag),
+      }));
+
+    const jobId = await ctx.db.insert("jobs", {
+      workspaceId: args.workspaceId,
+      projectId: resolvedProjectId,
+      type: "execute_agent_definition",
+      status: "waiting_input",
+      input: buildStubJobInput(args.seedTag),
+      output: null,
+      attempt: 0,
+      progress: 0.5,
+      initiatedBy: "system",
+      initiatedByName: "E2E Seed",
+      rootInitiator: "system",
+      rootInitiatorName: "E2E Seed",
+    });
+
+    const executionId = await ctx.db.insert("agentExecutions", {
+      jobId,
+      workspaceId: args.workspaceId,
+      projectId: resolvedProjectId,
+      inputContext: {
+        seedTag: args.seedTag,
+        stubScenario: STUB_HITL_SCENARIO,
+      },
+      toolCalls: [],
+      startedAt: Date.now(),
+    });
+
+    const questionId = await ctx.db.insert("pendingQuestions", {
+      jobId,
+      workspaceId: args.workspaceId,
+      projectId: resolvedProjectId,
+      questionType: "approval",
+      questionText:
+        args.questionText ??
+        `Approve the deterministic stub execution for ${args.seedTag}?`,
+      choices: args.choices ?? ["approve", "reject"],
+      context: {
+        seedTag: args.seedTag,
+        hint: "Seeded stub HITL question for Playwright",
+      },
+      status: "pending",
+    });
+
+    for (const entry of STUB_HITL_INITIAL_LOGS) {
+      await ctx.db.insert("jobLogs", {
+        jobId,
+        workspaceId: args.workspaceId,
+        level: entry.level,
+        message: entry.message,
+        stepKey: entry.stepKey,
+        meta: { seedTag: args.seedTag },
+      });
+    }
+
+    return {
+      executionId,
+      jobId,
+      projectId: resolvedProjectId,
+      questionId,
+    };
   },
 });
 
@@ -290,6 +397,103 @@ export const answerQuestion = internalMutation({
       jobId: question.jobId,
       questionId,
     });
+  },
+});
+
+export const cleanupSeededData = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    seedTag: v.string(),
+  },
+  handler: async (ctx, { workspaceId, seedTag }) => {
+    let cleanedInboxItems = 0;
+    let cleanedQuestions = 0;
+    let cleanedJobs = 0;
+    let cleanedProjects = 0;
+
+    for (const status of ["pending", "processing", "assigned", "dismissed"]) {
+      const inboxItems = await ctx.db
+        .query("inboxItems")
+        .withIndex("by_workspace_status", (q) =>
+          q.eq("workspaceId", workspaceId).eq("status", status),
+        )
+        .collect();
+
+      for (const item of inboxItems) {
+        if (
+          hasTaggedText(item.title, seedTag) ||
+          hasTaggedText(item.aiSummary, seedTag)
+        ) {
+          await ctx.db.patch(item._id, { status: "dismissed" });
+          cleanedInboxItems += 1;
+        }
+      }
+    }
+
+    const pendingQuestions = await ctx.db
+      .query("pendingQuestions")
+      .withIndex("by_workspace_status", (q) =>
+        q.eq("workspaceId", workspaceId).eq("status", "pending"),
+      )
+      .collect();
+
+    for (const question of pendingQuestions) {
+      if (hasSeedTag(question.context as Record<string, unknown>, seedTag)) {
+        await ctx.db.patch(question._id, { status: "timed_out" });
+        cleanedQuestions += 1;
+      }
+    }
+
+    for (const status of ["pending", "running", "waiting_input", "failed"]) {
+      const jobs = await ctx.db
+        .query("jobs")
+        .withIndex("by_workspace_status", (q) =>
+          q.eq("workspaceId", workspaceId).eq("status", status),
+        )
+        .collect();
+
+      for (const job of jobs) {
+        if (hasSeedTag(job.input as Record<string, unknown>, seedTag)) {
+          await ctx.db.patch(job._id, {
+            status: "cancelled",
+            errorMessage:
+              status === "failed"
+                ? job.errorMessage
+                : `E2E cleanup (${seedTag}) cancelled this seeded job`,
+          });
+          cleanedJobs += 1;
+        }
+      }
+    }
+
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+
+    for (const project of projects) {
+      if (hasSeedTag(project.metadata as Record<string, unknown>, seedTag)) {
+        const name = project.name.startsWith(`[cleanup:${seedTag}]`)
+          ? project.name
+          : `[cleanup:${seedTag}] ${project.name}`;
+        await ctx.db.patch(project._id, {
+          name,
+          metadata: {
+            ...(project.metadata as Record<string, unknown> | undefined),
+            cleanedAt: Date.now(),
+          },
+        });
+        cleanedProjects += 1;
+      }
+    }
+
+    return {
+      cleanedInboxItems,
+      cleanedJobs,
+      cleanedProjects,
+      cleanedQuestions,
+      seedTag,
+    };
   },
 });
 

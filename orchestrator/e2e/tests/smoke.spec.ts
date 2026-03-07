@@ -54,42 +54,7 @@ test.describe("Smoke: Core routes @smoke", () => {
 
   test.beforeEach(async ({ page }) => {
     const workspace = new WorkspacePage(page);
-    await workspace.gotoHome();
-
-    let homeState: "authenticated" | "unauthenticated" | "loading" = "loading";
-    await expect
-      .poll(
-        async () => {
-          if (await workspace.isAuthenticatedHomeReady()) {
-            homeState = "authenticated";
-            return homeState;
-          }
-          if (await workspace.isUnauthenticatedHomeReady()) {
-            homeState = "unauthenticated";
-            return homeState;
-          }
-          homeState = "loading";
-          return homeState;
-        },
-        { timeout: 30_000 },
-      )
-      .not.toBe("loading");
-
-    if (homeState === "unauthenticated") {
-      const email = process.env.E2E_TEST_EMAIL;
-      const password = process.env.E2E_TEST_PASSWORD;
-
-      if (!email || !password) {
-        throw new Error(
-          "E2E_TEST_EMAIL and E2E_TEST_PASSWORD must be set in .env.local for smoke auth recovery",
-        );
-      }
-
-      await workspace.signIn(email, password);
-    }
-
-    await workspace.expectAuthenticatedHome();
-    workspaceId = await workspace.openFirstWorkspaceFromHome();
+    workspaceId = await workspace.openWorkspace(process.env.E2E_WORKSPACE_ID);
     expect(workspaceId).toBeTruthy();
   });
 

@@ -16,6 +16,22 @@ export class AgentExecutionPage {
     await this.page.goto(`/workspace/${workspaceId}/agents/${jobId}`);
   }
 
+  traceRoot(): Locator {
+    return this.page.getByTestId("agent-trace-page");
+  }
+
+  executionPanel(): Locator {
+    return this.page.getByTestId("execution-panel");
+  }
+
+  executionLogs(): Locator {
+    return this.page.getByTestId("execution-log-list");
+  }
+
+  executionOutput(): Locator {
+    return this.page.getByTestId("execution-output");
+  }
+
   async getActiveJobCount(): Promise<number> {
     const jobs = this.page.locator("[data-testid='agent-card'][data-status='running'], [data-testid='agent-card'][data-status='waiting_input']");
     return jobs.count();

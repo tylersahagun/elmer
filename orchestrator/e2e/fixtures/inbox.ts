@@ -1,4 +1,5 @@
 import { type APIRequestContext, expect } from "@playwright/test";
+import { createProject } from "./projects";
 
 const CONVEX_SITE_URL =
   process.env.CONVEX_SITE_URL ?? "https://fortunate-parakeet-796.convex.site";
@@ -12,37 +13,28 @@ function authHeaders() {
   };
 }
 
-async function getFirstProjectId(request: APIRequestContext): Promise<string> {
-  const response = await request.get(`${CONVEX_SITE_URL}/mcp/projects`, {
-    headers: authHeaders(),
-  });
-  expect(response.ok()).toBeTruthy();
-  const projects = (await response.json()) as Array<{ _id: string }>;
-  if (!projects.length) {
-    throw new Error("No projects available for inbox fixtures");
-  }
-  return projects[0]._id;
-}
-
 export async function seedDirectionChangeInboxItem(
   request: APIRequestContext,
-  suffix: string,
+  workspaceId: string,
+  seedTag: string,
 ) {
-  const projectId = await getFirstProjectId(request);
-  const title = `E2E direction signal ${suffix}`;
+  const project = await createProject(request, workspaceId, seedTag);
+  const title = `[${seedTag}] E2E direction signal`;
   const response = await request.post(`${CONVEX_SITE_URL}/mcp/e2e/inbox`, {
     headers: authHeaders(),
     data: {
+      workspaceId,
+      seedTag,
       source: "e2e",
       type: "signal",
       title,
-      rawContent: `Customers are repeatedly asking to change roadmap priorities for ${suffix}.`,
-      tldr: `Direction change requested for ${suffix}`,
+      rawContent: `Customers are repeatedly asking to change roadmap priorities for ${seedTag}.`,
+      tldr: `Direction change requested for ${seedTag}`,
       impactScore: 91,
       suggestsVisionUpdate: true,
-      assignedProjectId: projectId,
+      assignedProjectId: project.id,
       projectDirectionChange: {
-        projectId,
+        projectId: project.id,
         changeType: "pivot",
         rationale: "Seeded by Playwright to validate review-impact UX.",
         affectedArea: "priority",
@@ -58,22 +50,25 @@ export async function seedDirectionChangeInboxItem(
   });
 
   expect(response.ok()).toBeTruthy();
-  return { title, projectId, payload: await response.json() };
+  return { title, projectId: project.id, projectName: project.name, payload: await response.json() };
 }
 
 export async function seedHighImpactInboxItem(
   request: APIRequestContext,
-  suffix: string,
+  workspaceId: string,
+  seedTag: string,
 ) {
-  const title = `E2E high impact signal ${suffix}`;
+  const title = `[${seedTag}] E2E high impact signal`;
   const response = await request.post(`${CONVEX_SITE_URL}/mcp/e2e/inbox`, {
     headers: authHeaders(),
     data: {
+      workspaceId,
+      seedTag,
       source: "e2e",
       type: "signal",
       title,
-      rawContent: `A high-impact issue was reported for ${suffix}.`,
-      tldr: `High-impact issue reported for ${suffix}`,
+      rawContent: `A high-impact issue was reported for ${seedTag}.`,
+      tldr: `High-impact issue reported for ${seedTag}`,
       impactScore: 84,
       suggestsVisionUpdate: false,
       extractedProblems: [
