@@ -9,22 +9,25 @@ import {
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+import {
+  findReusableContextThread,
+  shouldRetitleThread,
+} from "../src/lib/chat/thread-utils";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
 export const listThreads = query({
   args: {
     workspaceId: v.id("workspaces"),
-    userId: v.string(),
     includeArchived: v.optional(v.boolean()),
   },
-  handler: async (ctx, { workspaceId, userId, includeArchived }) => {
+  handler: async (ctx, { workspaceId, includeArchived }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
     const threads = await ctx.db
       .query("chatThreads")
       .withIndex("by_workspace_user", (q) =>
-        q.eq("workspaceId", workspaceId).eq("userId", userId),
+        q.eq("workspaceId", workspaceId).eq("userId", identity.subject),
       )
       .order("desc")
       .collect();
@@ -101,7 +104,6 @@ export const searchMentionables = query({
 export const createThread = mutation({
   args: {
     workspaceId: v.id("workspaces"),
-    userId: v.string(),
     title: v.string(),
     contextEntityType: v.optional(v.string()),
     contextEntityId: v.optional(v.string()),
@@ -112,7 +114,7 @@ export const createThread = mutation({
     if (!identity) throw new Error("Not authenticated");
     return await ctx.db.insert("chatThreads", {
       workspaceId: args.workspaceId,
-      userId: args.userId,
+      userId: identity.subject,
       title: args.title,
       contextEntityType: args.contextEntityType,
       contextEntityId: args.contextEntityId,
@@ -120,6 +122,65 @@ export const createThread = mutation({
       lastMessageAt: Date.now(),
       isArchived: false,
     });
+  },
+});
+
+export const getOrCreateThreadForContext = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    title: v.string(),
+    contextEntityType: v.string(),
+    contextEntityId: v.string(),
+    model: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const existingThreads = await ctx.db
+      .query("chatThreads")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", identity.subject),
+      )
+      .order("desc")
+      .collect();
+
+    const existing = findReusableContextThread(
+      existingThreads,
+      args.contextEntityType,
+      args.contextEntityId,
+    );
+
+    if (existing) {
+      const updates: Record<string, unknown> = {};
+
+      if (shouldRetitleThread(existing.title, args.title)) {
+        updates.title = args.title;
+      }
+
+      if (args.model && !existing.model) {
+        updates.model = args.model;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await ctx.db.patch(existing._id, updates);
+      }
+
+      return { threadId: existing._id, created: false };
+    }
+
+    const threadId = await ctx.db.insert("chatThreads", {
+      workspaceId: args.workspaceId,
+      userId: identity.subject,
+      title: args.title,
+      contextEntityType: args.contextEntityType,
+      contextEntityId: args.contextEntityId,
+      model: args.model,
+      lastMessageAt: Date.now(),
+      isArchived: false,
+    });
+
+    return { threadId, created: true };
   },
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { useUIStore } from "@/lib/store";
 import { DocumentArtifactPanel } from "./DocumentArtifactPanel";
+import { deriveThreadTitle, getThreadContextLabel } from "@/lib/chat/thread-utils";
 
 const DOCUMENT_PATTERN = /\[DOCUMENT_CREATED:\s*(\{[^}]+\})\]/;
 
@@ -69,7 +70,18 @@ type Job = {
   status: string;
   projectId?: Id<"projects">;
   agentDefinitionId?: Id<"agentDefinitions">;
+  initiatedByName?: string | null;
   output?: unknown;
+};
+
+type ChatThread = {
+  _id: Id<"chatThreads">;
+  title: string;
+  lastMessageAt: number;
+  contextEntityType?: string;
+  contextEntityId?: string;
+  model?: string;
+  isArchived: boolean;
 };
 
 type PendingQuestion = {
@@ -169,8 +181,17 @@ function JobRow({
   router: ReturnType<typeof useRouter>;
 }) {
   const lastLog = useQuery(api.jobs.getLastLog, { jobId: job._id });
-  const duration = Date.now() - job._creationTime;
+  const openJobLogsDrawer = useUIStore((s) => s.openJobLogsDrawer);
   const hasHITL = !!pendingQ;
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (job.status !== "running") return;
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [job.status]);
+
+  const duration = now - job._creationTime;
 
   return (
     <div
@@ -210,21 +231,35 @@ function JobRow({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-        <span>{formatDuration(duration)}</span>
-        {job.projectId && (
-          <>
-            <span>·</span>
+      <div className="flex items-center justify-between gap-2 mt-1">
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground min-w-0">
+          <span>{formatDuration(duration)}</span>
+          {job.initiatedByName ? (
+            <>
+              <span>·</span>
+              <span className="truncate max-w-[100px]">{job.initiatedByName}</span>
+            </>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2 text-[10px] shrink-0">
+          <button
+            onClick={() => openJobLogsDrawer(String(job._id))}
+            className="text-slate-300 hover:text-white transition-colors"
+          >
+            Trace
+          </button>
+          {job.projectId && (
             <button
               onClick={() =>
                 router.push(`/workspace/${workspaceId}/projects/${job.projectId}`)
               }
-              className="text-purple-400 hover:text-purple-300 transition-colors truncate max-w-[100px]"
+              className="text-purple-400 hover:text-purple-300 transition-colors"
             >
-              project ↗
+              Project
             </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       {lastLog && (
@@ -388,21 +423,24 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
   const userId = clerkUser?.id ?? "";
 
-  const pageContext = {
-    pathname: pathname ?? undefined,
-    projectId:
-      (params?.id as string | undefined) ??
-      (params?.projectId as string | undefined) ??
-      undefined,
-    documentId: (params?.docId as string | undefined) ?? undefined,
-  };
+  const pageContext = useMemo(
+    () => ({
+      pathname: pathname ?? undefined,
+      projectId:
+        (params?.id as string | undefined) ??
+        (params?.projectId as string | undefined) ??
+        undefined,
+      documentId: (params?.docId as string | undefined) ?? undefined,
+    }),
+    [params, pathname],
+  );
 
   const threads = useQuery(
     api.chat.listThreads,
     isAuthenticated && userId && workspaceId
-      ? { workspaceId: workspaceId as Id<"workspaces">, userId }
+      ? { workspaceId: workspaceId as Id<"workspaces"> }
       : "skip",
-  );
+  ) as ChatThread[] | undefined;
 
   const messages = useQuery(
     api.chat.listMessages,
@@ -441,6 +479,9 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const currentModel = activeThread?.model ?? "auto";
 
   const createThread = useMutation(api.chat.createThread);
+  const getOrCreateThreadForContext = useMutation(
+    api.chat.getOrCreateThreadForContext,
+  );
   const updateThread = useMutation(api.chat.updateThread);
   const createAndSchedule = useMutation(api.jobs.createAndSchedule);
   const cancelJob = useMutation(api.jobs.cancel);
@@ -459,21 +500,27 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       : "skip",
   );
 
-  // Flatten commandResults groups into a list for keyboard nav
-  const flatCommandList: AgentDefinition[] = [];
-  if (commandResults) {
+  const flatCommandList = useMemo(() => {
+    const commands: AgentDefinition[] = [];
+
+    if (!commandResults) {
+      return commands;
+    }
+
     for (const group of GROUP_ORDER) {
       if (commandResults[group]) {
-        flatCommandList.push(...(commandResults[group] as AgentDefinition[]));
+        commands.push(...(commandResults[group] as AgentDefinition[]));
       }
     }
-    // Add any groups not in the known order
+
     for (const [group, items] of Object.entries(commandResults)) {
       if (!GROUP_ORDER.includes(group)) {
-        flatCommandList.push(...(items as AgentDefinition[]));
+        commands.push(...(items as AgentDefinition[]));
       }
     }
-  }
+
+    return commands;
+  }, [commandResults]);
 
   useEffect(() => {
     if (!messages) return;
@@ -515,6 +562,28 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     setSlashDropdownIndex(0);
   }, [commandResults]);
 
+  const openContextThread = useCallback(
+    async (contextEntityType: string, contextEntityId: string, entityName: string) => {
+      const contextThread = await getOrCreateThreadForContext({
+        workspaceId: workspaceId as Id<"workspaces">,
+        title: `About: ${entityName}`,
+        contextEntityType,
+        contextEntityId,
+        model: "auto",
+      });
+
+      setActiveThreadId(contextThread.threadId);
+      setStreamingMessages([]);
+
+      if (contextThread.created) {
+        setInputValue(`Tell me about this ${contextEntityType}: "${entityName}"`);
+      } else {
+        setInputValue("");
+      }
+    },
+    [getOrCreateThreadForContext, workspaceId],
+  );
+
   useEffect(() => {
     if (!elmerPanelOpen || !isAuthenticated || !userId) return;
     setIsOpen(true);
@@ -522,18 +591,11 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
 
     if (elmerPanelContextEntityId && elmerPanelContextEntityType) {
       const entityName = elmerPanelContextEntityName ?? elmerPanelContextEntityType;
-      void createThread({
-        workspaceId: workspaceId as Id<"workspaces">,
-        userId,
-        title: `About: ${entityName}`,
-        contextEntityType: elmerPanelContextEntityType,
-        contextEntityId: elmerPanelContextEntityId,
-      }).then((newId) => {
-        setActiveThreadId(newId);
-        setStreamingMessages([]);
-        const initialMessage = `Tell me about this ${elmerPanelContextEntityType}: "${entityName}"`;
-        setInputValue(initialMessage);
-      });
+      void openContextThread(
+        elmerPanelContextEntityType,
+        elmerPanelContextEntityId,
+        entityName,
+      );
     }
 
     closeElmerPanel();
@@ -546,8 +608,13 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     isAuthenticated,
     userId,
     workspaceId,
-    createThread,
+    openContextThread,
   ]);
+
+  useEffect(() => {
+    if (!isOpen || activeTab !== "chat" || activeThreadId || !threads?.length) return;
+    setActiveThreadId(threads[0]._id);
+  }, [activeTab, activeThreadId, isOpen, threads]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -592,12 +659,11 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     if (activeThreadId) return activeThreadId;
     const newId = await createThread({
       workspaceId: workspaceId as Id<"workspaces">,
-      userId,
       title: "New conversation",
     });
     setActiveThreadId(newId);
     return newId;
-  }, [activeThreadId, createThread, workspaceId, userId]);
+  }, [activeThreadId, createThread, workspaceId]);
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -783,6 +849,12 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     setIntentSuggestion(null);
 
     const threadId = await getOrCreateThread();
+    if (activeThread?.title === "New conversation") {
+      await updateThread({
+        threadId,
+        title: deriveThreadTitle(content),
+      });
+    }
 
     const optimisticUserMsg: StreamingMessage = {
       id: `optimistic-${Date.now()}`,
@@ -896,7 +968,17 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
         return updated;
       });
     }
-  }, [inputValue, isStreaming, mentions, getOrCreateThread, getToken, workspaceId, pageContext]);
+  }, [
+    activeThread?.title,
+    getOrCreateThread,
+    getToken,
+    inputValue,
+    isStreaming,
+    mentions,
+    pageContext,
+    updateThread,
+    workspaceId,
+  ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -965,13 +1047,13 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
   const handleNewThread = useCallback(async () => {
     const newId = await createThread({
       workspaceId: workspaceId as Id<"workspaces">,
-      userId,
       title: "New conversation",
     });
     setActiveThreadId(newId);
     setStreamingMessages([]);
     setMentions([]);
-  }, [createThread, workspaceId, userId]);
+    setInputValue("");
+  }, [createThread, workspaceId]);
 
   const formatRelativeTime = (ts: number) => {
     const diff = Date.now() - ts;
@@ -1001,19 +1083,18 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
       pendingQuestion: { questionText: string },
     ) => {
       setActiveTab("chat");
-      const threadId = await createThread({
+      const contextThread = await getOrCreateThreadForContext({
         workspaceId: workspaceId as Id<"workspaces">,
-        userId,
         title: `HITL: ${formatJobType(job.type)}`,
         contextEntityType: "job",
-        contextEntityId: job._id,
+        contextEntityId: String(job._id),
         model: "auto",
       });
-      setActiveThreadId(threadId);
+      setActiveThreadId(contextThread.threadId);
       setStreamingMessages([]);
       setInputValue(pendingQuestion.questionText);
     },
-    [createThread, workspaceId, userId],
+    [getOrCreateThreadForContext, workspaceId],
   );
 
   const isAnswered = useCallback((hitlMsgId: string): boolean => {
@@ -1189,9 +1270,15 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
                         <p className="text-[11px] font-medium truncate">
                           {thread.title}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                          {formatRelativeTime(thread.lastMessageAt)}
-                        </p>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
+                          <span>{formatRelativeTime(thread.lastMessageAt)}</span>
+                          {getThreadContextLabel(thread.contextEntityType) ? (
+                            <>
+                              <span>·</span>
+                              <span>{getThreadContextLabel(thread.contextEntityType)}</span>
+                            </>
+                          ) : null}
+                        </div>
                       </button>
                     ))
                   )}

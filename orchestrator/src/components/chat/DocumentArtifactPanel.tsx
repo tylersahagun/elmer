@@ -107,7 +107,6 @@ export function DocumentArtifactPanel({
 
     const threadId = await createThread({
       workspaceId: wsId,
-      userId: "system",
       title: `Discuss: ${document.title ?? "Document"}`,
       contextEntityType: "document",
       contextEntityId: documentId,
