@@ -14,6 +14,12 @@ interface OnboardingRequestBody {
   repo?: string; // Full repo path (owner/name)
   branch?: string; // Selected branch
   template?: boolean;
+  settings?: {
+    contextPaths?: string[];
+    prototypesPath?: string;
+    automationMode?: "manual" | "auto_to_stage" | "auto_all";
+    automationStopStage?: string | null;
+  };
   repoDetails?: {
     id: number;
     fullName: string;
@@ -80,21 +86,37 @@ export async function POST(
       importedKnowledge: existingOnboardingData.importedKnowledge ?? 0,
     };
 
+    const normalizedContextPaths =
+      body.settings?.contextPaths?.length
+        ? body.settings.contextPaths.map((value) =>
+            value.endsWith("/") ? value : `${value}/`,
+          )
+        : body.template && !workspace.settings?.contextPaths?.length
+          ? ["elmer-docs/"]
+          : workspace.settings?.contextPaths;
+
     // Update workspace with repository and onboarding completion
     const updatedWorkspace = await updateWorkspace(id, {
       githubRepo: body.template ? null : body.repo,
       settings: {
         ...workspace.settings,
         baseBranch: body.branch ?? workspace.settings?.baseBranch ?? "main",
-        contextPaths:
-          body.template && !workspace.settings?.contextPaths?.length
-            ? ["elmer-docs/"]
-            : workspace.settings?.contextPaths,
+        contextPaths: normalizedContextPaths,
         prototypesPath:
-          body.template && !workspace.settings?.prototypesPath
+          body.settings?.prototypesPath ||
+          (body.template && !workspace.settings?.prototypesPath
             ? "prototypes/"
-            : workspace.settings?.prototypesPath,
+            : workspace.settings?.prototypesPath),
+        automationMode:
+          body.settings?.automationMode ?? workspace.settings?.automationMode,
+        automationStopStage:
+          body.settings?.automationStopStage ??
+          workspace.settings?.automationStopStage,
       },
+      contextPath:
+        normalizedContextPaths?.[0] ||
+        workspace.contextPath ||
+        "elmer-docs/",
       onboardingCompletedAt: new Date(),
       onboardingData,
     });
