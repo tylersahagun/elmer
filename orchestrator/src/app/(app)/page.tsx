@@ -44,7 +44,7 @@ import {
   useMutation,
   useQuery as useConvexQuery,
 } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 import { canRunConvexQuery } from "@/lib/auth/convex";
 import { slugifyWorkspaceName } from "@/lib/workspaces/path";
 

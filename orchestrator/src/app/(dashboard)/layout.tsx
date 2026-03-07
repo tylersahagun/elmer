@@ -1,7 +1,8 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { AppShellProviders } from "@/components/providers/AppShellProviders";
+import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
 import {
   DisplaySettingsProvider,
   type DisplayMode,
@@ -26,18 +27,6 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000, // 1 minute
-            refetchOnWindowFocus: false,
-          },
-        },
-      }),
-  );
-
   const [displayMode, setDisplayMode] = useState<DisplayMode>(() =>
     getInitialDisplayMode(),
   );
@@ -53,13 +42,15 @@ export default function DashboardLayout({
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <DisplaySettingsProvider
-        initialMode={displayMode}
-        onModeChange={handleDisplayModeChange}
-      >
-        {children}
-      </DisplaySettingsProvider>
-    </QueryClientProvider>
+    <AppShellProviders>
+      <ReactQueryProvider>
+        <DisplaySettingsProvider
+          initialMode={displayMode}
+          onModeChange={handleDisplayModeChange}
+        >
+          {children}
+        </DisplaySettingsProvider>
+      </ReactQueryProvider>
+    </AppShellProviders>
   );
 }

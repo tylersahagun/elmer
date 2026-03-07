@@ -241,8 +241,9 @@ npm run check:auth
 ```
 
 `npm run check:auth` validates the Clerk publishable key, `CLERK_JWT_ISSUER_DOMAIN`,
-`AUTH_URL`/`NEXTAUTH_URL`, and `NEXT_PUBLIC_CONVEX_URL` before it checks the
-public `/login` route and Clerk DNS.
+`AUTH_URL`/`NEXTAUTH_URL`, and the Convex client URL before it verifies that
+the public `/login` route returns HTML with Clerk bootstrap markers and then
+checks Clerk DNS.
 
 **Note:** Site is only available when your Mac is running with all services active.
 

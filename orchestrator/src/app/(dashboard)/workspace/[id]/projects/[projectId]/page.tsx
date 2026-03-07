@@ -1,7 +1,7 @@
 import { ProjectDetailPage } from "@/app/(dashboard)/projects/[id]/ProjectDetailPage";
 
 interface WorkspaceProjectPageProps {
-  params: Promise<{ workspaceId: string; projectId: string }>;
+  params: Promise<{ id: string; projectId: string }>;
 }
 
 export default async function WorkspaceProjectPage({

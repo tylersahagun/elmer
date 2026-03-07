@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { ClerkProvider } from "@clerk/nextjs";
-import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
 import { getClerkProviderProps } from "@/lib/auth/clerk";
-import {
-  ThemeProvider,
-  SessionProvider,
-  TourProvider,
-} from "@/components/providers";
+import { ThemeProvider } from "@/components/providers";
 import { GridBackground } from "@/components/backgrounds";
 import { AuroraBackground } from "@/components/aurora/AuroraBackground";
 import { Toaster } from "sonner";
@@ -51,24 +46,18 @@ export default function RootLayout({
         className={`${chillax.variable} ${synonym.variable} antialiased min-h-screen`}
       >
         <ClerkProvider {...clerkProviderProps}>
-          <ConvexClientProvider>
-            <SessionProvider>
-              <ThemeProvider>
-                <TourProvider>
-                  <AuroraBackground />
-                  <GridBackground />
-                  <div className="relative z-10 min-h-screen">{children}</div>
-                  <Toaster
-                    theme="dark"
-                    position="bottom-right"
-                    toastOptions={{
-                      className: "bg-card border-border",
-                    }}
-                  />
-                </TourProvider>
-              </ThemeProvider>
-            </SessionProvider>
-          </ConvexClientProvider>
+          <ThemeProvider>
+            <AuroraBackground />
+            <GridBackground />
+            <div className="relative z-10 min-h-screen">{children}</div>
+            <Toaster
+              theme="dark"
+              position="bottom-right"
+              toastOptions={{
+                className: "bg-card border-border",
+              }}
+            />
+          </ThemeProvider>
         </ClerkProvider>
       </body>
     </html>
