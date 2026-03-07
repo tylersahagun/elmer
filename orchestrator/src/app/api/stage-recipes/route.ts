@@ -8,6 +8,11 @@
 
 import { NextResponse } from "next/server";
 import {
+  requireWorkspaceAccess,
+  handlePermissionError,
+  PermissionError,
+} from "@/lib/permissions";
+import {
   getAllStageRecipes,
   getStageRecipe,
   createStageRecipe,
@@ -30,9 +35,15 @@ export async function GET(request: Request) {
       );
     }
 
+    await requireWorkspaceAccess(workspaceId, "viewer");
+
     const recipes = await getAllStageRecipes(workspaceId);
     return NextResponse.json({ recipes });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("[API /stage-recipes] GET error:", error);
     return NextResponse.json(
       { error: "Failed to fetch recipes" },
@@ -56,6 +67,7 @@ export async function POST(request: Request) {
             { status: 400 }
           );
         }
+        await requireWorkspaceAccess(workspaceId, "member");
         await initializeDefaultRecipes(workspaceId);
         const recipes = await getAllStageRecipes(workspaceId);
         return NextResponse.json({
@@ -84,6 +96,8 @@ export async function POST(request: Request) {
           );
         }
 
+        await requireWorkspaceAccess(input.workspaceId, "member");
+
         const recipeId = await createStageRecipe(input);
         return NextResponse.json({
           recipeId,
@@ -98,6 +112,10 @@ export async function POST(request: Request) {
         );
     }
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("[API /stage-recipes] POST error:", error);
     return NextResponse.json(
       { error: "Failed to process recipe action" },
@@ -117,6 +135,8 @@ export async function PATCH(request: Request) {
         { status: 400 }
       );
     }
+
+    await requireWorkspaceAccess(workspaceId, "member");
 
     // Validate stage exists
     const existingRecipe = await getStageRecipe(workspaceId, stage as ProjectStage);
@@ -158,6 +178,10 @@ export async function PATCH(request: Request) {
       message: `Recipe for '${stage}' updated`,
     });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("[API /stage-recipes] PATCH error:", error);
     return NextResponse.json(
       { error: "Failed to update recipe" },
