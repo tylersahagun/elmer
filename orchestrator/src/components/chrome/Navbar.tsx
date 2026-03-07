@@ -175,6 +175,7 @@ export function SimpleNavbar({
   const isSignalsActive = pathname?.includes("/signals");
   const isStatusActive = pathname?.includes("/status");
   const isControlCenterActive = pathname?.includes("/control-center");
+  const isSwarmActive = pathname?.includes("/swarm");
   const isAgentsActive = pathname?.includes("/agents");
   const isSettingsActive = pathname?.includes("/settings");
   const isDashboardActive =
@@ -185,6 +186,7 @@ export function SimpleNavbar({
       !isSignalsActive &&
       !isStatusActive &&
       !isControlCenterActive &&
+      !isSwarmActive &&
       !isAgentsActive &&
       !isSettingsActive);
 
@@ -213,6 +215,10 @@ export function SimpleNavbar({
     workspaceId && {
       label: "Control",
       href: `/workspace/${workspaceId}/control-center`,
+    },
+    workspaceId && {
+      label: "Swarm",
+      href: `/workspace/${workspaceId}/swarm`,
     },
     workspaceId && {
       label: "Agents",
@@ -364,6 +370,22 @@ export function SimpleNavbar({
                     </Link>
 
                     <Link
+                      href={`/workspace/${workspaceId}/swarm`}
+                      className="w-full"
+                    >
+                      <DropdownMenuItem
+                        className={cn(
+                          "gap-2 font-mono text-sm",
+                          isSwarmActive && "bg-accent",
+                        )}
+                      >
+                        <span className="text-emerald-500">$</span>
+                        <span>run</span>
+                        <span className="text-muted-foreground">swarm</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link
                       href={`/workspace/${workspaceId}/agents`}
                       className="w-full"
                     >
@@ -459,6 +481,7 @@ export function SimpleNavbar({
                 (item.href.includes("/status") && isStatusActive) ||
                 (item.href.includes("/control-center") &&
                   isControlCenterActive) ||
+                (item.href.includes("/swarm") && isSwarmActive) ||
                 (item.href.includes("agents") && isAgentsActive) ||
                 (item.href.includes("settings") && isSettingsActive);
               return (
