@@ -3,6 +3,7 @@ import { httpAction } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { streamResponse } from "./chat";
+import { resolveWorkspaceId } from "./httpUtils";
 
 const http = httpRouter();
 
@@ -188,8 +189,12 @@ http.route({
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const workspaceId = resolveWorkspaceId({
+      request,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
     const projects = await ctx.runQuery(internal.mcp.listProjects, {
-      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      workspaceId: workspaceId as Id<"workspaces">,
     });
     return jsonOk(projects);
   }),
@@ -219,12 +224,18 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
     const body = await request.json() as Record<string, unknown>;
+    const workspaceId = resolveWorkspaceId({
+      request,
+      body,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
     const id = await ctx.runMutation(internal.mcp.createProject, {
-      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      workspaceId: workspaceId as Id<"workspaces">,
       name: body.name as string,
       description: body.description as string | undefined,
       stage: (body.stage as string | undefined) ?? "inbox",
       priority: (body.priority as string | undefined) ?? "P2",
+      metadata: body.metadata,
     });
     return jsonOk({ id });
   }),
@@ -339,8 +350,12 @@ http.route({
       ]);
       return jsonOk({ job, logs });
     }
+    const workspaceId = resolveWorkspaceId({
+      request,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
     const jobs = await ctx.runQuery(internal.mcp.listJobs, {
-      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      workspaceId: workspaceId as Id<"workspaces">,
       status,
     });
     return jsonOk(jobs);
@@ -353,8 +368,12 @@ http.route({
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const workspaceId = resolveWorkspaceId({
+      request,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
     const questions = await ctx.runQuery(internal.mcp.listPendingQuestions, {
-      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      workspaceId: workspaceId as Id<"workspaces">,
     });
     return jsonOk(questions);
   }),
@@ -820,8 +839,14 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
     const body = await request.json() as Record<string, unknown>;
+    const workspaceId = resolveWorkspaceId({
+      request,
+      body,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
     const id = await ctx.runMutation(internal.mcp.seedInboxItem, {
-      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      workspaceId: workspaceId as Id<"workspaces">,
+      seedTag: body.seedTag as string | undefined,
       source: (body.source as string | undefined) ?? "e2e",
       title: body.title as string,
       rawContent: body.rawContent as string,
@@ -845,11 +870,64 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
     const body = await request.json() as Record<string, unknown>;
+    const workspaceId = resolveWorkspaceId({
+      request,
+      body,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
     const result = await ctx.runMutation(internal.mcp.seedPendingQuestionScenario, {
-      workspaceId: WORKSPACE_ID as Id<"workspaces">,
+      workspaceId: workspaceId as Id<"workspaces">,
       projectId: body.projectId as Id<"projects"> | undefined,
+      seedTag: body.seedTag as string | undefined,
+      questionType: body.questionType as string | undefined,
       questionText: body.questionText as string,
       choices: body.choices as string[] | undefined,
+    });
+    return jsonOk(result);
+  }),
+});
+
+// POST /mcp/e2e/agent-run
+// Seed a deterministic, Convex-native HITL run for Playwright.
+http.route({
+  path: "/mcp/e2e/agent-run",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const workspaceId = resolveWorkspaceId({
+      request,
+      body,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
+    const result = await ctx.runMutation(internal.mcp.seedStubAgentRun, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      seedTag: body.seedTag as string,
+      projectId: body.projectId as Id<"projects"> | undefined,
+      projectName: body.projectName as string | undefined,
+      questionText: body.questionText as string | undefined,
+      choices: body.choices as string[] | undefined,
+    });
+    return jsonOk(result);
+  }),
+});
+
+// POST /mcp/e2e/cleanup
+// Best-effort cleanup for tagged E2E records in a dedicated workspace.
+http.route({
+  path: "/mcp/e2e/cleanup",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const workspaceId = resolveWorkspaceId({
+      request,
+      body,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
+    const result = await ctx.runMutation(internal.mcp.cleanupSeededData, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      seedTag: body.seedTag as string,
     });
     return jsonOk(result);
   }),

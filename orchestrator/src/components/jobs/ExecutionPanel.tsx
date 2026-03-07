@@ -214,6 +214,7 @@ export function ExecutionPanel({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       className={cn("w-full max-w-2xl", className)}
+      data-testid="execution-panel"
     >
       <GlassCard className="overflow-hidden">
         {/* Header */}
@@ -237,7 +238,7 @@ export function ExecutionPanel({
                 <p className="text-xs text-muted-foreground">{projectName}</p>
               )}
               {job && (
-                <div className="mt-1.5">
+                <div className="mt-1.5" data-testid="execution-status">
                   <AgentBlameChain
                     initiatedBy={job.initiatedBy}
                     initiatedByName={job.initiatedByName}
@@ -358,7 +359,10 @@ export function ExecutionPanel({
               )}
 
               {jobSnapshot?.output && Object.keys(jobSnapshot.output).length > 0 && (
-                <div className="p-3 border-b border-white/10 bg-emerald-500/5">
+                <div
+                  className="p-3 border-b border-white/10 bg-emerald-500/5"
+                  data-testid="execution-output"
+                >
                   <div className="text-xs uppercase tracking-wide text-emerald-300/80 mb-2">
                     Latest output
                   </div>
@@ -370,6 +374,7 @@ export function ExecutionPanel({
                 ref={scrollRef}
                 onScroll={handleScroll}
                 className="h-64 overflow-auto bg-black/30 font-mono text-xs p-4"
+                data-testid="execution-log-list"
               >
                 {logs.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground">

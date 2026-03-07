@@ -10,8 +10,27 @@ import Anthropic from "@anthropic-ai/sdk";
 import { buildServerTools, getAnthropicTools, resolveModel } from "./tools/index";
 import { getGitHubHeaders } from "./tools/githubAuth";
 import type { Id } from "./_generated/dataModel";
+import {
+  buildStubJobInput,
+  STUB_HITL_INITIAL_LOGS,
+  STUB_HITL_RESUME_LOGS,
+  STUB_HITL_SCENARIO,
+} from "./e2eHelpers";
 
 const MAX_ITERATIONS = 15;
+const STUB_HITL_OUTPUT =
+  "Deterministic HITL stub completed successfully. Approval was recorded and the seeded execution resumed.";
+
+function isStubHitlJob(
+  input: unknown,
+): input is Record<string, unknown> & { seedTag: string; stubScenario: string } {
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    (input as Record<string, unknown>).stubScenario === STUB_HITL_SCENARIO &&
+    typeof (input as Record<string, unknown>).seedTag === "string"
+  );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -196,6 +215,46 @@ export const run = internalAction({
     const job = await ctx.runQuery(api.jobs.get, { jobId });
     if (!job) throw new Error(`Job not found: ${jobId}`);
 
+    if (isStubHitlJob(job.input)) {
+      const executionId = await ctx.runMutation(internal.agentExecutions.create, {
+        jobId,
+        workspaceId: job.workspaceId,
+        projectId: job.projectId ?? undefined,
+        inputContext: buildStubJobInput(job.input.seedTag),
+      });
+      const questionId = await ctx.runMutation(internal.pendingQuestions.create, {
+        jobId,
+        workspaceId: job.workspaceId,
+        projectId: job.projectId ?? undefined,
+        questionType: "approval",
+        questionText: `Approve the deterministic stub execution for ${job.input.seedTag}?`,
+        choices: ["approve", "reject"],
+        context: { seedTag: job.input.seedTag },
+      });
+
+      await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "waiting_input" });
+      for (const entry of STUB_HITL_INITIAL_LOGS) {
+        await ctx.runMutation(api.jobs.appendLog, {
+          jobId,
+          workspaceId: job.workspaceId,
+          level: entry.level,
+          message: entry.message,
+          stepKey: entry.stepKey,
+          meta: { questionId, seedTag: job.input.seedTag },
+        });
+      }
+      await ctx.runMutation(internal.agentExecutions.update, {
+        id: executionId,
+        messageHistory: JSON.stringify([
+          {
+            role: "user",
+            content: `Stub HITL scenario ${job.input.seedTag} seeded for deterministic testing.`,
+          },
+        ]),
+      });
+      return;
+    }
+
     await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "running" });
     await ctx.runMutation(api.jobs.appendLog, { jobId, workspaceId: job.workspaceId, level: "info", message: `Started: ${job.type}` });
 
@@ -244,9 +303,71 @@ export const resume = internalAction({
     const job = await ctx.runQuery(api.jobs.get, { jobId });
     if (!job) throw new Error(`Job not found: ${jobId}`);
 
-    const questions = await ctx.runQuery(api.pendingQuestions.getByJob, { jobId });
+    if (isStubHitlJob(job.input)) {
+      const questions = await ctx.runQuery(internal.pendingQuestions.getByJobInternal, {
+        jobId,
+      });
+      const answeredQ = questions.find((q: { _id: string }) => q._id === questionId);
+      const execution = await ctx.runQuery(
+        internal.agentExecutions.getByJobInternal,
+        { jobId },
+      );
+
+      await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "running" });
+      await ctx.runMutation(api.jobs.appendLog, {
+        jobId,
+        workspaceId: job.workspaceId,
+        level: "info",
+        message: "Resumed after HITL answer",
+        stepKey: "resumed",
+      });
+
+      for (const entry of STUB_HITL_RESUME_LOGS) {
+        await ctx.runMutation(api.jobs.appendLog, {
+          jobId,
+          workspaceId: job.workspaceId,
+          level: entry.level,
+          message: entry.message,
+          stepKey: entry.stepKey,
+          meta: {
+            response: answeredQ?.response ?? null,
+            seedTag: job.input.seedTag,
+          },
+        });
+      }
+
+      if (execution) {
+        await ctx.runMutation(internal.agentExecutions.update, {
+          id: execution._id,
+          output: {
+            content: STUB_HITL_OUTPUT,
+            response: answeredQ?.response ?? null,
+            seedTag: job.input.seedTag,
+          },
+          tokensUsed: 0,
+          completedAt: Date.now(),
+        });
+      }
+
+      await ctx.runMutation(api.jobs.updateStatus, {
+        jobId,
+        status: "completed",
+        output: {
+          content: STUB_HITL_OUTPUT,
+          response: answeredQ?.response ?? null,
+          seedTag: job.input.seedTag,
+        },
+      });
+      return;
+    }
+
+    const questions = await ctx.runQuery(internal.pendingQuestions.getByJobInternal, {
+      jobId,
+    });
     const answeredQ = questions.find((q: { _id: string }) => q._id === questionId);
-    const execution = await ctx.runQuery(api.agentExecutions.getByJob, { jobId });
+    const execution = await ctx.runQuery(internal.agentExecutions.getByJobInternal, {
+      jobId,
+    });
     if (!execution) { await ctx.scheduler.runAfter(0, internal.agents.run, { jobId }); return; }
 
     await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "running" });

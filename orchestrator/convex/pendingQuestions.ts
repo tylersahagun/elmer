@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -25,6 +25,16 @@ export const getByJob = query({
   handler: async (ctx, { jobId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    return await ctx.db
+      .query("pendingQuestions")
+      .withIndex("by_job", (q) => q.eq("jobId", jobId))
+      .collect();
+  },
+});
+
+export const getByJobInternal = internalQuery({
+  args: { jobId: v.id("jobs") },
+  handler: async (ctx, { jobId }) => {
     return await ctx.db
       .query("pendingQuestions")
       .withIndex("by_job", (q) => q.eq("jobId", jobId))

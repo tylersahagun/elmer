@@ -838,7 +838,10 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
-                <div className="space-y-3">
+                <div
+                  className="space-y-3"
+                  data-testid="project-pending-approvals"
+                >
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-mono text-muted-foreground">
                       Active runs
@@ -878,6 +881,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                       <div
                         key={question._id}
                         className="rounded-xl border border-border bg-card/30 p-3 space-y-3"
+                        data-testid="project-pending-approval-card"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -900,6 +904,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                               <Button
                                 size="sm"
                                 className="gap-1.5"
+                                data-testid="approve-pending-question"
                                 onClick={() =>
                                   handleAnswerPendingQuestion(
                                     String(question._id),
@@ -914,6 +919,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                                 size="sm"
                                 variant="outline"
                                 className="gap-1.5"
+                                data-testid="reject-pending-question"
                                 onClick={() =>
                                   handleAnswerPendingQuestion(
                                     String(question._id),

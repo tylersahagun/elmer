@@ -135,6 +135,59 @@ export class WorkspacePage {
       .toMatch(/\/($|workspace\/)/);
   }
 
+  async openWorkspace(preferredWorkspaceId?: string) {
+    if (preferredWorkspaceId) {
+      await this.goto(preferredWorkspaceId);
+      if (!/\/login|\/sign-in/.test(this.page.url())) {
+        await this.expectRouteLoaded("dashboard");
+        return preferredWorkspaceId;
+      }
+    }
+
+    await this.gotoHome();
+
+    let homeState: "authenticated" | "unauthenticated" | "loading" = "loading";
+    await expect
+      .poll(
+        async () => {
+          if (await this.isAuthenticatedHomeReady()) {
+            homeState = "authenticated";
+            return homeState;
+          }
+          if (await this.isUnauthenticatedHomeReady()) {
+            homeState = "unauthenticated";
+            return homeState;
+          }
+          homeState = "loading";
+          return homeState;
+        },
+        { timeout: 30_000 },
+      )
+      .not.toBe("loading");
+
+    if (homeState === "unauthenticated") {
+      const email = process.env.E2E_TEST_EMAIL;
+      const password = process.env.E2E_TEST_PASSWORD;
+
+      if (!email || !password) {
+        throw new Error(
+          "E2E_TEST_EMAIL and E2E_TEST_PASSWORD must be set to recover an expired Playwright session",
+        );
+      }
+
+      await this.signIn(email, password);
+    }
+
+    if (preferredWorkspaceId) {
+      await this.goto(preferredWorkspaceId);
+      await this.expectRouteLoaded("dashboard");
+      return preferredWorkspaceId;
+    }
+
+    await this.expectAuthenticatedHome();
+    return await this.openFirstWorkspaceFromHome();
+  }
+
   async openFirstWorkspaceFromHome() {
     const firstWorkspaceCard = this.page
       .locator("div.grid div.group.cursor-pointer.rounded-2xl")
