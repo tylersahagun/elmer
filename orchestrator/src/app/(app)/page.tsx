@@ -56,6 +56,10 @@ interface WorkspaceWithRole {
   updatedAt: string;
 }
 
+function isPresent<T>(value: T | null | undefined): value is T {
+  return value != null;
+}
+
 function HomeContent() {
   const router = useRouter();
   const { user, isLoaded, isSignedIn } = useCurrentUser();
@@ -73,20 +77,15 @@ function HomeContent() {
     api.workspaces.list,
     canLoadConvexData ? {} : "skip",
   );
-  const workspaces: WorkspaceWithRole[] | undefined = rawWorkspaces?.map(
-    (workspace: {
-      _id: string;
-      name: string;
-      description?: string | null;
-      _creationTime: number;
-    }) => ({
+  const workspaces: WorkspaceWithRole[] | undefined = rawWorkspaces
+    ?.filter(isPresent)
+    .map((workspace) => ({
       id: workspace._id,
       name: workspace.name,
       description: workspace.description ?? null,
       role: "admin",
       updatedAt: new Date(workspace._creationTime).toISOString(),
-    }),
-  );
+    }));
   const isLoading = isSignedIn && (!canLoadConvexData || rawWorkspaces === undefined);
 
   const createWorkspace = useMutation(api.workspaces.create);

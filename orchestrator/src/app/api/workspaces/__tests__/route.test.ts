@@ -42,6 +42,7 @@ describe("workspaces route", () => {
   it("returns current user workspaces", async () => {
     mockRequireCurrentAppUser.mockResolvedValue({
       id: "local_user_1",
+      clerkUserId: "clerk_user_1",
       email: "user@example.com",
       name: "User Example",
       image: null,
@@ -73,6 +74,7 @@ describe("workspaces route", () => {
   it("creates a workspace with the resolved local user id", async () => {
     mockRequireCurrentAppUser.mockResolvedValue({
       id: "local_user_2",
+      clerkUserId: "clerk_user_2",
       email: "user@example.com",
       name: "User Example",
       image: null,

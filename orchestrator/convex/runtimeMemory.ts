@@ -82,21 +82,30 @@ type RuntimeObservation = Pick<
   "_id" | "nodeId" | "depth" | "content" | "supersededBy"
 >;
 
-type RuntimeDbContext = {
-  db: {
-    get(id: string): Promise<any>;
-    insert(table: string, value: Record<string, unknown>): Promise<any>;
-    patch(id: string, value: Record<string, unknown>): Promise<void>;
-    query(table: string): {
-      withIndex(
-        indexName: string,
-        builder: (query: { eq(fieldName: string, value: unknown): any }) => unknown,
-      ): {
-        first(): Promise<any>;
-        collect(): Promise<any[]>;
-      };
+type RuntimeDbReader = {
+  get(id: string): Promise<any>;
+  query(table: string): {
+    withIndex(
+      indexName: string,
+      builder: (query: { eq(fieldName: string, value: unknown): any }) => unknown,
+    ): {
+      first(): Promise<any>;
+      collect(): Promise<any[]>;
     };
   };
+};
+
+type RuntimeDbWriter = RuntimeDbReader & {
+  insert(table: string, value: Record<string, unknown>): Promise<any>;
+  patch(id: string, value: Record<string, unknown>): Promise<void>;
+};
+
+type RuntimeDbContext = {
+  db: any;
+};
+
+type RuntimeDbMutationContext = {
+  db: any;
 };
 
 type RuntimeMirrorSyncArgs = {
@@ -413,7 +422,7 @@ export async function loadWorkspaceGraphNodeMap(
 ): Promise<GraphNodeMap> {
   const nodes = await ctx.db
     .query("graphNodes")
-    .withIndex("by_workspace_type", (queryBuilder) =>
+    .withIndex("by_workspace_type", (queryBuilder: any) =>
       queryBuilder.eq("workspaceId", workspaceId),
     )
     .collect();
@@ -444,20 +453,20 @@ export async function buildWorkspaceContextItems(
   const [knowledgebaseEntries, personas] = await Promise.all([
     ctx.db
       .query("knowledgebaseEntries")
-      .withIndex("by_workspace_type", (queryBuilder) =>
+      .withIndex("by_workspace_type", (queryBuilder: any) =>
         queryBuilder.eq("workspaceId", workspaceId),
       )
       .collect(),
     ctx.db
       .query("personas")
-      .withIndex("by_workspace", (queryBuilder) =>
+      .withIndex("by_workspace", (queryBuilder: any) =>
         queryBuilder.eq("workspaceId", workspaceId),
       )
       .collect(),
   ]);
 
   return sortRuntimeRecords([
-    ...knowledgebaseEntries.map((entry) =>
+    ...knowledgebaseEntries.map((entry: any) =>
       buildRuntimeRecord({
         graphNode: getGraphNode(graphNodeMap, "context", entry._id),
         entityType: "context",
@@ -470,7 +479,7 @@ export async function buildWorkspaceContextItems(
         query: q,
       }),
     ),
-    ...personas.map((persona) =>
+    ...personas.map((persona: any) =>
       buildRuntimeRecord({
         graphNode: getGraphNode(graphNodeMap, "persona", persona._id),
         entityType: "persona",
@@ -495,30 +504,30 @@ export async function buildProjectRuntimeItems(
   const [documents, memoryEntries, signalLinks] = await Promise.all([
     ctx.db
       .query("documents")
-      .withIndex("by_project", (queryBuilder) =>
+      .withIndex("by_project", (queryBuilder: any) =>
         queryBuilder.eq("projectId", projectId),
       )
       .collect(),
     ctx.db
       .query("memoryEntries")
-      .withIndex("by_project", (queryBuilder) =>
+      .withIndex("by_project", (queryBuilder: any) =>
         queryBuilder.eq("projectId", projectId),
       )
       .collect(),
     ctx.db
       .query("signalProjects")
-      .withIndex("by_project", (queryBuilder) =>
+      .withIndex("by_project", (queryBuilder: any) =>
         queryBuilder.eq("projectId", projectId),
       )
       .collect(),
   ]);
 
   const signals = (
-    await Promise.all(signalLinks.map((link) => ctx.db.get(link.signalId)))
+    await Promise.all(signalLinks.map((link: any) => ctx.db.get(link.signalId)))
   ).filter(Boolean) as Doc<"signals">[];
 
   return sortRuntimeRecords([
-    ...documents.map((document) =>
+    ...documents.map((document: any) =>
       buildRuntimeRecord({
         graphNode: getGraphNode(graphNodeMap, "document", document._id),
         entityType: "document",
@@ -531,7 +540,7 @@ export async function buildProjectRuntimeItems(
         query: q,
       }),
     ),
-    ...memoryEntries.map((entry) =>
+    ...memoryEntries.map((entry: any) =>
       buildRuntimeRecord({
         graphNode: getGraphNode(graphNodeMap, "memory", entry._id),
         entityType: "memory",
@@ -590,26 +599,26 @@ export async function buildWorkspaceRuntimeSearch(
     await Promise.all([
       ctx.db
         .query("projects")
-        .withIndex("by_workspace", (queryBuilder) =>
+        .withIndex("by_workspace", (queryBuilder: any) =>
           queryBuilder.eq("workspaceId", workspaceId),
         )
         .collect(),
       loadWorkspaceGraphNodeMap(ctx, workspaceId),
       ctx.db
         .query("memoryEntries")
-        .withIndex("by_workspace", (queryBuilder) =>
+        .withIndex("by_workspace", (queryBuilder: any) =>
           queryBuilder.eq("workspaceId", workspaceId),
         )
         .collect(),
       ctx.db
         .query("knowledgebaseEntries")
-        .withIndex("by_workspace_type", (queryBuilder) =>
+        .withIndex("by_workspace_type", (queryBuilder: any) =>
           queryBuilder.eq("workspaceId", workspaceId),
         )
         .collect(),
       ctx.db
         .query("personas")
-        .withIndex("by_workspace", (queryBuilder) =>
+        .withIndex("by_workspace", (queryBuilder: any) =>
           queryBuilder.eq("workspaceId", workspaceId),
         )
         .collect(),
@@ -617,10 +626,10 @@ export async function buildWorkspaceRuntimeSearch(
 
   const documents = (
     await Promise.all(
-      projects.map((project) =>
+      projects.map((project: any) =>
         ctx.db
           .query("documents")
-          .withIndex("by_project", (queryBuilder) =>
+          .withIndex("by_project", (queryBuilder: any) =>
             queryBuilder.eq("projectId", project._id),
           )
           .collect(),
@@ -642,7 +651,7 @@ export async function buildWorkspaceRuntimeSearch(
         query: normalized,
       }),
     ),
-    ...memoryEntries.map((entry) =>
+    ...memoryEntries.map((entry: any) =>
       buildRuntimeRecord({
         graphNode: getGraphNode(graphNodeMap, "memory", entry._id),
         entityType: "memory",
@@ -671,7 +680,7 @@ export async function buildWorkspaceRuntimeSearch(
         query: normalized,
       }),
     ),
-    ...knowledgebaseEntries.map((entry) =>
+    ...knowledgebaseEntries.map((entry: any) =>
       buildRuntimeRecord({
         graphNode: getGraphNode(graphNodeMap, "context", entry._id),
         entityType: "context",
@@ -684,7 +693,7 @@ export async function buildWorkspaceRuntimeSearch(
         query: normalized,
       }),
     ),
-    ...personas.map((persona) =>
+    ...personas.map((persona: any) =>
       buildRuntimeRecord({
         graphNode: getGraphNode(graphNodeMap, "persona", persona._id),
         entityType: "persona",
@@ -706,7 +715,7 @@ export async function buildWorkspaceRuntimeSearch(
 }
 
 export async function ensureWorkspaceGraphNode(
-  ctx: RuntimeDbContext,
+  ctx: RuntimeDbMutationContext,
   args: {
     workspaceId: Id<"workspaces">;
     workspaceName?: string;
@@ -714,7 +723,7 @@ export async function ensureWorkspaceGraphNode(
 ) {
   const existing = await ctx.db
     .query("graphNodes")
-    .withIndex("by_entity", (query) =>
+    .withIndex("by_entity", (query: any) =>
       query.eq("entityType", "workspace").eq("entityId", args.workspaceId),
     )
     .first();
@@ -740,7 +749,7 @@ export async function ensureWorkspaceGraphNode(
 }
 
 export async function ensureProjectGraphNode(
-  ctx: RuntimeDbContext,
+  ctx: RuntimeDbMutationContext,
   args: {
     workspaceId: Id<"workspaces">;
     projectId: Id<"projects">;
@@ -749,7 +758,7 @@ export async function ensureProjectGraphNode(
 ) {
   const existing = await ctx.db
     .query("graphNodes")
-    .withIndex("by_entity", (query) =>
+    .withIndex("by_entity", (query: any) =>
       query.eq("entityType", "project").eq("entityId", args.projectId),
     )
     .first();
@@ -783,7 +792,7 @@ async function findActiveObservation(
 ) {
   const observations = (await ctx.db
     .query("graphObservations")
-    .withIndex("by_node", (query) => query.eq("nodeId", nodeId))
+    .withIndex("by_node", (query: any) => query.eq("nodeId", nodeId))
     .collect()) as RuntimeObservation[];
 
   return observations.find(
@@ -793,7 +802,7 @@ async function findActiveObservation(
 }
 
 async function addOrSupersedeObservation(
-  ctx: RuntimeDbContext,
+  ctx: RuntimeDbMutationContext,
   args: {
     nodeId: Id<"graphNodes">;
     workspaceId: Id<"workspaces">;
@@ -823,7 +832,7 @@ async function addOrSupersedeObservation(
 }
 
 async function ensureEdge(
-  ctx: RuntimeDbContext,
+  ctx: RuntimeDbMutationContext,
   args: {
     workspaceId: Id<"workspaces">;
     fromNodeId: Id<"graphNodes">;
@@ -836,12 +845,12 @@ async function ensureEdge(
 ) {
   const existing = await ctx.db
     .query("graphEdges")
-    .withIndex("by_from", (query) => query.eq("fromNodeId", args.fromNodeId))
+    .withIndex("by_from", (query: any) => query.eq("fromNodeId", args.fromNodeId))
     .collect();
 
   if (
     existing.some(
-      (edge) =>
+      (edge: any) =>
         edge.toNodeId === args.toNodeId &&
         edge.relationType === args.relationType,
     )
@@ -861,7 +870,7 @@ async function ensureEdge(
 }
 
 export async function archivePromotedMirrorNode(
-  ctx: RuntimeDbContext,
+  ctx: RuntimeDbMutationContext,
   args: {
     entityType: RuntimeGraphNodeEntityType;
     entityId: string;
@@ -869,7 +878,7 @@ export async function archivePromotedMirrorNode(
 ) {
   const node = await ctx.db
     .query("graphNodes")
-    .withIndex("by_entity", (query) =>
+    .withIndex("by_entity", (query: any) =>
       query.eq("entityType", args.entityType).eq("entityId", args.entityId),
     )
     .first();
@@ -899,12 +908,12 @@ export async function archivePromotedMirrorNode(
 }
 
 export async function upsertPromotedMirrorNode(
-  ctx: RuntimeDbContext,
+  ctx: RuntimeDbMutationContext,
   args: RuntimeMirrorSyncArgs,
 ) {
   const existing = await ctx.db
     .query("graphNodes")
-    .withIndex("by_entity", (query) =>
+    .withIndex("by_entity", (query: any) =>
       query.eq("entityType", args.entityType).eq("entityId", args.entityId),
     )
     .first();

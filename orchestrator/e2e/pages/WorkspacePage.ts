@@ -150,26 +150,22 @@ export class WorkspacePage {
 
     await this.gotoHome();
 
-    let homeState: "authenticated" | "unauthenticated" | "loading" = "loading";
     await expect
       .poll(
         async () => {
           if (await this.isAuthenticatedHomeReady()) {
-            homeState = "authenticated";
-            return homeState;
+            return "authenticated";
           }
           if (await this.isUnauthenticatedHomeReady()) {
-            homeState = "unauthenticated";
-            return homeState;
+            return "unauthenticated";
           }
-          homeState = "loading";
-          return homeState;
+          return "loading";
         },
         { timeout: 30_000 },
       )
       .not.toBe("loading");
 
-    if (homeState === "unauthenticated") {
+    if (await this.isUnauthenticatedHomeReady()) {
       const email = process.env.E2E_TEST_EMAIL;
       const password = process.env.E2E_TEST_PASSWORD;
 

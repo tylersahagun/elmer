@@ -101,7 +101,7 @@ async function main() {
     getClerkJwtIssuerDomain()?.replace(/^https?:\/\//, "") ||
     null;
   const convexUrlCheck = validateConvexDeploymentUrl(
-    normalizeConfiguredUrl(process.env.NEXT_PUBLIC_CONVEX_URL),
+    normalizeConfiguredUrl(process.env.NEXT_PUBLIC_CONVEX_URL) ?? undefined,
   );
 
   results.push({

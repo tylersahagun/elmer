@@ -83,6 +83,7 @@ import {
 } from "@/lib/projects/navigation";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
+import type { DocumentType } from "@/lib/db/schema";
 import { InitiativeDashboardEmbed } from "@/components/agents/InitiativeDashboardEmbed";
 
 interface ProjectDetailPageProps {
@@ -105,6 +106,101 @@ type ConvexWorkspace = {
   name: string;
   githubRepo?: string;
   settings?: Record<string, unknown>;
+};
+
+type ProjectDocumentRecord = {
+  id: string;
+  type: DocumentType;
+  title: string;
+  content: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  filePath?: string;
+  metadata?: {
+    generatedBy?: "user" | "ai";
+    model?: string;
+    reviewStatus?: "draft" | "reviewed" | "approved";
+  };
+};
+
+type ProjectWorkspaceSettings = Record<string, unknown> & {
+  baseBranch?: string;
+  composio?: {
+    enabled?: boolean;
+    connectedServices?: string[];
+  };
+  integrations?: {
+    posthog?: {
+      enabled?: boolean;
+    };
+  };
+  knowledgebaseMapping?: Record<string, string>;
+  storybookPort?: number;
+};
+
+type ProjectStageEntry = {
+  id: string;
+  stage: string;
+  enteredAt: string;
+  triggeredBy?: string;
+};
+
+type ProjectJuryEvaluation = {
+  id: string;
+  phase: string;
+  verdict: string;
+};
+
+type ProjectTicket = {
+  id: string;
+  title: string;
+  status: string | null;
+  estimatedPoints?: number | null;
+  linearIdentifier?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+type ProjectMetadata = Record<string, unknown> & {
+  tldr?: string;
+  sourcePath?: string;
+  gitBranch?: string;
+  stageQuality?: Record<string, { score: number; summary?: string }>;
+  stageConfidence?: Record<string, { score: number }>;
+  releaseMetrics?: {
+    adoption: number;
+    engagement: number;
+    errors: number;
+    satisfaction: number;
+    autoAdvance?: boolean;
+  };
+};
+
+type ProjectDetailModel = {
+  id: string;
+  _id: string;
+  workspaceId: string;
+  name: string;
+  description?: string;
+  stage: string;
+  status: string;
+  priority?: string | number | Record<string, unknown>;
+  metadata: ProjectMetadata;
+  documents: ProjectDocumentRecord[];
+  prototypes: Prototype[];
+  workspace: {
+    id: string;
+    name?: string;
+    githubRepo?: string;
+    settings?: ProjectWorkspaceSettings;
+  };
+  signalCount: number;
+  documentCount: number;
+  prototypeCount: number;
+  linkedSignals: Array<{ id: string }>;
+  tickets: ProjectTicket[];
+  stages: ProjectStageEntry[];
+  juryEvaluations: ProjectJuryEvaluation[];
 };
 
 type ProjectOverviewAction = {
@@ -266,12 +362,12 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const answerPendingQuestion = useConvexMutation(api.pendingQuestions.answer);
 
   // Fetch project data
-  const { data: legacyProject, isLoading: projectLoading } = useQuery({
+  const { data: legacyProject, isLoading: projectLoading } = useQuery<ProjectDetailModel | null>({
     queryKey: ["project", projectId],
-    queryFn: async () => {
+    queryFn: async (): Promise<ProjectDetailModel> => {
       const res = await fetch(`/api/projects/${projectId}`);
       if (!res.ok) throw new Error("Failed to load project");
-      return res.json();
+      return (await res.json()) as ProjectDetailModel;
     },
   });
   const convexProject = useConvexQuery(api.projects.get, {
@@ -329,35 +425,34 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     }
   }, [activeTab, searchParams]);
 
-  const project = useMemo(() => {
+  const project = useMemo<ProjectDetailModel | null>(() => {
     if (!legacyProject && !convexProject) return null;
-    const base = (legacyProject ?? {}) as Record<string, unknown>;
-    const baseWorkspace = ((base.workspace ?? {}) as Record<string, unknown>);
-    const mappedDocuments = convexDocuments
-      ? convexDocuments.map((doc: {
-          _id: string;
-          type: string;
-          title: string;
-          content: string;
-          version: number;
-          reviewStatus: string;
-          generatedByAgent?: string;
-          _creationTime: number;
-        }) => ({
+    const base = legacyProject;
+    const baseWorkspace = base?.workspace;
+    const mappedDocuments: ProjectDocumentRecord[] = convexDocuments
+      ? convexDocuments.map((doc) => ({
           id: doc._id,
-          type: doc.type,
+          type: doc.type as DocumentType,
           title: doc.title,
           content: doc.content,
           version: doc.version,
           createdAt: new Date(doc._creationTime).toISOString(),
           updatedAt: new Date(doc._creationTime).toISOString(),
+          filePath:
+            "filePath" in doc && typeof doc.filePath === "string"
+              ? doc.filePath
+              : undefined,
           metadata: {
             generatedBy: doc.generatedByAgent ? "ai" : "user",
-            reviewStatus: doc.reviewStatus,
+            reviewStatus: doc.reviewStatus as
+              | "draft"
+              | "reviewed"
+              | "approved"
+              | undefined,
           },
         }))
-      : ((base.documents as unknown[]) ?? []);
-    const mappedPrototypes = convexPrototypes
+      : (base?.documents ?? []);
+    const mappedPrototypes: Prototype[] = convexPrototypes
       ? convexPrototypes.map((proto: {
           id: string;
           name: string;
@@ -377,36 +472,48 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
           storybookPath: proto.storybookPath,
           metadata: proto.metadata,
         }))
-      : ((base.prototypes as unknown[]) ?? []);
+      : (base?.prototypes ?? []);
 
     return {
-      ...base,
-      id: convexProject?._id ?? (base.id as string) ?? projectId,
-      _id: convexProject?._id ?? (base.id as string) ?? projectId,
+      ...(base ?? {}),
+      id: convexProject?._id ?? base?.id ?? projectId,
+      _id: convexProject?._id ?? base?._id ?? base?.id ?? projectId,
       workspaceId:
-        convexProject?.workspaceId ?? (base.workspaceId as string) ?? (baseWorkspace.id as string),
-      name: convexProject?.name ?? (base.name as string),
-      description: convexProject?.description ?? (base.description as string | undefined),
-      stage: convexProject?.stage ?? (base.stage as string),
-      status: convexProject?.status ?? (base.status as string),
-      priority: base.priority ?? 0,
+        convexProject?.workspaceId ?? base?.workspaceId ?? baseWorkspace?.id ?? "",
+      name: convexProject?.name ?? base?.name ?? "Untitled Project",
+      description: convexProject?.description ?? base?.description,
+      stage: convexProject?.stage ?? base?.stage ?? "discovery",
+      status: convexProject?.status ?? base?.status ?? "active",
+      priority: base?.priority ?? 0,
       metadata: {
-        ...((base.metadata as Record<string, unknown>) ?? {}),
+        ...(base?.metadata ?? {}),
         ...((convexProject?.metadata as Record<string, unknown>) ?? {}),
       },
       documents: mappedDocuments,
       prototypes: mappedPrototypes,
+      signalCount: base?.signalCount ?? base?.linkedSignals?.length ?? 0,
+      documentCount: mappedDocuments.length,
+      prototypeCount: mappedPrototypes.length,
+      linkedSignals: base?.linkedSignals ?? [],
+      tickets: base?.tickets ?? [],
+      stages: base?.stages ?? [],
+      juryEvaluations: base?.juryEvaluations ?? [],
       workspace: {
-        ...baseWorkspace,
-        id: convexWorkspace?._id ?? (baseWorkspace.id as string),
-        name: convexWorkspace?.name ?? (baseWorkspace.name as string),
-        githubRepo: convexWorkspace?.githubRepo ?? (baseWorkspace.githubRepo as string | undefined),
+        ...(baseWorkspace ?? {}),
+        id:
+          convexWorkspace?._id ??
+          baseWorkspace?.id ??
+          convexProject?.workspaceId ??
+          base?.workspaceId ??
+          "",
+        name: convexWorkspace?.name ?? baseWorkspace?.name,
+        githubRepo: convexWorkspace?.githubRepo ?? baseWorkspace?.githubRepo,
         settings: {
-          ...(((baseWorkspace.settings as Record<string, unknown>) ?? {})),
+          ...(baseWorkspace?.settings ?? {}),
           ...((convexWorkspace?.settings as Record<string, unknown>) ?? {}),
         },
       },
-    };
+    } satisfies ProjectDetailModel;
   }, [legacyProject, convexProject, convexWorkspace, convexDocuments, convexPrototypes, projectId]);
 
   useEffect(() => {
@@ -867,8 +974,8 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                   {project.metadata.tldr as string}
                   <button
                     onClick={() => createAndSchedule({
-                      workspaceId: project.workspaceId,
-                      projectId: project._id,
+                      workspaceId: project.workspaceId as Id<"workspaces">,
+                      projectId: project._id as Id<"projects">,
                       type: "generate_tldr",
                       input: { projectId: project._id },
                     })}
@@ -1409,26 +1516,11 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
             <TabsContent value="documents" className="mt-6">
               <div className="flex flex-col lg:flex-row gap-4 min-h-[calc(100vh-320px)]">
                 <DocumentSidebar
-                  documents={(project.documents || []).map(
-                    (doc: {
-                      id: string;
-                      title: string;
-                      type: string;
-                      content: string;
-                      version: number;
-                      createdAt: string;
-                      updatedAt: string;
-                      metadata?: {
-                        generatedBy?: "user" | "ai";
-                        model?: string;
-                        reviewStatus?: "draft" | "reviewed" | "approved";
-                      };
-                    }) => ({
+                  documents={project.documents.map((doc: ProjectDocumentRecord) => ({
                       ...doc,
                       createdAt: new Date(doc.createdAt),
                       updatedAt: new Date(doc.updatedAt),
-                    }),
-                  )}
+                    }))}
                   selectedId={selectedDocId || project.documents?.[0]?.id}
                   onSelect={(doc) => setSelectedDocId(doc.id)}
                   onUpload={() => setIsUploadDialogOpen(true)}

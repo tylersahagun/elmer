@@ -635,7 +635,7 @@ export default function WorkspaceSettingsPage({
     const trimmedEmail = email?.trim();
 
     if (trimmedName) {
-      return name
+      return trimmedName
         .split(" ")
         .map((n) => n[0])
         .join("")

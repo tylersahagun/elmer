@@ -210,14 +210,16 @@ export function MyTasksPage() {
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     {task.projectId && projectMap[task.projectId] && (
                       <button
-                        onClick={() =>
+                        onClick={() => {
+                          const projectId = task.projectId;
+                          if (!projectId) return;
                           router.push(
                             getProjectRoute(
-                              task.projectId,
+                              projectId,
                               task.workspaceId ? String(task.workspaceId) : undefined,
                             ),
-                          )
-                        }
+                          );
+                        }}
                         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
                       >
                         <FolderOpen className="w-3 h-3" />

@@ -21,6 +21,7 @@ describe("GET /api/auth/me", () => {
   it("returns the resolved local app user", async () => {
     mockRequireCurrentAppUser.mockResolvedValue({
       id: "local_user_1",
+      clerkUserId: "clerk_user_1",
       email: "user@example.com",
       name: "User Example",
       image: null,
@@ -32,6 +33,7 @@ describe("GET /api/auth/me", () => {
     expect(response.status).toBe(200);
     expect(data).toEqual({
       id: "local_user_1",
+      clerkUserId: "clerk_user_1",
       email: "user@example.com",
       name: "User Example",
       image: null,

@@ -29,6 +29,10 @@ interface Signal {
   linkedProjects?: Array<{ id: string; name: string }>;
 }
 
+function isPresent<T>(value: T | null | undefined): value is T {
+  return value != null;
+}
+
 interface SignalPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -78,18 +82,12 @@ export function SignalPickerModal({
 
   // Filter out already-linked signals and apply search
   const linkedIds = new Set(
-    (linkedSignals ?? []).map((s: { _id: string }) => s._id),
+    (linkedSignals ?? []).filter(isPresent).map((signal) => signal._id as string),
   );
   const signals: Signal[] = (allSignals ?? [])
-    .map((s: {
-      _id: string;
-      verbatim: string;
-      source: string;
-      status: string;
-      severity?: string | null;
-      _creationTime: number;
-    }) => ({
-      id: s._id,
+    .filter(isPresent)
+    .map((s) => ({
+      id: s._id as string,
       verbatim: s.verbatim,
       source: s.source,
       status: s.status,
