@@ -53,6 +53,65 @@ export const getDocuments = internalQuery({
   },
 });
 
+export const listProjectPrototypes = internalQuery({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }) => {
+    const variants = await ctx.db
+      .query("prototypeVariants")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect();
+
+    return variants.map((variant) => {
+      const metadata = (variant.metadata ?? {}) as Record<string, unknown>;
+      return {
+        id: variant._id,
+        name: variant.title,
+        type: (metadata.prototypeType as string | undefined) ?? variant.platform,
+        status: variant.status,
+        version:
+          typeof metadata.version === "number"
+            ? metadata.version
+            : (variant.iterationCount ?? 0) + 1,
+        storybookPath:
+          (metadata.storybookPath as string | undefined) ??
+          (metadata.sourcePath as string | undefined),
+        chromaticUrl: variant.chromaticUrl,
+        chromaticStorybookUrl:
+          (metadata.chromaticStorybookUrl as string | undefined) ??
+          variant.chromaticUrl,
+      };
+    });
+  },
+});
+
+export const listProjectSignals = internalQuery({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }) => {
+    const links = await ctx.db
+      .query("signalProjects")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect();
+
+    const rows = await Promise.all(
+      links.map(async (link) => {
+        const signal = await ctx.db.get(link.signalId);
+        if (!signal) return null;
+        return {
+          id: signal._id,
+          verbatim: signal.verbatim,
+          source: signal.source,
+          severity: signal.severity,
+          createdAt: new Date(signal._creationTime).toISOString(),
+          linkedAt: new Date(link._creationTime).toISOString(),
+          confidence: link.confidence ?? null,
+        };
+      }),
+    );
+
+    return rows.filter(Boolean);
+  },
+});
+
 export const getDocument = internalQuery({
   args: { documentId: v.id("documents") },
   handler: async (ctx, { documentId }) => ctx.db.get(documentId),
@@ -93,6 +152,7 @@ export const updateProject = internalMutation({
     status: v.optional(v.string()),
     priority: v.optional(v.string()),
     description: v.optional(v.string()),
+    metadata: v.optional(v.any()),
   },
   handler: async (ctx, { projectId, ...patch }) => {
     const updates: Record<string, unknown> = {};
@@ -100,6 +160,13 @@ export const updateProject = internalMutation({
       if (val !== undefined) updates[k] = val;
     }
     await ctx.db.patch(projectId, updates);
+  },
+});
+
+export const deleteProject = internalMutation({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }) => {
+    await ctx.db.delete(projectId);
   },
 });
 

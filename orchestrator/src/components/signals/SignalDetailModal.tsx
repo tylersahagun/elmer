@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation as useTanstackMutation, useQueryClient } from "@tanstack/react-query";
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react";
 import { LinkedTag } from "./LinkedTag";
@@ -144,20 +144,23 @@ export function SignalDetailModal({
     api.signals.get,
     signal?.id ? { signalId: signal.id as Id<"signals"> } : "skip",
   );
-  const liveSignal =
-    signal && convexSignal
-      ? {
-          ...signal,
-          verbatim: convexSignal.verbatim,
-          interpretation: convexSignal.interpretation ?? null,
-          source: convexSignal.source,
-          severity: convexSignal.severity ?? null,
-          status:
-            convexSignal.status === "pending"
-              ? "new"
-              : (convexSignal.status as Signal["status"]),
-        }
-      : signal;
+  const liveSignal = useMemo(
+    () =>
+      signal && convexSignal
+        ? {
+            ...signal,
+            verbatim: convexSignal.verbatim,
+            interpretation: convexSignal.interpretation ?? null,
+            source: convexSignal.source,
+            severity: convexSignal.severity ?? null,
+            status:
+              convexSignal.status === "pending"
+                ? "new"
+                : (convexSignal.status as Signal["status"]),
+          }
+        : signal,
+    [convexSignal, signal],
+  );
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -236,12 +239,16 @@ export function SignalDetailModal({
 
   // Fetch persona names for display
   const { data: personasData } = useQuery({
-    queryKey: ["personas"],
+    queryKey: ["personas", liveSignal?.workspaceId],
     queryFn: async () => {
-      const res = await fetch("/api/personas");
+      if (!liveSignal?.workspaceId) return { personas: [] };
+      const res = await fetch(
+        `/api/personas?workspaceId=${liveSignal.workspaceId}`,
+      );
       if (!res.ok) return { personas: [] };
       return res.json() as Promise<{ personas: PersonaArchetype[] }>;
     },
+    enabled: !!liveSignal?.workspaceId,
   });
 
   // Map persona IDs to names
@@ -631,6 +638,7 @@ export function SignalDetailModal({
                   />
                 ))}
                 <PersonaLinkCombobox
+                  workspaceId={liveSignal.workspaceId}
                   excludePersonaIds={(linkedData?.personas || []).map(
                     (p) => p.personaId,
                   )}

@@ -4,18 +4,24 @@ import {
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
-import { getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { composioService } from "@/lib/composio/service";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     await requireWorkspaceAccess(id, "viewer");
 
-    const workspace = await getWorkspace(id);
+    const workspace = (await getConvexWorkspace(id)) as {
+      settings?: {
+        composio?: {
+          connectedServices?: string[];
+        };
+      };
+    } | null;
     const services = workspace?.settings?.composio?.connectedServices || [];
 
     if (!services.length) {

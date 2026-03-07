@@ -40,6 +40,45 @@ export async function updateConvexWorkspace(workspaceId: string, data: Record<st
   return await res.json();
 }
 
+export async function getConvexProjectWithDocuments(projectId: string) {
+  const params = new URLSearchParams({ id: projectId });
+  const res = await convexFetch(`/mcp/project?${params.toString()}`);
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+export async function updateConvexProject(projectId: string, data: Record<string, unknown>) {
+  const res = await convexFetch(`/mcp/project`, {
+    method: "PATCH",
+    body: JSON.stringify({ id: projectId, ...data }),
+  });
+  if (!res.ok) throw new Error("Failed to update project");
+  return await res.json();
+}
+
+export async function deleteConvexProject(projectId: string) {
+  const params = new URLSearchParams({ id: projectId });
+  const res = await convexFetch(`/mcp/project?${params.toString()}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete project");
+  return await res.json();
+}
+
+export async function listConvexProjectPrototypes(projectId: string) {
+  const params = new URLSearchParams({ projectId });
+  const res = await convexFetch(`/mcp/project-prototypes?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch project prototypes");
+  return await res.json();
+}
+
+export async function listConvexProjectSignals(projectId: string) {
+  const params = new URLSearchParams({ projectId });
+  const res = await convexFetch(`/mcp/project-signals?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch project signals");
+  return await res.json();
+}
+
 export async function listConvexWorkspaceMembers(workspaceId: string) {
   const params = new URLSearchParams({ workspaceId });
   const res = await convexFetch(`/mcp/workspace-members?${params.toString()}`);

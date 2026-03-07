@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getConvexWorkspace, listConvexKnowledge, upsertConvexKnowledge } from "@/lib/convex/server";
-import { resolveKnowledgePath, readKnowledgeFile, writeKnowledgeFile } from "@/lib/knowledgebase";
+import { resolveKnowledgePath, writeKnowledgeFile } from "@/lib/knowledgebase";
+import { runSecondaryExport } from "@/lib/export-sync";
 import type { KnowledgebaseType } from "@/lib/db/schema";
 
 export async function GET(
@@ -28,25 +29,27 @@ export async function GET(
     workspace.contextPath ||
     "elmer-docs/";
   const filePath = resolveKnowledgePath(contextRoot, type as KnowledgebaseType);
-  const content = await readKnowledgeFile(filePath);
   const entries = await listConvexKnowledge(workspaceId, type) as Array<{
     _id: string;
     title: string;
     content: string;
     filePath?: string;
     version?: number;
+    _creationTime?: number;
   }>;
   const entry = entries[0];
 
   return NextResponse.json({
     type,
-    content: entry?.content ?? content,
-    filePath,
+    content: entry?.content ?? "",
+    filePath: entry?.filePath ?? filePath,
     entry: entry
       ? {
           id: entry._id,
           title: entry.title,
-          updatedAt: new Date().toISOString(),
+          updatedAt: entry._creationTime
+            ? new Date(entry._creationTime).toISOString()
+            : new Date().toISOString(),
         }
       : null,
   });
@@ -77,8 +80,6 @@ export async function PUT(
     workspace.contextPath ||
     "elmer-docs/";
   const resolvedPath = resolveKnowledgePath(contextRoot, type as KnowledgebaseType, filePath);
-  await writeKnowledgeFile(resolvedPath, content || "");
-
   const entry = await upsertConvexKnowledge({
     workspaceId,
     type: type as KnowledgebaseType,
@@ -87,5 +88,16 @@ export async function PUT(
     filePath: resolvedPath,
   });
 
-  return NextResponse.json(entry);
+  const exportResult = await runSecondaryExport("knowledgebase", async () => {
+    await writeKnowledgeFile(resolvedPath, content || "");
+  });
+
+  return NextResponse.json(
+    {
+      entry,
+      authority: "convex",
+      export: exportResult,
+    },
+    { status: exportResult.status === "failed" ? 207 : 200 },
+  );
 }

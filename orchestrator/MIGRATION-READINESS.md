@@ -21,9 +21,9 @@ These routes unlock the highest-traffic UI and already have the strongest Convex
 ### Biggest blockers
 
 1. workspace membership / invitations parity
-2. personas and knowledgebase file-backed flows
-3. search and legacy GitHub repo discovery paths
-4. project detail page cross-cutting dependencies
+2. explicit write-side boundary decisions for personas + knowledgebase
+3. explicit GitHub browsing / connected-account server boundaries
+4. project detail page write-side parity outside the Convex read spine
 
 ## Route Map
 
@@ -31,17 +31,17 @@ These routes unlock the highest-traffic UI and already have the strongest Convex
 |---|---|---|---|---|
 | `/` | `src/app/page.tsx` → `/api/workspaces` | `convex/workspaces.ts` | `migrate-now` | Initial workspace fetch/create is on Convex; remaining parity gap is membership-scoped listing/roles. |
 | `/workspace/[id]` | `WorkspacePageClient.tsx` → `/api/workspaces/[id]`, `/api/projects` | `convex/workspaces.ts`, `convex/projects.ts` | `migrate-now` | Highest-value spine of the app. Slug/metadata path is safe on Convex; membership-aware chrome still blocks full cleanup. |
-| `/projects/[id]` | `ProjectDetailPage.tsx` → `/api/projects/[id]`, docs, signals, prototypes, columns, graduation | `convex/projects.ts`, `convex/documents.ts`, `convex/signals.ts`, `convex/jobs.ts` | `blocked` | Needs a deliberate split between Convex data and server-side GitHub/prototype flows. |
+| `/projects/[id]` | `ProjectDetailPage.tsx` → `/api/projects/[id]`, docs, signals, prototypes, columns, graduation | `convex/projects.ts`, `convex/documents.ts`, `convex/signals.ts`, `convex/jobs.ts` | `migrate-now` | Main project detail read spine is now Convex-backed. Remaining gaps are explicit empty-state/compatibility seams for tickets, stage history, and jury parity rather than hidden legacy authority. |
 | `/workspace/[id]/signals` | `SignalsPageClient.tsx`, `SignalsTable.tsx`, `SignalDetailModal.tsx` → `/api/signals*` | `convex/signals.ts` | `migrate-now` | Table + route shell already read Convex data; remaining blockers are suggestion/orphan maintenance flows that still depend on legacy membership + persona parity. |
 | `/workspace/[id]/inbox` | `InboxPageClient.tsx` | `convex/inbox.ts`, `convex/inboxItems.ts` | `already-mostly-convex` | Keep hardening tests and selectors; only minor glue remains. |
 | `/workspace/[id]/tasks` | tasks pages + Convex hooks | `convex/tasks.ts` | `already-mostly-convex` | Good reference surface for future migrations. |
 | `/workspace/[id]/agents` | `AgentsList.tsx` still fetches `/api/agents` | `convex/agents.ts`, `convex/agentDefinitions.ts` | `migrate-now` | UI already uses Convex actions for sync and job scheduling; list fetch should move next. |
-| `/workspace/[id]/settings` | workspace, members, invitations, GitHub status routes | mixed Convex + server-side | `blocked` | Missing Convex parity for memberships/invitations and a decision on GitHub settings boundaries. |
-| `/workspace/[id]/knowledgebase` | `/api/knowledgebase/[type]` + file writes | `convex/knowledgebase.ts` | `blocked` | Needs a product decision: model fully in Convex or keep file-backed sync as exception. |
-| `/workspace/[id]/personas` | `/api/personas` + `fs/promises` writes into docs | no first-class Convex personas model | `blocked` | Not a simple fetch swap. Requires data-model decision first. |
+| `/workspace/[id]/settings` | workspace, members, invitations, GitHub status routes | mixed Convex + server-side | `blocked` | Workspace-owned settings state is Convex-backed. Remaining blockers are memberships/invitations parity plus explicit GitHub/account adapters that intentionally stay server-side. |
+| `/workspace/[id]/knowledgebase` | `KnowledgebasePageClient.tsx` → `/api/knowledgebase*` | `convex/knowledgebase.ts` | `blocked` | Runtime reads are now Convex-authoritative. Remaining boundary is the explicit file write/sync adapter while the final authoring model is decided. |
+| `/workspace/[id]/personas` | `PersonasPageClient.tsx` → `/api/personas` | `convex/personas.ts` | `blocked` | Runtime reads are Convex-backed. Remaining blocker is the explicit file writeback path and the final authoring boundary, not missing persona storage. |
 | `/workspace/[id]/commands` | mostly static / agent-definition driven | `convex/agentDefinitions.ts` | `migrate-now` | Low-risk after agent list moves. |
 | `/workspace/[id]/onboarding` | mixed repo-discovery / auth / workspace bootstrap | mixed Convex + server-side | `blocked` | Coupled to GitHub discovery and legacy auth bridge. |
-| `/search` | `/api/search/route.ts` uses Drizzle directly | likely `convex/knowledgebase.ts` + `convex/memory.ts` | `blocked` | Needs a dedicated Convex search/query strategy. |
+| `/search` | `src/app/(dashboard)/search/page.tsx` → `/api/search` | `convex/search.ts` | `already-mostly-convex` | Search authority is already Convex-backed. Remaining work is search UX/ranking/performance tuning, not legacy database removal. |
 
 ## Legacy API Boundaries to Inventory
 
@@ -77,15 +77,17 @@ These routes unlock the highest-traffic UI and already have the strongest Convex
 - `src/app/api/github/tree/route.ts`
 - `src/app/api/github/contents/[...path]/route.ts`
 
+These GitHub routes are `intentional-server-side`. They are external adapter surfaces for per-user OAuth state and live GitHub browsing, not workspace source-of-truth.
+
 ## Missing Convex Parity
 
 These are the biggest missing building blocks before a clean full migration:
 
 - workspace membership and invitation parity
-- connected-account / GitHub integration state suitable for settings UI
-- personas as a first-class Convex model
-- a clear Convex-backed search strategy for documents + memory
-- project-detail parity for columns / graduation / prototypes edge cases
+- memberships / invitations parity for the settings page
+- persona and knowledgebase write-side boundary cleanup after Convex read cutover
+- search ranking / UX tuning on top of the Convex-backed workspace search surface
+- project-detail parity for tickets / history / jury / graduation edge cases without restoring legacy authority
 
 ## Recommended Implementation Order
 

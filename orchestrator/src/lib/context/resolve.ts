@@ -1,12 +1,11 @@
-import { getKnowledgebaseEntries, getProject, getWorkspace, getDocuments } from "@/lib/db/queries";
-import { resolveKnowledgePath, readKnowledgeFile } from "@/lib/knowledgebase";
-import type { KnowledgebaseType, DocumentType } from "@/lib/db/schema";
-import { db } from "@/lib/db";
-import { documents } from "@/lib/db/schema";
 import {
   getConvexProjectRuntimeContext,
+  getConvexProjectWithDocuments,
   listConvexWorkspaceRuntimeContext,
 } from "@/lib/convex/server";
+import type { DocumentType } from "@/lib/db/schema";
+import { db } from "@/lib/db";
+import { documents } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
@@ -18,25 +17,55 @@ type RuntimeContextItem = {
   projectId?: string;
 };
 
+type ConvexProjectDocument = {
+  type: string;
+  content: string;
+};
+
+type ConvexProjectBundle = {
+  project: {
+    name: string;
+    description?: string;
+    metadata?: {
+      tags?: string[];
+    };
+  } | null;
+  documents: ConvexProjectDocument[];
+};
+
 const WORKSPACE_RUNTIME_TYPES = [
   "company_context",
   "strategic_guardrails",
   "personas",
 ];
 
-function formatRuntimeItems(items: RuntimeContextItem[]): string {
-  return items
-    .map((item) => {
-      const heading = item.entityType === "persona"
-        ? `Persona: ${item.title}`
-        : item.title;
-      return `# ${heading}\n\n${item.content}`;
-    })
+function joinSections(parts: Array<string | null | undefined>) {
+  return parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
     .join("\n\n---\n\n");
+}
+
+function formatRuntimeItem(item: RuntimeContextItem) {
+  const heading =
+    item.entityType === "persona" ? `Persona: ${item.title}` : item.title;
+  return `# ${heading}\n\n${item.content}`;
+}
+
+function formatRuntimeItems(items: RuntimeContextItem[]): string {
+  return joinSections(items.map(formatRuntimeItem));
 }
 
 function filterProjectScopedItems(items: RuntimeContextItem[], projectId: string) {
   return items.filter((item) => item.projectId === projectId);
+}
+
+function matchesRuntimeType(item: RuntimeContextItem, type: string) {
+  if (type === "personas") {
+    return item.entityType === "persona" || item.type === "personas";
+  }
+
+  return item.type === type;
 }
 
 async function getConvexWorkspaceRuntimeItems(
@@ -51,137 +80,71 @@ async function getConvexWorkspaceRuntimeItems(
   }
 }
 
+function getRuntimeBodyContent(items: RuntimeContextItem[], type: string) {
+  return joinSections(
+    items.filter((item) => matchesRuntimeType(item, type)).map((item) => item.content),
+  );
+}
+
+function getPersonasContent(items: RuntimeContextItem[]) {
+  return joinSections(
+    items
+      .filter((item) => matchesRuntimeType(item, "personas"))
+      .map(formatRuntimeItem),
+  );
+}
+
 /**
- * Load company context for PRD and other document generation.
- *
- * Priority:
- * 1. Convex graph-backed runtime memory
- * 2. Migration-only fallback to compatibility mirrors/files
- *
- * This ensures AI generation always has access to product vision,
- * strategic guardrails, and personas.
+ * Load canonical workspace context for generation and verification flows.
  */
 export async function getWorkspaceContext(workspaceId: string) {
   const runtimeItems = await getConvexWorkspaceRuntimeItems(
     workspaceId,
     WORKSPACE_RUNTIME_TYPES,
   );
-  if (runtimeItems.length > 0) {
-    return formatRuntimeItems(runtimeItems);
-  }
 
-  // Migration-only fallback while remaining file/db consumers are cut over.
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  if (entries.length > 0) {
-    return entries.map((e) => `# ${e.title}\n\n${e.content}`).join("\n\n");
-  }
-
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  const contextTypes: KnowledgebaseType[] = [
-    "company_context",
-    "strategic_guardrails", 
-    "personas",
-  ];
-
-  const contextParts: string[] = [];
-
-  for (const type of contextTypes) {
-    try {
-      const filePath = resolveKnowledgePath(contextRoot, type);
-      const content = await readKnowledgeFile(filePath);
-      if (content) {
-        const title = type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-        contextParts.push(`# ${title}\n\n${content}`);
-      }
-    } catch (error) {
-      console.warn(`Failed to load context file for ${type}:`, error);
-    }
-  }
-
-  return contextParts.join("\n\n---\n\n");
+  return formatRuntimeItems(runtimeItems);
 }
 
 /**
- * Get full project context including all existing documents.
- * This provides AI with research, existing PRD, etc. for context.
+ * Get full project context including project-scoped runtime records.
  */
 export async function getProjectContext(projectId: string) {
   try {
     const runtimeContext = await getConvexProjectRuntimeContext(projectId);
-    if (runtimeContext?.project) {
-      const projectParts: string[] = [];
-      projectParts.push(`# Project: ${runtimeContext.project.name}`);
-      if (runtimeContext.project.description) {
-        projectParts.push(`\n${runtimeContext.project.description}`);
-      }
-      if (runtimeContext.project.metadata?.tags?.length) {
-        projectParts.push(`\nTags: ${runtimeContext.project.metadata.tags.join(", ")}`);
-      }
+    if (!runtimeContext?.project) return "";
 
-      const projectItems = filterProjectScopedItems(runtimeContext.items ?? [], projectId);
-      if (projectItems.length > 0) {
-        projectParts.push(`\n${formatRuntimeItems(projectItems)}`);
-      }
+    const parts: string[] = [];
+    parts.push(`# Project: ${runtimeContext.project.name}`);
 
-      return projectParts.join("\n");
+    if (runtimeContext.project.description) {
+      parts.push(`\n${runtimeContext.project.description}`);
     }
+
+    if (runtimeContext.project.metadata?.tags?.length) {
+      parts.push(`\nTags: ${runtimeContext.project.metadata.tags.join(", ")}`);
+    }
+
+    const projectItems = filterProjectScopedItems(runtimeContext.items ?? [], projectId);
+    if (projectItems.length > 0) {
+      parts.push(`\n${formatRuntimeItems(projectItems)}`);
+    }
+
+    return parts.join("\n");
   } catch {
-    // Migration-only fallback below.
+    return "";
   }
-
-  const project = await getProject(projectId);
-  if (!project) return "";
-  const parts: string[] = [];
-
-  // Project info
-  parts.push(`# Project: ${project.name}`);
-  if (project.description) {
-    parts.push(`\n${project.description}`);
-  }
-  if (project.metadata?.tags?.length) {
-    parts.push(`\nTags: ${project.metadata.tags.join(", ")}`);
-  }
-
-  // Get existing documents for context
-  const docs = await getDocuments(projectId);
-  
-  // Include research if available (important for PRD generation)
-  const research = docs.find((d) => d.type === "research");
-  if (research?.content) {
-    parts.push(`\n## Research\n\n${research.content}`);
-  }
-
-  return parts.join("\n");
 }
 
 /**
- * Get PRD-specific context including the PRD structure template.
- * This ensures generated PRDs follow the workspace's PRD format.
+ * Get PRD-specific context including strategic guardrails from canonical runtime memory.
  */
 export async function getPRDContext(workspaceId: string) {
   const runtimeItems = await getConvexWorkspaceRuntimeItems(workspaceId, [
     "strategic_guardrails",
   ]);
-  const guardrails = runtimeItems
-    .filter((item) => item.type === "strategic_guardrails")
-    .map((item) => item.content)
-    .join("\n\n");
-  if (guardrails) return guardrails;
 
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  try {
-    const guardrailsPath = resolveKnowledgePath(contextRoot, "strategic_guardrails");
-    const fallback = await readKnowledgeFile(guardrailsPath);
-    if (fallback) return fallback;
-  } catch {
-    // Guardrails file not found, continue.
-  }
-
-  return "";
+  return getRuntimeBodyContent(runtimeItems, "strategic_guardrails");
 }
 
 // ============================================
@@ -193,36 +156,8 @@ export async function getPRDContext(workspaceId: string) {
  * Used by AI verification to check persona alignment.
  */
 export async function getPersonasForVerification(workspaceId: string): Promise<string> {
-  const runtimeItems = await getConvexWorkspaceRuntimeItems(workspaceId, ["personas"]);
-  const personas = runtimeItems
-    .filter((item) => item.entityType === "persona" || item.type === "personas")
-    .map((item) => `# ${item.title}\n\n${item.content}`)
-    .join("\n\n---\n\n");
-  if (personas) {
-    return personas;
-  }
-
-  // Migration-only fallback.
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  const personasEntry = entries.find((e) => e.type === "personas");
-  if (personasEntry?.content) {
-    return personasEntry.content;
-  }
-
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  try {
-    const filePath = resolveKnowledgePath(contextRoot, "personas");
-    const content = await readKnowledgeFile(filePath);
-    if (content) {
-      return content;
-    }
-  } catch {
-    // File not found, continue
-  }
-
-  return "";
+  const { personas } = await getAllVerificationContext(workspaceId);
+  return personas;
 }
 
 /**
@@ -230,77 +165,19 @@ export async function getPersonasForVerification(workspaceId: string): Promise<s
  * Used by AI verification to check strategic alignment.
  */
 export async function getGuardrailsForVerification(workspaceId: string): Promise<string> {
-  const runtimeItems = await getConvexWorkspaceRuntimeItems(workspaceId, [
-    "strategic_guardrails",
-  ]);
-  const guardrails = runtimeItems
-    .filter((item) => item.type === "strategic_guardrails")
-    .map((item) => item.content)
-    .join("\n\n");
-  if (guardrails) {
-    return guardrails;
-  }
-
-  // Migration-only fallback.
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  const guardrailsEntry = entries.find((e) => e.type === "strategic_guardrails");
-  if (guardrailsEntry?.content) {
-    return guardrailsEntry.content;
-  }
-
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  try {
-    const filePath = resolveKnowledgePath(contextRoot, "strategic_guardrails");
-    const content = await readKnowledgeFile(filePath);
-    if (content) {
-      return content;
-    }
-  } catch {
-    // File not found, continue
-  }
-
-  return "";
+  const { guardrails } = await getAllVerificationContext(workspaceId);
+  return guardrails;
 }
 
 /**
  * Load company context (product vision) for verification checks.
  * Used by AI verification to ensure alignment with product direction.
  */
-export async function getCompanyContextForVerification(workspaceId: string): Promise<string> {
-  const runtimeItems = await getConvexWorkspaceRuntimeItems(workspaceId, [
-    "company_context",
-  ]);
-  const companyContext = runtimeItems
-    .filter((item) => item.type === "company_context")
-    .map((item) => item.content)
-    .join("\n\n");
-  if (companyContext) {
-    return companyContext;
-  }
-
-  // Migration-only fallback.
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  const companyEntry = entries.find((e) => e.type === "company_context");
-  if (companyEntry?.content) {
-    return companyEntry.content;
-  }
-
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  try {
-    const filePath = resolveKnowledgePath(contextRoot, "company_context");
-    const content = await readKnowledgeFile(filePath);
-    if (content) {
-      return content;
-    }
-  } catch {
-    // File not found, continue
-  }
-
-  return "";
+export async function getCompanyContextForVerification(
+  workspaceId: string,
+): Promise<string> {
+  const { companyContext } = await getAllVerificationContext(workspaceId);
+  return companyContext;
 }
 
 /**
@@ -316,54 +193,12 @@ export async function getAllVerificationContext(workspaceId: string): Promise<{
     workspaceId,
     WORKSPACE_RUNTIME_TYPES,
   );
-  let personas = runtimeItems
-    .filter((item) => item.entityType === "persona" || item.type === "personas")
-    .map((item) => `# ${item.title}\n\n${item.content}`)
-    .join("\n\n---\n\n");
-  let guardrails = runtimeItems
-    .filter((item) => item.type === "strategic_guardrails")
-    .map((item) => item.content)
-    .join("\n\n");
-  let companyContext = runtimeItems
-    .filter((item) => item.type === "company_context")
-    .map((item) => item.content)
-    .join("\n\n");
 
-  if (personas && guardrails && companyContext) {
-    return { personas, guardrails, companyContext };
-  }
-
-  // Migration-only fallback if Convex runtime context is unavailable or incomplete.
-  const entries = await getKnowledgebaseEntries(workspaceId);
-  personas ||= entries.find((e) => e.type === "personas")?.content || "";
-  guardrails ||= entries.find((e) => e.type === "strategic_guardrails")?.content || "";
-  companyContext ||= entries.find((e) => e.type === "company_context")?.content || "";
-
-  const workspace = await getWorkspace(workspaceId);
-  const contextRoot = workspace?.contextPath || "elmer-docs/";
-
-  if (!personas) {
-    try {
-      const filePath = resolveKnowledgePath(contextRoot, "personas");
-      personas = await readKnowledgeFile(filePath);
-    } catch { /* File not found */ }
-  }
-  
-  if (!guardrails) {
-    try {
-      const filePath = resolveKnowledgePath(contextRoot, "strategic_guardrails");
-      guardrails = await readKnowledgeFile(filePath);
-    } catch { /* File not found */ }
-  }
-  
-  if (!companyContext) {
-    try {
-      const filePath = resolveKnowledgePath(contextRoot, "company_context");
-      companyContext = await readKnowledgeFile(filePath);
-    } catch { /* File not found */ }
-  }
-  
-  return { personas, guardrails, companyContext };
+  return {
+    personas: getPersonasContent(runtimeItems),
+    guardrails: getRuntimeBodyContent(runtimeItems, "strategic_guardrails"),
+    companyContext: getRuntimeBodyContent(runtimeItems, "company_context"),
+  };
 }
 
 // ============================================
@@ -458,9 +293,10 @@ _Last updated: ${now.toISOString()}_
       .where(eq(documents.id, existing[0].id));
   } else {
     // Create new
-    const project = await getProject(projectId);
-    const projectSlug = project?.name?.toLowerCase().replace(/\s+/g, '-') || 'project';
-    
+    const bundle = await getConvexProjectWithDocuments(projectId) as ConvexProjectBundle;
+    const projectSlug =
+      bundle?.project?.name?.toLowerCase().replace(/\s+/g, "-") || "project";
+
     await db.insert(documents).values({
       id: `doc_${nanoid()}`,
       projectId,
