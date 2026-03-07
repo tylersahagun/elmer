@@ -1,4 +1,15 @@
-export type SwarmPreset = "flagship" | "phase-1" | "phase-2" | "phase-3";
+export type SwarmPreset =
+  | "internal-alpha"
+  | "stability-gates"
+  | "runtime-collaboration"
+  | "chat-readiness";
+
+export type SwarmLaneStatus =
+  | "active"
+  | "ready"
+  | "blocked"
+  | "gated"
+  | "holding";
 
 export interface SwarmLaneJob {
   id: string;
@@ -14,6 +25,13 @@ export interface SwarmLane {
   name: string;
   focus: string;
   owner: string;
+  status: SwarmLaneStatus;
+  linkedIssues: string[];
+  dependencies: string[];
+  exitCriteria: string[];
+  evidence: string[];
+  nextAction: string;
+  handoffRequest?: string | null;
   blockers: string[];
   jobs: SwarmLaneJob[];
 }
@@ -29,6 +47,8 @@ export interface SwarmReport {
   preset: SwarmPreset;
   generatedAt: string;
   objective: string;
+  releaseTarget: string;
+  sourceOfTruth: string;
   backlog: string[];
   lanes: SwarmLane[];
   blockers: string[];

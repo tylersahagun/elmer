@@ -16,6 +16,7 @@
 | [Elmer Linear project](https://linear.app/askelephant/project/elmer-e42608f6079d/issues?layout=list&ordering=priority&grouping=workflowState&subGrouping=none&showCompletedIssues=all&showSubIssues=true&showTriageIssues=true) | Canonical implementation tracker | Canonical | Issue state, sequencing, blockers, milestones, current progress | Update whenever meaningful implementation progress lands |
 | `AGENT-BRIEF.md` | Strategic + architectural brief for agents | High, but derived for status | What Elmer is, architecture direction, key phases, important constraints | Update when architecture or operating model changes; treat status text as a snapshot derived from Linear |
 | `DEPLOYMENT.md` | Operational runbook | High for operations | Current deployment model, release gates, auth/deployment checks, cutover steps | Update when env/config/runbook behavior changes |
+| `pm-workspace-docs/status/elmer-memory-cutover-contract.md` | Runtime context contract | High for migration and memory authority | What owns runtime context, what counts as a lens or mirror, and how cutover should behave | Update when runtime memory authority or fallback boundaries change |
 | `orchestrator/MIGRATION-READINESS.md` | Migration contract | High | Which routes are migrate-now, blocked, or intentional-server-side | Update when migration blockers or route classifications change |
 | `pm-workspace-docs/roadmap/roadmap-analysis.md` | Derived roadmap interpretation | Medium-high | Current milestone framing, critical path, completion definition | Regenerate or update when the Linear board meaningfully changes |
 | `pm-workspace-docs/roadmap/elmer-sequenced-execution-checklist.md` | Derived execution checklist | Medium-high | Milestone gates, exit criteria, execution order | Update when the roadmap or acceptance criteria change |
@@ -31,6 +32,7 @@
 ### Before doing work
 - Check Linear for the current issue state.
 - Use `AGENT-BRIEF.md` to understand the architecture and product frame.
+- Use `pm-workspace-docs/status/elmer-memory-cutover-contract.md` when memory, search, personas, or knowledgebase authority is in question.
 - Use `DEPLOYMENT.md` for release-gate and operational context.
 - Use `MIGRATION-READINESS.md` and the roadmap docs for execution framing.
 

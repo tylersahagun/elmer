@@ -1,263 +1,76 @@
 # Elmer Lane Playbooks
 
-**Generated:** 2026-03-06  
-**Purpose:** Give every Elmer swarm lane a consistent execution playbook: entry gate, exit gate, validation, evidence, and update discipline.
+**Generated:** 2026-03-07
+**Purpose:** Give each active alpha-era lane one clear entry rule, exit rule, and evidence expectation.
 
-## How To Use
+## Shared Rules
 
-For any active lane:
+- update Linear first when issue truth changes
+- keep slices small enough to merge without blocking the next lane
+- require evidence before claiming progress
+- update only the docs that belong to the lane you changed
 
-1. verify the entry gate
-2. choose the smallest meaningful slice inside the lane
-3. require evidence before claiming progress
-4. update Linear first
-5. update only the derived docs affected by the slice
+## Source Of Truth
 
-## Shared Playbook Pattern
+**Issue:** `GTM-106`
 
-Every lane should answer:
+- Objective: keep the control plane aligned with Linear and publish derived artifacts that do not compete with it
+- Exit gate: current blocker map, merge order, and lane ownership are easy to answer from one coordinator checkpoint
+- Evidence: refreshed swarm dashboard, reset docs, checklist, and daily artifact when needed
 
-- objective
-- issue list
-- entry gate
-- exit gate
-- allowed parallelism
-- required validation
-- required evidence
-- required Linear update
-- required doc update
+## Reliability
 
-## Lane 0 — Platform Reliability
+**Issues:** `GTM-95`, `GTM-97`, `GTM-98`
 
-### Objective
-Make auth and deployment health trustworthy enough to support the rest of the Elmer completion push.
+- Entry gate: none
+- Exit gate: auth, smoke checks, and deployment docs are trustworthy
+- Evidence: `check:auth`, public login validation, and runbook updates
+- Doc owner: `DEPLOYMENT.md`
 
-### Issue list
-- `GTM-94`
-- `GTM-95`
-- `GTM-96`
-- `GTM-97`
-- `GTM-98`
+## Test Baseline
 
-### Entry gate
-- None. This is the first active lane.
+**Issues:** `GTM-78`, `GTM-82`, `GTM-83`, `GTM-84`
 
-### Exit gate
-- `/login` loads reliably
-- auth/domain checks are trustworthy
-- Clerk, Convex, and app-origin configuration agree
-- deployment/auth docs match the real stack
+- Entry gate: reliability is stable enough for deterministic runs
+- Exit gate: seeded core E2E is credible as a release gate
+- Evidence: passing Playwright runs plus proof that flake-prone paths are stubbed or seeded
+- Doc owner: checklist and any test-specific runbook notes
 
-### Allowed parallelism
-- Run alone as the active lane until stable enough to open the next phase safely.
+## Memory Cutover
 
-### Required validation
-- browser validation on login and authenticated shell
-- auth/domain smoke checks
-- deployment/auth runbook review
+**Issues:** `GTM-104`, `GTM-105`
 
-### Required evidence
-- working login route
-- successful auth smoke output
-- clear env/domain alignment evidence
-- updated runbook reference
+- Entry gate: none, but it must stay coordinated with migration
+- Exit gate: one runtime memory contract exists and cutover surfaces stop using legacy context fallbacks
+- Evidence: memory contract plus explicit fallback-removal checkpoints
+- Doc owner: `pm-workspace-docs/status/elmer-memory-cutover-contract.md`
 
-### Required Linear update
-- checkpoint comments for working auth fixes or blocker discoveries
-- state changes when the reliability milestone meaningfully advances
+## Convex Migration
 
-### Required doc update
-- `DEPLOYMENT.md` when runbook/config behavior changes
-- `AGENT-BRIEF.md` only if the operating model or gating story changes
-- `pm-workspace-docs/roadmap/elmer-sequenced-execution-checklist.md` only if gates/order change
+**Issues:** `GTM-59`, `GTM-99`, `GTM-100`, `GTM-101`, `GTM-102`, `GTM-103`
 
-## Lane A — Testing Completion
+- Entry gate: reliability is stable enough to validate migrated routes
+- Exit gate: remaining blockers are resolved or marked as intentional boundaries
+- Evidence: updated `orchestrator/MIGRATION-READINESS.md` and blocker issue checkpoints
+- Dependency note: this lane should consume the memory contract rather than invent its own authority model
 
-### Objective
-Establish a deterministic minimum credible test baseline for the core Elmer surfaces.
+## Runtime Collaboration
 
-### Issue list
-- `GTM-78`
-- `GTM-79`
-- `GTM-80`
-- `GTM-81`
-- `GTM-82`
-- `GTM-83`
-- `GTM-84`
-- `GTM-87`
-- `GTM-88`
-- `GTM-91`
+**Issues:** `GTM-55`, `GTM-58`, `GTM-69`, `GTM-70`
 
-### Entry gate
-- `Lane 0` is stable enough that deterministic testing is not fighting basic auth/deployment failure.
+- Entry gate: core alpha release gates are stable enough for multi-user validation
+- Exit gate: blame chain, presence, orchestrator visibility, and team access are operational
+- Evidence: visible attribution/presence UI plus proof that `GTM-55` is no longer only a cron stub
+- Dependency note: merge `GTM-69` and `GTM-70` before treating `GTM-55` as active
 
-### Exit gate
-- seeded E2E scenarios run deterministically
-- CI can run the minimum smoke suite
-- the app has a usable release gate beyond manual clicking
+## Internal Alpha UX
 
-### Allowed parallelism
-- Can run in parallel with `Lane B` and `Lane C` once `Lane 0` is holding well enough.
+**Issues:** `GTM-107`, `GTM-71` to `GTM-77`
 
-### Required validation
-- Playwright runs
-- seeded scenario verification
-- CI validation where applicable
-- targeted unit tests for new test helpers or backend test surfaces
-
-### Required evidence
-- passing E2E output
-- passing seeded test evidence
-- CI evidence or workflow result
-- clear note if a scenario is still flaky or blocked
-
-### Required Linear update
-- checkpoint comments for major test milestones
-- issue state updates when a test surface moves from setup to reliable execution
-
-### Required doc update
-- `DEPLOYMENT.md` if test/runbook commands or environments change
-- `AGENT-BRIEF.md` if the official testing story materially changes
-- `pm-workspace-docs/roadmap/roadmap-analysis.md` only if test completion meaningfully shifts milestone interpretation
-
-## Lane B — Team-Safe Operation
-
-### Objective
-Make Elmer safe and legible for concurrent internal use by the AskElephant team.
-
-### Issue list
-- `GTM-55`
-- `GTM-58`
-- `GTM-69`
-- `GTM-70`
-
-### Entry gate
-- `Lane 0` is stable enough that collaboration work is not masked by auth/deployment instability.
-
-### Exit gate
-- every agent run is attributable
-- core collaboration surfaces show who is active where
-- the orchestrator gives usable project-health visibility
-- the internal team can safely use the app together
-
-### Allowed parallelism
-- Can run in parallel with `Lane A` and `Lane C` after `Lane 0` stabilizes.
-
-### Required validation
-- browser validation of attribution, presence, and orchestrator surfaces
-- end-to-end checks for visible collaboration state
-- targeted tests for presence or attribution helpers where relevant
-
-### Required evidence
-- visible blame-chain evidence
-- visible presence evidence
-- working orchestrator/proposals evidence
-- proof that internal-user access or onboarding behavior is correct
-
-### Required Linear update
-- checkpoint comments for milestone-visible progress
-- blocker comments when operational trust still depends on unresolved upstream gates
-
-### Required doc update
-- `AGENT-BRIEF.md` if the multi-user operating model changes materially
-- `pm-workspace-docs/roadmap/roadmap-analysis.md` only if the milestone meaning shifts
-
-## Lane C — Migration Blocker Burn-Down
-
-### Objective
-Finish the Convex migration tail by resolving the named blockers and stabilizing the high-traffic route tranche.
-
-### Issue list
-- `GTM-59`
-- `GTM-99`
-- `GTM-100`
-- `GTM-101`
-- `GTM-102`
-- `GTM-103`
-
-### Entry gate
-- `Lane 0` is stable enough that migration work can be validated against a trustworthy runtime.
-
-### Exit gate
-- remaining blockers are resolved or explicitly intentional boundaries
-- high-traffic routes are stable on Convex-native data paths
-- settings, search, and project detail have credible implementation paths
-
-### Allowed parallelism
-- Can run in parallel with `Lane A` and `Lane B` after `Lane 0` stabilizes.
-
-### Required validation
-- route-level browser validation
-- migration checklist verification
-- targeted tests for migrated surfaces
-- explicit boundary decisions for intentional server-side exceptions
-
-### Required evidence
-- updated route classification
-- evidence of migrated or intentionally-server-side boundaries
-- named blocker resolution notes
-- proof that the first tranche is stable
-
-### Required Linear update
-- update blocker issue comments and states as each decision or migration slice lands
-- keep `GTM-59` as the umbrella, not the only place where work is described
-
-### Required doc update
-- `orchestrator/MIGRATION-READINESS.md` whenever route classifications or blocker decisions change
-- `pm-workspace-docs/roadmap/roadmap-analysis.md` if the migration milestone meaning shifts
-- `pm-workspace-docs/roadmap/elmer-sequenced-execution-checklist.md` only if gates/order change
-
-## Lane D — Chat / Agent Hub MVP
-
-### Objective
-Deliver the foundational Chat / Agent Hub surface only after the lower-level stability gates are holding.
-
-### Issue list
-- `GTM-71`
-- `GTM-72`
-- `GTM-73`
-- `GTM-74`
-- `GTM-75`
-- `GTM-76`
-- `GTM-77`
-
-### Entry gate
-- `Lane 0` holding
-- `Lane A` holding
-- `Lane C` holding
-
-### Exit gate
-- persistent chat thread state exists in Convex
-- ElmerPanel works as the operator surface
-- Agent Hub is functional enough to replace the legacy log pattern
-- context-rich follow-on work has a stable foundation
-
-### Allowed parallelism
-- Planning/spec work is allowed before gates open.
-- Full implementation is not allowed before the first three gates are holding.
-
-### Required validation
-- browser validation of chat and agent surfaces
-- route and runtime validation
-- tests for Convex chat surfaces where applicable
-- proof that the experience is not built on unstable foundations
-
-### Required evidence
-- working panel, thread, and hub flows
-- clear HITL routing evidence
-- trace navigation evidence
-- stable runtime evidence
-
-### Required Linear update
-- checkpoint comments whenever a Chat contract becomes implementation-ready or a milestone slice lands
-- do not move implementation-state issues prematurely just because planning advanced
-
-### Required doc update
-- `AGENT-BRIEF.md` if the target operator model changes
-- `DEPLOYMENT.md` only if deployment/runbook requirements for Chat change
-- `pm-workspace-docs/status/agent-experience-review.md` if the agent interaction model materially changes
-
-## Per-Lane Slice Rule
+- Entry gate: planning can start now; implementation stays gated behind reliability, tests, memory cutover, and migration
+- Exit gate: alpha cohort, script, and Linear intake path exist without weakening the release gate
+- Evidence: alpha dogfood script, feedback template, and explicit rollout guardrail
+- Dependency note: Chat / Agent Hub work should not jump the queue just because it is visible
 
 When choosing the next slice inside a lane, prefer:
 

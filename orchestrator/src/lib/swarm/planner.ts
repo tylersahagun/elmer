@@ -1,122 +1,418 @@
 import type { JobType } from "@/lib/db/schema";
-import type { SwarmPreset, SwarmReport } from "./types";
+import type { SwarmLane, SwarmPreset, SwarmReport } from "./types";
+
+const NO_JOBS: JobType[] = [];
 
 const SWARM_PRESETS: Record<
   SwarmPreset,
   {
     objective: string;
-    lanes: Array<{
-      id: string;
-      name: string;
-      owner: string;
-      focus: string;
-    }>;
+    releaseTarget: string;
+    sourceOfTruth: string;
+    lanes: Array<
+      Omit<SwarmLane, "blockers" | "jobs">
+    >;
     jobTypes: JobType[];
     validationChecks: Array<{ label: string; evidence?: string }>;
   }
 > = {
-  flagship: {
+  "internal-alpha": {
     objective:
-      "Execute the flagship multi-lane product swarm with clear ownership across memory, integrations, runtime, and desktop UX.",
+      "Coordinate the Elmer internal-alpha reset with Linear as canonical truth and gated execution across reliability, tests, memory cutover, Convex migration, runtime collaboration, and alpha UX.",
+    releaseTarget: "Internal production alpha",
+    sourceOfTruth:
+      "Linear is canonical for issue state and sequencing. Saved swarm artifacts are derived coordination snapshots only.",
     lanes: [
       {
-        id: "memory-platform",
-        name: "Memory Platform",
-        owner: "workspace-admin",
-        focus: "Durable knowledge, status artifacts, and context integrity",
+        id: "source-of-truth",
+        name: "Source Of Truth",
+        owner: "coordinator",
+        status: "active",
+        focus:
+          "Reconcile docs and swarm artifacts against Linear, keep execution framing coherent, and publish daily derived control-room status.",
+        linkedIssues: ["GTM-106"],
+        dependencies: [],
+        exitCriteria: [
+          "Swarm presets match the reset critical path",
+          "Derived artifacts state that Linear is canonical",
+          "Coordinator tracker stays aligned with live lane state",
+        ],
+        evidence: [
+          "Updated swarm dashboard and operating contract",
+          "Daily artifact or checkpoint note reconciled against Linear",
+        ],
+        nextAction:
+          "Refresh the swarm control plane and publish the daily coordinator snapshot.",
+        handoffRequest:
+          "Each lane owner should update Linear before requesting doc or merge-order changes.",
       },
       {
-        id: "integrations",
-        name: "Integrations",
-        owner: "signals-processor",
-        focus: "Signal/webhook flows, sync surfaces, and external connectors",
+        id: "reliability",
+        name: "Reliability",
+        owner: "platform-auth",
+        status: "ready",
+        focus:
+          "Finish the remaining auth, smoke-check, and runbook work now that the first Clerk incident fixes have landed.",
+        linkedIssues: ["GTM-95", "GTM-97", "GTM-98"],
+        dependencies: ["Source Of Truth lane publishes the current gate state"],
+        exitCriteria: [
+          "`https://elmer.studio/login` is trustworthy",
+          "`npm run check:auth` is the real release gate",
+          "Deployment/auth docs match the live stack",
+        ],
+        evidence: [
+          "Auth smoke output",
+          "Public login verification",
+          "Updated deployment guidance",
+        ],
+        nextAction:
+          "Close the remaining reliability tail: docs, smoke checks, and legacy auth cleanup.",
       },
       {
-        id: "agent-runtime",
-        name: "Agent Runtime",
-        owner: "validator",
-        focus: "Execution visibility, approvals, and reliable orchestration",
+        id: "test-baseline",
+        name: "Test Baseline",
+        owner: "test-infra",
+        status: "ready",
+        focus:
+          "Turn the current smoke scaffold into deterministic seeded E2E coverage that can gate the internal alpha.",
+        linkedIssues: ["GTM-78", "GTM-82", "GTM-83", "GTM-84"],
+        dependencies: [
+          "Reliability lane is stable enough to run deterministic browser checks",
+        ],
+        exitCriteria: [
+          "Seeded core E2E paths pass reliably",
+          "Smoke coverage is broad enough to catch route regressions",
+          "The minimum suite is ready for CI and release gating",
+        ],
+        evidence: [
+          "Passing Playwright output",
+          "Seed helpers or stubs for inbox and agent execution",
+        ],
+        nextAction:
+          "Finish POM coverage, seeded inbox coverage, and the first stubbed agent execution flow.",
       },
       {
-        id: "desktop-experience",
-        name: "Desktop Experience",
-        owner: "proto-builder",
-        focus: "Control-plane UX, projects, status, and workflow clarity",
+        id: "memory-cutover",
+        name: "Memory Cutover",
+        owner: "memory-architect",
+        status: "blocked",
+        focus:
+          "Make Convex graph-backed memory the runtime authority so context, search direction, and compatibility mirrors stop competing.",
+        linkedIssues: ["GTM-104", "GTM-105"],
+        dependencies: ["Source Of Truth lane publishes the canonical memory contract"],
+        exitCriteria: [
+          "One canonical runtime memory contract exists",
+          "Cutover surfaces stop depending on legacy context fallbacks",
+          "Personas and knowledge surfaces are treated as lenses or mirrors, not separate authorities",
+        ],
+        evidence: [
+          "Published memory-cutover contract",
+          "Explicit inventory of remaining legacy context fallbacks",
+        ],
+        nextAction:
+          "Land the memory-cutover contract first, then remove fallbacks from surfaces already declared Convex-first.",
+        handoffRequest:
+          "Migration lane should not finalize `/search` or persona boundaries before the memory contract is explicit.",
+      },
+      {
+        id: "convex-migration",
+        name: "Convex Migration",
+        owner: "migration-lead",
+        status: "ready",
+        focus:
+          "Burn down the named Phase 7 blockers and keep the first Convex route tranche stable for daily internal use.",
+        linkedIssues: [
+          "GTM-59",
+          "GTM-99",
+          "GTM-100",
+          "GTM-101",
+          "GTM-102",
+          "GTM-103",
+        ],
+        dependencies: [
+          "Reliability lane is stable enough to validate runtime behavior",
+          "Memory Cutover lane defines runtime authority for context and search",
+        ],
+        exitCriteria: [
+          "High-traffic routes are stable on Convex-native paths",
+          "Remaining blockers are resolved or marked as intentional server-side boundaries",
+          "Project detail, settings, and search have explicit implementation paths",
+        ],
+        evidence: [
+          "Updated migration-readiness classifications",
+          "Named blocker decisions with route-level implications",
+        ],
+        nextAction:
+          "Sequence the blocker work: memberships, GitHub/settings boundaries, search, then project detail parity.",
+      },
+      {
+        id: "runtime-collaboration",
+        name: "Runtime Collaboration",
+        owner: "runtime-ui",
+        status: "ready",
+        focus:
+          "Finish attribution, presence, orchestrator visibility, and team access so the app is safe for concurrent internal use.",
+        linkedIssues: ["GTM-55", "GTM-58", "GTM-69", "GTM-70"],
+        dependencies: [
+          "Core routes remain stable enough for multi-user validation",
+          "Convex Migration lane keeps collaboration surfaces off regressing boundaries",
+        ],
+        exitCriteria: [
+          "Agent runs are attributable end-to-end",
+          "Core surfaces show who is active where",
+          "The orchestrator exposes usable project-health visibility",
+          "Internal-team access/onboarding is ready",
+        ],
+        evidence: [
+          "Visible blame-chain UI",
+          "Visible presence UI",
+          "Orchestrator health/proposals evidence",
+        ],
+        nextAction:
+          "Treat GTM-69 and GTM-70 as completion work, keep GTM-55 downstream of the core gates, and only open GTM-58 when the runtime is stable enough to onboard teammates.",
+        handoffRequest:
+          "Do not promote GTM-55 as active implementation until reliability, tests, memory cutover, and migration are all holding.",
+      },
+      {
+        id: "internal-alpha-ux",
+        name: "Internal Alpha UX",
+        owner: "alpha-release",
+        status: "gated",
+        focus:
+          "Prepare the production-alpha cohort, feedback loop, and Chat/Agent Hub rollout without weakening the core release gate.",
+        linkedIssues: [
+          "GTM-107",
+          "GTM-71",
+          "GTM-72",
+          "GTM-73",
+          "GTM-74",
+          "GTM-75",
+          "GTM-76",
+          "GTM-77",
+        ],
+        dependencies: [
+          "Reliability lane holds",
+          "Test Baseline lane holds",
+          "Memory Cutover lane holds",
+          "Convex Migration lane holds",
+        ],
+        exitCriteria: [
+          "Internal alpha cohort and test script are defined",
+          "Each alpha session produces structured Linear follow-up",
+          "Chat/Agent Hub work stays on the stable Convex foundation",
+        ],
+        evidence: [
+          "Alpha test script",
+          "Feature-flag or rollout plan",
+          "Structured Linear intake path for dogfood feedback",
+        ],
+        nextAction:
+          "Keep GTM-107 active; treat GTM-71 to GTM-77 as planning/spec unless the core lanes are holding.",
+        handoffRequest:
+          "Chat or Agent Hub implementation must not bypass the reliability, testing, memory, and migration release gates.",
       },
     ],
-    jobTypes: ["score_stage_alignment", "execute_agent_definition"],
+    jobTypes: NO_JOBS,
     validationChecks: [
-      { label: "Workspace status report saves", evidence: "status-all snapshot" },
-      { label: "Execution surfaces render active context", evidence: "job logs + pending question UI" },
+      {
+        label: "Derived artifact points back to Linear truth",
+        evidence: "Swarm dashboard + saved artifact note",
+      },
+      {
+        label: "Release gate stays anchored on reliability, tests, memory, and migration",
+        evidence: "Lane dependencies and merge order",
+      },
     ],
   },
-  "phase-1": {
+  "stability-gates": {
     objective:
-      "Focus the swarm on memory backend, workspace context integrity, and live integrations.",
+      "Focus on the four internal-alpha release gates: reliability, deterministic tests, memory cutover, and Convex migration.",
+    releaseTarget: "Internal production alpha",
+    sourceOfTruth:
+      "Linear is canonical for state. This preset is a derived execution grouping for the current release gates.",
     lanes: [
       {
-        id: "memory-platform",
-        name: "Memory Platform",
-        owner: "workspace-admin",
-        focus: "Status artifacts, knowledge roots, and durable context",
+        id: "reliability",
+        name: "Reliability",
+        owner: "platform-auth",
+        status: "active",
+        focus: "Auth, deployment, and smoke checks",
+        linkedIssues: ["GTM-95", "GTM-97", "GTM-98"],
+        dependencies: [],
+        exitCriteria: [
+          "Public login is healthy",
+          "Smoke checks are trustworthy",
+          "Docs match the live stack",
+        ],
+        evidence: ["Auth smoke output", "Deployment guide updates"],
+        nextAction: "Finish the remaining reliability tail.",
       },
       {
-        id: "integrations",
-        name: "Integrations",
-        owner: "signals-processor",
-        focus: "Webhook intake, sync flows, and project signal coverage",
+        id: "test-baseline",
+        name: "Test Baseline",
+        owner: "test-infra",
+        status: "ready",
+        focus: "Seeded E2E coverage and CI-ready release gates",
+        linkedIssues: ["GTM-78", "GTM-82", "GTM-83", "GTM-84"],
+        dependencies: ["Reliability lane holds well enough to test"],
+        exitCriteria: [
+          "Deterministic seeded core flows",
+          "Smoke suite ready for CI",
+        ],
+        evidence: ["Playwright output", "Seed fixtures or stubs"],
+        nextAction: "Complete the minimum credible test baseline.",
+      },
+      {
+        id: "memory-cutover",
+        name: "Memory Cutover",
+        owner: "memory-architect",
+        status: "blocked",
+        focus: "Canonical runtime memory contract and fallback removal",
+        linkedIssues: ["GTM-104", "GTM-105"],
+        dependencies: [],
+        exitCriteria: [
+          "Graph-backed memory is runtime authority",
+          "Legacy context fallbacks are removed from cutover surfaces",
+        ],
+        evidence: ["Memory contract", "Fallback inventory"],
+        nextAction: "Publish the contract and then cut over runtime paths.",
+      },
+      {
+        id: "convex-migration",
+        name: "Convex Migration",
+        owner: "migration-lead",
+        status: "ready",
+        focus: "Named blocker burn-down for the remaining Phase 7 tail",
+        linkedIssues: [
+          "GTM-59",
+          "GTM-99",
+          "GTM-100",
+          "GTM-101",
+          "GTM-102",
+          "GTM-103",
+        ],
+        dependencies: ["Memory Cutover lane defines runtime authority"],
+        exitCriteria: [
+          "Blockers are resolved or explicit boundaries",
+          "High-traffic routes are stable on Convex",
+        ],
+        evidence: ["Migration readiness map", "Blocker issue updates"],
+        nextAction: "Work blocker issues in dependency order, not in parallel chaos.",
       },
     ],
-    jobTypes: ["synthesize_signals", "score_stage_alignment"],
+    jobTypes: NO_JOBS,
     validationChecks: [
-      { label: "Webhook intake documented", evidence: "Inbox webhook setup" },
-      { label: "Status artifacts persist", evidence: "pm-workspace-docs/status/" },
+      {
+        label: "All four alpha gates have explicit owners and evidence",
+        evidence: "Preset lane metadata",
+      },
     ],
   },
-  "phase-2": {
+  "runtime-collaboration": {
     objective:
-      "Focus the swarm on runtime APIs, HITL controls, and execution observability.",
+      "Coordinate the collaboration/runtime lane without promoting it ahead of the alpha release gates.",
+    releaseTarget: "Internal production alpha",
+    sourceOfTruth:
+      "Linear is canonical. This preset exists to coordinate runtime-collaboration slices once the core gates are holding well enough.",
     lanes: [
       {
-        id: "agent-runtime",
-        name: "Agent Runtime",
-        owner: "validator",
-        focus: "Pending questions, approvals, and execution state transitions",
+        id: "source-of-truth",
+        name: "Source Of Truth",
+        owner: "coordinator",
+        status: "active",
+        focus: "Keep the runtime lane aligned with the live release gates",
+        linkedIssues: ["GTM-106"],
+        dependencies: [],
+        exitCriteria: ["Lane sequencing stays aligned with Linear"],
+        evidence: ["Coordinator checkpoint"],
+        nextAction: "Confirm which runtime slices are truly unblocked before work starts.",
       },
       {
-        id: "control-center",
-        name: "Control Center",
-        owner: "workspace-admin",
-        focus: "Stage recipe visibility, command parity, and execution history",
+        id: "runtime-collaboration",
+        name: "Runtime Collaboration",
+        owner: "runtime-ui",
+        status: "ready",
+        focus: "Attribution, presence, orchestrator visibility, and team access",
+        linkedIssues: ["GTM-55", "GTM-58", "GTM-69", "GTM-70"],
+        dependencies: [
+          "Reliability, tests, memory cutover, and migration are stable enough to support internal multi-user validation",
+        ],
+        exitCriteria: [
+          "Blame chain is complete",
+          "Presence is visible on core surfaces",
+          "GTM-55 moves beyond the current stub",
+          "Internal-team access is ready",
+        ],
+        evidence: [
+          "Visible blame/presence UI",
+          "Non-stub orchestrator evidence",
+        ],
+        nextAction:
+          "Complete GTM-69 and GTM-70 first, then open GTM-55 and GTM-58 in that order.",
+        handoffRequest:
+          "Runtime lane should request memory/migration confirmation before claiming GTM-55 is ready for merge.",
       },
     ],
-    jobTypes: ["execute_agent_definition", "score_stage_alignment"],
+    jobTypes: NO_JOBS,
     validationChecks: [
-      { label: "Pending questions are actionable", evidence: "Question inbox + modal" },
-      { label: "Runtime context visible", evidence: "Execution panel input/output" },
+      {
+        label: "Runtime lane still honors the core alpha release gates",
+        evidence: "Lane dependency list",
+      },
     ],
   },
-  "phase-3": {
+  "chat-readiness": {
     objective:
-      "Focus the swarm on desktop flagship UX, status visibility, and end-to-end project productivity.",
+      "Keep Chat / Agent Hub planning visible without allowing premature implementation ahead of the stable Convex foundation.",
+    releaseTarget: "Internal production alpha",
+    sourceOfTruth:
+      "Linear is canonical. Chat and Agent Hub remain gated until the lower-level lanes are holding.",
     lanes: [
       {
-        id: "desktop-experience",
-        name: "Desktop Experience",
-        owner: "proto-builder",
-        focus: "Workspace navigation, status, swarm, and project usability",
-      },
-      {
-        id: "onboarding",
-        name: "Onboarding",
-        owner: "workspace-admin",
-        focus: "Repo context mapping, workflow defaults, and guided setup",
+        id: "internal-alpha-ux",
+        name: "Internal Alpha UX",
+        owner: "alpha-release",
+        status: "gated",
+        focus:
+          "Alpha test script, feedback loop, and Chat/Agent Hub rollout planning on top of the stable foundation.",
+        linkedIssues: [
+          "GTM-107",
+          "GTM-71",
+          "GTM-72",
+          "GTM-73",
+          "GTM-74",
+          "GTM-75",
+          "GTM-76",
+          "GTM-77",
+        ],
+        dependencies: [
+          "Reliability lane holds",
+          "Test Baseline lane holds",
+          "Memory Cutover lane holds",
+          "Convex Migration lane holds",
+        ],
+        exitCriteria: [
+          "Alpha cohort and script exist",
+          "Feedback always lands in Linear",
+          "Chat work is built on the stable Convex foundation",
+        ],
+        evidence: [
+          "Alpha script",
+          "Feedback intake path",
+          "Chat rollout guardrail",
+        ],
+        nextAction:
+          "Keep GTM-107 active; keep GTM-71 to GTM-77 at planning/spec unless the gates are holding.",
+        handoffRequest:
+          "If a Chat branch needs merge priority, it must show why it does not weaken the alpha release gate.",
       },
     ],
-    jobTypes: ["score_stage_alignment", "execute_agent_definition"],
+    jobTypes: NO_JOBS,
     validationChecks: [
-      { label: "Status page available", evidence: "/workspace/[id]/status" },
-      { label: "Swarm page available", evidence: "/workspace/[id]/swarm" },
+      {
+        label: "Chat work stays gated behind the stable foundation",
+        evidence: "Preset dependency metadata",
+      },
     ],
   },
 };
@@ -134,6 +430,8 @@ export function buildSwarmReport(params: {
     preset: params.preset,
     generatedAt: new Date().toISOString(),
     objective: presetConfig.objective,
+    releaseTarget: presetConfig.releaseTarget,
+    sourceOfTruth: presetConfig.sourceOfTruth,
     backlog: params.backlog,
     lanes: presetConfig.lanes.map((lane) => ({
       ...lane,

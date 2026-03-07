@@ -13,6 +13,12 @@ export function SwarmStatusArtifactCard({ report }: SwarmStatusArtifactCardProps
       <p className="text-sm text-muted-foreground mb-3">{report.objective}</p>
       <div className="space-y-2 text-sm">
         <div>
+          <span className="font-medium">Release target:</span> {report.releaseTarget}
+        </div>
+        <div>
+          <span className="font-medium">Primary tracker:</span> {report.sourceOfTruth}
+        </div>
+        <div>
           <span className="font-medium">Preset:</span> {report.preset}
         </div>
         <div>
@@ -28,6 +34,10 @@ export function SwarmStatusArtifactCard({ report }: SwarmStatusArtifactCardProps
         <div>
           <span className="font-medium">Validation checks:</span>{" "}
           {report.validationChecks.length}
+        </div>
+        <div>
+          <span className="font-medium">Linked Linear issues:</span>{" "}
+          {report.lanes.reduce((count, lane) => count + lane.linkedIssues.length, 0)}
         </div>
       </div>
     </div>

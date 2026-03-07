@@ -31,10 +31,10 @@ export async function GET(
       | SwarmPreset
       | null;
     const preset = getAvailableSwarmPresets().includes(
-      (presetParam || "flagship") as SwarmPreset,
+      (presetParam || "internal-alpha") as SwarmPreset,
     )
-      ? ((presetParam || "flagship") as SwarmPreset)
-      : "flagship";
+      ? ((presetParam || "internal-alpha") as SwarmPreset)
+      : "internal-alpha";
 
     return NextResponse.json(
       buildSwarmReport({
@@ -84,7 +84,8 @@ export async function POST(
             projectId: body.projectId,
             type: laneJob.type as never,
             input: {
-              swarmPreset: body.preset || "flagship",
+              swarmPreset: body.preset || "internal-alpha",
+              swarmSourceOfTruth: body.sourceOfTruth,
               swarmLaneId: lane.id,
               swarmLaneName: lane.name,
               swarmObjective: body.objective,
@@ -105,7 +106,7 @@ export async function POST(
     const report: SwarmReport = {
       ...body,
       workspaceId: id,
-      preset: body.preset || "flagship",
+      preset: body.preset || "internal-alpha",
       generatedAt: new Date().toISOString(),
       lanes: body.lanes.map((lane) => ({
         ...lane,

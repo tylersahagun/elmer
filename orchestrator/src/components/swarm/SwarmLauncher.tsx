@@ -10,24 +10,24 @@ const PRESETS: Array<{
   description: string;
 }> = [
   {
-    preset: "flagship",
-    label: "Flagship",
-    description: "Full four-lane swarm across memory, integrations, runtime, and desktop UX.",
+    preset: "internal-alpha",
+    label: "Internal Alpha",
+    description: "Full control room for source-of-truth, reliability, tests, memory, migration, runtime collaboration, and alpha UX.",
   },
   {
-    preset: "phase-1",
-    label: "Phase 1",
-    description: "Memory backend, context integrity, and live integrations.",
+    preset: "stability-gates",
+    label: "Stability Gates",
+    description: "Release-gate lanes only: reliability, deterministic tests, memory cutover, and migration.",
   },
   {
-    preset: "phase-2",
-    label: "Phase 2",
-    description: "Runtime APIs, HITL controls, and execution observability.",
+    preset: "runtime-collaboration",
+    label: "Runtime Collaboration",
+    description: "Attribution, presence, orchestrator visibility, and team access once the core gates are holding.",
   },
   {
-    preset: "phase-3",
-    label: "Phase 3",
-    description: "Desktop flagship UX, onboarding, and workspace productivity.",
+    preset: "chat-readiness",
+    label: "Chat Readiness",
+    description: "Keep alpha UX and Chat/Agent Hub planning visible without opening premature implementation.",
   },
 ];
 
@@ -45,7 +45,7 @@ export function SwarmLauncher({
       <div>
         <h3 className="font-medium">Swarm presets</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Launch a named swarm preset to organize work by lane and save a corresponding artifact.
+          Save a derived control-room artifact that groups Elmer work by the current internal-alpha lanes. Linear remains the canonical tracker.
         </p>
       </div>
 

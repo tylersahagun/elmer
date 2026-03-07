@@ -21,7 +21,7 @@ interface SwarmPageClientProps {
 export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
   const searchParams = useSearchParams();
   const projects = useKanbanStore((state) => state.projects);
-  const requestedPreset = (searchParams.get("preset") || "flagship") as SwarmPreset;
+  const requestedPreset = (searchParams.get("preset") || "internal-alpha") as SwarmPreset;
   const [preset, setPreset] = useState<SwarmPreset>(requestedPreset);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
@@ -120,7 +120,7 @@ export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Choose a project to launch lane jobs immediately. Leave empty to save planning artifact only.
+                  Choose a project to launch lane jobs immediately. Leave empty to save the derived artifact only. Lanes without job templates will not launch anything.
                 </p>
               </div>
               <div>

@@ -1,143 +1,63 @@
 # Elmer Swarm Dashboard
 
-**As of:** 2026-03-06  
-**Primary tracker:** [Elmer Linear project](https://linear.app/askelephant/project/elmer-e42608f6079d/issues?layout=list&ordering=priority&grouping=workflowState&subGrouping=none&showCompletedIssues=all&showSubIssues=true&showTriageIssues=true)  
-**Purpose:** Give a one-page view of lane status, gates, blockers, and next actions without replacing Linear.
-
-## Project Snapshot
-
-- Project status: `In Progress`
-- Health: `onTrack`
-- Priority: `Urgent`
-- Progress: about `41.9%`
-- Scope: `71`
-
-## Critical Path
-
-```mermaid
-flowchart LR
-    reliability[Reliability] --> testing[TestBaseline]
-    reliability --> migration[MigrationBlockers]
-    testing --> teamsafe[TeamSafe]
-    migration --> teamsafe
-    testing --> chatmvp[ChatMVP]
-    migration --> chatmvp
-    teamsafe --> chatmvp
-    chatmvp --> richchat[ContextRichChat]
-```
+**As of:** 2026-03-07
+**Primary tracker:** [Elmer Linear project](https://linear.app/askelephant/project/elmer-e42608f6079d/issues?layout=list&ordering=priority&grouping=workflowState&subGrouping=none&showCompletedIssues=all&showSubIssues=true)
+**Release target:** `internal production alpha`
 
 ## Gate Status
 
 | Gate | Status | Meaning |
 | --- | --- | --- |
-| `Gate 1` Reliability holding | `Not holding yet` | Auth/deployment still leads the roadmap |
-| `Gate 2` Test baseline holding | `Not holding yet` | Smoke progress exists, but deterministic release-gating coverage is incomplete |
-| `Gate 3` Migration holding | `Not holding yet` | Migration is explicit and underway, but named blockers are still open |
-| `Gate 4` Team-safe holding | `Partially landed` | Blame-chain and presence progress exists, but milestone exit criteria are not complete |
+| Reliability | `Partial` | `GTM-94` and `GTM-96` are done, but `GTM-95`, `GTM-97`, and `GTM-98` still keep the gate from holding |
+| Test baseline | `Not holding` | `GTM-78`, `GTM-82`, and `GTM-83` are in progress; `GTM-84` is still todo |
+| Memory cutover | `Not holding` | `GTM-104` and `GTM-105` are new and unstarted |
+| Convex migration | `Partial` | `GTM-59` is in progress, but `GTM-99` to `GTM-103` remain open |
+| Runtime collaboration | `Partial` | blame-chain and presence foundations exist, but `GTM-55` and `GTM-58` are not ready to close |
+| Chat / alpha UX | `Gated` | `GTM-107` can plan now; `GTM-71` to `GTM-77` should not become the active merge queue yet |
 
 ## Lane Status
 
-| Lane | Current status | Active issue set | Current blocker | Next action | Evidence |
-| --- | --- | --- | --- | --- | --- |
-| `Lane 0 — Platform Reliability` | `Active` | `GTM-94`, `GTM-95`, `GTM-96`, `GTM-97`, `GTM-98` | GTM-96 remains the active slice because browser validation still does not show a working Clerk sign-in experience on public `/login` | Keep GTM-96 active and debug the browser-visible route/render/auth-flow failure before handing off to `GTM-94` | Local `check:auth` passes and public `/login` returns `200`, but browser validation lands on the Elmer shell instead of a visible sign-in form; see `swarm/gtm-96-swarm-2026-03-06.md` |
-| `Lane A — Testing Completion` | `Prepared / parallel-ready after Gate 1` | `GTM-78`, `GTM-79`, `GTM-80`, `GTM-81`, `GTM-82`, `GTM-83`, `GTM-84`, `GTM-87`, `GTM-88`, `GTM-91` | Reliability gate is not yet holding; release-gating baseline is broader than smoke | Continue POM, seeded E2E, and CI preparation so the lane can accelerate once reliability is stable enough | Smoke was reported green; `GTM-78`, `GTM-82`, and `GTM-83` are already in progress |
-| `Lane B — Team-Safe Operation` | `Prepared / parallel-ready after Gate 1` | `GTM-55`, `GTM-58`, `GTM-69`, `GTM-70` | Milestone is downstream of reliability and still needs broader operational trust coverage | Continue orchestrator, onboarding, attribution, and presence work once broader execution opens | Minimal blame-chain and presence landed, but milestone is not complete |
-| `Lane C — Migration Blockers` | `Prepared / parallel-ready after Gate 1` | `GTM-59`, `GTM-99`, `GTM-100`, `GTM-101`, `GTM-102`, `GTM-103` | Named blockers are explicit but unresolved; first tranche not yet declared fully stable | Keep tranche 1 stable and burn down the blocker set in issue order | Tranches 1-6 and multiple parity checkpoints are documented, but blockers remain open |
-| `Lane D — Chat Readiness / Chat MVP` | `Gated` | `GTM-71` to `GTM-77` | Gates 1-3 are not holding, so Chat should not become the active implementation lane | Keep to planning/contracts only until the roadmap gates open | Reset docs and issue comments explicitly keep this gated |
+| Lane | Status | Active issue set | Current blocker | Next action |
+| --- | --- | --- | --- | --- |
+| Source Of Truth | `Active` | `GTM-106` | control-plane drift and missing memory-cutover contract | refresh swarm/code/docs and publish the derived checkpoint |
+| Reliability | `Ready` | `GTM-95`, `GTM-97`, `GTM-98` | auth gate still lacks trustworthy smoke checks and one authoritative runbook | finish `GTM-98`, then close docs/auth debt |
+| Test Baseline | `Ready` | `GTM-78`, `GTM-82`, `GTM-83`, `GTM-84` | deterministic seeded E2E is still incomplete | merge POM foundations before expanding feature E2E |
+| Memory Cutover | `Blocked` | `GTM-104`, `GTM-105` | no explicit canonical memory contract existed in repo docs | land the contract first, then remove fallbacks |
+| Convex Migration | `Ready` | `GTM-59`, `GTM-99` to `GTM-103` | blocker work is explicit but still depends on memory authority clarity | work blockers in dependency order, not in parallel churn |
+| Runtime Collaboration | `Ready` | `GTM-55`, `GTM-58`, `GTM-69`, `GTM-70` | `GTM-55` is still a stub and should not jump ahead of core gates | finish `GTM-69` and `GTM-70`, keep `GTM-55` downstream |
+| Internal Alpha UX | `Gated` | `GTM-107`, `GTM-71` to `GTM-77` | alpha rollout and Chat implementation are still gated on the four core release gates | keep `GTM-107` in planning and feedback-loop mode only |
 
-## Lane Detail
+## Blocker Map
 
-### Lane 0 — Platform Reliability
-- Owner pattern: platform / auth / deployment
-- Why it matters: this is the first release gate for the whole swarm
-- Current blocker: GTM-96 browser validation still does not show a visible Clerk sign-in form, so the lane cannot cleanly hand off to GTM-94 yet
-- Active slice order:
-  1. `GTM-96` restore Clerk asset loading
-  2. `GTM-94` align Clerk/Convex/app-origin configuration
-  3. `GTM-98` make auth smoke checks trustworthy
-  4. `GTM-95` finalize deployment/auth runbook
-  5. `GTM-97` remove stale legacy auth debt
-- Immediate next action:
-  1. debug the browser-visible `/login` route/render/auth-flow behavior
-  2. confirm why the page settles on the Elmer shell instead of a visible sign-in form
-  3. keep `GTM-96` active until the Clerk UI is visibly correct
+- `GTM-98` blocks a trustworthy reliability gate
+- `GTM-78` blocks the rest of the test-baseline merge queue because downstream E2E work needs the shared POM/test substrate
+- `GTM-104` blocks clean resolution of `GTM-99`, `GTM-100`, `GTM-103`, and makes `GTM-55` premature
+- `GTM-102` and `GTM-101` still sit in front of a clean settings migration
+- `GTM-55` is blocked in practice by the four core alpha gates, even if not marked `blocked` in Linear
+- `GTM-107` is planning-safe, but broader Chat implementation stays gated
 
-### Lane A — Testing Completion
-- Owner pattern: test-infra and implementation agents
-- Why it matters: smoke is not the same thing as a minimum credible release gate
-- Current blocker: deterministic seeded E2E and CI-backed confidence are still incomplete
-- Immediate next action:
-  1. finish POM base coverage
-  2. expand seeded inbox and agent execution tests
-  3. add project/task and CI coverage
+## Recommended Merge Order
 
-### Lane B — Team-Safe Operation
-- Owner pattern: UI + Convex implementation
-- Why it matters: Elmer cannot be treated as truly usable internally until collaboration is legible
-- Current blocker: partial implementation exists, but the lane is not yet a full milestone pass
-- Immediate next action:
-  1. finish attribution chain
-  2. expand presence surfaces
-  3. finish orchestrator health/proposals
-  4. finish internal team access/onboarding
-
-### Lane C — Migration Blockers
-- Owner pattern: architecture + implementation
-- Why it matters: the migration is no longer vague, but the remaining tail still blocks clean completion
-- Current blocker: `GTM-99` to `GTM-103` remain open and define the tail
-- Immediate next action:
-  1. keep tranche 1 stable
-  2. resolve settings blockers
-  3. resolve personas/knowledgebase and search decisions
-  4. slice project detail parity work
-
-### Lane D — Chat Readiness / Chat MVP
-- Owner pattern: design / planning until gates open
-- Why it matters: this becomes the visible operator surface only after stability exists underneath it
-- Current blocker: Milestones 1 to 3 are not holding
-- Immediate next action:
-  1. continue contract/spec clarification only
-  2. do not open implementation work early
-
-## Issue Buckets
-
-### Immediate execution bucket
-- `GTM-94`
-- `GTM-95`
-- `GTM-96`
-- `GTM-97`
-- `GTM-98`
-
-### Parallel-ready bucket after Gate 1
-- `GTM-78`
-- `GTM-79`
-- `GTM-80`
-- `GTM-81`
-- `GTM-82`
-- `GTM-83`
-- `GTM-84`
-- `GTM-87`
-- `GTM-88`
-- `GTM-91`
-- `GTM-55`
-- `GTM-58`
-- `GTM-69`
-- `GTM-70`
-- `GTM-59`
-- `GTM-99`
-- `GTM-100`
-- `GTM-101`
-- `GTM-102`
-- `GTM-103`
-
-### Explicitly gated bucket
-- `GTM-71`
-- `GTM-72`
-- `GTM-73`
-- `GTM-74`
-- `GTM-75`
-- `GTM-76`
-- `GTM-77`
+1. `tylersahagun/gtm-106-phase-6-swarm-reset-retarget-the-control-plane-swarm-around`
+2. `tylersahagun/gtm-95-docs-update-clerk-convex-deployment-and-auth-setup-for-elmer`
+3. `tylersahagun/gtm-98-reliability-add-authdomain-smoke-checks-for-elmerstudio`
+4. `tylersahagun/gtm-97-refactor-remove-stale-nextauthauthjs-migration-debt-from`
+5. `tylersahagun/gtm-78-gtm-e2e-page-object-model-pom-base-classes-for-all-major`
+6. `tylersahagun/gtm-82-gtm-e2e-workspace-navigation-e2e-login-workspace-all-route`
+7. `tylersahagun/gtm-83-gtm-e2e-signal-inbox-e2e-tests-webhook-classify-inbox-review`
+8. `tylersahagun/gtm-84-gtm-e2e-agent-execution-e2e-start-agent-logs-hitl-question`
+9. `tylersahagun/gtm-104-phase-7-memory-canonicalization-convex-graph-backed-memory`
+10. `tylersahagun/gtm-105-phase-7-cutover-remove-legacy-filedatabase-fallbacks-from`
+11. `tylersahagun/gtm-102-phase-7-migration-blocker-workspace-membership-invitation`
+12. `tylersahagun/gtm-101-phase-7-migration-blocker-connected-account-github`
+13. `tylersahagun/gtm-99-phase-7-migration-blocker-personas-knowledgebase-data-model`
+14. `tylersahagun/gtm-100-phase-7-migration-blocker-convex-search-strategy-for`
+15. `tylersahagun/gtm-103-phase-7-migration-blocker-project-detail-page-parity-for`
+16. `tylersahagun/gtm-69-phase-6-agent-blame-thread-attribute-every-agent-run-to-the`
+17. `tylersahagun/gtm-70-phase-6-live-presence-show-who-is-actively-viewing-which`
+18. `tylersahagun/gtm-55-phase-6-orchestrator-agent-every-2-hour-health-checks`
+19. `tylersahagun/gtm-58-phase-6-team-access-clerk-domain-restriction-role-based`
+20. `tylersahagun/gtm-107-alpha-internal-alpha-instrumentation-and-feedback-loop`
 
 ## Update Rule
 
