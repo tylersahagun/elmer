@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -19,6 +20,7 @@ import { GlassCard } from "@/components/glass";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { QuestionModal, type PendingQuestionView } from "./QuestionModal";
 
 interface LogEntry {
   timestamp: string;
@@ -47,14 +49,81 @@ export function ExecutionPanel({
   className,
 }: ExecutionPanelProps) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [status, setStatus] = useState<"pending" | "running" | "completed" | "failed" | "cancelled">("pending");
+  const [status, setStatus] = useState<"pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled">("pending");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [questionModalOpen, setQuestionModalOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  const { data: questionData, refetch: refetchQuestions } = useQuery<{
+    questions: PendingQuestionView[];
+  }>({
+    queryKey: ["job-questions", jobId],
+    queryFn: async () => {
+      const response = await fetch(`/api/jobs/${jobId}/questions`);
+      if (!response.ok) throw new Error("Failed to load job questions");
+      return response.json();
+    },
+    enabled: !!jobId && status === "waiting_input",
+    refetchInterval: status === "waiting_input" ? 10000 : false,
+  });
+
+  const activeQuestion = questionData?.questions?.[0] ?? null;
+
+  const respondMutation = useMutation({
+    mutationFn: async ({
+      question,
+      response,
+    }: {
+      question: PendingQuestionView;
+      response: string;
+    }) => {
+      const res = await fetch(
+        `/api/jobs/${question.jobId}/questions/${question.id}/respond`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: question.workspaceId,
+            response,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error("Failed to submit response");
+      return res.json();
+    },
+    onSuccess: () => {
+      setQuestionModalOpen(false);
+      setStatus("pending");
+      void refetchQuestions();
+    },
+  });
+
+  const skipMutation = useMutation({
+    mutationFn: async (question: PendingQuestionView) => {
+      const res = await fetch(
+        `/api/jobs/${question.jobId}/questions/${question.id}/skip`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceId: question.workspaceId,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error("Failed to skip question");
+      return res.json();
+    },
+    onSuccess: () => {
+      setQuestionModalOpen(false);
+      setStatus("pending");
+      void refetchQuestions();
+    },
+  });
 
   // Connect to SSE endpoint
   useEffect(() => {
@@ -147,6 +216,8 @@ export function ExecutionPanel({
     switch (status) {
       case "running":
         return <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />;
+      case "waiting_input":
+        return <AlertCircle className="w-5 h-5 text-amber-400" />;
       case "completed":
         return <CheckCircle className="w-5 h-5 text-green-400" />;
       case "failed":
@@ -162,6 +233,8 @@ export function ExecutionPanel({
     switch (status) {
       case "running":
         return "Executing...";
+      case "waiting_input":
+        return "Waiting for input";
       case "completed":
         return "Completed";
       case "failed":
@@ -280,6 +353,41 @@ export function ExecutionPanel({
               exit={{ height: 0 }}
               className="overflow-hidden"
             >
+              {status === "waiting_input" && activeQuestion && (
+                <div className="p-3 border-b border-amber-500/20 bg-amber-500/10">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-amber-300 font-medium">
+                        Agent waiting for input
+                      </div>
+                      <p className="text-sm text-amber-100 mt-1">
+                        {activeQuestion.questionText}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {activeQuestion.questionType && (
+                          <span className="text-[10px] text-amber-300/80">
+                            {activeQuestion.questionType}
+                          </span>
+                        )}
+                        {activeQuestion.project?.name && (
+                          <span className="text-[10px] text-amber-300/80">
+                            {activeQuestion.project.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-amber-500/30 text-amber-100 hover:bg-amber-500/10"
+                      onClick={() => setQuestionModalOpen(true)}
+                    >
+                      Respond
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div
                 ref={scrollRef}
                 onScroll={handleScroll}
@@ -366,6 +474,24 @@ export function ExecutionPanel({
           )}
         </AnimatePresence>
       </GlassCard>
+
+      <QuestionModal
+        open={questionModalOpen}
+        question={activeQuestion}
+        onOpenChange={setQuestionModalOpen}
+        onSubmit={async (response) => {
+          if (!activeQuestion) return;
+          await respondMutation.mutateAsync({ question: activeQuestion, response });
+        }}
+        onSkip={
+          activeQuestion
+            ? async () => {
+                await skipMutation.mutateAsync(activeQuestion);
+              }
+            : undefined
+        }
+        isSubmitting={respondMutation.isPending || skipMutation.isPending}
+      />
     </motion.div>
   );
 }

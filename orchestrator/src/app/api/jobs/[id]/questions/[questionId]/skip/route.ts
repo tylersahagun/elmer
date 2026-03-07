@@ -22,10 +22,11 @@ export async function POST(
       );
     }
 
-    await requireWorkspaceAccess(workspaceId, "member");
+    const membership = await requireWorkspaceAccess(workspaceId, "member");
 
     await updatePendingQuestion(questionId, {
       status: "cancelled",
+      respondedBy: membership.userId,
       respondedAt: new Date(),
     });
 
