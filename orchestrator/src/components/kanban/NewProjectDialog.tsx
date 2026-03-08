@@ -15,9 +15,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrafficLights } from "@/components/chrome/TrafficLights";
-import { useUIStore, useKanbanStore, type ProjectCard } from "@/lib/store";
+import { useUIStore, useKanbanStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { getProjectRoute } from "@/lib/projects/navigation";
+import { toast } from "sonner";
 import { 
   FileText, 
   Mic, 
@@ -30,7 +31,6 @@ import {
   Plus,
   FolderPlus,
 } from "lucide-react";
-import { v4 as uuid } from "uuid";
 
 type InputType = "text" | "audio" | "video" | "link" | "files";
 
@@ -83,44 +83,39 @@ export function NewProjectDialog() {
         }),
       });
 
-      if (response.ok) {
-        const project = await response.json();
-        addProject({
-          id: project.id,
-          name: project.name,
-          description: project.description,
-          stage: project.stage,
-          status: project.status,
-          priority: project.priority || 0,
-          createdAt: new Date(project.createdAt),
-          updatedAt: new Date(project.updatedAt),
-        });
-
-        // Persist initial context as memory + optional research document
-        await handleContextSubmit(project.id);
-        
-        resetForm();
-        closeModal();
-        router.push(getProjectRoute(project.id, workspace.id));
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(
+          (errorBody as { error?: string }).error ||
+            "Failed to create project",
+        );
       }
-    } catch (error) {
-      console.error("Failed to create project:", error);
-      // For now, create locally as fallback
-      const newProject: ProjectCard = {
-        id: uuid(),
-        name: name.trim(),
-        description: description.trim() || undefined,
-        stage: "inbox",
-        status: "active",
-        priority: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      addProject(newProject);
-      await handleContextSubmit(newProject.id);
+
+      const project = await response.json();
+      addProject({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        stage: project.stage,
+        status: project.status,
+        priority: project.priority || 0,
+        createdAt: new Date(project.createdAt),
+        updatedAt: new Date(project.updatedAt),
+      });
+
+      // Persist initial context as memory + optional research document
+      await handleContextSubmit(project.id);
+
       resetForm();
       closeModal();
-      router.push(getProjectRoute(newProject.id, workspace.id));
+      router.push(getProjectRoute(project.id, workspace.id));
+    } catch (error) {
+      console.error("Failed to create project:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to create project",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -130,7 +125,7 @@ export function NewProjectDialog() {
     if (!workspace) return;
 
     const createMemory = async (content: string, metadata?: Record<string, unknown>) => {
-      await fetch("/api/memory", {
+      const response = await fetch("/api/memory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -141,10 +136,13 @@ export function NewProjectDialog() {
           metadata,
         }),
       });
+      if (!response.ok) {
+        throw new Error("Failed to save project context memory");
+      }
     };
 
     const createResearchDoc = async (title: string, content: string) => {
-      await fetch("/api/documents", {
+      const response = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -158,51 +156,66 @@ export function NewProjectDialog() {
           },
         }),
       });
+      if (!response.ok) {
+        throw new Error("Failed to create initial research document");
+      }
+    };
+
+    const runOptionalSetup = async (task: () => Promise<void>) => {
+      try {
+        await task();
+      } catch (error) {
+        console.warn("[new-project] Optional context setup failed", error);
+      }
     };
 
     if (inputType === "text" && contextText.trim()) {
-      await createMemory(contextText.trim(), { source: "text" });
-      await createResearchDoc("Initial Context", contextText.trim());
+      await runOptionalSetup(async () => {
+        await createMemory(contextText.trim(), { source: "text" });
+        await createResearchDoc("Initial Context", contextText.trim());
+      });
     }
 
     if (inputType === "link" && linkUrl.trim()) {
-      await createMemory(`Link: ${linkUrl.trim()}`, { source: "link", url: linkUrl.trim() });
-      // If we have scraped content, also create a research doc
-      if (scrapedData?.content) {
-        await createResearchDoc(
-          scrapedData.title || `Content from ${new URL(linkUrl).hostname}`,
-          `Source: ${linkUrl}\n\n${scrapedData.description ? `> ${scrapedData.description}\n\n` : ""}${scrapedData.content}`
-        );
-      }
+      await runOptionalSetup(async () => {
+        await createMemory(`Link: ${linkUrl.trim()}`, { source: "link", url: linkUrl.trim() });
+        if (scrapedData?.content) {
+          await createResearchDoc(
+            scrapedData.title || `Content from ${new URL(linkUrl).hostname}`,
+            `Source: ${linkUrl}\n\n${scrapedData.description ? `> ${scrapedData.description}\n\n` : ""}${scrapedData.content}`
+          );
+        }
+      });
     }
 
     if (["files"].includes(inputType) && uploadedFile) {
-      const formData = new FormData();
-      formData.append("file", uploadedFile);
-      formData.append("workspaceId", workspace.id);
-      formData.append("projectId", projectId);
-      const uploadRes = await fetch("/api/uploads", {
-        method: "POST",
-        body: formData,
-      });
-      if (uploadRes.ok) {
-        const uploadMeta = await uploadRes.json();
-        await createMemory(`Uploaded file: ${uploadMeta.path}`, {
-          source: inputType,
-          fileName: uploadMeta.fileName,
-          path: uploadMeta.path,
-          mimeType: uploadMeta.type,
-          size: uploadMeta.size,
+      await runOptionalSetup(async () => {
+        const formData = new FormData();
+        formData.append("file", uploadedFile);
+        formData.append("workspaceId", workspace.id);
+        formData.append("projectId", projectId);
+        const uploadRes = await fetch("/api/uploads", {
+          method: "POST",
+          body: formData,
         });
-      }
-
-      // If it's a text-based file, also create a research doc from contents
-      if (uploadedFile.type.startsWith("text/") || /\.(txt|md|json)$/i.test(uploadedFile.name)) {
-        const content = await uploadedFile.text();
-        if (content.trim()) {
-          await createResearchDoc(`Transcript - ${uploadedFile.name}`, content.trim());
+        if (uploadRes.ok) {
+          const uploadMeta = await uploadRes.json();
+          await createMemory(`Uploaded file: ${uploadMeta.path}`, {
+            source: inputType,
+            fileName: uploadMeta.fileName,
+            path: uploadMeta.path,
+            mimeType: uploadMeta.type,
+            size: uploadMeta.size,
+          });
         }
-      }
+
+        if (uploadedFile.type.startsWith("text/") || /\.(txt|md|json)$/i.test(uploadedFile.name)) {
+          const content = await uploadedFile.text();
+          if (content.trim()) {
+            await createResearchDoc(`Transcript - ${uploadedFile.name}`, content.trim());
+          }
+        }
+      });
     }
   };
 

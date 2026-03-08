@@ -1,57 +1,34 @@
 import { describe, expect, it } from "vitest";
 import { resolveBoardWorkspaceState } from "../workspace-state";
 
-const workspace = {
-  _id: "mn7e43jc0m7bc5jn708d3ye4e182a7me",
-  _creationTime: 0,
-  name: "Coordinator",
-  slug: "coordinator",
-  description: "Coordinator workspace",
-  settings: {},
-} as const;
-
 describe("resolveBoardWorkspaceState", () => {
-  it("keeps the page in loading state before the first workspace response", () => {
-    expect(
-      resolveBoardWorkspaceState({
-        workspace: undefined,
-        hasPersistedWorkspace: false,
-      }),
-    ).toEqual({
-      showNotFound: false,
-    });
-  });
-
-  it("shows not found before any successful workspace load", () => {
+  it("shows not found when workspace is missing and access has not been confirmed", () => {
     expect(
       resolveBoardWorkspaceState({
         workspace: null,
         hasPersistedWorkspace: false,
-      }),
-    ).toEqual({
-      showNotFound: true,
-    });
+        hasConfirmedWorkspaceAccess: false,
+      }).showNotFound,
+    ).toBe(true);
   });
 
-  it("keeps the board mounted when a later null revalidation happens", () => {
+  it("keeps the board visible once workspace access has already been confirmed", () => {
+    expect(
+      resolveBoardWorkspaceState({
+        workspace: null,
+        hasPersistedWorkspace: false,
+        hasConfirmedWorkspaceAccess: true,
+      }).showNotFound,
+    ).toBe(false);
+  });
+
+  it("keeps the board visible when the workspace is already persisted locally", () => {
     expect(
       resolveBoardWorkspaceState({
         workspace: null,
         hasPersistedWorkspace: true,
-      }),
-    ).toEqual({
-      showNotFound: false,
-    });
-  });
-
-  it("does not show not found when the current workspace is loaded", () => {
-    expect(
-      resolveBoardWorkspaceState({
-        workspace,
-        hasPersistedWorkspace: false,
-      }),
-    ).toEqual({
-      showNotFound: false,
-    });
+        hasConfirmedWorkspaceAccess: false,
+      }).showNotFound,
+    ).toBe(false);
   });
 });

@@ -15,8 +15,17 @@ export async function GET(request: NextRequest) {
     }
 
     await requireWorkspaceAccess(workspaceId, "viewer");
-    const agents = await listAgentDefinitions(workspaceId);
-    return NextResponse.json({ agents });
+    const agents = await listAgentDefinitions(workspaceId).catch((error) => {
+      console.warn(
+        `[agents:${workspaceId}] Falling back to an empty registry`,
+        error,
+      );
+      return [];
+    });
+    return NextResponse.json({
+      agents,
+      degraded: agents.length === 0,
+    });
   } catch (error) {
     if (error instanceof PermissionError) {
       const { error: message, status } = handlePermissionError(error);

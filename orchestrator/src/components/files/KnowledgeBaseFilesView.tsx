@@ -92,6 +92,7 @@ export interface KnowledgeBaseFile {
   content?: string;
   category?: string;
   lastModified?: string;
+  readOnly?: boolean;
 }
 
 interface KnowledgeBaseFilesViewProps {
@@ -384,7 +385,10 @@ export function KnowledgeBaseFilesView({
           )}
 
           {/* Edit controls */}
-          {selectedFile && isEditableFile(selectedFile.name) && onFileSave && (
+          {selectedFile &&
+            isEditableFile(selectedFile.name) &&
+            onFileSave &&
+            !selectedFile.readOnly && (
             <div className="flex items-center gap-2 ml-auto">
               {isEditing ? (
                 <>
@@ -604,7 +608,7 @@ export function KnowledgeBaseFilesView({
               ) : (
                 <span className="flex items-center gap-1.5">
                   <Eye className="w-3 h-3" />
-                  {isEditableFile(selectedFile.name)
+                  {isEditableFile(selectedFile.name) && !selectedFile.readOnly
                     ? "Preview mode"
                     : "View only"}
                 </span>

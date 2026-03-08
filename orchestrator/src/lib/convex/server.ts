@@ -74,6 +74,22 @@ export async function getConvexProjectWithDocuments(projectId: string) {
   return await res.json();
 }
 
+export async function listConvexProjects(workspaceId: string) {
+  const params = new URLSearchParams({ workspaceId });
+  const res = await convexFetch(`/mcp/projects?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch projects");
+  return await res.json();
+}
+
+export async function createConvexProject(data: Record<string, unknown>) {
+  const res = await convexFetch(`/mcp/projects`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create project");
+  return await res.json();
+}
+
 export async function updateConvexProject(projectId: string, data: Record<string, unknown>) {
   const res = await convexFetch(`/mcp/project`, {
     method: "PATCH",

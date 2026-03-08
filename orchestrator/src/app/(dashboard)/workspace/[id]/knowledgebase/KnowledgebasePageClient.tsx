@@ -15,7 +15,7 @@ const KNOWLEDGE_CATEGORIES = [
   { id: "company_context", label: "Company Context", path: "company-context" },
   { id: "personas", label: "Personas", path: "personas" },
   { id: "roadmap", label: "Roadmap", path: "roadmap" },
-  { id: "hypotheses", label: "Hypotheses", path: "hypotheses" },
+  { id: "hypotheses", label: "Hypotheses Lens", path: "hypotheses" },
   { id: "rules", label: "Rules", path: "rules" },
 ];
 
@@ -60,6 +60,7 @@ export function KnowledgebasePageClient({
                 content: data.content || "",
                 category: category.label,
                 lastModified: data.entry?.updatedAt,
+                readOnly: Boolean(data.readOnly),
               };
 
               if (existingFolder && existingFolder.children) {
@@ -158,7 +159,7 @@ export function KnowledgebasePageClient({
           workspaceId={workspaceId}
           files={knowledgeFiles || []}
           title="Knowledge Base"
-          description="Company context, personas, roadmap & more"
+          description="Company context, personas, roadmap, and the workspace intelligence lens"
           headerIcon={BookOpen}
           onFileSave={handleFileSave}
           onRefresh={handleRefresh}

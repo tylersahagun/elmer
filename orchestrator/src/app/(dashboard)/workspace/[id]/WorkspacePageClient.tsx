@@ -138,9 +138,19 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     queryFn: async () => {
       const res = await fetch(`/api/columns?workspaceId=${workspaceId}`);
       if (!res.ok) {
-        throw new Error("Failed to load columns");
+        console.warn(
+          `[workspace:${workspaceId}] Falling back to default columns`,
+          res.status,
+        );
+        return {
+          columns: [] as WorkspaceColumnConfig[],
+          hasConfirmedWorkspaceAccess: false,
+        };
       }
-      return (await res.json()) as WorkspaceColumnConfig[];
+      return {
+        columns: (await res.json()) as WorkspaceColumnConfig[],
+        hasConfirmedWorkspaceAccess: true,
+      };
     },
     enabled: canLoadConvexData,
   });
@@ -149,16 +159,43 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     queryFn: async () => {
       const res = await fetch(`/api/projects?workspaceId=${workspaceId}`);
       if (!res.ok) {
-        throw new Error("Failed to load project counts");
+        console.warn(
+          `[workspace:${workspaceId}] Falling back to zero project counts`,
+          res.status,
+        );
+        return {
+          projects: [] as Array<{
+            id: string;
+            documentCount?: number;
+            prototypeCount?: number;
+            signalCount?: number;
+          }>,
+          hasConfirmedWorkspaceAccess: false,
+        };
       }
-      return (await res.json()) as Array<{
-        id: string;
-        documentCount?: number;
-        prototypeCount?: number;
-        signalCount?: number;
-      }>;
+      return {
+        projects: (await res.json()) as Array<{
+          id: string;
+          documentCount?: number;
+          prototypeCount?: number;
+          signalCount?: number;
+        }>,
+        hasConfirmedWorkspaceAccess: true,
+      };
     },
     enabled: canLoadConvexData,
+  });
+  const resolvedColumns = configuredColumns?.columns ?? [];
+  const resolvedProjectCounts = legacyProjectsWithCounts?.projects ?? [];
+  const hasPersistedWorkspace = storeWorkspace?.id === workspaceId;
+  const { showNotFound } = resolveBoardWorkspaceState({
+    workspace,
+    hasPersistedWorkspace,
+    hasConfirmedWorkspaceAccess:
+      workspace !== undefined && workspace !== null
+        ? true
+        : Boolean(configuredColumns?.hasConfirmedWorkspaceAccess) ||
+          Boolean(legacyProjectsWithCounts?.hasConfirmedWorkspaceAccess),
   });
 
   const hasPersistedWorkspace = storeWorkspace?.id === workspaceId;
@@ -180,13 +217,13 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   }, [workspace, setWorkspace]);
 
   useEffect(() => {
-    setColumns(resolveWorkspaceColumns(configuredColumns, DEFAULT_COLUMNS));
-  }, [configuredColumns, setColumns]);
+    setColumns(resolveWorkspaceColumns(resolvedColumns, DEFAULT_COLUMNS));
+  }, [resolvedColumns, setColumns]);
 
   useEffect(() => {
     if (projects) {
       const projectCounts = new Map(
-        (legacyProjectsWithCounts ?? []).map((project) => [
+        resolvedProjectCounts.map((project) => [
           project.id,
           {
             documentCount: project.documentCount ?? 0,
@@ -236,7 +273,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       );
       setProjects(mappedProjects);
     }
-  }, [legacyProjectsWithCounts, projects, setProjects]);
+  }, [projects, resolvedProjectCounts, setProjects]);
 
   const isLoading =
     isSignedIn &&

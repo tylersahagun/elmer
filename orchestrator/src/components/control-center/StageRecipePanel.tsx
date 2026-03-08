@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { AlertCircle } from "lucide-react";
 
 interface StageRecipePanelProps {
   workspaceId: string;
@@ -56,38 +57,53 @@ function formatJobLabel(jobType: string) {
 }
 
 export function StageRecipePanel({ workspaceId }: StageRecipePanelProps) {
-  const { data: columnsData } = useQuery<ColumnConfig[]>({
+  const { data: columnsData } = useQuery<{
+    items: ColumnConfig[];
+    degraded?: boolean;
+  }>({
     queryKey: ["control-center-columns", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/columns?workspaceId=${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to load columns");
-      return res.json();
+      if (!res.ok) {
+        return { items: [], degraded: true };
+      }
+      return { items: await res.json(), degraded: false };
     },
     enabled: !!workspaceId,
   });
 
-  const { data: recipesData } = useQuery<{ recipes: StageRecipe[] }>({
+  const { data: recipesData } = useQuery<{
+    recipes: StageRecipe[];
+    degraded?: boolean;
+  }>({
     queryKey: ["control-center-stage-recipes", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/stage-recipes?workspaceId=${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to load stage recipes");
+      if (!res.ok) {
+        return { recipes: [], degraded: true };
+      }
       return res.json();
     },
     enabled: !!workspaceId,
   });
 
-  const { data: agentsData } = useQuery<{ agents: AgentDefinition[] }>({
+  const { data: agentsData } = useQuery<{
+    agents: AgentDefinition[];
+    degraded?: boolean;
+  }>({
     queryKey: ["control-center-stage-agents", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/agents?workspaceId=${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to load agents");
+      if (!res.ok) {
+        return { agents: [], degraded: true };
+      }
       return res.json();
     },
     enabled: !!workspaceId,
   });
 
   const rows = useMemo(() => {
-    const columns = columnsData ?? [];
+    const columns = columnsData?.items ?? [];
     const recipes = recipesData?.recipes ?? [];
     const agentMap = new Map(
       (agentsData?.agents ?? []).map((agent) => [agent.id, agent]),
@@ -125,6 +141,10 @@ export function StageRecipePanel({ workspaceId }: StageRecipePanelProps) {
         };
       });
   }, [agentsData, columnsData, recipesData]);
+  const isDegraded =
+    Boolean(columnsData?.degraded) ||
+    Boolean(recipesData?.degraded) ||
+    Boolean(agentsData?.degraded);
 
   return (
     <Card>
@@ -132,6 +152,15 @@ export function StageRecipePanel({ workspaceId }: StageRecipePanelProps) {
         <CardTitle>Stage recipes</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {isDegraded && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-muted-foreground">
+            <AlertCircle className="mt-0.5 h-4 w-4 text-amber-500" />
+            <p>
+              Stage recipes are partially unavailable right now. This view is best-effort and does
+              not block project work.
+            </p>
+          </div>
+        )}
         {rows.map((row) => (
           <div key={row.id} className="rounded-md border p-3">
             <div className="flex items-center justify-between gap-2">

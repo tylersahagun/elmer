@@ -1,5 +1,6 @@
 import { getProjectsWithCounts, getWorkspace } from "@/lib/db/queries";
 import { checkGraduationCriteria } from "@/lib/graduation/criteria-service";
+import { getConvexWorkspace, listConvexProjects } from "@/lib/convex/server";
 import {
   buildInitiativeSnapshot,
 } from "./initiative-status";
@@ -8,6 +9,8 @@ import type {
   PrioritizedAction,
   WorkspaceStatusReport,
 } from "./types";
+import type { GraduationCheckResult } from "@/lib/graduation/criteria-service";
+import type { ProjectStage } from "@/lib/db/schema";
 
 function buildSummary(initiatives: InitiativeStatusSnapshot[]) {
   const byStage = initiatives.reduce<Record<string, number>>((acc, initiative) => {
@@ -89,21 +92,166 @@ function buildActionQueue(initiatives: InitiativeStatusSnapshot[]) {
     .slice(0, 10);
 }
 
+const FALLBACK_GRADUATION: GraduationCheckResult = {
+  canGraduate: true,
+  criteria: null,
+  enforced: false,
+  checks: [],
+  overrideAllowed: true,
+};
+
+type ConvexWorkspaceRecord = {
+  _id: string;
+  name: string;
+};
+
+type ConvexProjectRecord = {
+  _id: string;
+  _creationTime: number;
+  name: string;
+  description?: string | null;
+  stage?: string;
+  status?: string | null;
+  priority?: string | number | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+function normalizeProjectStage(stage?: string): ProjectStage {
+  switch (stage) {
+    case "inbox":
+    case "discovery":
+    case "prd":
+    case "design":
+    case "prototype":
+    case "validate":
+    case "tickets":
+    case "build":
+    case "alpha":
+    case "beta":
+    case "ga":
+      return stage;
+    default:
+      return "inbox";
+  }
+}
+
+function normalizeProjectStatus(status?: string | null) {
+  switch (status) {
+    case "paused":
+    case "completed":
+    case "archived":
+      return status;
+    default:
+      return "active" as const;
+  }
+}
+
+function normalizeProjectPriority(priority?: string | number | null) {
+  if (typeof priority === "number" && Number.isFinite(priority)) {
+    return priority;
+  }
+
+  switch (priority) {
+    case "P0":
+      return 0;
+    case "P1":
+      return 1;
+    case "P3":
+      return 3;
+    case "P2":
+    default:
+      return 2;
+  }
+}
+
+function buildReportFromInitiatives(
+  workspaceId: string,
+  workspaceName: string,
+  initiatives: InitiativeStatusSnapshot[],
+): WorkspaceStatusReport {
+  const summary = buildSummary(initiatives);
+  const measurementCoverage = buildMeasurementCoverage(initiatives);
+  const readyToAdvance = initiatives.filter((initiative) => initiative.canAdvance);
+  const attentionRequired = initiatives.filter(
+    (initiative) =>
+      initiative.blockers.length > 0 ||
+      initiative.stale ||
+      initiative.readinessScore < 0.5,
+  );
+
+  return {
+    workspaceId,
+    workspaceName,
+    generatedAt: new Date().toISOString(),
+    summary,
+    healthScore: calculateHealthScore(initiatives),
+    initiatives,
+    attentionRequired,
+    readyToAdvance,
+    actionQueue: buildActionQueue(initiatives),
+    measurementCoverage,
+  };
+}
+
+export function buildEmptyWorkspaceStatusReport(
+  workspaceId: string,
+  workspaceName = "Workspace",
+): WorkspaceStatusReport {
+  return buildReportFromInitiatives(workspaceId, workspaceName, []);
+}
+
 export async function buildWorkspaceStatusReport(workspaceId: string) {
-  const workspace = await getWorkspace(workspaceId);
-  if (!workspace) return null;
-
-  const projects = await getProjectsWithCounts(workspaceId);
+  const legacyWorkspace = await getWorkspace(workspaceId).catch(() => null);
   const initiatives: InitiativeStatusSnapshot[] = [];
+  let workspaceName = legacyWorkspace?.name;
 
-  for (const project of projects) {
-    const graduation = await checkGraduationCriteria(project.id);
-    initiatives.push(
-      buildInitiativeSnapshot({
-        project,
-        graduation,
-      }),
-    );
+  if (legacyWorkspace) {
+    const projects = await getProjectsWithCounts(workspaceId).catch(() => []);
+
+    for (const project of projects) {
+      const graduation = await checkGraduationCriteria(project.id).catch(
+        () => FALLBACK_GRADUATION,
+      );
+      initiatives.push(
+        buildInitiativeSnapshot({
+          project,
+          graduation,
+        }),
+      );
+    }
+  } else {
+    const convexWorkspace = (await getConvexWorkspace(
+      workspaceId,
+    )) as ConvexWorkspaceRecord | null;
+    if (!convexWorkspace) return null;
+
+    workspaceName = convexWorkspace.name;
+    const convexProjects = (await listConvexProjects(
+      workspaceId,
+    )) as ConvexProjectRecord[];
+
+    for (const project of convexProjects) {
+      initiatives.push(
+        buildInitiativeSnapshot({
+          project: {
+            id: project._id,
+            name: project.name,
+            description: project.description ?? null,
+            stage: normalizeProjectStage(project.stage),
+            status: normalizeProjectStatus(project.status),
+            priority: normalizeProjectPriority(project.priority),
+            updatedAt: new Date(project._creationTime).toISOString(),
+            createdAt: new Date(project._creationTime).toISOString(),
+            signalCount: 0,
+            documentCount: 0,
+            prototypeCount: 0,
+            documents: [],
+            metadata: project.metadata ?? {},
+          },
+          graduation: FALLBACK_GRADUATION,
+        }),
+      );
+    }
   }
 
   initiatives.sort((left, right) => {
@@ -116,28 +264,9 @@ export async function buildWorkspaceStatusReport(workspaceId: string) {
     return right.readinessScore - left.readinessScore;
   });
 
-  const summary = buildSummary(initiatives);
-  const measurementCoverage = buildMeasurementCoverage(initiatives);
-  const readyToAdvance = initiatives.filter((initiative) => initiative.canAdvance);
-  const attentionRequired = initiatives.filter(
-    (initiative) =>
-      initiative.blockers.length > 0 ||
-      initiative.stale ||
-      initiative.readinessScore < 0.5,
-  );
-
-  const report: WorkspaceStatusReport = {
+  return buildReportFromInitiatives(
     workspaceId,
-    workspaceName: workspace.name,
-    generatedAt: new Date().toISOString(),
-    summary,
-    healthScore: calculateHealthScore(initiatives),
+    workspaceName ?? "Workspace",
     initiatives,
-    attentionRequired,
-    readyToAdvance,
-    actionQueue: buildActionQueue(initiatives),
-    measurementCoverage,
-  };
-
-  return report;
+  );
 }

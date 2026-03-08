@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildWorkspaceStatusReport } from "@/lib/status/portfolio-status";
+import {
+  buildEmptyWorkspaceStatusReport,
+  buildWorkspaceStatusReport,
+} from "@/lib/status/portfolio-status";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -14,10 +18,13 @@ export async function GET(
     const { id } = await params;
     await requireWorkspaceAccess(id, "viewer");
 
-    const report = await buildWorkspaceStatusReport(id);
-    if (!report) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
-    }
+    const report =
+      (await buildWorkspaceStatusReport(id)) ??
+      buildEmptyWorkspaceStatusReport(
+        id,
+        ((await getConvexWorkspace(id)) as { name?: string } | null)?.name ??
+          "Workspace",
+      );
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get("projectId");

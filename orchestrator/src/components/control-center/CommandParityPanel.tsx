@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
 
 interface CommandParityPanelProps {
   workspaceId: string;
@@ -38,11 +39,13 @@ interface AgentDefinition {
 }
 
 export function CommandParityPanel({ workspaceId }: CommandParityPanelProps) {
-  const { data } = useQuery<{ agents: AgentDefinition[] }>({
+  const { data } = useQuery<{ agents: AgentDefinition[]; degraded?: boolean }>({
     queryKey: ["control-center-command-parity", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/agents?workspaceId=${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to load agent definitions");
+      if (!res.ok) {
+        return { agents: [], degraded: true };
+      }
       return res.json();
     },
     enabled: !!workspaceId,
@@ -73,6 +76,15 @@ export function CommandParityPanel({ workspaceId }: CommandParityPanelProps) {
         <CardTitle>Command parity</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {data?.degraded && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-muted-foreground">
+            <AlertCircle className="mt-0.5 h-4 w-4 text-amber-500" />
+            <p>
+              Command parity is temporarily unavailable. Missing commands here should not block the
+              workspace shell.
+            </p>
+          </div>
+        )}
         <div>
           <div className="text-sm font-medium mb-2">Available</div>
           <div className="flex flex-wrap gap-2">

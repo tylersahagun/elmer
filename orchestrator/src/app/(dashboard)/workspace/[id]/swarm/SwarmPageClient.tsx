@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save } from "lucide-react";
+import { AlertCircle, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { SwarmPreset, SwarmReport } from "@/lib/swarm/types";
 import { SwarmStatusArtifactCard } from "@/components/swarm/SwarmStatusArtifactCard";
@@ -28,7 +28,7 @@ export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
   useEffect(() => {
     setPreset(requestedPreset);
   }, [requestedPreset]);
-  const { data, isLoading, refetch } = useQuery<SwarmReport>({
+  const { data, error, isError, isLoading, refetch } = useQuery<SwarmReport>({
     queryKey: ["swarm-report", workspaceId, preset],
     queryFn: async () => {
       const res = await fetch(
@@ -98,9 +98,33 @@ export function SwarmPageClient({ workspaceId }: SwarmPageClientProps) {
       />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {isLoading || !report ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : isError ? (
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 text-destructive" />
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Swarm artifact unavailable</h2>
+                <p className="text-sm text-muted-foreground">
+                  The workspace can still be used while this planning surface is unavailable.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {error instanceof Error
+                    ? error.message
+                    : "Failed to load the swarm artifact."}
+                </p>
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                  Retry
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : !report ? (
+          <div className="rounded-xl border p-6 text-sm text-muted-foreground">
+            No swarm artifact is available for this workspace yet.
           </div>
         ) : (
           <>

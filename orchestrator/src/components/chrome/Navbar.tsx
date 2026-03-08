@@ -174,6 +174,7 @@ export function SimpleNavbar({
 
   // Check active state for nav items
   const isKnowledgebaseActive = pathname?.includes("/knowledgebase");
+  const isIntelligenceActive = pathname?.includes("/intelligence");
   const isPersonasActive = pathname?.includes("/personas");
   const isSignalsActive = pathname?.includes("/signals");
   const isStatusActive = pathname?.includes("/status");
@@ -187,6 +188,7 @@ export function SimpleNavbar({
     pathname === "/" ||
     (pathname?.startsWith("/workspace/") &&
       !isKnowledgebaseActive &&
+      !isIntelligenceActive &&
       !isPersonasActive &&
       !isSignalsActive &&
       !isStatusActive &&
@@ -207,8 +209,12 @@ export function SimpleNavbar({
   const personasHref = workspaceId
     ? `/workspace/${workspaceId}/personas`
     : "/personas";
+  const intelligenceHref = workspaceId
+    ? `/workspace/${workspaceId}/intelligence`
+    : "/intelligence";
   const navItems = [
     { label: "Projects", href: dashboardHref },
+    { label: "Intelligence", href: intelligenceHref },
     { label: "Knowledge", href: knowledgeHref },
     { label: "Personas", href: personasHref },
     workspaceId && {
@@ -319,6 +325,19 @@ export function SimpleNavbar({
                     <span className="text-emerald-500">$</span>
                     <span>ls</span>
                     <span className="text-muted-foreground">projects/</span>
+                  </DropdownMenuItem>
+                </Link>
+
+                <Link href={intelligenceHref} className="w-full">
+                  <DropdownMenuItem
+                    className={cn(
+                      "gap-2 font-mono text-sm",
+                      isIntelligenceActive && "bg-accent",
+                    )}
+                  >
+                    <span className="text-emerald-500">$</span>
+                    <span>graph</span>
+                    <span className="text-muted-foreground">intelligence/</span>
                   </DropdownMenuItem>
                 </Link>
 
@@ -535,6 +554,7 @@ export function SimpleNavbar({
             {navItems.map((item) => {
               const isActive =
                 (item.href === dashboardHref && isDashboardActive) ||
+                (item.href.includes("intelligence") && isIntelligenceActive) ||
                 (item.href.includes("knowledgebase") &&
                   isKnowledgebaseActive) ||
                 (item.href.includes("personas") && isPersonasActive) ||

@@ -98,8 +98,8 @@ async function buildProjectResponse(projectId: string) {
   if (!project) return null;
 
   const [workspace, prototypes, linkedSignals] = await Promise.all([
-    getConvexWorkspace(project.workspaceId) as Promise<ConvexWorkspace>,
-    listConvexProjectPrototypes(projectId) as Promise<
+    getConvexWorkspace(project.workspaceId).catch(() => null) as Promise<ConvexWorkspace>,
+    listConvexProjectPrototypes(projectId).catch(() => []) as Promise<
       Array<{
         id: string;
         name: string;
@@ -111,7 +111,9 @@ async function buildProjectResponse(projectId: string) {
         chromaticStorybookUrl?: string;
       }>
     >,
-    listConvexProjectSignals(projectId) as Promise<Array<{ id: string }>>,
+    listConvexProjectSignals(projectId).catch(() => []) as Promise<
+      Array<{ id: string }>
+    >,
   ]);
 
   const createdAt = new Date(project._creationTime).toISOString();

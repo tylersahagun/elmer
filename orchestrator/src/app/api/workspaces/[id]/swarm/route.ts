@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createJob, getWorkspace } from "@/lib/db/queries";
-import { buildWorkspaceStatusReport } from "@/lib/status/portfolio-status";
+import { getConvexWorkspace } from "@/lib/convex/server";
+import {
+  buildEmptyWorkspaceStatusReport,
+  buildWorkspaceStatusReport,
+} from "@/lib/status/portfolio-status";
 import { writeSwarmReport } from "@/lib/swarm/report-writer";
 import { buildSwarmReport, getAvailableSwarmPresets } from "@/lib/swarm/planner";
 import type { SwarmPreset, SwarmReport } from "@/lib/swarm/types";
@@ -17,12 +21,17 @@ export async function GET(
   try {
     const { id } = await params;
     await requireWorkspaceAccess(id, "viewer");
-    const workspace = await getWorkspace(id);
-    if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
-    }
+    const workspace =
+      (await getWorkspace(id)) ??
+      ((await getConvexWorkspace(id)) as { _id: string; name: string } | null);
+    const fallbackWorkspace = workspace ?? {
+      _id: id,
+      name: "Workspace",
+    };
 
-    const status = await buildWorkspaceStatusReport(id);
+    const status =
+      (await buildWorkspaceStatusReport(id)) ??
+      buildEmptyWorkspaceStatusReport(id, fallbackWorkspace.name);
     const backlog =
       status?.actionQueue.map(
         (item) => `${item.projectName}: ${item.reason} → ${item.command}`,
@@ -39,7 +48,7 @@ export async function GET(
     return NextResponse.json(
       buildSwarmReport({
         workspaceId: id,
-        workspaceName: workspace.name,
+        workspaceName: fallbackWorkspace.name,
         preset,
         backlog,
       }),
