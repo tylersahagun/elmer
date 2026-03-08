@@ -68,7 +68,7 @@
 - Surfaces are categorized as `migrate-now`, `blocked`, or `intentional-server-side`
 - Recommended first migration tranche: `/`, `/workspace/[id]`, `/workspace/[id]/signals`, `/workspace/[id]/tasks`, `/workspace/[id]/inbox`
 - First migration tranche started:
-  - `/` now reads and creates workspaces through Convex
+  - `/` UI is Convex-capable, but `/api/workspaces` still remains the root legacy workspace bridge for list/create
   - `/workspace/[id]` now loads workspace and project spine from Convex
   - `/workspace/[id]/signals` now uses Convex for workspace lookup and core signal list/create/update/delete flows
 - Second migration tranche checkpoint:
@@ -90,12 +90,14 @@
   - Convex now owns `workspaceMembers` and `invitations`
   - workspace create writes the creator's admin membership into Convex
   - server-side permission checks now consult Convex membership first, with legacy Drizzle membership as a fallback during migration
-  - workspace member/invitation routes and invite-token route now proxy through the Convex-backed parity layer
+  - workspace member routes and invite-token read paths now proxy through the Convex-backed parity layer
   - onboarding workspace lookup and the workspace-role hook now read from the Convex parity path
 - Membership/auth parity consumer checkpoint:
   - workspace settings now reads members and invitations from the Convex parity layer
   - workspace settings saves through the Convex workspace mutation path
   - the invite modal now creates invitations directly through the Convex invitation mutation
+- Remaining parity caveat:
+  - invitation acceptance and several sync/import flows still depend on the legacy app-user bridge and are not fully Convex-native yet
 - Settings lane unblock checkpoint:
   - the missing workspace-columns route is restored
   - the settings page now sources its pipeline column state from the dedicated columns route instead of expecting `columnConfigs` on the Convex workspace object
