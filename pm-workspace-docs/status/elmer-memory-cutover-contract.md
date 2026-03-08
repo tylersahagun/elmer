@@ -45,6 +45,43 @@ These surfaces may remain visible, but they should stop acting like parallel bac
 - file-backed editing surfaces that have not yet been migrated, if they are explicitly marked as mirrors
 - external server-side adapter routes that do not claim runtime authority
 
+## Operational Cutover Status
+
+As of the integrated `codex/elmer-alpha-integration` baseline plus the GTM-104 / GTM-105 cleanup slice, the contract is operational on the declared cutover surfaces:
+
+### Canonical runtime-authority surfaces
+
+- `orchestrator/convex/runtimeMemory.ts`
+- `orchestrator/convex/search.ts`
+- `orchestrator/convex/mcp.ts` runtime queries:
+  - `searchWorkspace`
+  - `listWorkspaceRuntimeContext`
+  - `getProjectRuntimeContext`
+- `orchestrator/src/lib/context/resolve.ts` runtime context helpers:
+  - `getWorkspaceContext`
+  - `getProjectContext`
+  - `getPRDContext`
+  - `getAllVerificationContext`
+
+These surfaces must fail fast on missing or malformed canonical payloads. They may not degrade to empty context, stale file-backed state, or mirror-table authority.
+
+### Intentional adapters
+
+- `orchestrator/convex/http.ts` runtime/search MCP routes
+- `orchestrator/src/lib/convex/server.ts` server-side HTTP helpers into those MCP routes
+- file export / writeback paths for personas and knowledgebase while migration remains in progress
+
+These adapters are allowed to exist, but they must only transport or mirror canonical Convex-owned runtime authority. They are not allowed to decide authority themselves.
+
+### Migration-owned hybrid boundary
+
+- `orchestrator/src/lib/context/resolve.ts` state document helpers:
+  - `getProjectState`
+  - `updateProjectState`
+  - `getDocumentByType`
+
+This boundary is explicitly outside runtime-authority cutover. It may remain hybrid until migration finishes the project-state/document path, but it must not be reused as runtime context authority.
+
 ## Issue Mapping
 
 - `GTM-104`: define the canonical memory contract and the lens/mirror model

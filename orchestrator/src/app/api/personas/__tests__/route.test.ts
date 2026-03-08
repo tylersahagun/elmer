@@ -83,6 +83,11 @@ describe("personas route", () => {
 
     expect(response.status).toBe(200);
     expect(mockListConvexPersonas).toHaveBeenCalledWith("ws_cutover");
+    expect(data.authority).toEqual({
+      runtimeAuthority: "convex_graph",
+      surfaceRole: "lens",
+      mirrorRole: "compatibility_export",
+    });
     expect(data.personas).toEqual([
       expect.objectContaining({
         id: "persona_123",
@@ -150,7 +155,11 @@ Owns research operations.
     expect(mockUpsertConvexPersona.mock.invocationCallOrder[0]).toBeLessThan(
       writeFileMock.mock.invocationCallOrder[0],
     );
-    expect(data.authority).toBe("convex");
+    expect(data.authority).toEqual({
+      runtimeAuthority: "convex_graph",
+      surfaceRole: "lens",
+      mirrorRole: "compatibility_export",
+    });
     expect(data.export).toEqual({
       status: "failed",
       error: "disk full",

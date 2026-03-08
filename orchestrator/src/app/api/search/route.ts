@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchConvexWorkspace } from "@/lib/convex/server";
 
+const SEARCH_SURFACE = {
+  runtimeAuthority: "convex_graph",
+  canonicalResultsField: "results",
+  compatibilityBuckets: [
+    "documents",
+    "memory",
+    "knowledgebase",
+    "personas",
+  ],
+} as const;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const workspaceId = searchParams.get("workspaceId");
@@ -11,5 +22,8 @@ export async function GET(request: NextRequest) {
   }
 
   const results = await searchConvexWorkspace(workspaceId, q);
-  return NextResponse.json(results);
+  return NextResponse.json({
+    authority: SEARCH_SURFACE,
+    ...results,
+  });
 }
