@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth/legacy-next-auth";
 import { getGitHubClient } from "@/lib/github/auth";
 
 interface PermissionsResponse {

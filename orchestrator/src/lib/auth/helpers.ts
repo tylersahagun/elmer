@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/legacy-next-auth"
 import { redirect } from "next/navigation"
 
 /**

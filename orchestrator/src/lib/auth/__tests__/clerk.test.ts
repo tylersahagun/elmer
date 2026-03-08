@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   decodeClerkFrontendApiHost,
+  getConfiguredAppOrigin,
   getAuthConfigurationChecks,
   getClerkFrontendApiOrigin,
   getClerkJwtIssuerDomain,
+  getPublicReleaseOrigin,
   getClerkProviderProps,
   hasClerkRuntimeConfiguration,
   toHttpsOrigin,
@@ -122,6 +124,37 @@ describe("clerk auth config helpers", () => {
     ).toBe("https://clerk.elmer.studio");
   });
 
+  it("returns the configured app origin from AUTH_URL or NEXTAUTH_URL", () => {
+    expect(
+      getConfiguredAppOrigin({
+        AUTH_URL: "https://elmer.studio/",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toBe("https://elmer.studio");
+
+    expect(
+      getConfiguredAppOrigin({
+        NEXTAUTH_URL: "https://preview.elmer.studio/",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toBe("https://preview.elmer.studio");
+  });
+
+  it("defaults the public release origin to elmer.studio when the app origin is local", () => {
+    expect(
+      getPublicReleaseOrigin({
+        AUTH_URL: "http://localhost:3000",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toBe("https://elmer.studio");
+  });
+
+  it("lets CHECK_AUTH_PUBLIC_URL override the public release origin", () => {
+    expect(
+      getPublicReleaseOrigin({
+        AUTH_URL: "http://localhost:3000",
+        CHECK_AUTH_PUBLIC_URL: "https://preview.elmer.studio",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toBe("https://preview.elmer.studio");
+  });
+
   it("flags mismatched issuer and frontend API origins", () => {
     expect(
       getAuthConfigurationChecks({
@@ -192,5 +225,21 @@ describe("clerk auth config helpers", () => {
         CLERK_SECRET_KEY: "sk_test_your_secret_key",
       } as unknown as NodeJS.ProcessEnv),
     ).toBe(false);
+  });
+
+  it("reports the public release origin in the auth configuration checks", () => {
+    expect(
+      getAuthConfigurationChecks({
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: encodePublishableKeyHost(
+          "clerk.elmer.studio",
+        ),
+        CLERK_SECRET_KEY: "sk_test_example",
+        AUTH_URL: "http://localhost:3000",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toContainEqual({
+      name: "Public release origin",
+      ok: true,
+      detail: "using https://elmer.studio",
+    });
   });
 });

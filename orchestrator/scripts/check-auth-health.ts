@@ -2,8 +2,10 @@ import dns from "node:dns/promises";
 import { config as loadEnv } from "dotenv";
 import {
   decodeClerkFrontendApiHost,
+  getConfiguredAppOrigin,
   getAuthConfigurationChecks,
   getClerkJwtIssuerDomain,
+  getPublicReleaseOrigin,
 } from "../src/lib/auth/clerk";
 import { validateConvexDeploymentUrl } from "../src/lib/auth/convex";
 import { evaluateLoginRouteHealth } from "../src/lib/auth/login-health";
@@ -15,11 +17,6 @@ type CheckResult = {
   ok: boolean;
   detail: string;
 };
-
-function getAppOrigin() {
-  const value = process.env.AUTH_URL || process.env.NEXTAUTH_URL;
-  return value?.replace(/\/+$/, "") || null;
-}
 
 function normalizeConfiguredUrl(value?: string | null) {
   return value?.trim().replace(/\/+$/, "") || null;
@@ -95,7 +92,8 @@ async function main() {
     ok: result.ok,
     detail: result.detail,
   }));
-  const appOrigin = getAppOrigin();
+  const appOrigin = getConfiguredAppOrigin(process.env);
+  const publicReleaseOrigin = getPublicReleaseOrigin(process.env);
   const frontendApiHost =
     decodeClerkFrontendApiHost() ||
     getClerkJwtIssuerDomain()?.replace(/^https?:\/\//, "") ||
@@ -120,7 +118,17 @@ async function main() {
     });
   } else {
     if (appOrigin) {
-      results.push(await checkLoginRoute(`${appOrigin}/login`));
+      results.push({
+        ...(await checkLoginRoute(`${appOrigin}/login`)),
+        name: `Configured login route ${appOrigin}/login`,
+      });
+    }
+
+    if (!appOrigin || publicReleaseOrigin !== appOrigin) {
+      results.push({
+        ...(await checkLoginRoute(`${publicReleaseOrigin}/login`)),
+        name: `Public login route ${publicReleaseOrigin}/login`,
+      });
     }
 
     if (frontendApiHost) {

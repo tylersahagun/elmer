@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth/legacy-next-auth";
 import { getProject, createPrototype, updatePrototype } from "@/lib/db/queries";
 import { buildChromaticStorybookUrl } from "@/lib/chromatic";
 import { PrototypeType } from "@/lib/db/schema";

@@ -3,6 +3,7 @@ const CLERK_PLACEHOLDER_PUBLISHABLE_KEY = "pk_test_your_publishable_key";
 const CLERK_PLACEHOLDER_SECRET_KEY = "sk_test_your_secret_key";
 const CLERK_PLACEHOLDER_ISSUER_DOMAIN =
   "https://your-frontend-api.clerk.accounts.dev";
+const DEFAULT_PUBLIC_RELEASE_ORIGIN = "https://elmer.studio";
 
 export type AuthConfigurationCheck = {
   name: string;
@@ -21,6 +22,10 @@ function normalizeConfiguredValue(value?: string | null) {
 
 function normalizeConfiguredUrl(value?: string | null) {
   return normalizeConfiguredValue(value)?.replace(/\/+$/, "") || null;
+}
+
+function isLoopbackHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
 function isPlaceholderClerkPublishableKey(value?: string | null) {
@@ -65,6 +70,31 @@ function isAbsoluteUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+export function getConfiguredAppOrigin(env = process.env) {
+  return (
+    normalizeConfiguredUrl(env.AUTH_URL) || normalizeConfiguredUrl(env.NEXTAUTH_URL)
+  );
+}
+
+export function getPublicReleaseOrigin(env = process.env) {
+  const explicitPublicOrigin = normalizeConfiguredUrl(env.CHECK_AUTH_PUBLIC_URL);
+  if (explicitPublicOrigin) {
+    return explicitPublicOrigin;
+  }
+
+  const appOrigin = getConfiguredAppOrigin(env);
+  if (!appOrigin || !isAbsoluteUrl(appOrigin)) {
+    return DEFAULT_PUBLIC_RELEASE_ORIGIN;
+  }
+
+  const hostname = new URL(appOrigin).hostname;
+  if (isLoopbackHost(hostname)) {
+    return DEFAULT_PUBLIC_RELEASE_ORIGIN;
+  }
+
+  return appOrigin;
 }
 
 export function toHttpsOrigin(hostOrUrl?: string | null) {
@@ -125,7 +155,9 @@ export function getAuthConfigurationChecks(
     : normalizeConfiguredUrl(env.CLERK_JWT_ISSUER_DOMAIN);
   const authUrl = normalizeConfiguredUrl(env.AUTH_URL);
   const nextAuthUrl = normalizeConfiguredUrl(env.NEXTAUTH_URL);
-  const appOrigin = authUrl || nextAuthUrl;
+  const appOrigin = getConfiguredAppOrigin(env);
+  const explicitPublicOrigin = normalizeConfiguredUrl(env.CHECK_AUTH_PUBLIC_URL);
+  const publicReleaseOrigin = getPublicReleaseOrigin(env);
 
   const checks: AuthConfigurationCheck[] = [
     publishableKey
@@ -234,6 +266,20 @@ export function getAuthConfigurationChecks(
             },
       );
     }
+  }
+
+  if (explicitPublicOrigin && !isAbsoluteUrl(explicitPublicOrigin)) {
+    checks.push({
+      name: "Public release origin",
+      ok: false,
+      detail: `${explicitPublicOrigin} is not a valid absolute URL`,
+    });
+  } else {
+    checks.push({
+      name: "Public release origin",
+      ok: true,
+      detail: `using ${publicReleaseOrigin}`,
+    });
   }
 
   return checks;

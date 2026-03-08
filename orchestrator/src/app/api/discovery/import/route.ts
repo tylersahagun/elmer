@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth/legacy-next-auth";
 import { getWorkspace, updateWorkspace } from "@/lib/db/queries";
 import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
