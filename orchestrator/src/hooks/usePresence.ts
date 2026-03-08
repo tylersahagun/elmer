@@ -39,6 +39,36 @@ export function filterPresenceByProject(
   return entries.filter((entry) => entry.projectId === projectId);
 }
 
+export function getWorkspacePresenceQueryArgs(params: {
+  workspaceId?: string;
+  isConvexAuthenticated: boolean;
+}) {
+  const { workspaceId, isConvexAuthenticated } = params;
+
+  if (!workspaceId || !isConvexAuthenticated) {
+    return "skip" as const;
+  }
+
+  return { workspaceId: workspaceId as Id<"workspaces"> };
+}
+
+export function getDocumentPresenceQueryArgs(params: {
+  workspaceId?: string;
+  documentId?: string;
+  isConvexAuthenticated: boolean;
+}) {
+  const { workspaceId, documentId, isConvexAuthenticated } = params;
+
+  if (!workspaceId || !documentId || !isConvexAuthenticated) {
+    return "skip" as const;
+  }
+
+  return {
+    workspaceId: workspaceId as Id<"workspaces">,
+    documentId,
+  };
+}
+
 export function usePresenceHeartbeat(workspaceId?: string, pathname?: string) {
   const { user, isSignedIn, isLoaded } = useCurrentUser();
   const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
@@ -96,20 +126,26 @@ export function usePresenceHeartbeat(workspaceId?: string, pathname?: string) {
 }
 
 export function useWorkspacePresence(workspaceId?: string) {
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+
   return useQuery(
     api.presence.byWorkspace,
-    workspaceId ? { workspaceId: workspaceId as Id<"workspaces"> } : "skip",
+    getWorkspacePresenceQueryArgs({
+      workspaceId,
+      isConvexAuthenticated,
+    }),
   ) as PresenceEntry[] | undefined;
 }
 
 export function useDocumentPresence(workspaceId?: string, documentId?: string) {
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+
   return useQuery(
     api.presence.byDocument,
-    workspaceId && documentId
-      ? {
-          workspaceId: workspaceId as Id<"workspaces">,
-          documentId,
-        }
-      : "skip",
+    getDocumentPresenceQueryArgs({
+      workspaceId,
+      documentId,
+      isConvexAuthenticated,
+    }),
   ) as PresenceEntry[] | undefined;
 }

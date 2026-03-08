@@ -3,6 +3,12 @@ import { v } from "convex/values";
 
 const ACTIVE_WINDOW_MS = 30_000;
 
+export function getUnauthenticatedPresenceFallback(
+  identity: unknown,
+): [] | null {
+  return identity ? null : [];
+}
+
 export const upsert = mutation({
   args: {
     workspaceId: v.id("workspaces"),
@@ -64,7 +70,8 @@ export const byWorkspace = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, { workspaceId }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const unauthenticatedFallback = getUnauthenticatedPresenceFallback(identity);
+    if (unauthenticatedFallback) return unauthenticatedFallback;
 
     const cutoff = Date.now() - ACTIVE_WINDOW_MS;
     const all = await ctx.db
@@ -83,7 +90,8 @@ export const byDocument = query({
   },
   handler: async (ctx, { workspaceId, documentId }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const unauthenticatedFallback = getUnauthenticatedPresenceFallback(identity);
+    if (unauthenticatedFallback) return unauthenticatedFallback;
 
     const cutoff = Date.now() - ACTIVE_WINDOW_MS;
     const all = await ctx.db

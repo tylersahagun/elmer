@@ -1,6 +1,8 @@
 import {
   derivePresenceContext,
   filterPresenceByProject,
+  getDocumentPresenceQueryArgs,
+  getWorkspacePresenceQueryArgs,
   type PresenceEntry,
 } from "../usePresence";
 
@@ -50,6 +52,56 @@ describe("usePresence helpers", () => {
     test("returns an empty list when entries or project id are missing", () => {
       expect(filterPresenceByProject(undefined, "project_456")).toEqual([]);
       expect(filterPresenceByProject(entries, undefined)).toEqual([]);
+    });
+  });
+
+  describe("presence query args", () => {
+    test("skips workspace presence before Convex auth is ready", () => {
+      expect(
+        getWorkspacePresenceQueryArgs({
+          workspaceId: "ws_123",
+          isConvexAuthenticated: false,
+        }),
+      ).toBe("skip");
+    });
+
+    test("returns workspace presence args after Convex auth is ready", () => {
+      expect(
+        getWorkspacePresenceQueryArgs({
+          workspaceId: "ws_123",
+          isConvexAuthenticated: true,
+        }),
+      ).toEqual({ workspaceId: "ws_123" });
+    });
+
+    test("skips document presence until all inputs are ready", () => {
+      expect(
+        getDocumentPresenceQueryArgs({
+          workspaceId: "ws_123",
+          documentId: "doc_456",
+          isConvexAuthenticated: false,
+        }),
+      ).toBe("skip");
+      expect(
+        getDocumentPresenceQueryArgs({
+          workspaceId: "ws_123",
+          documentId: undefined,
+          isConvexAuthenticated: true,
+        }),
+      ).toBe("skip");
+    });
+
+    test("returns document presence args after auth is ready", () => {
+      expect(
+        getDocumentPresenceQueryArgs({
+          workspaceId: "ws_123",
+          documentId: "doc_456",
+          isConvexAuthenticated: true,
+        }),
+      ).toEqual({
+        workspaceId: "ws_123",
+        documentId: "doc_456",
+      });
     });
   });
 });
