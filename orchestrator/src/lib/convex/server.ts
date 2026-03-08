@@ -68,6 +68,7 @@ export async function deleteConvexProject(projectId: string) {
 export async function listConvexProjectPrototypes(projectId: string) {
   const params = new URLSearchParams({ projectId });
   const res = await convexFetch(`/mcp/project-prototypes?${params.toString()}`);
+  if (res.status === 404) return [];
   if (!res.ok) throw new Error("Failed to fetch project prototypes");
   return await res.json();
 }
@@ -75,6 +76,7 @@ export async function listConvexProjectPrototypes(projectId: string) {
 export async function listConvexProjectSignals(projectId: string) {
   const params = new URLSearchParams({ projectId });
   const res = await convexFetch(`/mcp/project-signals?${params.toString()}`);
+  if (res.status === 404) return [];
   if (!res.ok) throw new Error("Failed to fetch project signals");
   return await res.json();
 }

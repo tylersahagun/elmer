@@ -1,5 +1,9 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  canUseCoordinatorViewerAccess,
+  DEFAULT_COORDINATOR_WORKSPACE_ID,
+} from "../src/lib/auth/coordinator-viewer";
 
 export const list = query({
   args: {},
@@ -10,6 +14,33 @@ export const list = query({
       .query("workspaceMembers")
       .withIndex("by_clerk_workspace", (q) => q.eq("clerkUserId", identity.subject))
       .collect();
+    if (memberships.length === 0) {
+      const defaultWorkspace = await ctx.db.get(
+        DEFAULT_COORDINATOR_WORKSPACE_ID as never,
+      );
+      const defaultWorkspaceMembers = defaultWorkspace
+        ? await ctx.db
+            .query("workspaceMembers")
+            .withIndex("by_workspace", (q) =>
+              q.eq(
+                "workspaceId",
+                DEFAULT_COORDINATOR_WORKSPACE_ID as never,
+              ),
+            )
+            .collect()
+        : [];
+      if (
+        defaultWorkspace &&
+        canUseCoordinatorViewerAccess({
+          workspaceId: DEFAULT_COORDINATOR_WORKSPACE_ID,
+          clerkUserId: identity.subject,
+          email: (identity as Record<string, unknown>).email as string | undefined,
+          convexMembersCount: defaultWorkspaceMembers.length,
+        })
+      ) {
+        return [defaultWorkspace];
+      }
+    }
     const workspaces = await Promise.all(
       memberships.map((membership) => ctx.db.get(membership.workspaceId)),
     );
@@ -28,7 +59,23 @@ export const get = query({
         q.eq("clerkUserId", identity.subject).eq("workspaceId", workspaceId),
       )
       .unique();
-    if (!membership) return null;
+    if (!membership) {
+      const workspaceMembers = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+        .collect();
+      if (
+        canUseCoordinatorViewerAccess({
+          workspaceId,
+          clerkUserId: identity.subject,
+          email: (identity as Record<string, unknown>).email as string | undefined,
+          convexMembersCount: workspaceMembers.length,
+        })
+      ) {
+        return await ctx.db.get(workspaceId);
+      }
+      return null;
+    }
     return await ctx.db.get(workspaceId);
   },
 });

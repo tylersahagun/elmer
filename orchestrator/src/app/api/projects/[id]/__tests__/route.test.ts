@@ -141,6 +141,36 @@ describe("project detail route", () => {
     );
   });
 
+  it("keeps the project route healthy when optional prototype and signal mirrors are unavailable", async () => {
+    mockGetConvexProjectWithDocuments.mockResolvedValue({
+      project: {
+        _id: "proj_123",
+        _creationTime: Date.parse("2026-03-07T12:00:00.000Z"),
+        workspaceId: "ws_cutover",
+        name: "Convex Cutover",
+        description: "Remove legacy authority",
+        stage: "prototype",
+        status: "on_track",
+        priority: "P1",
+        metadata: {},
+      },
+      documents: [],
+    });
+    mockListConvexProjectPrototypes.mockResolvedValue([]);
+    mockListConvexProjectSignals.mockResolvedValue([]);
+
+    const response = await GET(new NextRequest("http://localhost:3000"), {
+      params: Promise.resolve({ id: "proj_123" }),
+    });
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.prototypeCount).toBe(0);
+    expect(data.signalCount).toBe(0);
+    expect(data.prototypes).toEqual([]);
+    expect(data.linkedSignals).toEqual([]);
+  });
+
   it("merges metadata and updates the Convex project authority", async () => {
     mockGetConvexProjectWithDocuments
       .mockResolvedValueOnce({

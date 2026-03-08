@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { canUseCoordinatorViewerAccess } from "../src/lib/auth/coordinator-viewer";
 
 const ROLE_ORDER = ["viewer", "member", "admin"] as const;
 
@@ -13,12 +14,36 @@ export const getMyMembership = query({
   handler: async (ctx, { workspaceId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
-    return await ctx.db
+    const membership = await ctx.db
       .query("workspaceMembers")
       .withIndex("by_clerk_workspace", (q) =>
         q.eq("clerkUserId", identity.subject).eq("workspaceId", workspaceId),
       )
       .unique();
+    if (membership) return membership;
+
+    const workspaceMembers = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+    if (
+      canUseCoordinatorViewerAccess({
+        workspaceId,
+        clerkUserId: identity.subject,
+        email: (identity as Record<string, unknown>).email as string | undefined,
+        convexMembersCount: workspaceMembers.length,
+      })
+    ) {
+      return {
+        _id: `${workspaceId}:${identity.subject}:coordinator-viewer`,
+        userId: identity.subject,
+        clerkUserId: identity.subject,
+        role: "viewer",
+        joinedAt: Date.now(),
+        email: (identity as Record<string, unknown>).email as string | undefined,
+      };
+    }
+    return null;
   },
 });
 
