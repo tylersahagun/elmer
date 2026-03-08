@@ -5,6 +5,7 @@
 
 import { internal } from "./_generated/api";
 import { internalQuery, internalMutation } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import {
   archivePromotedMirrorNode,
@@ -25,6 +26,142 @@ import {
   STUB_HITL_INITIAL_LOGS,
   STUB_HITL_SCENARIO,
 } from "./e2eHelpers";
+import {
+  canUseCoordinatorViewerAccess,
+  DEFAULT_COORDINATOR_WORKSPACE_ID,
+  normalizeViewerEmail,
+} from "../src/lib/auth/coordinator-viewer";
+
+const DEFAULT_COORDINATOR_WORKSPACE_CONVEX_ID =
+  DEFAULT_COORDINATOR_WORKSPACE_ID as Id<"workspaces">;
+
+function serializeWorkspaceSummary(
+  workspace: Doc<"workspaces">,
+  role: string,
+) {
+  return {
+    id: workspace._id,
+    name: workspace.name,
+    description: workspace.description ?? null,
+    role,
+    updatedAt: new Date(workspace._creationTime).toISOString(),
+  };
+}
+
+// ── Workspaces ────────────────────────────────────────────────────────────────
+
+export const listWorkspacesForActor = internalQuery({
+  args: {
+    clerkUserId: v.string(),
+    email: v.optional(v.string()),
+  },
+  handler: async (ctx, { clerkUserId, email }) => {
+    const memberships = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_clerk_workspace", (q) => q.eq("clerkUserId", clerkUserId))
+      .collect();
+
+    if (memberships.length === 0) {
+      const defaultWorkspace = await ctx.db.get(
+        DEFAULT_COORDINATOR_WORKSPACE_CONVEX_ID,
+      );
+      if (!defaultWorkspace) {
+        return [];
+      }
+
+      const defaultWorkspaceMembers = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspace", (q) =>
+          q.eq("workspaceId", DEFAULT_COORDINATOR_WORKSPACE_CONVEX_ID),
+        )
+        .collect();
+
+      if (
+        canUseCoordinatorViewerAccess({
+          workspaceId: DEFAULT_COORDINATOR_WORKSPACE_ID,
+          clerkUserId,
+          email: normalizeViewerEmail(email),
+          convexMembersCount: defaultWorkspaceMembers.length,
+        })
+      ) {
+        return [serializeWorkspaceSummary(defaultWorkspace, "viewer")];
+      }
+
+      return [];
+    }
+
+    const sortedMemberships = memberships.sort((a, b) => b.joinedAt - a.joinedAt);
+    const workspaces = await Promise.all(
+      sortedMemberships.map(async (membership) => {
+        const workspace = await ctx.db.get(membership.workspaceId);
+        return workspace
+          ? serializeWorkspaceSummary(workspace, membership.role)
+          : null;
+      }),
+    );
+
+    return workspaces.filter(
+      (
+        workspace,
+      ): workspace is ReturnType<typeof serializeWorkspaceSummary> =>
+        workspace !== null,
+    );
+  },
+});
+
+export const createWorkspaceForActor = internalMutation({
+  args: {
+    clerkUserId: v.string(),
+    name: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    contextPath: v.optional(v.string()),
+    githubRepo: v.optional(v.string()),
+    settings: v.optional(v.any()),
+    clerkOrgId: v.optional(v.string()),
+    actorUserId: v.optional(v.string()),
+    actorEmail: v.optional(v.string()),
+    actorName: v.optional(v.string()),
+    actorImage: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (existing) {
+      throw new Error(`Workspace slug "${args.slug}" already taken`);
+    }
+
+    const workspaceId = await ctx.db.insert("workspaces", {
+      name: args.name,
+      slug: args.slug,
+      description: args.description,
+      contextPath: args.contextPath ?? "elmer-docs/",
+      githubRepo: args.githubRepo,
+      settings: args.settings ?? {},
+      clerkOrgId: args.clerkOrgId,
+    });
+
+    await ctx.db.insert("workspaceMembers", {
+      workspaceId,
+      userId: args.actorUserId,
+      clerkUserId: args.clerkUserId,
+      email: args.actorEmail,
+      displayName: args.actorName,
+      image: args.actorImage,
+      role: "admin",
+      joinedAt: Date.now(),
+    });
+
+    const workspace = await ctx.db.get(workspaceId);
+    if (!workspace) {
+      throw new Error("Created workspace could not be loaded");
+    }
+
+    return serializeWorkspaceSummary(workspace, "admin");
+  },
+});
 
 // ── Projects ──────────────────────────────────────────────────────────────────
 

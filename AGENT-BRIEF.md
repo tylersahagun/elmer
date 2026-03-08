@@ -68,7 +68,7 @@
 - Surfaces are categorized as `migrate-now`, `blocked`, or `intentional-server-side`
 - Recommended first migration tranche: `/`, `/workspace/[id]`, `/workspace/[id]/signals`, `/workspace/[id]/tasks`, `/workspace/[id]/inbox`
 - First migration tranche started:
-  - `/` UI is Convex-capable, but `/api/workspaces` still remains the root legacy workspace bridge for list/create
+  - `/` UI and `/api/workspaces` list/create are now Convex-backed, but invitation acceptance and some import/sync flows still remain on the legacy app-user bridge
   - `/workspace/[id]` now loads workspace and project spine from Convex
   - `/workspace/[id]/signals` now uses Convex for workspace lookup and core signal list/create/update/delete flows
 - Second migration tranche checkpoint:

@@ -456,6 +456,61 @@ http.route({
   }),
 });
 
+// GET /mcp/workspaces
+http.route({
+  path: "/mcp/workspaces",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const clerkUserId = url.searchParams.get("clerkUserId");
+    const email = url.searchParams.get("email");
+    if (!clerkUserId) return jsonError("Missing clerkUserId");
+    const workspaces = await ctx.runQuery(internal.mcp.listWorkspacesForActor, {
+      clerkUserId,
+      email: email ?? undefined,
+    });
+    return jsonOk(workspaces);
+  }),
+});
+
+// POST /mcp/workspaces
+http.route({
+  path: "/mcp/workspaces",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    if (!body.clerkUserId || !body.name || !body.slug) {
+      return jsonError("Missing clerkUserId, name, or slug");
+    }
+
+    const workspace = await ctx.runMutation(
+      internal.mcp.createWorkspaceForActor,
+      {
+        clerkUserId: body.clerkUserId as string,
+        name: body.name as string,
+        slug: body.slug as string,
+        description: body.description as string | undefined,
+        contextPath: body.contextPath as string | undefined,
+        githubRepo: body.githubRepo as string | undefined,
+        settings: body.settings,
+        clerkOrgId: body.clerkOrgId as string | undefined,
+        actorUserId: body.actorUserId as string | undefined,
+        actorEmail: body.actorEmail as string | undefined,
+        actorName: body.actorName as string | undefined,
+        actorImage: body.actorImage as string | undefined,
+      },
+    );
+
+    await ctx.runMutation(internal.mcp.ensureDefaultColumnConfigs, {
+      workspaceId: workspace.id as Id<"workspaces">,
+    });
+
+    return jsonOk(workspace);
+  }),
+});
+
 // GET /mcp/workspace
 http.route({
   path: "/mcp/workspace",

@@ -1,21 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
+import { getCurrentAppUser } from "@/lib/auth/server";
 import {
-  AppAuthenticationError,
-  requireCurrentAppUser,
-} from "@/lib/auth/server";
-import { getWorkspacesForUser, createWorkspace } from "@/lib/db/queries";
-import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
-import { getGitHubClient } from "@/lib/github/auth";
+  createConvexWorkspace,
+  listConvexWorkspaces,
+} from "@/lib/convex/server";
+import { slugifyWorkspaceName } from "@/lib/workspaces/path";
+
+function getClerkPrimaryEmail(
+  user: Awaited<ReturnType<typeof currentUser>>,
+) {
+  return (
+    user?.primaryEmailAddress?.emailAddress ??
+    user?.emailAddresses?.[0]?.emailAddress ??
+    null
+  );
+}
+
+async function getWorkspaceRouteIdentity() {
+  const { userId } = await clerkAuth();
+  if (!userId) {
+    return null;
+  }
+
+  const user = await currentUser();
+  return {
+    clerkUserId: userId,
+    email: getClerkPrimaryEmail(user),
+    name: user?.fullName ?? user?.username ?? null,
+    image: user?.imageUrl ?? null,
+  };
+}
 
 export async function GET() {
   try {
-    const appUser = await requireCurrentAppUser();
-    const workspaces = await getWorkspacesForUser(appUser.id);
+    const identity = await getWorkspaceRouteIdentity();
+    if (!identity) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    const workspaces = await listConvexWorkspaces(
+      identity.clerkUserId,
+      identity.email,
+    );
     return NextResponse.json(workspaces);
   } catch (error) {
-    if (error instanceof AppAuthenticationError) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
     console.error("Failed to get workspaces:", error);
     return NextResponse.json(
       { error: "Failed to get workspaces" },
@@ -26,7 +58,14 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const appUser = await requireCurrentAppUser();
+    const identity = await getWorkspaceRouteIdentity();
+    if (!identity) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
     const body = await request.json();
     const { name, description, githubRepo, contextPath } = body;
 
@@ -34,38 +73,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    const workspace = await createWorkspace({
-      name,
+    let actorUserId: string | undefined;
+    try {
+      const appUser = await getCurrentAppUser();
+      actorUserId = appUser?.id;
+    } catch (error) {
+      console.warn(
+        "Workspace creation continuing without local app-user bridge.",
+        error,
+      );
+    }
+
+    const normalizedName = String(name).trim();
+    const workspace = await createConvexWorkspace({
+      clerkUserId: identity.clerkUserId,
+      name: normalizedName,
+      slug: slugifyWorkspaceName(normalizedName),
       description,
       githubRepo,
       contextPath,
-      userId: appUser.id, // Creator becomes admin
+      actorUserId,
+      actorEmail: identity.email ?? undefined,
+      actorName: identity.name ?? undefined,
+      actorImage: identity.image ?? undefined,
     });
-
-    // Automatically sync knowledge base on workspace creation
-    // This populates the initial knowledgebase entries from the context files
-    if (workspace?.id) {
-      try {
-        const octokit = await getGitHubClient(appUser.id);
-        const syncResult = await syncKnowledgeBase(workspace.id, { octokit: octokit ?? undefined });
-        console.log(
-          `📚 Knowledge base synced for new workspace: ${syncResult.synced} entries`,
-        );
-      } catch (syncError) {
-        // Don't fail workspace creation if sync fails - user can manually sync later
-        console.error("Knowledge base sync failed (non-fatal):", syncError);
-      }
-    }
 
     return NextResponse.json(workspace, { status: 201 });
   } catch (error) {
-    if (error instanceof AppAuthenticationError) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
     console.error("Failed to create workspace:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to create workspace";
+    const status = message.includes("already taken") ? 409 : 500;
     return NextResponse.json(
-      { error: "Failed to create workspace" },
-      { status: 500 },
+      { error: message },
+      { status },
     );
   }
 }

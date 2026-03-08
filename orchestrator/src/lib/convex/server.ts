@@ -31,6 +31,33 @@ export async function getConvexWorkspace(workspaceId: string) {
   return await res.json();
 }
 
+export async function listConvexWorkspaces(
+  clerkUserId: string,
+  email?: string | null,
+) {
+  const params = new URLSearchParams({ clerkUserId });
+  if (email) {
+    params.set("email", email);
+  }
+  const res = await convexFetch(`/mcp/workspaces?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch workspaces");
+  return await res.json();
+}
+
+export async function createConvexWorkspace(data: Record<string, unknown>) {
+  const res = await convexFetch(`/mcp/workspaces`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(
+      (body as { error?: string }).error || "Failed to create workspace",
+    );
+  }
+  return await res.json();
+}
+
 export async function updateConvexWorkspace(workspaceId: string, data: Record<string, unknown>) {
   const res = await convexFetch(`/mcp/workspace`, {
     method: "PATCH",

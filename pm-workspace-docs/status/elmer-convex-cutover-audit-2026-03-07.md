@@ -25,7 +25,7 @@ As of `953b959`, the internal-alpha baseline is materially healthier:
 
 What is **not** true yet:
 
-- `/api/workspaces` is still the root Drizzle/app-user bridge
+- root workspace list/create is now Convex-backed, but invitation and import/sync identity still preserve legacy bridge behavior
 - invitation acceptance still depends on `requireCurrentAppUser()`
 - several sync/import routes still use the app-user bridge and Drizzle workspace lookup
 - project detail still has explicit parity gaps in commits, automation/tickets, and legacy-adjacent subroutes
@@ -71,14 +71,14 @@ These are acceptable only if they remain adapters or mirrors and do not reclaim 
 
 ## Code Reality Snapshot
 
-These counts are from production route files under `orchestrator/src/app/api` at `953b959`:
+These counts are from production route files under `orchestrator/src/app/api` after the `/api/workspaces` cutover:
 
-- `120` route files total
-- `51` still import `@/lib/db/queries`
-- `19` import `@/lib/convex/server`
+- `121` route files total
+- `50` still import `@/lib/db/queries`
+- `20` import `@/lib/convex/server`
 - `64` use `requireWorkspaceAccess`
-- `6` still use `requireCurrentAppUser`
-- `20` still contain direct Drizzle / `db.query` usage
+- `5` still use `requireCurrentAppUser`
+- `40` still contain direct Drizzle / `db.query` usage
 
 This means the codebase is **past the architecture-decision phase** but **not past the migration phase**.
 
@@ -88,6 +88,7 @@ This means the codebase is **past the architecture-decision phase** but **not pa
 
 #### Workspace / membership / settings parity
 
+- `orchestrator/src/app/api/workspaces/route.ts`
 - `orchestrator/convex/workspaces.ts`
 - `orchestrator/convex/memberships.ts`
 - `orchestrator/src/app/api/workspaces/[id]/route.ts`
@@ -95,6 +96,7 @@ This means the codebase is **past the architecture-decision phase** but **not pa
 
 Current state:
 
+- root workspace list/create now proxies through the Convex MCP bridge instead of SQL authority
 - workspace details read through Convex
 - workspace member reads proxy through Convex
 - permission checks consult Convex membership first
@@ -137,24 +139,7 @@ Current state:
 
 ## What Is Still Not Converted
 
-### 1. Root workspace list/create remains legacy
-
-**File:** `orchestrator/src/app/api/workspaces/route.ts`
-
-This is still the clearest architectural gap.
-
-Current behavior:
-
-- requires `requireCurrentAppUser()`
-- lists workspaces through `getWorkspacesForUser()`
-- creates workspaces through legacy `createWorkspace()` in `@/lib/db/queries`
-
-Why it matters:
-
-- `/` can be Convex-capable in the UI, but the route contract still says the old app-user + Drizzle model is authoritative.
-- This blocks a clean “Convex is the main data architecture” claim.
-
-### 2. Invitation acceptance still bridges through the legacy app user
+### 1. Invitation acceptance still bridges through the legacy app user
 
 **File:** `orchestrator/src/app/api/invitations/[token]/route.ts`
 
@@ -169,7 +154,7 @@ Why it matters:
 - this is the direct remaining GTM-102 parity seam
 - it keeps onboarding/access dependent on the old user model
 
-### 3. Import/sync routes still depend on app-user + legacy workspace lookup
+### 2. Import/sync routes still depend on app-user + legacy workspace lookup
 
 **Files:**
 
@@ -188,7 +173,7 @@ Why it matters:
 - these flows are still operationally important
 - they preserve a split identity/data model even where Convex ownership exists
 
-### 4. Project detail parity is incomplete
+### 3. Project detail parity is incomplete
 
 Main read path is migrated, but several explicit edges are not:
 
@@ -201,7 +186,7 @@ Why it matters:
 
 - these are the remaining reasons project detail is still a compatibility shell instead of a fully Convex-native surface
 
-### 5. Jobs, signals ingest, documents, and a service long tail still use Drizzle
+### 4. Jobs, signals ingest, documents, and a service long tail still use Drizzle
 
 Representative route files with direct Drizzle usage:
 
@@ -279,21 +264,9 @@ Exit evidence:
 - alpha rerun is at least `Conditional go`
 - `GTM-113` is cleared from deployed behavior, not just local code
 
-### Stage 2. Remove the two highest-value false authorities
+### Stage 2. Remove the highest-value remaining false authority
 
-#### A. Replace `/api/workspaces`
-
-Move:
-
-- GET -> Convex-backed membership-scoped workspace list
-- POST -> Convex-backed workspace create
-
-Then:
-
-- stop using `requireCurrentAppUser()` there
-- stop treating legacy `getWorkspacesForUser()` / `createWorkspace()` as source of truth
-
-#### B. Finish membership/invitation parity
+#### A. Finish membership/invitation parity
 
 Do:
 
@@ -357,12 +330,11 @@ After the alpha spine is stable:
 
 ## Recommended Execution Order
 
-1. Deploy `953b959` and rerun alpha.
-2. Replace `/api/workspaces`.
-3. Remove invitation/app-user bridge and backfill durable membership parity.
-4. Finish project detail parity slices.
-5. Close search and export policy decisions.
-6. Tackle the remaining route/service long tail.
+1. Deploy the latest integration build and rerun alpha.
+2. Remove invitation/app-user bridge and backfill durable membership parity.
+3. Finish project detail parity slices.
+4. Close search and export policy decisions.
+5. Tackle the remaining route/service long tail.
 
 ## Definition Of “Fully Functional” For This Architecture
 
@@ -371,7 +343,6 @@ Elmer should be considered fully functional on the target architecture when all 
 - workspace/project/user-facing runtime state is Convex-authoritative
 - runtime context and search are Convex-authoritative without fallback
 - invitation and membership flows no longer require the legacy app-user bridge
-- root workspace list/create no longer relies on Drizzle authority
 - remaining server-side paths are explicitly adapters, not accidental sources of truth
 - the deployed alpha path is stable enough to use daily without route-level or authority-level surprises
 
@@ -381,7 +352,6 @@ The main architecture is close enough to be operationally real, but not close en
 
 The good news is that the remaining work is now narrow:
 
-- one root workspace route
 - one invitation/membership parity seam
 - a bounded project-detail parity set
 - a documented long tail of legacy route/service debt

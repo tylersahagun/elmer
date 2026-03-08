@@ -1,95 +1,133 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { GET, POST } from "../route";
+
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: vi.fn(),
+  currentUser: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/server", () => ({
-  AppAuthenticationError: class AppAuthenticationError extends Error {},
-  requireCurrentAppUser: vi.fn(),
+  getCurrentAppUser: vi.fn(),
 }));
 
-vi.mock("@/lib/db/queries", () => ({
-  getWorkspacesForUser: vi.fn(),
-  createWorkspace: vi.fn(),
+vi.mock("@/lib/convex/server", () => ({
+  listConvexWorkspaces: vi.fn(),
+  createConvexWorkspace: vi.fn(),
 }));
 
-vi.mock("@/lib/knowledgebase/sync", () => ({
-  syncKnowledgeBase: vi.fn(),
-}));
-
-vi.mock("@/lib/github/auth", () => ({
-  getGitHubClient: vi.fn(),
-}));
-
+import { GET, POST } from "../route";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { getCurrentAppUser } from "@/lib/auth/server";
 import {
-  AppAuthenticationError,
-  requireCurrentAppUser,
-} from "@/lib/auth/server";
-import { createWorkspace, getWorkspacesForUser } from "@/lib/db/queries";
-import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
-import { getGitHubClient } from "@/lib/github/auth";
+  createConvexWorkspace,
+  listConvexWorkspaces,
+} from "@/lib/convex/server";
 
-const mockRequireCurrentAppUser = vi.mocked(requireCurrentAppUser);
-const mockGetWorkspacesForUser = vi.mocked(getWorkspacesForUser);
-const mockCreateWorkspace = vi.mocked(createWorkspace);
-const mockSyncKnowledgeBase = vi.mocked(syncKnowledgeBase);
-const mockGetGitHubClient = vi.mocked(getGitHubClient);
+const mockAuth = vi.mocked(auth);
+const mockCurrentUser = vi.mocked(currentUser);
+const mockGetCurrentAppUser = vi.mocked(getCurrentAppUser);
+const mockListConvexWorkspaces = vi.mocked(listConvexWorkspaces);
+const mockCreateConvexWorkspace = vi.mocked(createConvexWorkspace);
+let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+function mockClerkAuth(userId: string | null) {
+  return {
+    userId,
+    sessionId: null,
+    sessionClaims: null,
+    orgId: null,
+    orgRole: null,
+    orgSlug: null,
+    orgPermissions: null,
+    factorVerificationAge: null,
+    getToken: vi.fn(),
+    has: vi.fn(),
+    debug: vi.fn(),
+    redirectToSignIn: vi.fn(),
+    protect: vi.fn(),
+  } as unknown as Awaited<ReturnType<typeof auth>>;
+}
 
 describe("workspaces route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("returns current user workspaces", async () => {
-    mockRequireCurrentAppUser.mockResolvedValue({
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockAuth.mockResolvedValue(mockClerkAuth("clerk_user_1"));
+    mockCurrentUser.mockResolvedValue({
+      id: "clerk_user_1",
+      username: "user-example",
+      fullName: "User Example",
+      imageUrl: "https://example.com/avatar.png",
+      primaryEmailAddress: {
+        emailAddress: "user@example.com",
+      },
+      emailAddresses: [],
+    } as unknown as Awaited<ReturnType<typeof currentUser>>);
+    mockGetCurrentAppUser.mockResolvedValue({
       id: "local_user_1",
       clerkUserId: "clerk_user_1",
       email: "user@example.com",
       name: "User Example",
-      image: null,
+      image: "https://example.com/avatar.png",
     });
-    mockGetWorkspacesForUser.mockResolvedValue([
-      { id: "ws_1", name: "Workspace 1", role: "admin" },
-    ] as Awaited<ReturnType<typeof getWorkspacesForUser>>);
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("returns Clerk-scoped workspaces from Convex", async () => {
+    mockListConvexWorkspaces.mockResolvedValue([
+      {
+        id: "ws_1",
+        name: "Workspace 1",
+        description: null,
+        role: "admin",
+        updatedAt: "2026-03-07T00:00:00.000Z",
+      },
+    ]);
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(mockGetWorkspacesForUser).toHaveBeenCalledWith("local_user_1");
-    expect(data).toHaveLength(1);
+    expect(mockListConvexWorkspaces).toHaveBeenCalledWith(
+      "clerk_user_1",
+      "user@example.com",
+    );
+    expect(data).toEqual([
+      {
+        id: "ws_1",
+        name: "Workspace 1",
+        description: null,
+        role: "admin",
+        updatedAt: "2026-03-07T00:00:00.000Z",
+      },
+    ]);
   });
 
-  it("returns 401 when the current app user cannot be resolved", async () => {
-    mockRequireCurrentAppUser.mockRejectedValue(
-      new AppAuthenticationError("Authentication required"),
-    );
+  it("returns 401 when Clerk user identity is missing", async () => {
+    mockAuth.mockResolvedValue(mockClerkAuth(null));
 
     const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(401);
     expect(data.error).toBe("Authentication required");
+    expect(mockListConvexWorkspaces).not.toHaveBeenCalled();
   });
 
-  it("creates a workspace with the resolved local user id", async () => {
-    mockRequireCurrentAppUser.mockResolvedValue({
-      id: "local_user_2",
-      clerkUserId: "clerk_user_2",
-      email: "user@example.com",
-      name: "User Example",
-      image: null,
-    });
-    mockCreateWorkspace.mockResolvedValue({
+  it("creates a workspace through the Convex bridge", async () => {
+    mockCreateConvexWorkspace.mockResolvedValue({
       id: "ws_2",
       name: "New Workspace",
-    } as Awaited<ReturnType<typeof createWorkspace>>);
-    mockGetGitHubClient.mockResolvedValue(null);
-    mockSyncKnowledgeBase.mockResolvedValue({
-      synced: 0,
-      skipped: 0,
-      details: [],
-      errors: [],
-    } as unknown as Awaited<ReturnType<typeof syncKnowledgeBase>>);
+      description: null,
+      role: "admin",
+      updatedAt: "2026-03-07T00:00:00.000Z",
+    });
 
     const request = new NextRequest("http://localhost:3000/api/workspaces", {
       method: "POST",
@@ -101,16 +139,86 @@ describe("workspaces route", () => {
     const data = await response.json();
 
     expect(response.status).toBe(201);
-    expect(mockCreateWorkspace).toHaveBeenCalledWith({
+    expect(mockCreateConvexWorkspace).toHaveBeenCalledWith({
+      clerkUserId: "clerk_user_1",
       name: "New Workspace",
+      slug: "new-workspace",
       description: undefined,
       githubRepo: undefined,
       contextPath: undefined,
-      userId: "local_user_2",
-    });
-    expect(mockSyncKnowledgeBase).toHaveBeenCalledWith("ws_2", {
-      octokit: undefined,
+      actorUserId: "local_user_1",
+      actorEmail: "user@example.com",
+      actorName: "User Example",
+      actorImage: "https://example.com/avatar.png",
     });
     expect(data.id).toBe("ws_2");
+  });
+
+  it("continues workspace creation when local app-user resolution fails", async () => {
+    mockGetCurrentAppUser.mockRejectedValue(
+      new Error("Local app-user bridge unavailable"),
+    );
+    mockCreateConvexWorkspace.mockResolvedValue({
+      id: "ws_3",
+      name: "Bridgeless Workspace",
+      description: null,
+      role: "admin",
+      updatedAt: "2026-03-07T00:00:00.000Z",
+    });
+
+    const request = new NextRequest("http://localhost:3000/api/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Bridgeless Workspace" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    expect(mockCreateConvexWorkspace).toHaveBeenCalledWith({
+      clerkUserId: "clerk_user_1",
+      name: "Bridgeless Workspace",
+      slug: "bridgeless-workspace",
+      description: undefined,
+      githubRepo: undefined,
+      contextPath: undefined,
+      actorUserId: undefined,
+      actorEmail: "user@example.com",
+      actorName: "User Example",
+      actorImage: "https://example.com/avatar.png",
+    });
+  });
+
+  it("returns 400 when the workspace name is missing", async () => {
+    const request = new NextRequest("http://localhost:3000/api/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: "missing name" }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe("Name is required");
+    expect(mockCreateConvexWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when the Convex workspace slug is already taken", async () => {
+    mockCreateConvexWorkspace.mockRejectedValue(
+      new Error('Workspace slug "new-workspace" already taken'),
+    );
+
+    const request = new NextRequest("http://localhost:3000/api/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "New Workspace" }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(data.error).toContain("already taken");
   });
 });
