@@ -1,7 +1,7 @@
 # Elmer Convex Cutover Audit
 
-**Generated:** 2026-03-07  
-**Baseline:** `codex/elmer-alpha-integration` @ `6f5307f`  
+**Generated:** 2026-03-07
+**Baseline:** `codex/elmer-alpha-integration` @ `6f5307f`
 **Purpose:** State the current cutover reality after the integration merge/fix pass, identify what is already Convex-authoritative, identify what is still bridge-mode or legacy, and define the shortest path to a fully functional source-of-truth architecture.
 
 ## Executive Summary
