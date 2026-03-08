@@ -1,7 +1,7 @@
 # Elmer Convex Cutover Audit
 
 **Generated:** 2026-03-07  
-**Baseline:** `codex/elmer-alpha-integration` @ `953b959`  
+**Baseline:** `codex/elmer-alpha-integration` @ `6f5307f`  
 **Purpose:** State the current cutover reality after the integration merge/fix pass, identify what is already Convex-authoritative, identify what is still bridge-mode or legacy, and define the shortest path to a fully functional source-of-truth architecture.
 
 ## Executive Summary
@@ -14,7 +14,7 @@ The important distinction is:
 - The **full application data architecture** is still mixed.
 - The remaining debt is no longer vague. It is concentrated in a small set of named route classes and parity gaps.
 
-As of `953b959`, the internal-alpha baseline is materially healthier:
+As of `6f5307f`, the internal-alpha baseline is materially healthier:
 
 - workspace board and project detail core paths are on Convex-backed reads
 - runtime memory/search authority is explicitly Convex-first
