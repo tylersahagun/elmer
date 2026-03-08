@@ -139,6 +139,7 @@ export function ProjectTasksPanel({
           variant="outline"
           onClick={() => setShowAddForm(true)}
           className="gap-1.5 text-xs"
+          data-testid="new-task-button"
         >
           <Plus className="w-3.5 h-3.5" />
           Add task
@@ -161,8 +162,14 @@ export function ProjectTasksPanel({
               }
             }}
             className="text-sm"
+            data-testid="task-title-input"
           />
-          <Button size="sm" onClick={handleAdd} disabled={adding || !newTitle.trim()}>
+          <Button
+            size="sm"
+            onClick={handleAdd}
+            disabled={adding || !newTitle.trim()}
+            data-testid="add-task-submit"
+          >
             {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add"}
           </Button>
           <Button
@@ -200,10 +207,12 @@ export function ProjectTasksPanel({
             <div
               key={task._id}
               className="group flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card/60 transition-colors"
+              data-testid="task-row"
             >
               <button
                 onClick={() => handleToggle(task._id, task.status)}
                 className="mt-0.5 shrink-0"
+                data-testid="toggle-task-status"
               >
                 {STATUS_ICONS[task.status as keyof typeof STATUS_ICONS] ??
                   STATUS_ICONS.todo}
@@ -281,6 +290,7 @@ export function ProjectTasksPanel({
                   <button
                     onClick={() => removeTask({ taskId: task._id })}
                     className="text-muted-foreground hover:text-destructive transition-colors"
+                    data-testid="remove-task"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -302,10 +312,12 @@ export function ProjectTasksPanel({
               <div
                 key={task._id}
                 className="group/item flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-card/10 opacity-60 hover:opacity-80 transition-opacity"
+                data-testid="task-row"
               >
                 <button
                   onClick={() => handleToggle(task._id, task.status)}
                   className="mt-0.5 shrink-0"
+                  data-testid="toggle-task-status"
                 >
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </button>
@@ -315,6 +327,7 @@ export function ProjectTasksPanel({
                 <button
                   onClick={() => removeTask({ taskId: task._id })}
                   className="opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive"
+                  data-testid="remove-task"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

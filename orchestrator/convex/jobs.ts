@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -32,6 +32,13 @@ export const get = query({
   handler: async (ctx, { jobId }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    return await ctx.db.get(jobId);
+  },
+});
+
+export const getInternal = internalQuery({
+  args: { jobId: v.id("jobs") },
+  handler: async (ctx, { jobId }) => {
     return await ctx.db.get(jobId);
   },
 });
@@ -99,6 +106,26 @@ export const updateStatus = mutation({
   handler: async (ctx, { jobId, ...patch }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    const updates: Record<string, unknown> = { status: patch.status };
+    if (patch.output !== undefined) updates.output = patch.output;
+    if (patch.progress !== undefined) updates.progress = patch.progress;
+    if (patch.errorMessage !== undefined) updates.errorMessage = patch.errorMessage;
+    if (patch.runId !== undefined) updates.runId = patch.runId;
+    await ctx.db.patch(jobId, updates);
+    return await ctx.db.get(jobId);
+  },
+});
+
+export const updateStatusInternal = internalMutation({
+  args: {
+    jobId: v.id("jobs"),
+    status: v.string(),
+    output: v.optional(v.any()),
+    progress: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    runId: v.optional(v.string()),
+  },
+  handler: async (ctx, { jobId, ...patch }) => {
     const updates: Record<string, unknown> = { status: patch.status };
     if (patch.output !== undefined) updates.output = patch.output;
     if (patch.progress !== undefined) updates.progress = patch.progress;
@@ -179,6 +206,27 @@ export const appendLog = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    return await ctx.db.insert("jobLogs", {
+      jobId: args.jobId,
+      workspaceId: args.workspaceId,
+      level: args.level,
+      message: args.message,
+      stepKey: args.stepKey,
+      meta: args.meta,
+    });
+  },
+});
+
+export const appendLogInternal = internalMutation({
+  args: {
+    jobId: v.id("jobs"),
+    workspaceId: v.id("workspaces"),
+    level: v.string(),
+    message: v.string(),
+    stepKey: v.optional(v.string()),
+    meta: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
     return await ctx.db.insert("jobLogs", {
       jobId: args.jobId,
       workspaceId: args.workspaceId,

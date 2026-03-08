@@ -461,6 +461,31 @@ export const seedStubAgentRun = internalMutation({
   },
 });
 
+export const seedProjectDocument = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.id("projects"),
+    seedTag: v.string(),
+    type: v.string(),
+    title: v.string(),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const documentId = await ctx.db.insert("documents", {
+      workspaceId: args.workspaceId,
+      projectId: args.projectId,
+      type: args.type,
+      title: args.title,
+      content: args.content,
+      version: 1,
+      reviewStatus: "draft",
+      generatedByAgent: "e2e-seed",
+    });
+
+    return { documentId };
+  },
+});
+
 // ── Pending questions ─────────────────────────────────────────────────────────
 
 export const listPendingQuestions = internalQuery({
@@ -502,6 +527,8 @@ export const cleanupSeededData = internalMutation({
     let cleanedQuestions = 0;
     let cleanedJobs = 0;
     let cleanedProjects = 0;
+    let cleanedDocuments = 0;
+    let cleanedTasks = 0;
 
     for (const status of ["pending", "processing", "assigned", "dismissed"]) {
       const inboxItems = await ctx.db
@@ -579,11 +606,41 @@ export const cleanupSeededData = internalMutation({
       }
     }
 
+    const documents = await ctx.db.query("documents").collect();
+
+    for (const document of documents) {
+      if (
+        document.workspaceId === workspaceId &&
+        (hasTaggedText(document.title, seedTag) ||
+          hasTaggedText(document.content, seedTag))
+      ) {
+        await ctx.db.delete(document._id);
+        cleanedDocuments += 1;
+      }
+    }
+
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+
+    for (const task of tasks) {
+      if (
+        hasTaggedText(task.title, seedTag) ||
+        hasTaggedText(task.description, seedTag)
+      ) {
+        await ctx.db.delete(task._id);
+        cleanedTasks += 1;
+      }
+    }
+
     return {
+      cleanedDocuments,
       cleanedInboxItems,
       cleanedJobs,
       cleanedProjects,
       cleanedQuestions,
+      cleanedTasks,
       seedTag,
     };
   },

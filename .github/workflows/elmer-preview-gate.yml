@@ -1,0 +1,17 @@
+name: Elmer Preview Gate
+
+on:
+  deployment_status:
+
+jobs:
+  preview-gate:
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment != 'Production' &&
+      (github.event.deployment_status.environment_url != '' ||
+      github.event.deployment_status.target_url != '')
+    uses: ./.github/workflows/elmer-smoke.yml
+    with:
+      base_url: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+      suite: gate
+    secrets: inherit

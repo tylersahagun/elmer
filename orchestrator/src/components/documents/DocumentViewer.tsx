@@ -209,6 +209,7 @@ export function DocumentViewer({
       animate={{ opacity: 1, y: 0 }}
       transition={springPresets.gentle}
       className={cn("flex flex-col h-full", className)}
+      data-testid="document-viewer"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10">
@@ -312,6 +313,7 @@ export function DocumentViewer({
               onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
               disabled={isSaving}
               className="gap-1.5"
+              data-testid={isEditing ? "save-document-button" : "edit-document-button"}
             >
               {isEditing ? (
                 <>
@@ -383,6 +385,7 @@ export function DocumentViewer({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.1 }}
               className="p-6"
+              data-testid="document-preview"
             >
               <article className="prose prose-invert prose-sm max-w-none">
                 <ReactMarkdown

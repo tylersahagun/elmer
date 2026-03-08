@@ -997,6 +997,31 @@ http.route({
   }),
 });
 
+// POST /mcp/e2e/project-document
+// Seed a deterministic Convex document for project-detail editor coverage.
+http.route({
+  path: "/mcp/e2e/project-document",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const workspaceId = resolveWorkspaceId({
+      request,
+      body,
+      defaultWorkspaceId: WORKSPACE_ID,
+    });
+    const result = await ctx.runMutation(internal.mcp.seedProjectDocument, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      projectId: body.projectId as Id<"projects">,
+      seedTag: body.seedTag as string,
+      type: body.type as string,
+      title: body.title as string,
+      content: body.content as string,
+    });
+    return jsonOk(result);
+  }),
+});
+
 // POST /mcp/e2e/cleanup
 // Best-effort cleanup for tagged E2E records in a dedicated workspace.
 http.route({

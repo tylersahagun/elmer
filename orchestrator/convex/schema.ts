@@ -225,6 +225,8 @@ export default defineSchema({
     durationMs: v.optional(v.number()),
     startedAt: v.optional(v.number()),
     completedAt: v.optional(v.number()),
+    messageHistory: v.optional(v.string()),
+    pausedAtToolCallId: v.optional(v.string()),
   })
     .index("by_job", ["jobId"])
     .index("by_project", ["projectId"]),

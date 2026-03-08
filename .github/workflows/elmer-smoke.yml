@@ -6,11 +6,26 @@ on:
     paths:
       - "orchestrator/**"
       - ".github/workflows/elmer-smoke.yml"
+      - ".github/workflows/elmer-preview-gate.yml"
+      - ".github/workflows/elmer-prod-smoke.yml"
+  workflow_call:
+    inputs:
+      base_url:
+        required: false
+        type: string
+      suite:
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       base_url:
         description: "Optional deployed base URL for smoke runs"
         required: false
+        type: string
+      suite:
+        description: "Suite to run: smoke or gate"
+        required: false
+        default: "smoke"
         type: string
 
 jobs:
@@ -22,6 +37,7 @@ jobs:
         working-directory: orchestrator
     env:
       PLAYWRIGHT_BASE_URL: ${{ inputs.base_url || 'http://127.0.0.1:3000' }}
+      E2E_SUITE: ${{ inputs.suite || 'smoke' }}
       E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
       E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
       E2E_WORKSPACE_ID: ${{ secrets.E2E_WORKSPACE_ID }}
@@ -71,8 +87,13 @@ jobs:
           cat /tmp/elmer-smoke.log
           exit 1
 
-      - name: Run smoke suite
-        run: npm run test:e2e:smoke -- --project=chromium
+      - name: Run Playwright suite
+        run: |
+          if [ "$E2E_SUITE" = "gate" ]; then
+            npm run test:e2e:gate -- --project=chromium
+          else
+            npm run test:e2e:smoke -- --project=chromium
+          fi
 
       - name: Smoke workflow summary
         if: always()
@@ -80,6 +101,7 @@ jobs:
           {
             echo "## Elmer smoke gate"
             echo
+            echo "- Suite: ${E2E_SUITE}"
             echo "- Browser: Chromium only"
             echo "- Mode: $([ -n \"${{ inputs.base_url }}\" ] && echo "deployed smoke" || echo "local app smoke")"
             echo "- Required secrets: E2E_TEST_EMAIL, E2E_TEST_PASSWORD, E2E_WORKSPACE_ID"

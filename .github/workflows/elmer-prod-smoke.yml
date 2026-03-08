@@ -1,0 +1,26 @@
+name: Elmer Production Smoke
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Production base URL override"
+        required: true
+        type: string
+
+jobs:
+  prod-smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.deployment_status.state == 'success' &&
+        github.event.deployment.environment == 'Production' &&
+        (github.event.deployment_status.environment_url != '' ||
+        github.event.deployment_status.target_url != '')
+      )
+    uses: ./.github/workflows/elmer-smoke.yml
+    with:
+      base_url: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url || github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+      suite: smoke
+    secrets: inherit

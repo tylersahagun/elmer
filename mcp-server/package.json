@@ -8,6 +8,8 @@
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
+    "test": "vitest",
+    "test:run": "vitest run",
     "typecheck": "tsc --noEmit",
     "build:apps": "for app in initiative-dashboard signal-map agent-monitor pm-navigator jury-viewer; do APP_NAME=$app npx vite build; done",
     "build:app:initiative-dashboard": "APP_NAME=initiative-dashboard npx vite build",
@@ -30,6 +32,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "tsx": "^4.19.4",
     "typescript": "^5.0.0",
+    "vitest": "^2.1.9",
     "vite": "^7.3.1",
     "vite-plugin-singlefile": "^2.3.0"
   }
