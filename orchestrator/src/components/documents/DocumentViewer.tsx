@@ -40,17 +40,20 @@ import {
   FileItem,
 } from "@/components/animate-ui/components/radix/files";
 import type { DocumentType } from "@/lib/db/schema";
+import {
+  DOCUMENT_TYPE_ORDER,
+  getDocumentTypeLabel,
+} from "@/lib/documentTypes";
+
+type DocumentTypeInfo = {
+  label: string;
+  icon: React.ElementType;
+  color: string;
+  description: string;
+};
 
 // Document type metadata
-const DOCUMENT_TYPES: Record<
-  DocumentType,
-  {
-    label: string;
-    icon: React.ElementType;
-    color: string;
-    description: string;
-  }
-> = {
+const DOCUMENT_TYPES: Record<string, DocumentTypeInfo> = {
   research: {
     label: "Research",
     icon: FlaskConical,
@@ -105,11 +108,62 @@ const DOCUMENT_TYPES: Record<
     color: "text-slate-400",
     description: "Current project state and progress",
   },
+  feature_guide: {
+    label: "Feature Guide",
+    icon: Sparkles,
+    color: "text-violet-400",
+    description: "Feature guidance and implementation notes",
+  },
+  competitive_landscape: {
+    label: "Competitive Landscape",
+    icon: Users,
+    color: "text-cyan-400",
+    description: "Competitive analysis and positioning",
+  },
+  success_criteria: {
+    label: "Success Criteria",
+    icon: BarChart3,
+    color: "text-lime-400",
+    description: "Launch gates and measurable outcomes",
+  },
+  gtm_plan: {
+    label: "GTM Plan",
+    icon: Megaphone,
+    color: "text-rose-400",
+    description: "Launch and distribution plan",
+  },
+  retrospective: {
+    label: "Retrospective",
+    icon: RefreshCw,
+    color: "text-indigo-400",
+    description: "Post-launch review and learnings",
+  },
+  decisions: {
+    label: "Decisions",
+    icon: FileText,
+    color: "text-stone-400",
+    description: "Key decisions and rationale",
+  },
+  visual_directions: {
+    label: "Visual Directions",
+    icon: Palette,
+    color: "text-fuchsia-400",
+    description: "Creative direction explorations",
+  },
 };
+
+function getDocumentTypeInfo(type: string): DocumentTypeInfo {
+  return DOCUMENT_TYPES[type] ?? {
+    label: getDocumentTypeLabel(type),
+    icon: FileText,
+    color: "text-muted-foreground",
+    description: "Project document",
+  };
+}
 
 interface Document {
   id: string;
-  type: DocumentType;
+  type: DocumentType | (string & {});
   title: string;
   content: string;
   version: number;
@@ -542,29 +596,16 @@ export function DocumentList({
       acc[doc.type].push(doc);
       return acc;
     },
-    {} as Record<DocumentType, Document[]>,
+    {} as Record<string, Document[]>,
   );
 
   // Order of document types
-  const typeOrder = [
-    "research",
-    "prd",
-    "design_brief",
-    "engineering_spec",
-    "gtm_brief",
-    "prototype_notes",
-    "metrics",
-    "jury_report",
-    // GTM-53: new document types
-    "feature_guide",
-    "competitive_landscape",
-    "success_criteria",
-    "gtm_plan",
-    "retrospective",
-    "decisions",
-    "visual_directions",
-    "state",
-  ] as DocumentType[];
+  const orderedKnownTypes = [...DOCUMENT_TYPE_ORDER];
+  const knownTypeSet = new Set<string>(orderedKnownTypes);
+  const unknownTypes = Object.keys(grouped).filter(
+    (type) => !knownTypeSet.has(type),
+  );
+  const typeOrder = [...orderedKnownTypes, ...unknownTypes];
 
   // Get types that have documents
   const typesWithDocs = typeOrder.filter((type) => grouped[type]?.length > 0);
@@ -590,7 +631,7 @@ export function DocumentList({
         const docs = grouped[type];
         if (!docs || docs.length === 0) return null;
 
-        const typeInfo = DOCUMENT_TYPES[type];
+        const typeInfo = getDocumentTypeInfo(type);
         const Icon = typeInfo.icon;
 
         return (

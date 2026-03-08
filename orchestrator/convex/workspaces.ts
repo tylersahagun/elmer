@@ -1,9 +1,19 @@
 import { query, mutation } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import {
   canUseCoordinatorViewerAccess,
   DEFAULT_COORDINATOR_WORKSPACE_ID,
 } from "../src/lib/auth/coordinator-viewer";
+
+const DEFAULT_COORDINATOR_WORKSPACE_CONVEX_ID =
+  DEFAULT_COORDINATOR_WORKSPACE_ID as Id<"workspaces">;
+
+function isWorkspaceDoc(
+  workspace: Doc<"workspaces"> | null,
+): workspace is Doc<"workspaces"> {
+  return workspace !== null;
+}
 
 export const list = query({
   args: {},
@@ -16,7 +26,7 @@ export const list = query({
       .collect();
     if (memberships.length === 0) {
       const defaultWorkspace = await ctx.db.get(
-        DEFAULT_COORDINATOR_WORKSPACE_ID as never,
+        DEFAULT_COORDINATOR_WORKSPACE_CONVEX_ID,
       );
       const defaultWorkspaceMembers = defaultWorkspace
         ? await ctx.db
@@ -24,7 +34,7 @@ export const list = query({
             .withIndex("by_workspace", (q) =>
               q.eq(
                 "workspaceId",
-                DEFAULT_COORDINATOR_WORKSPACE_ID as never,
+                DEFAULT_COORDINATOR_WORKSPACE_CONVEX_ID,
               ),
             )
             .collect()
@@ -44,7 +54,7 @@ export const list = query({
     const workspaces = await Promise.all(
       memberships.map((membership) => ctx.db.get(membership.workspaceId)),
     );
-    return workspaces.filter(Boolean);
+    return workspaces.filter(isWorkspaceDoc);
   },
 });
 

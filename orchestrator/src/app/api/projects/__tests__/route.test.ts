@@ -71,7 +71,7 @@ describe("/api/projects GET", () => {
 
   it("returns handled permission responses instead of a generic 500", async () => {
     mockRequireWorkspaceAccess.mockRejectedValue(
-      new PermissionError("Authentication required"),
+      new PermissionError("Authentication required", "UNAUTHENTICATED", 401),
     );
 
     const response = await GET(

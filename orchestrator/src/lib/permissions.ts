@@ -202,7 +202,7 @@ export async function requireWorkspaceAccess(
 
         return {
           id: bridgedMembership._id,
-          userId: currentAppUser.id ?? bridgedMembership.userId ?? clerkUserId,
+          userId: currentAppUser?.id ?? bridgedMembership.userId ?? clerkUserId,
           workspaceId,
           role: bridgedMembership.role,
           joinedAt: new Date(bridgedMembership.joinedAt),

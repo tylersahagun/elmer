@@ -917,9 +917,9 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                     {project.stage?.charAt(0).toUpperCase() +
                       project.stage?.slice(1)}
                   </Badge>
-                  {currentColumn?.loopGroupId && (
+                  {currentColumn?.rules?.loopGroupId && (
                     <Badge variant="secondary" className="font-mono text-xs">
-                      Loop: {currentColumn.loopGroupId}
+                      Loop: {currentColumn.rules.loopGroupId}
                     </Badge>
                   )}
                 </div>

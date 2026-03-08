@@ -92,6 +92,7 @@ describe("requireWorkspaceAccess", () => {
     mockGetWorkspaceMembership.mockResolvedValue({
       id: "membership_123",
       workspaceId: "ws_123",
+      userId: "app_user_123",
       role: "member",
       joinedAt: new Date("2026-03-07T00:00:00.000Z"),
     });
@@ -201,7 +202,7 @@ describe("requireWorkspaceAccess", () => {
       name: "User Example",
       image: null,
     });
-    mockGetWorkspaceMembership.mockResolvedValue(null);
+    mockGetWorkspaceMembership.mockResolvedValue(undefined);
 
     await expect(requireWorkspaceAccess("ws_123")).rejects.toBeInstanceOf(
       NotMemberError,
