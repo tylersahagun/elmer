@@ -4,6 +4,12 @@ import { v } from "convex/values";
 
 // ── Job Queries ───────────────────────────────────────────────────────────────
 
+export function getUnauthenticatedJobsListFallback(
+  identity: unknown,
+): [] | null {
+  return identity ? null : [];
+}
+
 export const list = query({
   args: {
     workspaceId: v.id("workspaces"),
@@ -11,7 +17,11 @@ export const list = query({
   },
   handler: async (ctx, { workspaceId, status }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    // The workspace board subscribes early during Clerk -> Convex session
+    // propagation. Returning an empty list keeps the board usable until the
+    // authenticated subscription is ready instead of crashing the route.
+    const unauthenticatedFallback = getUnauthenticatedJobsListFallback(identity);
+    if (unauthenticatedFallback) return unauthenticatedFallback;
     if (status) {
       return await ctx.db
         .query("jobs")
