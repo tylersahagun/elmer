@@ -49,6 +49,7 @@ import {
   Archive,
   Inbox,
 } from "lucide-react";
+import { resolveBoardWorkspaceState } from "./workspace-state";
 
 interface WorkspacePageClientProps {
   workspaceId: string;
@@ -160,6 +161,12 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     enabled: canLoadConvexData,
   });
 
+  const hasPersistedWorkspace = storeWorkspace?.id === workspaceId;
+  const { showNotFound } = resolveBoardWorkspaceState({
+    workspace,
+    hasPersistedWorkspace,
+  });
+
   // Update store when data loads
   useEffect(() => {
     if (workspace) {
@@ -239,7 +246,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
     name: workspace?.name ?? storeWorkspace?.name ?? workspaceId,
   });
 
-  if (workspace === null) {
+  if (showNotFound) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <Window title="error" className="max-w-md">
@@ -353,7 +360,14 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       {/* Modals */}
       <NewProjectDialog />
       <ProjectDetailModal />
-      {workspace?._id && <ArchivedProjectsModal workspaceId={workspace._id} />}
+      {(workspace?._id ?? (hasPersistedWorkspace ? storeWorkspace.id : undefined)) && (
+        <ArchivedProjectsModal
+          workspaceId={
+            (workspace?._id ??
+              (hasPersistedWorkspace ? storeWorkspace.id : undefined)) as Id<"workspaces">
+          }
+        />
+      )}
     </div>
   );
 }

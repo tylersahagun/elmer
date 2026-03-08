@@ -381,6 +381,12 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     api.documents.byProject,
     convexProject ? { projectId: convexProject._id as Id<"projects"> } : "skip",
   );
+  const convexColumns = useConvexQuery(
+    api.columns.listByWorkspace,
+    convexProject
+      ? { workspaceId: convexProject.workspaceId as Id<"workspaces"> }
+      : "skip",
+  );
   const convexPrototypes = useConvexQuery(
     api.prototypes.listByProjectDetailed,
     convexProject ? { projectId: convexProject._id as Id<"projects"> } : "skip",
@@ -530,34 +536,12 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     router.replace(nextHref, { scroll: false });
   }, [pathname, project?.workspaceId, projectId, router, searchParams]);
 
-  const { data: columns } = useQuery({
-    queryKey: ["columns", project?.workspaceId],
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/columns?workspaceId=${project?.workspaceId ?? ""}`,
-      );
-      if (!res.ok) throw new Error("Failed to load columns");
-      return res.json();
-    },
-    enabled: Boolean(project?.workspaceId),
-  });
-
   const currentColumn = useMemo(() => {
-    if (!columns || !project?.stage) return null;
-    return columns.find(
+    if (!convexColumns || !project?.stage) return null;
+    return convexColumns.find(
       (column: { stage: string }) => column.stage === project.stage,
     );
-  }, [columns, project?.stage]);
-
-  const { data: graduationCheck } = useQuery({
-    queryKey: ["graduation-check", projectId, project?.stage],
-    queryFn: async () => {
-      const res = await fetch(`/api/projects/${projectId}/graduation`);
-      if (!res.ok) return null;
-      return res.json();
-    },
-    enabled: Boolean(project?.id),
-  });
+  }, [convexColumns, project?.stage]);
 
   const stageConfidence = useMemo(() => {
     if (!project?.metadata) return null;
@@ -581,15 +565,8 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     if (confidence && typeof confidence.score === "number") {
       return { score: confidence.score, label: "Confidence" };
     }
-    const checks = graduationCheck?.checks as
-      | Array<{ passed: boolean }>
-      | undefined;
-    if (checks && checks.length > 0) {
-      const passed = checks.filter((c) => c.passed).length;
-      return { score: passed / checks.length, label: "Confidence (criteria)" };
-    }
     return null;
-  }, [project?.metadata, project?.stage, graduationCheck]);
+  }, [project?.metadata, project?.stage]);
 
   const triggerJob = useCallback(
     async (type: string) => {
