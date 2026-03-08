@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, after } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth/legacy-next-auth";
 import {
   getProject,
   getDocumentByType,

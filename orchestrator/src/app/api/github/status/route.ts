@@ -7,7 +7,7 @@
 import { NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth/legacy-next-auth";
 import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { db } from "@/lib/db";
 import { accounts } from "@/lib/db/schema";

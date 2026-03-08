@@ -14,15 +14,15 @@ export function validateAuthEnv() {
   }
 }
 
-// Warn about placeholder OAuth credentials in development
+// Warn about placeholder legacy OAuth credentials in development
 export function warnPlaceholderCredentials() {
   if (process.env.NODE_ENV === "development") {
     if (
-      process.env.GOOGLE_CLIENT_ID === "placeholder" ||
-      !process.env.GOOGLE_CLIENT_ID
+      process.env.GITHUB_CLIENT_ID === "placeholder" ||
+      !process.env.GITHUB_CLIENT_ID
     ) {
       console.warn(
-        "[Auth] Google OAuth not configured. OAuth login will fail."
+        "[Auth] GitHub OAuth not configured. Repository connect flows will fail."
       )
     }
   }

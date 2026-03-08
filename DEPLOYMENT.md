@@ -85,9 +85,12 @@ cloudflared tunnel run elmer
 
 `npm run check:auth` should fail if the Clerk publishable key cannot be decoded,
 if `CLERK_JWT_ISSUER_DOMAIN` disagrees with that frontend API host, if
-`AUTH_URL` and `NEXTAUTH_URL` disagree, or if `NEXT_PUBLIC_CONVEX_URL` is
-missing or points at a `.convex.site` URL before it verifies that `/login`
-returns HTML with Clerk bootstrap markers and performs Clerk DNS checks.
+`AUTH_URL` and `NEXTAUTH_URL` disagree, if `CHECK_AUTH_PUBLIC_URL` is invalid,
+or if `NEXT_PUBLIC_CONVEX_URL` is missing or points at a `.convex.site` URL
+before it verifies that the configured `/login` route returns HTML with Clerk
+bootstrap markers. When the configured app origin is local, it also verifies
+the public `https://elmer.studio/login` release gate before performing Clerk
+DNS checks.
 
 ### Delivery Readiness
 
@@ -127,10 +130,8 @@ DATABASE_URL=postgresql://elmer:elmer_local_dev@localhost:5433/orchestrator
 # Authentication
 AUTH_SECRET=<generate with: openssl rand -base64 32>
 AUTH_URL=https://elmer.studio
-
-# Google OAuth (optional)
-GOOGLE_CLIENT_ID=<from Google Cloud Console>
-GOOGLE_CLIENT_SECRET=<from Google Cloud Console>
+NEXTAUTH_URL=https://elmer.studio
+CHECK_AUTH_PUBLIC_URL=https://elmer.studio
 
 # AI Services
 ANTHROPIC_API_KEY=<for signal extraction and document generation>
@@ -215,6 +216,10 @@ configuration, these records must also exist:
 
 - `clerk.elmer.studio` -> `frontend-api.clerk.services`
 - `accounts.elmer.studio` -> `accounts.clerk.services`
+
+Google sign-in on `/login` is configured in the Clerk production app under
+SSO Connections using Google Cloud Console credentials. It is not driven by
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` env vars in the Next.js app.
 
 ```bash
 # Start tunnel

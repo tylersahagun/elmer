@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth/legacy-next-auth";
 import { assignOrphanedWorkspaces } from "@/lib/migrations/assign-workspaces";
 import { backfillActors } from "@/lib/migrations/backfill-actors";
 

@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { GET } from "../route";
 
 // Mock auth
-vi.mock("@/auth", () => ({
+vi.mock("@/lib/auth/legacy-next-auth", () => ({
   auth: vi.fn(),
 }));
 
@@ -26,7 +26,7 @@ vi.mock("@/lib/discovery", () => ({
   scanRepository: vi.fn(),
 }));
 
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth/legacy-next-auth";
 import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
 import { getWorkspace } from "@/lib/db/queries";
