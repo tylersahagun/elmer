@@ -33,6 +33,7 @@ import {
 import { useUIStore } from "@/lib/store";
 import { DocumentArtifactPanel } from "./DocumentArtifactPanel";
 import { deriveThreadTitle, getThreadContextLabel } from "@/lib/chat/thread-utils";
+import { getListThreadsQueryArgs } from "@/lib/chat/query-args";
 
 const DOCUMENT_PATTERN = /\[DOCUMENT_CREATED:\s*(\{[^}]+\})\]/;
 
@@ -435,11 +436,24 @@ export function ElmerPanel({ workspaceId }: ElmerPanelProps) {
     [params, pathname],
   );
 
+  const listThreadsArgs = useMemo(
+    () =>
+      getListThreadsQueryArgs({
+        isAuthenticated,
+        userId,
+        workspaceId,
+      }),
+    [isAuthenticated, userId, workspaceId],
+  );
+
   const threads = useQuery(
     api.chat.listThreads,
-    isAuthenticated && userId && workspaceId
-      ? { workspaceId: workspaceId as Id<"workspaces"> }
-      : "skip",
+    listThreadsArgs === "skip"
+      ? "skip"
+      : {
+          workspaceId: listThreadsArgs.workspaceId as Id<"workspaces">,
+          userId: listThreadsArgs.userId,
+        },
   ) as ChatThread[] | undefined;
 
   const messages = useQuery(

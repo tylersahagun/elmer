@@ -19,11 +19,15 @@ import {
 export const listThreads = query({
   args: {
     workspaceId: v.id("workspaces"),
+    userId: v.optional(v.string()),
     includeArchived: v.optional(v.boolean()),
   },
-  handler: async (ctx, { workspaceId, includeArchived }) => {
+  handler: async (ctx, { workspaceId, userId, includeArchived }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    if (userId && userId !== identity.subject) {
+      throw new Error("User mismatch");
+    }
     const threads = await ctx.db
       .query("chatThreads")
       .withIndex("by_workspace_user", (q) =>
