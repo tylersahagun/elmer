@@ -9,9 +9,8 @@
  */
 
 import { useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useKanbanStore } from "@/lib/store";
 import type { Id } from "../../convex/_generated/dataModel";
 
 interface Job {
@@ -50,18 +49,34 @@ interface UseRealtimeJobsReturn {
   clearFailedJobs: () => Promise<number>;
 }
 
+export function getRealtimeJobsQueryArgs(params: {
+  workspaceId: string;
+  enabled?: boolean;
+  isConvexAuthenticated: boolean;
+}) {
+  const { workspaceId, enabled = true, isConvexAuthenticated } = params;
+
+  if (!enabled || !workspaceId || !isConvexAuthenticated) {
+    return "skip" as const;
+  }
+
+  return { workspaceId: workspaceId as Id<"workspaces"> };
+}
+
 export function useRealtimeJobs({
   workspaceId,
   enabled = true,
 }: UseRealtimeJobsOptions): UseRealtimeJobsReturn {
-  const updateProject = useKanbanStore((s) => s.updateProject);
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
 
   // Convex reactive queries — automatically re-run when data changes
   const allJobs = useQuery(
     api.jobs.list,
-    enabled && workspaceId
-      ? { workspaceId: workspaceId as Id<"workspaces"> }
-      : "skip",
+    getRealtimeJobsQueryArgs({
+      workspaceId,
+      enabled,
+      isConvexAuthenticated,
+    }),
   ) as Job[] | undefined;
 
   const jobs = useMemo(() => allJobs ?? [], [allJobs]);
