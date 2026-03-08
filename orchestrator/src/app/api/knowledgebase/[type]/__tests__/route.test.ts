@@ -51,6 +51,11 @@ describe("knowledgebase type route", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
+    expect(data.authority).toEqual({
+      runtimeAuthority: "convex_graph",
+      surfaceRole: "lens",
+      mirrorRole: "compatibility_export",
+    });
     expect(data.content).toBe("");
     expect(data.filePath).toBe("elmer-docs/company-context/company_context.md");
     expect(data.entry).toBeNull();
@@ -85,6 +90,11 @@ describe("knowledgebase type route", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
+    expect(data.authority).toEqual({
+      runtimeAuthority: "convex_graph",
+      surfaceRole: "lens",
+      mirrorRole: "compatibility_export",
+    });
     expect(data.content).toBe("Convex is the runtime source of truth.");
     expect(data.filePath).toBe("convex/company_context.md");
     expect(data.entry).toEqual({
@@ -126,7 +136,11 @@ describe("knowledgebase type route", () => {
         type: "company_context",
       }),
     );
-    expect(data.authority).toBe("convex");
+    expect(data.authority).toEqual({
+      runtimeAuthority: "convex_graph",
+      surfaceRole: "lens",
+      mirrorRole: "compatibility_export",
+    });
     expect(data.export).toEqual({
       status: "failed",
       error: "repo unavailable",

@@ -68,16 +68,23 @@ function matchesRuntimeType(item: RuntimeContextItem, type: string) {
   return item.type === type;
 }
 
+function requireRuntimeItems(
+  context: { items?: RuntimeContextItem[] | unknown } | null | undefined,
+  scope: string,
+): RuntimeContextItem[] {
+  if (!Array.isArray(context?.items)) {
+    throw new Error(`${scope} runtime items unavailable`);
+  }
+
+  return context.items;
+}
+
 async function getConvexWorkspaceRuntimeItems(
   workspaceId: string,
   types?: string[],
 ): Promise<RuntimeContextItem[]> {
-  try {
-    const context = await listConvexWorkspaceRuntimeContext(workspaceId, types);
-    return Array.isArray(context?.items) ? context.items : [];
-  } catch {
-    return [];
-  }
+  const context = await listConvexWorkspaceRuntimeContext(workspaceId, types);
+  return requireRuntimeItems(context, "Workspace");
 }
 
 function getRuntimeBodyContent(items: RuntimeContextItem[], type: string) {
@@ -110,30 +117,31 @@ export async function getWorkspaceContext(workspaceId: string) {
  * Get full project context including project-scoped runtime records.
  */
 export async function getProjectContext(projectId: string) {
-  try {
-    const runtimeContext = await getConvexProjectRuntimeContext(projectId);
-    if (!runtimeContext?.project) return "";
-
-    const parts: string[] = [];
-    parts.push(`# Project: ${runtimeContext.project.name}`);
-
-    if (runtimeContext.project.description) {
-      parts.push(`\n${runtimeContext.project.description}`);
-    }
-
-    if (runtimeContext.project.metadata?.tags?.length) {
-      parts.push(`\nTags: ${runtimeContext.project.metadata.tags.join(", ")}`);
-    }
-
-    const projectItems = filterProjectScopedItems(runtimeContext.items ?? [], projectId);
-    if (projectItems.length > 0) {
-      parts.push(`\n${formatRuntimeItems(projectItems)}`);
-    }
-
-    return parts.join("\n");
-  } catch {
-    return "";
+  const runtimeContext = await getConvexProjectRuntimeContext(projectId);
+  if (!runtimeContext?.project) {
+    throw new Error(`Project runtime context unavailable for ${projectId}`);
   }
+
+  const parts: string[] = [];
+  parts.push(`# Project: ${runtimeContext.project.name}`);
+
+  if (runtimeContext.project.description) {
+    parts.push(`\n${runtimeContext.project.description}`);
+  }
+
+  if (runtimeContext.project.metadata?.tags?.length) {
+    parts.push(`\nTags: ${runtimeContext.project.metadata.tags.join(", ")}`);
+  }
+
+  const projectItems = filterProjectScopedItems(
+    requireRuntimeItems(runtimeContext, "Project"),
+    projectId,
+  );
+  if (projectItems.length > 0) {
+    parts.push(`\n${formatRuntimeItems(projectItems)}`);
+  }
+
+  return parts.join("\n");
 }
 
 /**

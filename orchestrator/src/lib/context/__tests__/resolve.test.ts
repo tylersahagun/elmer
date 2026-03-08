@@ -71,6 +71,24 @@ describe("context resolver", () => {
     ]);
   });
 
+  it("does not silently drop workspace runtime context when Convex fails", async () => {
+    mockListConvexWorkspaceRuntimeContext.mockRejectedValue(
+      new Error("runtime context unavailable"),
+    );
+
+    await expect(getWorkspaceContext("ws_123")).rejects.toThrow(
+      "runtime context unavailable",
+    );
+  });
+
+  it("does not degrade malformed workspace runtime context to empty content", async () => {
+    mockListConvexWorkspaceRuntimeContext.mockResolvedValue({});
+
+    await expect(getWorkspaceContext("ws_123")).rejects.toThrow(
+      "Workspace runtime items unavailable",
+    );
+  });
+
   it("builds verification context from runtime authority records", async () => {
     mockListConvexWorkspaceRuntimeContext.mockResolvedValue({
       items: [
@@ -127,6 +145,36 @@ describe("context resolver", () => {
     expect(result).toContain("Tags: migration, convex");
     expect(result).toContain("# Research");
     expect(result).toContain("Users are confused by compatibility seams.");
+  });
+
+  it("does not silently drop project runtime context when Convex fails", async () => {
+    mockGetConvexProjectRuntimeContext.mockRejectedValue(
+      new Error("project runtime context unavailable"),
+    );
+
+    await expect(getProjectContext("proj_123")).rejects.toThrow(
+      "project runtime context unavailable",
+    );
+  });
+
+  it("does not degrade missing project runtime context to an empty string", async () => {
+    mockGetConvexProjectRuntimeContext.mockResolvedValue(null);
+
+    await expect(getProjectContext("proj_123")).rejects.toThrow(
+      "Project runtime context unavailable for proj_123",
+    );
+  });
+
+  it("does not degrade malformed project runtime context items to empty content", async () => {
+    mockGetConvexProjectRuntimeContext.mockResolvedValue({
+      project: {
+        name: "Convex Cutover",
+      },
+    });
+
+    await expect(getProjectContext("proj_123")).rejects.toThrow(
+      "Project runtime items unavailable",
+    );
   });
 
   it("returns raw guardrails content for PRD context from Convex", async () => {

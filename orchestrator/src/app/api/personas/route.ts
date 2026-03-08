@@ -1,7 +1,8 @@
 /**
- * Personas API - Read persona archetypes from elmer-docs
+ * Personas API
  *
- * GET - List all persona archetypes
+ * Runtime authority is Convex graph-backed memory. File writes remain
+ * compatibility exports only while migration finalizes the authoring model.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -41,6 +42,12 @@ const PERSONAS_PATH = path.join(
   "archetypes",
 );
 
+const PERSONAS_SURFACE = {
+  runtimeAuthority: "convex_graph",
+  surfaceRole: "lens",
+  mirrorRole: "compatibility_export",
+} as const;
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -66,6 +73,7 @@ export async function GET(request: NextRequest) {
       psychographicRanges: PersonaArchetype["psychographic_ranges"];
     }>;
     return NextResponse.json({
+      authority: PERSONAS_SURFACE,
       personas: personas.map((persona) => ({
         id: persona._id,
         archetype_id: persona.archetypeId,
@@ -263,7 +271,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        authority: "convex",
+        authority: PERSONAS_SURFACE,
         persona,
         export: exportResult,
       },
@@ -316,7 +324,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        authority: "convex",
+        authority: PERSONAS_SURFACE,
         persona,
         export: exportResult,
       },

@@ -4,6 +4,12 @@ import { resolveKnowledgePath, writeKnowledgeFile } from "@/lib/knowledgebase";
 import { runSecondaryExport } from "@/lib/export-sync";
 import type { KnowledgebaseType } from "@/lib/db/schema";
 
+const KNOWLEDGEBASE_SURFACE = {
+  runtimeAuthority: "convex_graph",
+  surfaceRole: "lens",
+  mirrorRole: "compatibility_export",
+} as const;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ type: string }> }
@@ -40,6 +46,7 @@ export async function GET(
   const entry = entries[0];
 
   return NextResponse.json({
+    authority: KNOWLEDGEBASE_SURFACE,
     type,
     content: entry?.content ?? "",
     filePath: entry?.filePath ?? filePath,
@@ -94,8 +101,8 @@ export async function PUT(
 
   return NextResponse.json(
     {
+      authority: KNOWLEDGEBASE_SURFACE,
       entry,
-      authority: "convex",
       export: exportResult,
     },
     { status: exportResult.status === "failed" ? 207 : 200 },
