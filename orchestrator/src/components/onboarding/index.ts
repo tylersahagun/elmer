@@ -18,7 +18,7 @@ export { ImportProgressModal } from "./ImportProgressModal";
 
 // Step components
 export { ConnectGitHubStep } from "./steps/ConnectGitHubStep";
-export { SelectRepoStep } from "./steps/SelectRepoStep";
+export { GuidedSetupStep } from "./steps/GuidedSetupStep";
 
 // Store and types (re-export for convenience)
 export {

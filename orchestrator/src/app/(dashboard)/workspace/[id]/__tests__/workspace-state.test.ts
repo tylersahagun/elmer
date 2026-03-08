@@ -15,6 +15,7 @@ describe("resolveBoardWorkspaceState", () => {
     expect(
       resolveBoardWorkspaceState({
         workspace: undefined,
+        fallbackWorkspace: undefined,
         hasPersistedWorkspace: false,
       }),
     ).toEqual({
@@ -26,6 +27,7 @@ describe("resolveBoardWorkspaceState", () => {
     expect(
       resolveBoardWorkspaceState({
         workspace: null,
+        fallbackWorkspace: null,
         hasPersistedWorkspace: false,
       }),
     ).toEqual({
@@ -37,6 +39,31 @@ describe("resolveBoardWorkspaceState", () => {
     expect(
       resolveBoardWorkspaceState({
         workspace: null,
+        fallbackWorkspace: undefined,
+        hasPersistedWorkspace: false,
+      }),
+    ).toEqual({
+      showNotFound: false,
+    });
+  });
+
+  it("keeps the board mounted when the fallback workspace resolves", () => {
+    expect(
+      resolveBoardWorkspaceState({
+        workspace: null,
+        fallbackWorkspace: { id: "workspace-1" },
+        hasPersistedWorkspace: false,
+      }),
+    ).toEqual({
+      showNotFound: false,
+    });
+  });
+
+  it("keeps the board mounted when a later null revalidation happens", () => {
+    expect(
+      resolveBoardWorkspaceState({
+        workspace: null,
+        fallbackWorkspace: null,
         hasPersistedWorkspace: true,
       }),
     ).toEqual({
@@ -48,6 +75,7 @@ describe("resolveBoardWorkspaceState", () => {
     expect(
       resolveBoardWorkspaceState({
         workspace,
+        fallbackWorkspace: undefined,
         hasPersistedWorkspace: false,
       }),
     ).toEqual({

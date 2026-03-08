@@ -7,8 +7,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export type OnboardingStep =
   | "welcome"
   | "connect-github"
-  | "select-repo"
-  | "map-context"
+  | "guided-setup"
   | "discover" // Discovery and import step
   | "complete";
 
@@ -18,11 +17,30 @@ export type OnboardingStep =
 const STEP_ORDER: OnboardingStep[] = [
   "welcome",
   "connect-github",
-  "select-repo",
-  "map-context",
+  "guided-setup",
   "discover", // After repo selection, before complete
   "complete",
 ];
+
+const LEGACY_STEP_MAP: Record<string, OnboardingStep> = {
+  "select-repo": "guided-setup",
+  "map-context": "guided-setup",
+};
+
+export function normalizeOnboardingStep(step: unknown): OnboardingStep {
+  if (typeof step !== "string") return "welcome";
+  const mapped = LEGACY_STEP_MAP[step] ?? step;
+  return STEP_ORDER.includes(mapped as OnboardingStep)
+    ? (mapped as OnboardingStep)
+    : "welcome";
+}
+
+function normalizeOnboardingStepList(steps: unknown): OnboardingStep[] {
+  if (!Array.isArray(steps)) return [];
+  return Array.from(
+    new Set(steps.map((step) => normalizeOnboardingStep(step))),
+  );
+}
 
 /**
  * GitHub repository reference (populated during repo selection step)
@@ -114,8 +132,8 @@ const initialState = {
   useTemplate: false,
   contextPaths: ["elmer-docs/"],
   prototypesPath: "prototypes/",
-  automationMode: "manual" as const,
-  automationStopStage: null,
+  automationMode: "auto_to_stage" as const,
+  automationStopStage: "prototype",
   lastError: null,
   startedAt: null,
   lastUpdatedAt: null,
@@ -140,7 +158,8 @@ export const useOnboardingStore = create<OnboardingState>()(
        * This ensures each workspace gets a fresh onboarding experience.
        */
       initForWorkspace: (workspaceId) => {
-        const { workspaceId: currentId } = get();
+        const state = get();
+        const { workspaceId: currentId } = state;
         if (currentId && currentId !== workspaceId) {
           // Different workspace - reset state completely
           set({
@@ -148,11 +167,25 @@ export const useOnboardingStore = create<OnboardingState>()(
             workspaceId,
             lastError: null,
           });
-        } else if (!currentId) {
-          // No workspace set yet - initialize with this one
-          set({ workspaceId });
+          return;
         }
-        // If same workspace, do nothing - keep existing state
+
+        const normalizedCurrentStep = normalizeOnboardingStep(
+          state.currentStep,
+        );
+        const normalizedCompletedSteps = normalizeOnboardingStepList(
+          state.completedSteps,
+        );
+        const normalizedSkippedSteps = normalizeOnboardingStepList(
+          state.skippedSteps,
+        );
+
+        set({
+          workspaceId,
+          currentStep: normalizedCurrentStep,
+          completedSteps: normalizedCompletedSteps,
+          skippedSteps: normalizedSkippedSteps,
+        });
       },
 
       setStep: (step) => {
@@ -261,10 +294,11 @@ export const useOnboardingStore = create<OnboardingState>()(
       },
 
       getProgress: () => {
-        const { currentStep, completedSteps, skippedSteps } = get();
-        const currentIndex = STEP_ORDER.indexOf(currentStep);
+        const { currentStep } = get();
+        const currentIndex = STEP_ORDER.indexOf(
+          normalizeOnboardingStep(currentStep),
+        );
         const totalSteps = STEP_ORDER.length;
-        const processedSteps = completedSteps.length + skippedSteps.length;
 
         // Calculate percentage based on current position
         // We use current step index for visual progress
@@ -278,22 +312,25 @@ export const useOnboardingStore = create<OnboardingState>()(
       },
 
       getStepIndex: (step) => {
-        return STEP_ORDER.indexOf(step);
+        return STEP_ORDER.indexOf(normalizeOnboardingStep(step));
       },
 
       canGoBack: () => {
         const { currentStep } = get();
-        return STEP_ORDER.indexOf(currentStep) > 0;
+        return STEP_ORDER.indexOf(normalizeOnboardingStep(currentStep)) > 0;
       },
 
       isFirstStep: () => {
         const { currentStep } = get();
-        return STEP_ORDER.indexOf(currentStep) === 0;
+        return STEP_ORDER.indexOf(normalizeOnboardingStep(currentStep)) === 0;
       },
 
       isLastStep: () => {
         const { currentStep } = get();
-        return STEP_ORDER.indexOf(currentStep) === STEP_ORDER.length - 1;
+        return (
+          STEP_ORDER.indexOf(normalizeOnboardingStep(currentStep)) ===
+          STEP_ORDER.length - 1
+        );
       },
     }),
     {

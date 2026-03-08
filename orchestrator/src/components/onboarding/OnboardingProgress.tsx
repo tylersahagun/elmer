@@ -1,12 +1,12 @@
 "use client";
 
-import * as React from "react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import {
   useOnboardingStore,
   type OnboardingStep,
+  normalizeOnboardingStep,
 } from "@/lib/stores/onboarding-store";
 
 /**
@@ -35,10 +35,11 @@ export function OnboardingProgress({
   steps,
   className,
 }: OnboardingProgressProps) {
-  const { currentStep, completedSteps, skippedSteps } = useOnboardingStore();
+  const { currentStep } = useOnboardingStore();
+  const normalizedCurrentStep = normalizeOnboardingStep(currentStep);
 
   // Calculate progress based on visible steps only
-  const currentIndex = steps.findIndex((s) => s.id === currentStep);
+  const currentIndex = steps.findIndex((s) => s.id === normalizedCurrentStep);
   const totalSteps = steps.length;
 
   // Defensive: if currentStep not found in steps array, default to 0
@@ -47,9 +48,10 @@ export function OnboardingProgress({
 
   // Calculate percentage based on current position in the visible steps
   // We use safeCurrentIndex for visual progress (0% at start, 100% at end)
-  const percentage = totalSteps > 1
-    ? Math.round((safeCurrentIndex / (totalSteps - 1)) * 100)
-    : 0;
+  const percentage =
+    totalSteps > 1
+      ? Math.round((safeCurrentIndex / (totalSteps - 1)) * 100)
+      : 0;
 
   return (
     <div className={cn("w-full", className)}>
@@ -67,7 +69,7 @@ export function OnboardingProgress({
           className="absolute -top-6 text-xs text-muted-foreground tabular-nums"
           style={{
             left: `${Math.min(percentage, 95)}%`,
-            transform: 'translateX(-50%)'
+            transform: "translateX(-50%)",
           }}
         >
           {percentage}%

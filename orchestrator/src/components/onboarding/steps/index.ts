@@ -5,5 +5,5 @@
  */
 
 export { ConnectGitHubStep } from "./ConnectGitHubStep";
-export { SelectRepoStep } from "./SelectRepoStep";
+export { GuidedSetupStep } from "./GuidedSetupStep";
 export { DiscoveryStep } from "./DiscoveryStep";

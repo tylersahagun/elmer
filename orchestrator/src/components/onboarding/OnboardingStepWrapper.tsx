@@ -1,14 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { ArrowLeft, ArrowRight, SkipForward, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   useOnboardingStore,
   type OnboardingStep,
-  STEP_ORDER,
+  normalizeOnboardingStep,
 } from "@/lib/stores/onboarding-store";
 
 interface OnboardingStepWrapperProps {
@@ -59,9 +58,7 @@ export function OnboardingStepWrapper({
     goBack,
     skipStep,
     isFirstStep,
-    isLastStep,
     startedAt,
-    lastUpdatedAt,
     getStepIndex,
   } = useOnboardingStore();
 
@@ -82,12 +79,12 @@ export function OnboardingStepWrapper({
     if (hasShownResume) return;
 
     // If we have startedAt and this isn't the first step, user is resuming
-    const stepIndex = getStepIndex(currentStep);
+    const stepIndex = getStepIndex(normalizeOnboardingStep(currentStep));
     if (startedAt && stepIndex > 0) {
       // Show resume notification - in a real app this would be a toast
       // For now we'll just log it; toast library can be added later
       console.info(
-        `[Onboarding] Resumed from step ${stepIndex + 1}: ${currentStep}`
+        `[Onboarding] Resumed from step ${stepIndex + 1}: ${normalizeOnboardingStep(currentStep)}`,
       );
       setHasShownResume(true);
     }

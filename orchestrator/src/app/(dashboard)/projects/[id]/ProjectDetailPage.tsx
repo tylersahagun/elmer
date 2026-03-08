@@ -17,6 +17,7 @@ import { FilesSidebar, FileViewer, type FileNode } from "@/components/files";
 import { ProjectTasksPanel } from "@/components/tasks/ProjectTasksPanel";
 import { Badge } from "@/components/ui/badge";
 import { Window } from "@/components/chrome/Window";
+import { FailSoftBoundary } from "@/components/chrome/FailSoftBoundary";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { Progress } from "@/components/ui/progress";
 import { useUIStore } from "@/lib/store";
@@ -369,6 +370,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
       if (!res.ok) throw new Error("Failed to load project");
       return (await res.json()) as ProjectDetailModel;
     },
+    retry: 0,
   });
   const convexProject = useConvexQuery(api.projects.get, {
     projectId: projectId as Id<"projects">,
@@ -521,6 +523,8 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
       },
     } satisfies ProjectDetailModel;
   }, [legacyProject, convexProject, convexWorkspace, convexDocuments, convexPrototypes, projectId]);
+  const isProjectShellLoading =
+    !project && (projectLoading || convexProject === undefined);
 
   useEffect(() => {
     if (!project?.workspaceId || !pathname.startsWith("/projects/")) {
@@ -840,7 +844,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     [githubInfo],
   );
 
-  if (projectLoading) {
+  if (isProjectShellLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div
@@ -963,7 +967,9 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                 </p>
               </div>
             )}
-            <InitiativeDashboardEmbed projectId={projectId} className="mt-3" />
+            <FailSoftBoundary name="project initiative dashboard">
+              <InitiativeDashboardEmbed projectId={projectId} className="mt-3" />
+            </FailSoftBoundary>
           </Window>
         </motion.div>
 

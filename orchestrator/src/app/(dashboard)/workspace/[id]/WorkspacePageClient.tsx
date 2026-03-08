@@ -40,6 +40,7 @@ import {
   type WorkspaceColumnConfig,
 } from "@/lib/workspaces/columns";
 import { Window } from "@/components/chrome/Window";
+import { FailSoftBoundary } from "@/components/chrome/FailSoftBoundary";
 import { canRunConvexQuery } from "@/lib/auth/convex";
 import { getWorkspacePathSegment } from "@/lib/workspaces/path";
 import {
@@ -54,6 +55,13 @@ import { resolveBoardWorkspaceState } from "./workspace-state";
 interface WorkspacePageClientProps {
   workspaceId: string;
 }
+
+type WorkspaceShellFallback = {
+  id: string;
+  name: string;
+  githubRepo?: string | null;
+  settings?: Record<string, unknown>;
+};
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
   { id: "inbox", displayName: "Inbox", color: "slate", order: 0, enabled: true },
@@ -85,6 +93,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
   const setColumns = useKanbanStore((s) => s.setColumns);
   const setProjects = useKanbanStore((s) => s.setProjects);
   const storeWorkspace = useKanbanStore((s) => s.workspace);
+  const hasPersistedWorkspace = storeWorkspace?.id === workspaceId;
   const openNewProjectModal = useUIStore((s) => s.openNewProjectModal);
   const openArchivedProjectsModal = useUIStore(
     (s) => s.openArchivedProjectsModal,
@@ -143,6 +152,7 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       return (await res.json()) as WorkspaceColumnConfig[];
     },
     enabled: canLoadConvexData,
+    retry: 0,
   });
   const { data: legacyProjectsWithCounts } = useTanstackQuery({
     queryKey: ["workspace-project-counts", workspaceId],
@@ -159,13 +169,41 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       }>;
     },
     enabled: canLoadConvexData,
+    retry: 0,
+  });
+  const { data: fallbackWorkspace } = useTanstackQuery<
+    WorkspaceShellFallback | null
+  >({
+    queryKey: ["workspace-shell", workspaceId],
+    queryFn: async () => {
+      const res = await fetch(`/api/workspaces/${workspaceId}`);
+      if (res.status === 403 || res.status === 404) {
+        return null;
+      }
+      if (!res.ok) {
+        throw new Error("Failed to load workspace shell");
+      }
+      const payload = (await res.json()) as WorkspaceShellFallback;
+      return payload;
+    },
+    enabled: canLoadConvexData && !hasPersistedWorkspace,
+    retry: 1,
+    staleTime: 30_000,
   });
 
-  const hasPersistedWorkspace = storeWorkspace?.id === workspaceId;
   const { showNotFound } = resolveBoardWorkspaceState({
     workspace,
+    fallbackWorkspace,
     hasPersistedWorkspace,
   });
+  const resolvedWorkspace = workspace
+    ? {
+        id: workspace._id,
+        name: workspace.name,
+        githubRepo: workspace.githubRepo,
+        settings: workspace.settings || {},
+      }
+    : fallbackWorkspace ?? (hasPersistedWorkspace ? storeWorkspace : null);
 
   // Update store when data loads
   useEffect(() => {
@@ -178,6 +216,19 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       });
     }
   }, [workspace, setWorkspace]);
+
+  useEffect(() => {
+    if (workspace || !fallbackWorkspace) {
+      return;
+    }
+
+    setWorkspace({
+      id: fallbackWorkspace.id,
+      name: fallbackWorkspace.name,
+      githubRepo: fallbackWorkspace.githubRepo ?? undefined,
+      settings: fallbackWorkspace.settings || {},
+    });
+  }, [fallbackWorkspace, setWorkspace, workspace]);
 
   useEffect(() => {
     setColumns(resolveWorkspaceColumns(configuredColumns, DEFAULT_COLUMNS));
@@ -240,10 +291,15 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
 
   const isLoading =
     isSignedIn &&
-    (!canLoadConvexData || workspace === undefined || projects === undefined);
+    (!canLoadConvexData ||
+      projects === undefined ||
+      workspace === undefined ||
+      (workspace === null &&
+        !hasPersistedWorkspace &&
+        fallbackWorkspace === undefined));
   const workspaceSlug = getWorkspacePathSegment({
     slug: workspace?.slug,
-    name: workspace?.name ?? storeWorkspace?.name ?? workspaceId,
+    name: resolvedWorkspace?.name ?? workspaceId,
   });
 
   if (showNotFound) {
@@ -271,29 +327,31 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
       <SimpleNavbar
         path={`~/workspace/${workspaceSlug}`}
         rightContent={
-          <>
-            <Dialog open={inboxOpen} onOpenChange={setInboxOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Inbox className="w-4 h-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl w-[95vw] sm:w-full">
-                <DialogHeader>
-                  <DialogTitle>Inbox</DialogTitle>
-                </DialogHeader>
-                <InboxPanel
-                  workspaceId={workspaceId}
-                  className="max-h-[70vh]"
-                />
-              </DialogContent>
-            </Dialog>
-            <NotificationInbox
-              workspaceId={workspaceId}
-              jobSummary={jobSummary}
-              onNavigate={handleNotificationNavigate}
-            />
-          </>
+          <FailSoftBoundary name="workspace chrome">
+            <>
+              <Dialog open={inboxOpen} onOpenChange={setInboxOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Inbox className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl w-[95vw] sm:w-full">
+                  <DialogHeader>
+                    <DialogTitle>Inbox</DialogTitle>
+                  </DialogHeader>
+                  <InboxPanel
+                    workspaceId={workspaceId}
+                    className="max-h-[70vh]"
+                  />
+                </DialogContent>
+              </Dialog>
+              <NotificationInbox
+                workspaceId={workspaceId}
+                jobSummary={jobSummary}
+                onNavigate={handleNotificationNavigate}
+              />
+            </>
+          </FailSoftBoundary>
         }
         menuItems={
           <>
@@ -354,18 +412,17 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
         </div>
 
         {/* Sidebar */}
-        <ElmerPanel workspaceId={workspaceId} />
+        <FailSoftBoundary name="workspace elmer panel">
+          <ElmerPanel workspaceId={workspaceId} />
+        </FailSoftBoundary>
       </main>
 
       {/* Modals */}
       <NewProjectDialog />
       <ProjectDetailModal />
-      {(workspace?._id ?? (hasPersistedWorkspace ? storeWorkspace.id : undefined)) && (
+      {(resolvedWorkspace?.id ?? undefined) && (
         <ArchivedProjectsModal
-          workspaceId={
-            (workspace?._id ??
-              (hasPersistedWorkspace ? storeWorkspace.id : undefined)) as Id<"workspaces">
-          }
+          workspaceId={resolvedWorkspace?.id as Id<"workspaces">}
         />
       )}
     </div>

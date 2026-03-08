@@ -6,22 +6,19 @@ import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, Github, FolderSearch, CheckCircle2 } from "lucide-react";
 import {
   useOnboardingStore,
-  type OnboardingStep,
   type GitHubRepo as StoreGitHubRepo,
+  normalizeOnboardingStep,
 } from "@/lib/stores/onboarding-store";
 import { useTourStore } from "@/lib/stores/tour-store";
+import { getLifecycleTemplate } from "@/lib/onboarding/guided-setup";
 import { OnboardingProgress, type StepConfig } from "./OnboardingProgress";
 import { OnboardingStepWrapper } from "./OnboardingStepWrapper";
 import { OnboardingErrorBoundary } from "./OnboardingErrorBoundary";
 import { ConnectGitHubStep } from "./steps/ConnectGitHubStep";
-import { SelectRepoStep } from "./steps/SelectRepoStep";
+import { GuidedSetupStep } from "./steps/GuidedSetupStep";
 import { DiscoveryStep } from "./steps/DiscoveryStep";
-import { ContextMappingStep } from "./steps/ContextMappingStep";
 
-/**
- * GitHub repo type from SelectRepoStep (different from store's GitHubRepo)
- */
-interface SelectRepoStepGitHubRepo {
+interface GuidedSetupRepo {
   id: number;
   name: string;
   fullName: string;
@@ -43,8 +40,7 @@ interface SelectRepoStepGitHubRepo {
 const STEP_CONFIGS: StepConfig[] = [
   { id: "welcome", label: "Welcome" },
   { id: "connect-github", label: "Connect GitHub" },
-  { id: "select-repo", label: "Select Repository" },
-  { id: "map-context", label: "Map Context" },
+  { id: "guided-setup", label: "Guided Setup" },
   { id: "discover", label: "Populate Workspace" },
   { id: "complete", label: "Complete" },
 ];
@@ -87,6 +83,7 @@ export function OnboardingWizard({
   } = useOnboardingStore();
 
   const { showPrompt, hasSeenTour, hasDeclinedTour } = useTourStore();
+  const effectiveStep = normalizeOnboardingStep(currentStep);
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isGitHubReady, setIsGitHubReady] = React.useState(false);
@@ -108,11 +105,25 @@ export function OnboardingWizard({
   }, [completeStep]);
 
   /**
-   * Handle repository selection - saves to both store AND database
+   * Handle guided setup completion - persist repo, inferred paths, and the
+   * chosen lifecycle defaults before discovery begins.
    */
-  const handleRepoSelected = React.useCallback(
-    async (repo: SelectRepoStepGitHubRepo, branch: string) => {
-      // Convert SelectRepoStep's repo type to our store's GitHubRepo type
+  const handleGuidedSetupComplete = React.useCallback(
+    async ({
+      repo,
+      branch,
+      contextPaths,
+      prototypesPath,
+      automationMode,
+      automationStopStage,
+    }: {
+      repo: GuidedSetupRepo;
+      branch: string;
+      contextPaths: string[];
+      prototypesPath: string;
+      automationMode: "manual" | "auto_to_stage" | "auto_all";
+      automationStopStage: string | null;
+    }) => {
       const storeRepo: StoreGitHubRepo = {
         id: repo.id,
         name: repo.name,
@@ -125,17 +136,35 @@ export function OnboardingWizard({
         htmlUrl: repo.url,
       };
       setRepo(storeRepo, branch);
+      setContextMapping({
+        contextPaths,
+        prototypesPath,
+        automationMode,
+        automationStopStage,
+      });
 
-      // Save repo to database immediately so discovery can access it
-      // This is a partial save - onboarding isn't complete yet
+      // Save setup defaults immediately so discovery can access them.
       try {
+        const workspaceResponse = await fetch(`/api/workspaces/${workspaceId}`);
+        const workspaceData = workspaceResponse.ok
+          ? await workspaceResponse.json()
+          : null;
+
         const response = await fetch(`/api/workspaces/${workspaceId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             githubRepo: repo.fullName,
+            contextPath: contextPaths[0],
             settings: {
+              ...(workspaceData?.settings || {}),
               baseBranch: branch,
+              githubRepoOwner: repo.owner.login,
+              githubRepoName: repo.name,
+              contextPaths,
+              prototypesPath,
+              automationMode,
+              automationStopStage,
             },
           }),
         });
@@ -152,10 +181,9 @@ export function OnboardingWizard({
         // Continue anyway - the discovery step will show an error if needed
       }
 
-      // Complete select-repo which automatically advances to discover step
-      completeStep("select-repo");
+      completeStep("guided-setup");
     },
-    [setRepo, completeStep, workspaceId],
+    [setContextMapping, setRepo, completeStep, workspaceId],
   );
 
   /**
@@ -236,7 +264,7 @@ export function OnboardingWizard({
    * Render the appropriate step content
    */
   const renderStepContent = () => {
-    switch (currentStep) {
+    switch (effectiveStep) {
       case "welcome":
         return (
           <OnboardingStepWrapper
@@ -265,42 +293,35 @@ export function OnboardingWizard({
           </OnboardingStepWrapper>
         );
 
-      case "select-repo":
+      case "guided-setup":
         return (
           <OnboardingStepWrapper
-            step="select-repo"
-            title="Select Repository"
-            description="Choose the repository that contains your workspace documentation."
-            onNext={() => {}} // Handled by SelectRepoStep
+            step="guided-setup"
+            title="Guided workspace setup"
+            description="Choose the repository once, let Elmer infer the likely docs and prototype paths, then confirm the lifecycle template you want to start with."
+            onNext={() => {}} // Handled by GuidedSetupStep
             onValidate={() => false} // Disable default next button
           >
-            <SelectRepoStep
-              onComplete={handleRepoSelected}
-              onUseTemplate={() => {
-                setTemplate(true);
-                completeStep("select-repo");
-                skipStep("map-context");
-                skipStep("discover");
-              }}
-            />
-          </OnboardingStepWrapper>
-        );
-
-      case "map-context":
-        return (
-          <OnboardingStepWrapper
-            step="map-context"
-            title="Map repo context"
-            description="Choose where PM docs live, where prototypes should be written, and how automated the workflow should be by default."
-            onNext={() => completeStep("map-context")}
-            onValidate={() => contextPaths.length > 0 && Boolean(prototypesPath)}
-          >
-            <ContextMappingStep
+            <GuidedSetupStep
+              initialRepo={selectedRepo}
+              initialBranch={selectedBranch}
               initialContextPaths={contextPaths}
               initialPrototypesPath={prototypesPath || "prototypes/"}
               initialAutomationMode={automationMode}
               initialAutomationStopStage={automationStopStage}
-              onChange={setContextMapping}
+              onComplete={handleGuidedSetupComplete}
+              onUseTemplate={() => {
+                setTemplate(true);
+                const templateDefaults = getLifecycleTemplate("assisted");
+                setContextMapping({
+                  contextPaths: ["elmer-docs/"],
+                  prototypesPath: "prototypes/",
+                  automationMode: templateDefaults.automationMode,
+                  automationStopStage: templateDefaults.automationStopStage,
+                });
+                completeStep("guided-setup");
+                skipStep("discover");
+              }}
             />
           </OnboardingStepWrapper>
         );
@@ -336,6 +357,14 @@ export function OnboardingWizard({
                 useTemplate ? "Elmer Template" : selectedRepo?.fullName || ""
               }
               branchName={selectedBranch || "main"}
+              contextRoot={contextPaths[0] || "elmer-docs/"}
+              lifecycleTemplate={
+                automationMode === "auto_all"
+                  ? "Autopilot"
+                  : automationMode === "auto_to_stage"
+                    ? "Assisted"
+                    : "Manual"
+              }
             />
           </OnboardingStepWrapper>
         );
@@ -353,7 +382,7 @@ export function OnboardingWizard({
           <OnboardingErrorBoundary>
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentStep}
+                key={effectiveStep}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -413,9 +442,9 @@ function WelcomeStepContent({ workspaceName }: { workspaceName: string }) {
             <FolderSearch className="size-4" />
           </div>
           <div>
-            <p className="font-medium text-sm">Select Repository</p>
+            <p className="font-medium text-sm">Guided Setup</p>
             <p className="text-xs text-muted-foreground">
-              Choose which repository to sync with
+              Pick a repo once and confirm the inferred defaults
             </p>
           </div>
         </div>
@@ -442,9 +471,13 @@ function WelcomeStepContent({ workspaceName }: { workspaceName: string }) {
 function CompleteStepContent({
   repoName,
   branchName,
+  contextRoot,
+  lifecycleTemplate,
 }: {
   repoName: string;
   branchName: string;
+  contextRoot: string;
+  lifecycleTemplate: string;
 }) {
   return (
     <div className="flex flex-col items-center text-center py-8 space-y-6">
@@ -475,6 +508,14 @@ function CompleteStepContent({
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Branch:</dt>
             <dd className="font-mono">{branchName}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Context root:</dt>
+            <dd className="truncate font-mono">{contextRoot}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground">Lifecycle:</dt>
+            <dd>{lifecycleTemplate}</dd>
           </div>
         </dl>
       </div>

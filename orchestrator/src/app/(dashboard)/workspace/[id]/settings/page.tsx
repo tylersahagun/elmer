@@ -32,18 +32,14 @@ import {
   CheckCircle,
   XCircle,
   Trash2,
-  Activity,
   Bot,
-  Info,
   Workflow,
-  Columns3,
-  Sparkles,
   Plug,
   Terminal,
+  ArrowRight,
 } from "lucide-react";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
 import { InviteModal } from "@/components/invite-modal";
-import { ActivityFeed } from "@/components/activity-feed";
 import {
   RepositorySettingsCard,
   AgentArchitectureImporter,
@@ -56,17 +52,14 @@ import {
   SignalAutomationSettingsPanel,
   MaintenanceSettingsPanel,
   IntegrationsSettingsCard,
-  PendingQuestionsInbox,
   GitHubWritebackCard,
   OnboardingStatusCard,
   SourceRepoTransformationsCard,
   ColumnAutomationCard,
   SkillsManagerCard,
-  SyncStatusPanel,
   GraduationCriteriaCard,
   type KanbanColumn,
 } from "@/components/settings";
-import { AgentsList } from "@/components/agents/AgentsList";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 import type {
@@ -195,6 +188,8 @@ export default function WorkspaceSettingsPage({
   // UI state
   const [isEditingName, setIsEditingName] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activeTab, setActiveTab] = useState("setup");
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -451,6 +446,12 @@ export default function WorkspaceSettingsPage({
   const pendingInvitations =
     invitations?.filter((i) => i.status === "pending") || [];
 
+  useEffect(() => {
+    if (!showAdvanced && activeTab === "advanced") {
+      setActiveTab("setup");
+    }
+  }, [activeTab, showAdvanced]);
+
   // Normalize paths
   const normalizePath = (value: string) => {
     const trimmed = value.trim();
@@ -659,6 +660,16 @@ export default function WorkspaceSettingsPage({
     );
   }
 
+  const renderSaveButton = () => (
+    <div className="flex items-center justify-end gap-3">
+      {saveError && <p className="text-sm text-destructive">{saveError}</p>}
+      <Button onClick={handleSaveSettings} disabled={isSaving} className="gap-2">
+        <Save className="w-4 h-4" />
+        {isSaving ? "Saving..." : "Save Settings"}
+      </Button>
+    </div>
+  );
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <SimpleNavbar
@@ -675,7 +686,7 @@ export default function WorkspaceSettingsPage({
                 Workspace Settings
               </h1>
               <p className="text-muted-foreground mt-1">
-                Manage workspace configuration, pipeline, and team
+                Choose defaults for setup, lifecycle, connections, and access.
               </p>
             </div>
             {isAdmin && (
@@ -689,46 +700,90 @@ export default function WorkspaceSettingsPage({
             )}
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
-              <TabsTrigger value="general" className="gap-2">
-                <Info className="w-4 h-4" />
-                <span className="hidden sm:inline">General</span>
-              </TabsTrigger>
-              <TabsTrigger value="pipeline" className="gap-2">
-                <Columns3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Pipeline</span>
-              </TabsTrigger>
-              <TabsTrigger value="execution" className="gap-2">
-                <Sparkles className="w-4 h-4" />
-                <span className="hidden sm:inline">Execution</span>
-              </TabsTrigger>
-              <TabsTrigger value="automation" className="gap-2">
-                <Bot className="w-4 h-4" />
-                <span className="hidden sm:inline">Automation</span>
-              </TabsTrigger>
-              <TabsTrigger value="admin" className="gap-2">
-                <Terminal className="w-4 h-4" />
-                <span className="hidden sm:inline">Admin</span>
-              </TabsTrigger>
-              <TabsTrigger value="integrations" className="gap-2">
-                <Plug className="w-4 h-4" />
-                <span className="hidden sm:inline">Integrations</span>
-              </TabsTrigger>
-              <TabsTrigger value="team" className="gap-2">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Team</span>
-              </TabsTrigger>
-              <TabsTrigger value="activity" className="gap-2">
-                <Activity className="w-4 h-4" />
-                <span className="hidden sm:inline">Activity</span>
-              </TabsTrigger>
-            </TabsList>
+          <Card className="mb-6 border-dashed">
+            <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">
+                  Settings now focus on setup, lifecycle defaults, and access.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Live diagnostics, runtime history, and operator views stay in
+                  dedicated workspace surfaces so configuration remains simple.
+                </p>
+              </div>
+              <Button
+                variant={showAdvanced ? "secondary" : "outline"}
+                onClick={() => setShowAdvanced((current) => !current)}
+              >
+                {showAdvanced ? "Hide Advanced" : "Show Advanced"}
+              </Button>
+            </CardContent>
+          </Card>
 
-            {/* General Tab */}
-            <TabsContent value="general" className="space-y-6">
-              {/* Onboarding Status Card - shown when workspace has been onboarded */}
+          {/* Tabs */}
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="space-y-6"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <TabsList
+                className={`grid h-auto w-full gap-2 bg-transparent p-0 ${
+                  showAdvanced
+                    ? "grid-cols-2 lg:grid-cols-6"
+                    : "grid-cols-2 lg:grid-cols-5"
+                }`}
+              >
+                <TabsTrigger
+                  value="setup"
+                  className="h-auto justify-start gap-2 rounded-md border bg-background px-3 py-2 text-left"
+                >
+                  <SettingsIcon className="w-4 h-4" />
+                  <span>Setup</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="lifecycle"
+                  className="h-auto justify-start gap-2 rounded-md border bg-background px-3 py-2 text-left"
+                >
+                  <Workflow className="w-4 h-4" />
+                  <span>Lifecycle</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="automation"
+                  className="h-auto justify-start gap-2 rounded-md border bg-background px-3 py-2 text-left"
+                >
+                  <Bot className="w-4 h-4" />
+                  <span className="hidden sm:inline">Agents & Automation</span>
+                  <span className="sm:hidden">Agents</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="connections"
+                  className="h-auto justify-start gap-2 rounded-md border bg-background px-3 py-2 text-left"
+                >
+                  <Plug className="w-4 h-4" />
+                  <span>Connections</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="access"
+                  className="h-auto justify-start gap-2 rounded-md border bg-background px-3 py-2 text-left"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Access</span>
+                </TabsTrigger>
+                {showAdvanced && (
+                  <TabsTrigger
+                    value="advanced"
+                    className="h-auto justify-start gap-2 rounded-md border bg-background px-3 py-2 text-left"
+                  >
+                    <Terminal className="w-4 h-4" />
+                    <span>Advanced</span>
+                  </TabsTrigger>
+                )}
+              </TabsList>
+            </div>
+
+            {/* Setup Tab */}
+            <TabsContent value="setup" className="space-y-6">
               {workspace?.onboardingComplete && (
                 <OnboardingStatusCard
                   workspaceId={workspaceId}
@@ -741,12 +796,11 @@ export default function WorkspaceSettingsPage({
                 />
               )}
 
-              {/* Workspace Details Card */}
               <Card>
                 <CardHeader>
                   <CardTitle>Workspace Details</CardTitle>
                   <CardDescription>
-                    Basic information about this workspace
+                    Basic workspace identity and the role you hold here.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -850,7 +904,6 @@ export default function WorkspaceSettingsPage({
                 </CardContent>
               </Card>
 
-              {/* Repository & Prototypes */}
               <RepositorySettingsCard
                 githubRepo={githubRepo}
                 setGithubRepo={setGithubRepo}
@@ -878,7 +931,6 @@ export default function WorkspaceSettingsPage({
                 mode={workspace?.onboardingComplete ? "edit" : "setup"}
               />
 
-              {/* Context Paths */}
               <ContextPathsCard
                 contextPaths={contextPaths}
                 setContextPaths={setContextPaths}
@@ -902,57 +954,34 @@ export default function WorkspaceSettingsPage({
                 }}
               />
 
-              <GitHubWritebackCard
-                owner={resolvedRepoMeta?.owner ?? null}
-                repo={resolvedRepoMeta?.repo ?? null}
-                baseBranch={baseBranch}
-              />
-
-              {/* Agent Architecture Import */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Agent Architecture</CardTitle>
-                  <CardDescription>
-                    Detect and select agent definitions to import from GitHub.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <AgentArchitectureImporter
-                    owner={resolvedRepoMeta?.owner ?? undefined}
-                    repo={resolvedRepoMeta?.repo ?? undefined}
-                    ref={baseBranch || undefined}
-                    workspaceId={workspaceId}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Git Automation */}
-              <GitAutomationCard
-                autoCreateFeatureBranch={autoCreateFeatureBranch}
-                setAutoCreateFeatureBranch={setAutoCreateFeatureBranch}
-                autoCommitJobs={autoCommitJobs}
-                setAutoCommitJobs={setAutoCommitJobs}
-              />
-
-              {/* Save Button */}
-              <div className="flex items-center justify-end gap-3">
-                {saveError && (
-                  <p className="text-sm text-destructive">{saveError}</p>
-                )}
-                <Button
-                  onClick={handleSaveSettings}
-                  disabled={isSaving}
-                  className="gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? "Saving..." : "Save Settings"}
-                </Button>
-              </div>
+              {renderSaveButton()}
             </TabsContent>
 
-            {/* Pipeline Tab */}
-            <TabsContent value="pipeline" className="space-y-6">
-              {/* Pipeline Configuration */}
+            {/* Lifecycle Tab */}
+            <TabsContent value="lifecycle" className="space-y-6">
+              {!showAdvanced && (
+                <Card className="border-dashed">
+                  <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">
+                        Lifecycle settings stay focused on defaults and stage
+                        progression.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Runtime tuning, raw stage editing, and operator controls
+                        are tucked under Advanced.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAdvanced(true)}
+                    >
+                      Show Advanced
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               <PipelineSettingsCard
                 automationMode={automationMode}
                 setAutomationMode={setAutomationMode}
@@ -965,159 +994,69 @@ export default function WorkspaceSettingsPage({
                 columns={columns}
               />
 
-              {/* Columns Configuration */}
-              <ColumnsSettingsCard
-                columns={columns}
-                setColumns={setColumns}
-                workspaceId={workspaceId}
-                onColumnChange={() => {
-                  queryClient.invalidateQueries({
-                    queryKey: ["workspace", workspaceId],
-                  });
-                }}
+              <GitAutomationCard
+                autoCreateFeatureBranch={autoCreateFeatureBranch}
+                setAutoCreateFeatureBranch={setAutoCreateFeatureBranch}
+                autoCommitJobs={autoCommitJobs}
+                setAutoCommitJobs={setAutoCommitJobs}
               />
 
-              {/* Save Button */}
-              <div className="flex items-center justify-end gap-3">
-                {saveError && (
-                  <p className="text-sm text-destructive">{saveError}</p>
-                )}
-                <Button
-                  onClick={handleSaveSettings}
-                  disabled={isSaving}
-                  className="gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? "Saving..." : "Save Settings"}
-                </Button>
-              </div>
+              {renderSaveButton()}
             </TabsContent>
 
-            {/* Execution Tab */}
-            <TabsContent value="execution" className="space-y-6">
-              <ExecutionSettingsCard
-                workerEnabled={workerEnabled}
-                setWorkerEnabled={setWorkerEnabled}
-                workerMaxConcurrency={workerMaxConcurrency}
-                setWorkerMaxConcurrency={setWorkerMaxConcurrency}
-                browserNotificationsEnabled={browserNotificationsEnabled}
-                setBrowserNotificationsEnabled={setBrowserNotificationsEnabled}
-                notifyOnJobComplete={notifyOnJobComplete}
-                setNotifyOnJobComplete={setNotifyOnJobComplete}
-                notifyOnJobFailed={notifyOnJobFailed}
-                setNotifyOnJobFailed={setNotifyOnJobFailed}
-                notifyOnApprovalRequired={notifyOnApprovalRequired}
-                setNotifyOnApprovalRequired={setNotifyOnApprovalRequired}
-                atomicCommitsEnabled={atomicCommitsEnabled}
-                setAtomicCommitsEnabled={setAtomicCommitsEnabled}
-                stateTrackingEnabled={stateTrackingEnabled}
-                setStateTrackingEnabled={setStateTrackingEnabled}
-                verificationStrictness={verificationStrictness}
-                setVerificationStrictness={setVerificationStrictness}
-              />
-              <PendingQuestionsInbox workspaceId={workspaceId} />
-
-              {/* Save Button */}
-              <div className="flex items-center justify-end gap-3">
-                {saveError && (
-                  <p className="text-sm text-destructive">{saveError}</p>
-                )}
-                <Button
-                  onClick={handleSaveSettings}
-                  disabled={isSaving}
-                  className="gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? "Saving..." : "Save Settings"}
-                </Button>
-              </div>
-            </TabsContent>
-
-            {/* Automation Tab */}
+            {/* Agents & Automation Tab */}
             <TabsContent value="automation" className="space-y-6">
-              {/* Pipeline Setup Wizard - auto-configure from imported agents */}
-              <PipelineWizard workspaceId={workspaceId} />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Guided Automation</CardTitle>
+                  <CardDescription>
+                    Use templates and guided flows here. Raw architecture import
+                    and operator tooling now live under Advanced.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-wrap gap-3">
+                  <Button asChild variant="outline" className="gap-2">
+                    <Link href={`/workspace/${workspaceId}/agents`}>
+                      Open agents
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="gap-2">
+                    <Link href={`/workspace/${workspaceId}/inbox`}>
+                      Review inbox
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="gap-2">
+                    <Link href={`/workspace/${workspaceId}/commands`}>
+                      Command reference
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
 
-              {/* Source Repo Transformations - for syncing agents from external repos */}
-              <SourceRepoTransformationsCard
-                transformations={sourceRepoTransformations}
-                onChange={setSourceRepoTransformations}
-                onSync={async (sourceRepo) => {
-                  const [owner, repo] = sourceRepo.split("/");
-                  if (!owner || !repo) return;
-                  await fetch("/api/agents/sync", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      workspaceId,
-                      owner,
-                      repo,
-                      ref: baseBranch,
-                      createPipeline: false,
-                    }),
-                  });
-                  queryClient.invalidateQueries({
-                    queryKey: ["agents", workspaceId],
-                  });
-                }}
-              />
+              <PipelineWizard workspaceId={workspaceId} />
 
               <SignalAutomationSettingsPanel
                 workspaceId={workspaceId}
                 initialSettings={workspace?.settings?.signalAutomation}
               />
+            </TabsContent>
 
-              <MaintenanceSettingsPanel
-                workspaceId={workspaceId}
-                initialSettings={workspace?.settings?.maintenance}
+            {/* Connections Tab */}
+            <TabsContent value="connections" className="space-y-6">
+              <IntegrationsSettingsCard workspaceId={workspaceId} />
+
+              <GitHubWritebackCard
+                owner={resolvedRepoMeta?.owner ?? null}
+                repo={resolvedRepoMeta?.repo ?? null}
+                baseBranch={baseBranch}
               />
             </TabsContent>
 
-            {/* Admin Tab */}
-            <TabsContent value="admin" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Terminal className="w-5 h-5" />
-                    Admin Command Center
-                  </CardTitle>
-                  <CardDescription>
-                    Review commands, rules, and skills powering workflow
-                    automation.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-wrap items-center gap-3">
-                  <Button asChild variant="outline">
-                    <Link href={`/workspace/${workspaceId}/commands`}>
-                      View command reference
-                    </Link>
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    Changes are recorded in the Activity feed.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <ColumnAutomationCard workspaceId={workspaceId} />
-
-              <GraduationCriteriaCard workspaceId={workspaceId} />
-
-              <SkillsManagerCard workspaceId={workspaceId} />
-
-              <AgentArchitectureImporter workspaceId={workspaceId} />
-
-              <AgentsList workspaceId={workspaceId} />
-            </TabsContent>
-
-            {/* Integrations Tab */}
-            <TabsContent value="integrations" className="space-y-6">
-              <IntegrationsSettingsCard workspaceId={workspaceId} />
-              <SyncStatusPanel workspaceId={workspaceId} />
-            </TabsContent>
-
-            {/* Team Tab */}
-            <TabsContent value="team" className="space-y-6">
-              {/* Members Card */}
+            {/* Access Tab */}
+            <TabsContent value="access" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1125,7 +1064,7 @@ export default function WorkspaceSettingsPage({
                     Members
                   </CardTitle>
                   <CardDescription>
-                    People who have access to this workspace
+                    People who can access this workspace.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1138,7 +1077,7 @@ export default function WorkspaceSettingsPage({
                       {members.map((member) => (
                         <div
                           key={member.id}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                          className="flex items-center justify-between rounded-lg border bg-muted/30 p-3"
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
@@ -1157,7 +1096,7 @@ export default function WorkspaceSettingsPage({
                                 {member.user.name ||
                                   member.user.email.split("@")[0]}
                                 {member.userId === user?.id && (
-                                  <span className="text-muted-foreground ml-2">
+                                  <span className="ml-2 text-muted-foreground">
                                     (you)
                                   </span>
                                 )}
@@ -1178,14 +1117,13 @@ export default function WorkspaceSettingsPage({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-center text-muted-foreground py-8">
+                    <p className="py-8 text-center text-muted-foreground">
                       No members found
                     </p>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Pending Invitations Card (Admin Only) */}
               {isAdmin && (
                 <Card>
                   <CardHeader>
@@ -1194,7 +1132,7 @@ export default function WorkspaceSettingsPage({
                       Pending Invitations
                     </CardTitle>
                     <CardDescription>
-                      Invitations waiting to be accepted
+                      Invitations waiting to be accepted.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -1207,17 +1145,17 @@ export default function WorkspaceSettingsPage({
                         {pendingInvitations.map((invitation) => (
                           <div
                             key={invitation.id}
-                            className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                            className="flex items-center justify-between rounded-lg border bg-muted/30 p-3"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                                 <Mail className="w-5 h-5 text-muted-foreground" />
                               </div>
                               <div>
                                 <p className="font-medium">
                                   {invitation.email}
                                 </p>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <p className="flex items-center gap-1 text-sm text-muted-foreground">
                                   {getStatusIcon(invitation.status)}
                                   Expires{" "}
                                   {new Date(
@@ -1263,7 +1201,7 @@ export default function WorkspaceSettingsPage({
                         ))}
                       </div>
                     ) : (
-                      <p className="text-center text-muted-foreground py-8">
+                      <p className="py-8 text-center text-muted-foreground">
                         No pending invitations
                       </p>
                     )}
@@ -1272,10 +1210,146 @@ export default function WorkspaceSettingsPage({
               )}
             </TabsContent>
 
-            {/* Activity Tab */}
-            <TabsContent value="activity">
-              <ActivityFeed workspaceId={workspaceId} />
-            </TabsContent>
+            {/* Advanced Tab */}
+            {showAdvanced && (
+              <TabsContent value="advanced" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Terminal className="w-5 h-5" />
+                      Operator Surfaces
+                    </CardTitle>
+                    <CardDescription>
+                      Live diagnostics and runtime views stay outside settings
+                      so the default path remains focused.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-3">
+                    <Button asChild variant="outline" className="gap-2">
+                      <Link href={`/workspace/${workspaceId}`}>
+                        Open board
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="gap-2">
+                      <Link href={`/workspace/${workspaceId}/status`}>
+                        Open status
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="gap-2">
+                      <Link href={`/workspace/${workspaceId}/swarm`}>
+                        Open swarm
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="gap-2">
+                      <Link href={`/workspace/${workspaceId}/agents`}>
+                        Open agents
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="gap-2">
+                      <Link href={`/workspace/${workspaceId}/commands`}>
+                        Open commands
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="gap-2">
+                      <Link href={`/workspace/${workspaceId}/inbox`}>
+                        Open inbox
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <ExecutionSettingsCard
+                  workerEnabled={workerEnabled}
+                  setWorkerEnabled={setWorkerEnabled}
+                  workerMaxConcurrency={workerMaxConcurrency}
+                  setWorkerMaxConcurrency={setWorkerMaxConcurrency}
+                  browserNotificationsEnabled={browserNotificationsEnabled}
+                  setBrowserNotificationsEnabled={setBrowserNotificationsEnabled}
+                  notifyOnJobComplete={notifyOnJobComplete}
+                  setNotifyOnJobComplete={setNotifyOnJobComplete}
+                  notifyOnJobFailed={notifyOnJobFailed}
+                  setNotifyOnJobFailed={setNotifyOnJobFailed}
+                  notifyOnApprovalRequired={notifyOnApprovalRequired}
+                  setNotifyOnApprovalRequired={setNotifyOnApprovalRequired}
+                  atomicCommitsEnabled={atomicCommitsEnabled}
+                  setAtomicCommitsEnabled={setAtomicCommitsEnabled}
+                  stateTrackingEnabled={stateTrackingEnabled}
+                  setStateTrackingEnabled={setStateTrackingEnabled}
+                  verificationStrictness={verificationStrictness}
+                  setVerificationStrictness={setVerificationStrictness}
+                />
+
+                <ColumnsSettingsCard
+                  columns={columns}
+                  setColumns={setColumns}
+                  workspaceId={workspaceId}
+                  onColumnChange={() => {
+                    queryClient.invalidateQueries({
+                      queryKey: ["workspace", workspaceId],
+                    });
+                  }}
+                />
+
+                <ColumnAutomationCard workspaceId={workspaceId} />
+
+                <GraduationCriteriaCard workspaceId={workspaceId} />
+
+                <SourceRepoTransformationsCard
+                  transformations={sourceRepoTransformations}
+                  onChange={setSourceRepoTransformations}
+                  onSync={async (sourceRepo) => {
+                    const [owner, repo] = sourceRepo.split("/");
+                    if (!owner || !repo) return;
+                    await fetch("/api/agents/sync", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        workspaceId,
+                        owner,
+                        repo,
+                        ref: baseBranch,
+                        createPipeline: false,
+                      }),
+                    });
+                    queryClient.invalidateQueries({
+                      queryKey: ["agents", workspaceId],
+                    });
+                  }}
+                />
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Agent Architecture</CardTitle>
+                    <CardDescription>
+                      Detect and select agent definitions to import from GitHub.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AgentArchitectureImporter
+                      owner={resolvedRepoMeta?.owner ?? undefined}
+                      repo={resolvedRepoMeta?.repo ?? undefined}
+                      ref={baseBranch || undefined}
+                      workspaceId={workspaceId}
+                    />
+                  </CardContent>
+                </Card>
+
+                <SkillsManagerCard workspaceId={workspaceId} />
+
+                <MaintenanceSettingsPanel
+                  workspaceId={workspaceId}
+                  initialSettings={workspace?.settings?.maintenance}
+                />
+
+                {renderSaveButton()}
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </main>

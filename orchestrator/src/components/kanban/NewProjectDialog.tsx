@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation as useConvexMutation } from "convex/react";
 import {
   Dialog,
   DialogContent,
@@ -15,9 +16,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrafficLights } from "@/components/chrome/TrafficLights";
-import { useUIStore, useKanbanStore, type ProjectCard } from "@/lib/store";
+import { useUIStore, useKanbanStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { getProjectRoute } from "@/lib/projects/navigation";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { 
   FileText, 
   Mic, 
@@ -30,7 +33,7 @@ import {
   Plus,
   FolderPlus,
 } from "lucide-react";
-import { v4 as uuid } from "uuid";
+import { toast } from "sonner";
 
 type InputType = "text" | "audio" | "video" | "link" | "files";
 
@@ -40,6 +43,8 @@ export function NewProjectDialog() {
   const closeModal = useUIStore((s) => s.closeNewProjectModal);
   const addProject = useKanbanStore((s) => s.addProject);
   const workspace = useKanbanStore((s) => s.workspace);
+  const createDocument = useConvexMutation(api.documents.create);
+  const storeMemoryEntry = useConvexMutation(api.memory.storeEntry);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -96,67 +101,50 @@ export function NewProjectDialog() {
           updatedAt: new Date(project.updatedAt),
         });
 
-        // Persist initial context as memory + optional research document
-        await handleContextSubmit(project.id);
-        
+        const persistContextPromise = handleContextSubmit(project.id, workspace.id);
         resetForm();
         closeModal();
         router.push(getProjectRoute(project.id, workspace.id));
+        void persistContextPromise.catch((error) => {
+          console.error("Failed to persist initial project context:", error);
+          toast.error("Project created, but the initial context did not fully save");
+        });
+        return;
       }
+
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(errorBody.error || "Failed to create project");
     } catch (error) {
       console.error("Failed to create project:", error);
-      // For now, create locally as fallback
-      const newProject: ProjectCard = {
-        id: uuid(),
-        name: name.trim(),
-        description: description.trim() || undefined,
-        stage: "inbox",
-        status: "active",
-        priority: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      addProject(newProject);
-      await handleContextSubmit(newProject.id);
-      resetForm();
-      closeModal();
-      router.push(getProjectRoute(newProject.id, workspace.id));
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create project",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleContextSubmit = async (projectId: string) => {
-    if (!workspace) return;
+  const handleContextSubmit = async (projectId: string, workspaceId: string) => {
+    const typedWorkspaceId = workspaceId as Id<"workspaces">;
+    const typedProjectId = projectId as Id<"projects">;
 
     const createMemory = async (content: string, metadata?: Record<string, unknown>) => {
-      await fetch("/api/memory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceId: workspace.id,
-          projectId,
-          type: "context",
-          content,
-          metadata,
-        }),
+      await storeMemoryEntry({
+        workspaceId: typedWorkspaceId,
+        projectId: typedProjectId,
+        type: "context",
+        content,
+        metadata,
       });
     };
 
     const createResearchDoc = async (title: string, content: string) => {
-      await fetch("/api/documents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId,
-          type: "research",
-          title,
-          content,
-          metadata: {
-            generatedBy: "user",
-            reviewStatus: "draft",
-          },
-        }),
+      await createDocument({
+        workspaceId: typedWorkspaceId,
+        projectId: typedProjectId,
+        type: "research",
+        title,
+        content,
       });
     };
 
@@ -169,8 +157,15 @@ export function NewProjectDialog() {
       await createMemory(`Link: ${linkUrl.trim()}`, { source: "link", url: linkUrl.trim() });
       // If we have scraped content, also create a research doc
       if (scrapedData?.content) {
+        const safeHostname = (() => {
+          try {
+            return new URL(linkUrl).hostname;
+          } catch {
+            return "linked source";
+          }
+        })();
         await createResearchDoc(
-          scrapedData.title || `Content from ${new URL(linkUrl).hostname}`,
+          scrapedData.title || `Content from ${safeHostname}`,
           `Source: ${linkUrl}\n\n${scrapedData.description ? `> ${scrapedData.description}\n\n` : ""}${scrapedData.content}`
         );
       }
@@ -179,7 +174,7 @@ export function NewProjectDialog() {
     if (["files"].includes(inputType) && uploadedFile) {
       const formData = new FormData();
       formData.append("file", uploadedFile);
-      formData.append("workspaceId", workspace.id);
+      formData.append("workspaceId", workspaceId);
       formData.append("projectId", projectId);
       const uploadRes = await fetch("/api/uploads", {
         method: "POST",
