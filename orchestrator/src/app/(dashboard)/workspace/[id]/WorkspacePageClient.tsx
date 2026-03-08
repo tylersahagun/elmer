@@ -198,12 +198,6 @@ export function WorkspacePageClient({ workspaceId }: WorkspacePageClientProps) {
           Boolean(legacyProjectsWithCounts?.hasConfirmedWorkspaceAccess),
   });
 
-  const hasPersistedWorkspace = storeWorkspace?.id === workspaceId;
-  const { showNotFound } = resolveBoardWorkspaceState({
-    workspace,
-    hasPersistedWorkspace,
-  });
-
   // Update store when data loads
   useEffect(() => {
     if (workspace) {
