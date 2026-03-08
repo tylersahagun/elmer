@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { WorkspacePage } from "../pages";
-import { createProject } from "../fixtures/projects";
+import { createProject, seedProjectDocument } from "../fixtures/projects";
 import { cleanupSeededData } from "../fixtures/jobs";
 
 test.describe("Project and task flows", () => {
@@ -51,5 +51,68 @@ test.describe("Project and task flows", () => {
     await expect(taskRow.getByText(taskTitle)).toHaveClass(/line-through/);
     await taskRow.getByTestId("remove-task").click();
     await expect(taskRow).toHaveCount(0);
+  });
+
+  test("project detail tasks can create and complete a task", async ({
+    page,
+    request,
+  }) => {
+    seedTag = `project-detail-task-${Date.now()}`;
+    const project = await createProject(request, workspaceId, seedTag);
+    const taskTitle = `[${seedTag}] Project detail task`;
+
+    await page.goto(`/projects/${project.id}?tab=tasks`);
+    await expect(page).toHaveURL(new RegExp(`/workspace/${workspaceId}/projects/${project.id}\\?tab=tasks$`));
+    await page.getByTestId("new-task-button").click();
+    await page.getByTestId("task-title-input").fill(taskTitle);
+    await page.getByTestId("add-task-submit").click();
+
+    const taskRow = page.getByTestId("task-row").filter({ hasText: taskTitle });
+    await expect(taskRow).toBeVisible();
+
+    await taskRow.getByTestId("toggle-task-status").click();
+    await expect(taskRow.getByText(taskTitle)).toHaveClass(/line-through/);
+
+    await taskRow.getByTestId("remove-task").click();
+    await expect(taskRow).toHaveCount(0);
+  });
+
+  test("project detail documents can edit and persist seeded content", async ({
+    page,
+    request,
+  }) => {
+    seedTag = `project-doc-${Date.now()}`;
+    const project = await createProject(request, workspaceId, seedTag);
+    const documentTitle = `[${seedTag}] Seeded PRD`;
+    const updatedContent = `# [${seedTag}] Updated PRD\n\nEditor update for ${seedTag}.`;
+
+    await seedProjectDocument(request, workspaceId, project.id, seedTag, {
+      title: documentTitle,
+      content: `# [${seedTag}] Seeded PRD\n\nInitial document content for ${seedTag}.`,
+    });
+
+    await page.goto(`/projects/${project.id}?tab=documents`);
+    await expect(page).toHaveURL(
+      new RegExp(`/workspace/${workspaceId}/projects/${project.id}$`),
+    );
+    await expect(page.getByTestId("document-viewer")).toBeVisible();
+    await expect(page.getByText(documentTitle, { exact: true }).first()).toBeVisible();
+
+    await page.getByTestId("edit-document-button").click();
+    const editor = page
+      .getByTestId("rich-text-editor-content")
+      .locator('[contenteditable="true"]')
+      .first();
+    await editor.fill(updatedContent);
+    await page.getByTestId("save-document-button").click();
+
+    await expect(page.getByTestId("document-preview")).toContainText(
+      `Editor update for ${seedTag}.`,
+    );
+
+    await page.reload();
+    await expect(page.getByTestId("document-preview")).toContainText(
+      `Editor update for ${seedTag}.`,
+    );
   });
 });

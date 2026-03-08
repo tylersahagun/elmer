@@ -59,9 +59,13 @@ test.describe("Signal Inbox", () => {
     const seeded = await seedHighImpactInboxItem(request, workspaceId, seedTag);
     await inbox.goto(workspaceId);
     await expect(page.getByText(seeded.title)).toBeVisible();
+    await expect(page.getByText(`High-impact issue reported for ${seedTag}`)).toBeVisible();
     await expect(page.locator("[data-testid='high-impact-section']")).toContainText(
       seeded.title,
     );
+    await expect(
+      inbox.signalCard(seeded.title).locator("[data-testid='impact-badge']"),
+    ).toHaveAttribute("data-impact-level", "high");
   });
 
   test("seeded direction-change signal opens review panel and can be ignored", async ({
@@ -89,5 +93,27 @@ test.describe("Signal Inbox", () => {
       "Seeded by Playwright to validate review-impact UX.",
     );
     await page.getByTestId("ignore-direction-change").click();
+  });
+
+  test("seeded direction-change signal links back to the seeded project detail page", async ({
+    page,
+    request,
+  }) => {
+    const inbox = new SignalInboxPage(page);
+    const seedTag = `direction-nav-${Date.now()}`;
+    cleanupTags.add(seedTag);
+    const seeded = await seedDirectionChangeInboxItem(
+      request,
+      workspaceId,
+      seedTag,
+    );
+
+    await inbox.goto(workspaceId);
+    await expect(inbox.signalCard(seeded.title)).toContainText(seeded.projectName);
+
+    await inbox.openLinkedProject(seeded.title);
+
+    await expect(page).toHaveURL(new RegExp(`/projects/${seeded.projectId}$`));
+    await expect(page.getByText(seeded.projectName, { exact: true }).first()).toBeVisible();
   });
 });

@@ -159,7 +159,7 @@ export function RichTextEditor({
   }
 
   return (
-    <div className="relative">
+    <div className="relative" data-testid="rich-text-editor">
       {/* Fixed Toolbar */}
       {editable && (
         <div className="flex flex-wrap items-center gap-1 p-2 mb-4 rounded-lg bg-white/5 border border-white/10 sticky top-0 z-10 backdrop-blur-sm">
@@ -297,7 +297,7 @@ export function RichTextEditor({
       )}
 
       {/* Editor Content */}
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} data-testid="rich-text-editor-content" />
 
       {/* Styles for the editor */}
       <style jsx global>{`

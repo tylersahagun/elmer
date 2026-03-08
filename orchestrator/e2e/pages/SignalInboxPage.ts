@@ -17,6 +17,12 @@ export class SignalInboxPage {
     return cards.count();
   }
 
+  signalCard(title: string): Locator {
+    return this.page.locator("[data-testid='inbox-item']").filter({
+      hasText: title,
+    });
+  }
+
   async openSignal(titleOrIndex: string | number) {
     if (typeof titleOrIndex === "string") {
       await this.page.getByText(titleOrIndex).first().click();
@@ -35,6 +41,14 @@ export class SignalInboxPage {
 
   async clickReviewImpact() {
     await this.page.getByRole("button", { name: /review impact/i }).click();
+  }
+
+  async openLinkedProject(title: string) {
+    await this.signalCard(title)
+      .locator("button")
+      .filter({ hasText: /E2E project/ })
+      .first()
+      .click();
   }
 
   async acceptDirectionChange() {

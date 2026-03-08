@@ -51,11 +51,29 @@ test("unauthenticated /login renders Clerk sign-in @smoke", async ({
 
 test.describe("Smoke: Core routes @smoke", () => {
   let workspaceId: string;
+  let consoleErrors: string[] = [];
+  let pageErrors: string[] = [];
 
   test.beforeEach(async ({ page }) => {
+    consoleErrors = [];
+    pageErrors = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        consoleErrors.push(message.text());
+      }
+    });
+    page.on("pageerror", (error) => {
+      pageErrors.push(error.message);
+    });
+
     const workspace = new WorkspacePage(page);
     workspaceId = await workspace.openWorkspace(process.env.E2E_WORKSPACE_ID);
     expect(workspaceId).toBeTruthy();
+  });
+
+  test.afterEach(() => {
+    expect(consoleErrors, `Console errors detected:\n${consoleErrors.join("\n")}`).toEqual([]);
+    expect(pageErrors, `Page errors detected:\n${pageErrors.join("\n")}`).toEqual([]);
   });
 
   test("authenticated home opens the first workspace dashboard", async ({

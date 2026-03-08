@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
@@ -29,6 +29,13 @@ export const get = query({
   handler: async (ctx, { id }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+    return await ctx.db.get(id);
+  },
+});
+
+export const getInternal = internalQuery({
+  args: { id: v.id("agentDefinitions") },
+  handler: async (ctx, { id }) => {
     return await ctx.db.get(id);
   },
 });

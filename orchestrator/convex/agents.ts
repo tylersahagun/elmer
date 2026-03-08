@@ -216,7 +216,7 @@ async function runLoop(
 export const run = internalAction({
   args: { jobId: v.id("jobs") },
   handler: async (ctx, { jobId }) => {
-    const job = await ctx.runQuery(api.jobs.get, { jobId });
+    const job = await ctx.runQuery(internal.jobs.getInternal, { jobId });
     if (!job) throw new Error(`Job not found: ${jobId}`);
 
     if (isStubHitlJob(job.input)) {
@@ -236,9 +236,12 @@ export const run = internalAction({
         context: { seedTag: job.input.seedTag },
       });
 
-      await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "waiting_input" });
+      await ctx.runMutation(internal.jobs.updateStatusInternal, {
+        jobId,
+        status: "waiting_input",
+      });
       for (const entry of STUB_HITL_INITIAL_LOGS) {
-        await ctx.runMutation(api.jobs.appendLog, {
+        await ctx.runMutation(internal.jobs.appendLogInternal, {
           jobId,
           workspaceId: job.workspaceId,
           level: entry.level,
@@ -259,12 +262,24 @@ export const run = internalAction({
       return;
     }
 
-    await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "running" });
-    await ctx.runMutation(api.jobs.appendLog, { jobId, workspaceId: job.workspaceId, level: "info", message: `Started: ${job.type}` });
+    await ctx.runMutation(internal.jobs.updateStatusInternal, {
+      jobId,
+      status: "running",
+    });
+    await ctx.runMutation(internal.jobs.appendLogInternal, {
+      jobId,
+      workspaceId: job.workspaceId,
+      level: "info",
+      message: `Started: ${job.type}`,
+    });
 
     try {
       const agentDefId = (job.input as Record<string, unknown>)?.agentDefinitionId as Id<"agentDefinitions"> | undefined;
-      const agentDef = agentDefId ? await ctx.runQuery(api.agentDefinitions.get, { id: agentDefId }) : null;
+      const agentDef = agentDefId
+        ? await ctx.runQuery(internal.agentDefinitions.getInternal, {
+            id: agentDefId,
+          })
+        : null;
       const { companyContext, projectTldr, graphContext } = await loadContext(ctx as any, job.workspaceId, job.projectId ?? undefined);
 
       const executionId = await ctx.runMutation(internal.agentExecutions.create, {
@@ -288,12 +303,32 @@ export const run = internalAction({
         id: executionId, toolCalls: allToolCalls, output: finalOutput,
         tokensUsed, completedAt: Date.now(),
       });
-      await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "completed", output: { content: finalOutput } });
-      await ctx.runMutation(api.jobs.appendLog, { jobId, workspaceId: job.workspaceId, level: "info", message: `Completed. ${allToolCalls?.length ?? 0} tool calls, ${tokensUsed} tokens.`, stepKey: "completed" });
+      await ctx.runMutation(internal.jobs.updateStatusInternal, {
+        jobId,
+        status: "completed",
+        output: { content: finalOutput },
+      });
+      await ctx.runMutation(internal.jobs.appendLogInternal, {
+        jobId,
+        workspaceId: job.workspaceId,
+        level: "info",
+        message: `Completed. ${allToolCalls?.length ?? 0} tool calls, ${tokensUsed} tokens.`,
+        stepKey: "completed",
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "failed", errorMessage: msg });
-      await ctx.runMutation(api.jobs.appendLog, { jobId, workspaceId: job.workspaceId, level: "error", message: `Failed: ${msg}`, stepKey: "failed" });
+      await ctx.runMutation(internal.jobs.updateStatusInternal, {
+        jobId,
+        status: "failed",
+        errorMessage: msg,
+      });
+      await ctx.runMutation(internal.jobs.appendLogInternal, {
+        jobId,
+        workspaceId: job.workspaceId,
+        level: "error",
+        message: `Failed: ${msg}`,
+        stepKey: "failed",
+      });
       throw e;
     }
   },
@@ -304,7 +339,7 @@ export const run = internalAction({
 export const resume = internalAction({
   args: { jobId: v.id("jobs"), questionId: v.id("pendingQuestions") },
   handler: async (ctx, { jobId, questionId }) => {
-    const job = await ctx.runQuery(api.jobs.get, { jobId });
+    const job = await ctx.runQuery(internal.jobs.getInternal, { jobId });
     if (!job) throw new Error(`Job not found: ${jobId}`);
 
     if (isStubHitlJob(job.input)) {
@@ -317,8 +352,11 @@ export const resume = internalAction({
         { jobId },
       );
 
-      await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "running" });
-      await ctx.runMutation(api.jobs.appendLog, {
+      await ctx.runMutation(internal.jobs.updateStatusInternal, {
+        jobId,
+        status: "running",
+      });
+      await ctx.runMutation(internal.jobs.appendLogInternal, {
         jobId,
         workspaceId: job.workspaceId,
         level: "info",
@@ -327,7 +365,7 @@ export const resume = internalAction({
       });
 
       for (const entry of STUB_HITL_RESUME_LOGS) {
-        await ctx.runMutation(api.jobs.appendLog, {
+        await ctx.runMutation(internal.jobs.appendLogInternal, {
           jobId,
           workspaceId: job.workspaceId,
           level: entry.level,
@@ -353,7 +391,7 @@ export const resume = internalAction({
         });
       }
 
-      await ctx.runMutation(api.jobs.updateStatus, {
+      await ctx.runMutation(internal.jobs.updateStatusInternal, {
         jobId,
         status: "completed",
         output: {
@@ -374,8 +412,17 @@ export const resume = internalAction({
     });
     if (!execution) { await ctx.scheduler.runAfter(0, internal.agents.run, { jobId }); return; }
 
-    await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "running" });
-    await ctx.runMutation(api.jobs.appendLog, { jobId, workspaceId: job.workspaceId, level: "info", message: `Resumed after HITL answer`, stepKey: "resumed" });
+    await ctx.runMutation(internal.jobs.updateStatusInternal, {
+      jobId,
+      status: "running",
+    });
+    await ctx.runMutation(internal.jobs.appendLogInternal, {
+      jobId,
+      workspaceId: job.workspaceId,
+      level: "info",
+      message: `Resumed after HITL answer`,
+      stepKey: "resumed",
+    });
 
     try {
       const savedHistory = (execution as unknown as { messageHistory?: string }).messageHistory;
@@ -391,7 +438,11 @@ export const resume = internalAction({
       }
 
       const agentDefId = (job.input as Record<string, unknown>)?.agentDefinitionId as Id<"agentDefinitions"> | undefined;
-      const agentDef = agentDefId ? await ctx.runQuery(api.agentDefinitions.get, { id: agentDefId }) : null;
+      const agentDef = agentDefId
+        ? await ctx.runQuery(internal.agentDefinitions.getInternal, {
+            id: agentDefId,
+          })
+        : null;
       const { companyContext, projectTldr, graphContext } = await loadContext(ctx as any, job.workspaceId, job.projectId ?? undefined);
       const systemPrompt = buildSystemPrompt(agentDef?.content ?? "You are an AI PM assistant.", companyContext, projectTldr, graphContext);
 
@@ -405,12 +456,32 @@ export const resume = internalAction({
 
       const { finalOutput, tokensUsed, allToolCalls } = result!;
       await ctx.runMutation(internal.agentExecutions.update, { id: execution._id, toolCalls: allToolCalls, output: finalOutput, tokensUsed, completedAt: Date.now() });
-      await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "completed", output: { content: finalOutput } });
-      await ctx.runMutation(api.jobs.appendLog, { jobId, workspaceId: job.workspaceId, level: "info", message: `Completed after resume.`, stepKey: "completed" });
+      await ctx.runMutation(internal.jobs.updateStatusInternal, {
+        jobId,
+        status: "completed",
+        output: { content: finalOutput },
+      });
+      await ctx.runMutation(internal.jobs.appendLogInternal, {
+        jobId,
+        workspaceId: job.workspaceId,
+        level: "info",
+        message: `Completed after resume.`,
+        stepKey: "completed",
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      await ctx.runMutation(api.jobs.updateStatus, { jobId, status: "failed", errorMessage: msg });
-      await ctx.runMutation(api.jobs.appendLog, { jobId, workspaceId: job.workspaceId, level: "error", message: `Resume failed: ${msg}`, stepKey: "failed" });
+      await ctx.runMutation(internal.jobs.updateStatusInternal, {
+        jobId,
+        status: "failed",
+        errorMessage: msg,
+      });
+      await ctx.runMutation(internal.jobs.appendLogInternal, {
+        jobId,
+        workspaceId: job.workspaceId,
+        level: "error",
+        message: `Resume failed: ${msg}`,
+        stepKey: "failed",
+      });
       throw e;
     }
   },
