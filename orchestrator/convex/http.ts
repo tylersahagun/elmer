@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { internal, api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { streamResponse } from "./chat";
 import { resolveWorkspaceId } from "./httpUtils";
@@ -1022,6 +1022,8 @@ http.route({
       questionType: body.questionType as string | undefined,
       questionText: body.questionText as string,
       choices: body.choices as string[] | undefined,
+      scenario: body.scenario as string | undefined,
+      seedTag: body.seedTag as string | undefined,
     });
     return jsonOk(result);
   }),

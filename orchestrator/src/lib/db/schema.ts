@@ -517,7 +517,14 @@ export type DocumentType =
   | "prototype_notes"
   | "jury_report"
   | "metrics"
-  | "state";
+  | "state"
+  | "feature_guide"
+  | "competitive_landscape"
+  | "success_criteria"
+  | "gtm_plan"
+  | "retrospective"
+  | "decisions"
+  | "visual_directions";
 
 export const documents = pgTable("documents", {
   id: text("id").primaryKey(),

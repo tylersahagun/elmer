@@ -210,13 +210,14 @@ export function ExecutionPanel({
 
   return (
     <motion.div
+      data-testid="agent-trace-root"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       className={cn("w-full max-w-2xl", className)}
       data-testid="execution-panel"
     >
-      <GlassCard className="overflow-hidden">
+      <GlassCard className="overflow-hidden" data-testid="agent-execution-panel">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -373,6 +374,7 @@ export function ExecutionPanel({
               <div
                 ref={scrollRef}
                 onScroll={handleScroll}
+                data-testid="execution-logs"
                 className="h-64 overflow-auto bg-black/30 font-mono text-xs p-4"
                 data-testid="execution-log-list"
               >

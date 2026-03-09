@@ -462,10 +462,11 @@ export const seedPendingQuestionScenario = internalMutation({
   args: {
     workspaceId: v.id("workspaces"),
     projectId: v.optional(v.id("projects")),
-    seedTag: v.optional(v.string()),
     questionType: v.optional(v.string()),
     questionText: v.string(),
     choices: v.optional(v.array(v.string())),
+    scenario: v.optional(v.string()),
+    seedTag: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const jobId = await ctx.db.insert("jobs", {
@@ -475,7 +476,7 @@ export const seedPendingQuestionScenario = internalMutation({
       status: "waiting_input",
       input: {
         seeded: true,
-        scenario: "pending-question",
+        scenario: args.scenario ?? "pending-question",
         seedTag: args.seedTag,
       },
       output: null,
@@ -491,7 +492,9 @@ export const seedPendingQuestionScenario = internalMutation({
       jobId,
       workspaceId: args.workspaceId,
       projectId: args.projectId,
-      questionType: args.questionType ?? "choice",
+      questionType:
+        args.questionType ??
+        (args.choices && args.choices.length > 0 ? "approval" : "blocking"),
       questionText: args.questionText,
       choices: args.choices,
       context: {
@@ -505,7 +508,10 @@ export const seedPendingQuestionScenario = internalMutation({
       jobId,
       workspaceId: args.workspaceId,
       level: "info",
-      message: "Seeded pending question for E2E validation",
+      message:
+        args.scenario === "deterministic-hitl-stub"
+          ? "Stub HITL scenario seeded for deterministic E2E validation"
+          : "Seeded pending question for E2E validation",
       stepKey: "awaiting_input",
     });
 
@@ -646,6 +652,34 @@ export const answerQuestion = internalMutation({
     const question = await ctx.db.get(questionId);
     if (!question) throw new Error("Question not found");
     await ctx.db.patch(questionId, { status: "answered", response });
+    const job = await ctx.db.get(question.jobId);
+    if (!job) throw new Error("Job not found");
+
+    const seededScenario =
+      typeof job.input === "object" &&
+      job.input !== null &&
+      "scenario" in job.input
+        ? (job.input as { scenario?: string }).scenario
+        : undefined;
+
+    if (seededScenario === "deterministic-hitl-stub") {
+      await ctx.db.patch(question.jobId, {
+        status: "completed",
+        progress: 1,
+        output: {
+          content: "Deterministic HITL stub completed successfully",
+        },
+      });
+      await ctx.db.insert("jobLogs", {
+        jobId: question.jobId,
+        workspaceId: question.workspaceId,
+        level: "info",
+        message: "Completed after deterministic HITL approval",
+        stepKey: "completed",
+      });
+      return;
+    }
+
     await ctx.db.patch(question.jobId, { status: "running" });
     await ctx.scheduler.runAfter(0, internal.agents.resume, {
       jobId: question.jobId,

@@ -51,7 +51,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
   const router = useRouter();
-  const [filterStatus, setFilterStatus] = useState<string>("open");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterProject, setFilterProject] = useState<string>("all");
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
@@ -275,6 +275,8 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
                 {projectTasks.map((task) => (
                   <div
                     key={task._id}
+                    data-testid="workspace-task-item"
+                    data-status={task.status}
                     className="group flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card/60 transition-colors"
                     data-testid="task-row"
                   >
@@ -327,8 +329,9 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
 
                     <button
                       onClick={() => removeTask({ taskId: task._id })}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive"
                       data-testid="remove-task"
+                      aria-label={`Remove task ${task.title}`}
+                      className="shrink-0 text-muted-foreground transition-opacity hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

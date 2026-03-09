@@ -1037,85 +1037,96 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                       {projectPendingQuestions.length}
                     </Badge>
                   </div>
+                  <div data-testid="project-pending-approvals">
                   {projectPendingQuestions.length > 0 ? (
-                    projectPendingQuestions.map((question) => (
-                      <div
-                        key={question._id}
-                        className="rounded-xl border border-border bg-card/30 p-3 space-y-3"
-                        data-testid="project-pending-approval-card"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-medium">
-                              {question.questionType === "approval"
-                                ? "Approval required"
-                                : "Agent needs input"}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {question.questionText}
-                            </p>
+                    projectPendingQuestions.map((question) => {
+                      const isApprovalQuestion =
+                        question.questionType === "approval" ||
+                        ((question.questionType === "choice" ||
+                          question.questionType === "blocking") &&
+                          Array.isArray(question.choices) &&
+                          question.choices.length > 0);
+
+                      return (
+                        <div
+                          key={question._id}
+                          data-testid="project-pending-approval-card"
+                          className="rounded-xl border border-border bg-card/30 p-3 space-y-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium">
+                                {isApprovalQuestion
+                                  ? "Approval required"
+                                  : "Agent needs input"}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {question.questionText}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px] capitalize">
+                              {question.questionType}
+                            </Badge>
                           </div>
-                          <Badge variant="secondary" className="text-[10px] capitalize">
-                            {question.questionType}
-                          </Badge>
+                          <div className="flex flex-wrap gap-2">
+                            {isApprovalQuestion ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  data-testid="approve-pending-question"
+                                  className="gap-1.5"
+                                  onClick={() =>
+                                    handleAnswerPendingQuestion(
+                                      String(question._id),
+                                      question.choices?.[0] ?? "approve",
+                                    )
+                                  }
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  Approve
+                                </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              data-testid="reject-pending-question"
+                              className="gap-1.5"
+                              onClick={() =>
+                                handleAnswerPendingQuestion(
+                                      String(question._id),
+                                      question.choices?.[1] ?? "reject",
+                                    )
+                                  }
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  Reject
+                                </Button>
+                              </>
+                            ) : null}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="gap-1.5"
+                              onClick={() =>
+                                openElmerPanelWithContext(
+                                  "project",
+                                  projectId,
+                                  project.name,
+                                )
+                              }
+                            >
+                              Reply in Elmer
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          {question.questionType === "approval" ? (
-                            <>
-                              <Button
-                                size="sm"
-                                className="gap-1.5"
-                                data-testid="approve-pending-question"
-                                onClick={() =>
-                                  handleAnswerPendingQuestion(
-                                    String(question._id),
-                                    question.choices?.[0] ?? "approve",
-                                  )
-                                }
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-1.5"
-                                data-testid="reject-pending-question"
-                                onClick={() =>
-                                  handleAnswerPendingQuestion(
-                                    String(question._id),
-                                    question.choices?.[1] ?? "reject",
-                                  )
-                                }
-                              >
-                                <X className="w-3.5 h-3.5" />
-                                Reject
-                              </Button>
-                            </>
-                          ) : null}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="gap-1.5"
-                            onClick={() =>
-                              openElmerPanelWithContext(
-                                "project",
-                                projectId,
-                                project.name,
-                              )
-                            }
-                          >
-                            Reply in Elmer
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="rounded-xl border border-border bg-card/30 p-3 text-sm text-muted-foreground">
                       No pending approvals for this project right now.
                     </div>
                   )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1406,15 +1417,71 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
                             ? `${activeProjectJobs.length} run${activeProjectJobs.length === 1 ? "" : "s"} currently active. Follow live execution from Active Work or Elmer.`
                             : "No active runs right now. Use project commands to start the next stage-specific job."}
                         </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-3 gap-1.5"
-                          onClick={() => handleTabChange("commands")}
-                        >
-                          Open execution
-                          <Terminal className="w-3.5 h-3.5" />
-                        </Button>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-border bg-card/40 p-3">
+                          <p className="text-[11px] font-mono text-muted-foreground">
+                            Agent visibility
+                          </p>
+                          <p className="mt-1 text-sm">
+                            {activeProjectJobs.length > 0
+                              ? `${activeProjectJobs.length} active run${activeProjectJobs.length === 1 ? "" : "s"} are visible in the cockpit.`
+                              : "No active runs right now. Open execution when you are ready to move the project forward."}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-border bg-card/40 p-3">
+                          <p className="text-[11px] font-mono text-muted-foreground">
+                            Human gates
+                          </p>
+                          <p className="mt-1 text-sm">
+                            {projectPendingQuestions.length > 0
+                              ? `${projectPendingQuestions.length} approval gate${projectPendingQuestions.length === 1 ? "" : "s"} are waiting for a decision.`
+                              : "No approvals are blocking the project right now."}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-card/40 p-3">
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Internal alpha feedback
+                        </p>
+                        <p className="mt-1 text-sm">
+                          Capture live operator notes and route them back into the current alpha work loop.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() => handleTabChange("commands")}
+                          >
+                            Open execution
+                            <Terminal className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={async () => {
+                              const issueTemplate = [
+                                `Project: ${project.name}`,
+                                `Stage: ${project.stage}`,
+                                "",
+                                "Observed behavior:",
+                                "",
+                                "Expected behavior:",
+                                "",
+                                "Evidence / links:",
+                                "",
+                                "Operator notes:",
+                              ].join("\n");
+                              await navigator.clipboard.writeText(issueTemplate);
+                              toast.success("Issue template copied");
+                            }}
+                          >
+                            copy issue template
+                            <Ticket className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="rounded-xl border border-border bg-card/40 p-3">
                         <p className="text-[11px] font-mono text-muted-foreground">

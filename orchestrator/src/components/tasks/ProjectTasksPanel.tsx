@@ -218,8 +218,8 @@ export function ProjectTasksPanel({
                   STATUS_ICONS.todo}
               </button>
 
-              <div className="flex-1 min-w-0">
-                <p className="text-sm leading-snug">{task.title}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm leading-snug">{task.title}</p>
                 {task.description && (
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                     {task.description}
@@ -253,7 +253,7 @@ export function ProjectTasksPanel({
                 </div>
               </div>
 
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
                   {/* Run agent — show for tasks created by agents or with document links */}
                   {(task.createdBy === "agent" || task.linkedDocumentId) && (
                     <button
@@ -289,6 +289,7 @@ export function ProjectTasksPanel({
                   )}
                   <button
                     onClick={() => removeTask({ taskId: task._id })}
+                    aria-label={`Remove task ${task.title}`}
                     className="text-muted-foreground hover:text-destructive transition-colors"
                     data-testid="remove-task"
                   >
@@ -326,8 +327,9 @@ export function ProjectTasksPanel({
                 </p>
                 <button
                   onClick={() => removeTask({ taskId: task._id })}
-                  className="opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0 text-muted-foreground hover:text-destructive"
                   data-testid="remove-task"
+                  aria-label={`Remove task ${task.title}`}
+                  className="shrink-0 text-muted-foreground hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

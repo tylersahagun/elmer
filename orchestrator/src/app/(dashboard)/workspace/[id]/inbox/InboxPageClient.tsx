@@ -593,7 +593,7 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
         )}
 
         {/* Empty */}
-        {items?.length === 0 && (
+        {items !== undefined && activeItems.length === 0 && (
           <div className="text-center py-20 text-muted-foreground" data-testid="empty-inbox">
             <Inbox className="w-10 h-10 mx-auto mb-4 opacity-40" />
             <p className="text-sm">Inbox is empty</p>

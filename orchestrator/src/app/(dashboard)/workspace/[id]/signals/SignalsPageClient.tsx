@@ -132,7 +132,14 @@ export function SignalsPageClient({ workspaceId }: SignalsPageClientProps) {
   return (
     <>
       <SimpleNavbar path={`~/workspace/${workspacePath}/signals`} />
-      <div className="container mx-auto py-6 px-4">
+      <div className="container mx-auto py-6 px-4" data-testid="signals-page">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold">Signals</h1>
+          <p className="text-sm text-muted-foreground">
+            Review workspace evidence, spot clusters, and drill into individual signals.
+          </p>
+        </div>
+
         {/* AI Suggestions Banner */}
         <SignalSuggestionsBanner workspaceId={workspaceId} />
 

@@ -17,15 +17,21 @@ export class AgentExecutionPage {
   }
 
   traceRoot(): Locator {
-    return this.page.getByTestId("agent-trace-page");
+    return this.page.locator(
+      '[data-testid="agent-trace-page"], [data-testid="agent-trace-root"]',
+    );
   }
 
   executionPanel(): Locator {
-    return this.page.getByTestId("execution-panel");
+    return this.page.locator(
+      '[data-testid="execution-panel"], [data-testid="agent-execution-panel"]',
+    );
   }
 
   executionLogs(): Locator {
-    return this.page.getByTestId("execution-log-list");
+    return this.page.locator(
+      '[data-testid="execution-log-list"], [data-testid="execution-logs"]',
+    );
   }
 
   executionOutput(): Locator {

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDocument, getDocuments } from "@/lib/db/queries";
 import type { DocumentType } from "@/lib/db/schema";
+import { DOCUMENT_TYPE_ORDER } from "@/lib/documentTypes";
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,26 +43,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate document type
-    const validTypes: DocumentType[] = [
-      "research",
-      "prd",
-      "design_brief",
-      "engineering_spec",
-      "gtm_brief",
-      "prototype_notes",
-      "jury_report",
-    ];
+    const validTypes = new Set<string>(DOCUMENT_TYPE_ORDER);
 
-    if (!validTypes.includes(type)) {
+    if (!validTypes.has(type)) {
       return NextResponse.json(
-        { error: `Invalid document type. Must be one of: ${validTypes.join(", ")}` },
+        {
+          error: `Invalid document type. Must be one of: ${Array.from(validTypes).join(", ")}`,
+        },
         { status: 400 }
       );
     }
 
     const document = await createDocument({
       projectId,
-      type,
+      type: type as DocumentType,
       title,
       content: content || "",
       metadata: {
