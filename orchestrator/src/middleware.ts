@@ -2,15 +2,18 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasClerkRuntimeConfiguration } from "@/lib/auth/clerk";
 
-const isPublicRoute = createRouteMatcher([
+export const publicRoutePatterns = [
   "/",
   "/login(.*)",
   "/signup(.*)",
   "/invite(.*)",
+  "/prototype(.*)",
   "/api/auth(.*)",
   "/api/webhooks(.*)",
   "/api/cron(.*)",
-]);
+];
+
+export const isPublicRoute = createRouteMatcher(publicRoutePatterns);
 
 const clerkConfigured = hasClerkRuntimeConfiguration();
 
