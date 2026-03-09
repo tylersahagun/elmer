@@ -1,0 +1,31 @@
+{
+  "name": "Project Bapar",
+  "slug": "project-bapar",
+  "status": "in-progress",
+  "phase": "research-complete",
+  "created": "2026-03-09",
+  "owner": "Tyler",
+  "sub_projects": [
+    {
+      "name": "Meeting Summary",
+      "status": "in-progress",
+      "phase": "ui-started"
+    },
+    {
+      "name": "Action Items",
+      "status": "in-progress",
+      "phase": "research-complete"
+    }
+  ],
+  "stakeholders": ["Rob", "Skyler", "Palmer", "Ivan"],
+  "research_location": "Google Drive (needs to be pulled in)",
+  "artifacts": {
+    "prd": "prd.md",
+    "research": "research.md",
+    "decisions": "decisions.md",
+    "design_brief": null,
+    "engineering_spec": null,
+    "prototype": null,
+    "measurement_plan": null
+  }
+}
