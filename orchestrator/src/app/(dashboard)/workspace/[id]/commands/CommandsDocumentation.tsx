@@ -142,15 +142,21 @@ export function CommandsDocumentation({
 }: CommandsDocumentationProps) {
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [loadAutomationDetails, setLoadAutomationDetails] = useState(false);
 
   const { data: workspace } = useQuery<Workspace>({
     queryKey: ["workspace", workspaceId],
     queryFn: async () => {
       const res = await fetch(`/api/workspaces/${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to load workspace");
+      if (!res.ok) {
+        return {
+          id: workspaceId,
+          name: "Workspace",
+        };
+      }
       return res.json();
     },
-    enabled: !!workspaceId,
+    enabled: loadAutomationDetails && !!workspaceId,
   });
 
   // Fetch column configs
@@ -159,23 +165,29 @@ export function CommandsDocumentation({
       queryKey: ["columns", workspaceId],
       queryFn: async () => {
         const res = await fetch(`/api/columns?workspaceId=${workspaceId}`);
-        if (!res.ok) throw new Error("Failed to load columns");
+        if (!res.ok) {
+          return [];
+        }
         return res.json();
       },
+      enabled: loadAutomationDetails && !!workspaceId,
     },
   );
 
   // Fetch stage recipes
   const { data: recipes, isLoading: recipesLoading } = useQuery<StageRecipe[]>({
-    queryKey: ["stage-recipes", workspaceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/stage-recipes?workspaceId=${workspaceId}`);
-      if (!res.ok) throw new Error("Failed to load recipes");
-      const payload = (await res.json()) as
-        | StageRecipe[]
-        | { recipes?: StageRecipe[] };
-      return Array.isArray(payload) ? payload : payload.recipes ?? [];
-    },
+      queryKey: ["stage-recipes", workspaceId],
+      queryFn: async () => {
+        const res = await fetch(`/api/stage-recipes?workspaceId=${workspaceId}`);
+        if (!res.ok) {
+          return [];
+        }
+        const payload = (await res.json()) as
+          | StageRecipe[]
+          | { recipes?: StageRecipe[] };
+        return Array.isArray(payload) ? payload : payload.recipes ?? [];
+      },
+      enabled: loadAutomationDetails && !!workspaceId,
   });
 
   // Collect all unique skill IDs
@@ -198,10 +210,12 @@ export function CommandsDocumentation({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ skillIds: allSkillIds }),
       });
-      if (!res.ok) throw new Error("Failed to load summaries");
+      if (!res.ok) {
+        return { summaries: {} };
+      }
       return res.json();
     },
-    enabled: allSkillIds.length > 0,
+    enabled: loadAutomationDetails && allSkillIds.length > 0,
   });
 
   const skillSummaries = summariesData?.summaries || {};
@@ -273,8 +287,29 @@ export function CommandsDocumentation({
           </div>
         )}
 
+        {!loadAutomationDetails && (
+          <Window title="cat commands/README.md">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Load optional automation details</p>
+                <p className="text-sm text-muted-foreground">
+                  Commands can render without stage recipes and workspace tuning.
+                  Load those details only when you want to inspect the underlying automation wiring.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLoadAutomationDetails(true)}
+                className="inline-flex items-center justify-center rounded-md border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+              >
+                Load details
+              </button>
+            </div>
+          </Window>
+        )}
+
         {/* Stage List */}
-        {!isLoading && stagesWithRecipes.length === 0 && (
+        {loadAutomationDetails && !isLoading && stagesWithRecipes.length === 0 && (
           <Window title="error">
             <div className="text-center py-8">
               <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
@@ -283,7 +318,7 @@ export function CommandsDocumentation({
           </Window>
         )}
 
-        {!isLoading && stagesWithRecipes.length > 0 && (
+        {loadAutomationDetails && !isLoading && stagesWithRecipes.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -305,7 +340,7 @@ export function CommandsDocumentation({
         )}
 
         {/* Legend */}
-        {!isLoading && stagesWithRecipes.length > 0 && (
+        {loadAutomationDetails && !isLoading && stagesWithRecipes.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

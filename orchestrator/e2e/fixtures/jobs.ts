@@ -117,6 +117,25 @@ export async function seedStubAgentRun(
   };
 }
 
+export async function answerPendingQuestion(
+  request: APIRequestContext,
+  questionId: string,
+  response: unknown = "Approve",
+) {
+  const answerResponse = await request.post(
+    `${CONVEX_SITE_URL}/mcp/questions/answer`,
+    {
+      headers: authHeaders(),
+      data: {
+        questionId,
+        response,
+      },
+    },
+  );
+
+  expect(answerResponse.ok()).toBeTruthy();
+}
+
 export async function cleanupSeededData(
   request: APIRequestContext,
   workspaceId: string,
@@ -132,83 +151,4 @@ export async function cleanupSeededData(
 
   expect(response.ok()).toBeTruthy();
   return await response.json();
-}
-
-export async function getJob(request: APIRequestContext, jobId: string) {
-  const response = await request.get(`${CONVEX_SITE_URL}/mcp/jobs?id=${jobId}`, {
-    headers: authHeaders(),
-  });
-
-  expect(response.ok()).toBeTruthy();
-  return (await response.json()) as {
-    job: {
-      _id: string;
-      status: string;
-      output?: { content?: string } | null;
-    };
-    logs: Array<{
-      _id: string;
-      message: string;
-      level: string;
-    }>;
-  };
-}
-
-export async function seedStubAgentRun(
-  request: APIRequestContext,
-  workspaceId: string,
-  seedTag: string,
-  options?: { projectName?: string },
-) {
-  const projectName = options?.projectName ?? `[${seedTag}] Deterministic HITL project`;
-  const projectResponse = await request.post(`${CONVEX_SITE_URL}/mcp/projects`, {
-    headers: authHeaders(),
-    data: {
-      name: projectName,
-      description: `Seeded for deterministic HITL validation (${seedTag})`,
-      stage: "alpha",
-      priority: "P1",
-    },
-  });
-
-  expect(projectResponse.ok()).toBeTruthy();
-  const projectPayload = (await projectResponse.json()) as { id: string };
-
-  const questionResponse = await request.post(`${CONVEX_SITE_URL}/mcp/e2e/questions`, {
-    headers: authHeaders(),
-    data: {
-      projectId: projectPayload.id,
-      questionText: `Approve deterministic HITL execution for ${seedTag}`,
-      choices: [seedTag, `reject-${seedTag}`],
-      scenario: "deterministic-hitl-stub",
-      seedTag,
-    },
-  });
-
-  expect(questionResponse.ok()).toBeTruthy();
-  const questionPayload = (await questionResponse.json()) as {
-    jobId: string;
-    questionId: string;
-  };
-
-  return {
-    workspaceId,
-    projectId: projectPayload.id,
-    jobId: questionPayload.jobId,
-    questionId: questionPayload.questionId,
-    projectName,
-  };
-}
-
-export async function cleanupSeededData(
-  request: APIRequestContext,
-  workspaceId: string,
-  seedTag: string,
-) {
-  void request;
-  void workspaceId;
-  void seedTag;
-  // Best-effort no-op: current live gate targets production-like data and the
-  // seeded records are uniquely tagged, so isolation is preserved without
-  // issuing destructive cleanup calls against the shared backend.
 }

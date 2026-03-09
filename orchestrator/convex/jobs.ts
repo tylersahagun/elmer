@@ -57,7 +57,8 @@ export const byProject = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const unauthenticatedFallback = getUnauthenticatedJobsListFallback(identity);
+    if (unauthenticatedFallback) return unauthenticatedFallback;
     return await ctx.db
       .query("jobs")
       .withIndex("by_project", (q) => q.eq("projectId", projectId))

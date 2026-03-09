@@ -412,7 +412,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
       setActiveTab(resolvedTab);
 
       const params = new URLSearchParams(searchParams.toString());
-      if (resolvedTab === "documents") {
+      if (resolvedTab === "overview") {
         params.delete("tab");
       } else {
         params.set("tab", resolvedTab);
@@ -529,12 +529,14 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
 
     const canonicalTab = getProjectTabFromSearchParam(searchParams.get("tab"));
     const nextHref =
-      canonicalTab === "documents"
+      canonicalTab === "overview"
         ? getProjectRoute(projectId, project.workspaceId)
         : getProjectRouteWithTab(projectId, canonicalTab, project.workspaceId);
 
     router.replace(nextHref, { scroll: false });
   }, [pathname, project?.workspaceId, projectId, router, searchParams]);
+
+  const canRenderProjectShell = Boolean(project || convexProject);
 
   const currentColumn = useMemo(() => {
     if (!convexColumns || !project?.stage) return null;
@@ -840,7 +842,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
     [githubInfo],
   );
 
-  if (projectLoading) {
+  if (projectLoading && !canRenderProjectShell) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div
@@ -998,7 +1000,7 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
               <div className="grid gap-4 lg:grid-cols-2">
                 <div
                   className="space-y-3"
-                  data-testid="project-pending-approvals"
+                  data-testid="project-active-runs"
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-mono text-muted-foreground">

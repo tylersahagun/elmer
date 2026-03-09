@@ -8,8 +8,21 @@ export class SignalInboxPage {
   }
 
   async goto(workspaceId: string) {
-    await this.page.goto(`/workspace/${workspaceId}/inbox`);
-    await this.page.waitForLoadState("networkidle");
+    const path = `/workspace/${workspaceId}/inbox`;
+    try {
+      await this.page.goto(path, {
+        waitUntil: "domcontentloaded",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/ERR_ABORTED|frame was detached/i.test(message)) {
+        throw error;
+      }
+
+      await expect
+        .poll(() => this.page.url(), { timeout: 10_000 })
+        .toContain(path);
+    }
   }
 
   async getSignalCount(): Promise<number> {

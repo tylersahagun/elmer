@@ -17,10 +17,10 @@ export async function GET() {
     const session = await auth();
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { connected: false, error: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({
+        connected: false,
+        connectUrl: GITHUB_OAUTH_CONNECT_URL,
+      });
     }
 
     // Check if user has a GitHub account connected

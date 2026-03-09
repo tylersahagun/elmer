@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useMemo, useRef, useState } from "react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { canRunConvexQuery } from "@/lib/auth/convex";
 import { getProjectRoute } from "@/lib/projects/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,18 +53,35 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useCurrentUser();
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterProject, setFilterProject] = useState<string>("all");
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const taskTitleInputRef = useRef<HTMLInputElement>(null);
+  const canLoadConvexData = canRunConvexQuery({
+    isClerkLoaded: isLoaded,
+    isSignedIn,
+    isConvexAuthenticated,
+  });
 
-  const tasks = useQuery(api.tasks.byWorkspace, {
-    workspaceId: workspaceId as Id<"workspaces">,
-  });
-  const projects = useQuery(api.projects.list, {
-    workspaceId: workspaceId as Id<"workspaces">,
-  });
+  const tasks = useQuery(
+    api.tasks.byWorkspace,
+    canLoadConvexData
+      ? {
+          workspaceId: workspaceId as Id<"workspaces">,
+        }
+      : "skip",
+  );
+  const projects = useQuery(
+    api.projects.list,
+    canLoadConvexData
+      ? {
+          workspaceId: workspaceId as Id<"workspaces">,
+        }
+      : "skip",
+  );
 
   const createTask = useMutation(api.tasks.create);
   const completeTask = useMutation(api.tasks.complete);
@@ -102,7 +121,7 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
   }, [filtered]);
 
   const handleAdd = async () => {
-    if (!newTitle.trim()) return;
+    if (!canLoadConvexData || !newTitle.trim()) return;
     setAdding(true);
     try {
       await createTask({
@@ -110,13 +129,18 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
         title: newTitle.trim(),
       });
       setNewTitle("");
-      setShowAddForm(false);
+      taskTitleInputRef.current?.focus();
     } finally {
       setAdding(false);
     }
   };
 
+  const focusTaskComposer = () => {
+    taskTitleInputRef.current?.focus();
+  };
+
   const handleToggle = async (taskId: Id<"tasks">, currentStatus: string) => {
+    if (!canLoadConvexData) return;
     if (currentStatus === "done") {
       await updateTask({ taskId, status: "todo" });
     } else {
@@ -134,9 +158,9 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setShowAddForm(true)}
+            onClick={focusTaskComposer}
             className="gap-1.5 text-xs"
-            data-testid="new-task-button"
+            disabled={!canLoadConvexData}
           >
             <Plus className="w-3.5 h-3.5" />
             New task
@@ -156,7 +180,18 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
           </div>
 
           {/* Filters */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={focusTaskComposer}
+              className="gap-1.5 text-xs"
+              data-testid="new-task-button"
+              disabled={!canLoadConvexData}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New task
+            </Button>
             <Filter className="w-4 h-4 text-muted-foreground" />
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-28 h-8 text-xs">
@@ -189,40 +224,31 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
         </div>
 
         {/* Add form */}
-        {showAddForm && (
-          <div className="flex gap-2 p-3 rounded-xl border border-border bg-card/50">
-            <Input
-              autoFocus
-              placeholder="Task title…"
-              data-testid="task-title-input"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAdd();
-                if (e.key === "Escape") {
-                  setShowAddForm(false);
-                  setNewTitle("");
-                }
-              }}
-              className="text-sm"
-            />
-            <Button
-              size="sm"
-              onClick={handleAdd}
-              disabled={adding || !newTitle.trim()}
-              data-testid="add-task-submit"
-            >
-              {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => { setShowAddForm(false); setNewTitle(""); }}
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2 p-3 rounded-xl border border-border bg-card/50">
+          <Input
+            ref={taskTitleInputRef}
+            placeholder="Task title…"
+            data-testid="task-title-input"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAdd();
+              if (e.key === "Escape") {
+                setNewTitle("");
+              }
+            }}
+            className="text-sm"
+            disabled={!canLoadConvexData}
+          />
+          <Button
+            size="sm"
+            onClick={handleAdd}
+            disabled={!canLoadConvexData || adding || !newTitle.trim()}
+            data-testid="add-task-submit"
+          >
+            {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Add"}
+          </Button>
+        </div>
 
         {/* Loading */}
         {tasks === undefined && (
@@ -275,7 +301,6 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
                 {projectTasks.map((task) => (
                   <div
                     key={task._id}
-                    data-testid="workspace-task-item"
                     data-status={task.status}
                     className="group flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-card/30 hover:bg-card/60 transition-colors"
                     data-testid="task-row"
@@ -284,6 +309,7 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
                       onClick={() => handleToggle(task._id, task.status)}
                       className="mt-0.5 shrink-0"
                       data-testid="toggle-task-status"
+                      disabled={!canLoadConvexData}
                     >
                       {STATUS_ICONS[task.status as keyof typeof STATUS_ICONS] ??
                         STATUS_ICONS.todo}
@@ -332,6 +358,7 @@ export function TeamTasksPage({ workspaceId }: TeamTasksPageProps) {
                       data-testid="remove-task"
                       aria-label={`Remove task ${task.title}`}
                       className="shrink-0 text-muted-foreground transition-opacity hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                      disabled={!canLoadConvexData}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

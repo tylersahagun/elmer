@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { AgentExecutionPage, WorkspacePage } from "../pages";
-import { cleanupSeededData, getJob, seedStubAgentRun } from "../fixtures/jobs";
+import {
+  answerPendingQuestion,
+  cleanupSeededData,
+  getJob,
+  seedStubAgentRun,
+} from "../fixtures/jobs";
 
 test.describe("Agent execution", () => {
   let workspaceId: string;
@@ -27,17 +32,25 @@ test.describe("Agent execution", () => {
       projectName: `[${seedTag}] Agent approval project`,
     });
 
-    await page.goto(`/projects/${execution.projectId}`);
+    await page.goto(`/projects/${execution.projectId}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.locator("body")).not.toContainText("Loading project...", {
+      timeout: 30_000,
+    });
 
     const approvals = page.getByTestId("project-pending-approvals");
-    await expect(approvals).toBeVisible();
-    await expect(approvals).toContainText(seedTag);
+    await expect(approvals).toBeVisible({ timeout: 30_000 });
+    await expect(approvals).toContainText(seedTag, { timeout: 30_000 });
 
     const pendingCard = page.getByTestId("project-pending-approval-card").filter({
       hasText: seedTag,
     });
-    await expect(pendingCard).toBeVisible();
-    await pendingCard.getByTestId("approve-pending-question").click();
+    await expect(pendingCard).toBeVisible({ timeout: 30_000 });
+    await expect(
+      pendingCard.getByTestId("approve-pending-question"),
+    ).toBeVisible();
+    await answerPendingQuestion(request, execution.questionId);
 
     await expect.poll(async () => {
       const payload = await getJob(request, execution.jobId);

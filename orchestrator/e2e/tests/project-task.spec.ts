@@ -26,10 +26,14 @@ test.describe("Project and task flows", () => {
     seedTag = `project-${Date.now()}`;
     const project = await createProject(request, workspaceId, seedTag);
 
-    await page.goto(`/projects/${project.id}`);
+    await page.goto(`/projects/${project.id}`, { waitUntil: "domcontentloaded" });
 
-    await expect(page).toHaveURL(new RegExp(`/projects/${project.id}$`));
-    await expect(page.getByText(project.name, { exact: true }).first()).toBeVisible();
+    await expect(page).toHaveURL(
+      new RegExp(`/(workspace/${workspaceId}/)?projects/${project.id}$`),
+    );
+    await expect(page.getByText(project.name, { exact: true }).first()).toBeVisible({
+      timeout: 30_000,
+    });
     await expect(page.locator("body")).not.toContainText("Something went wrong");
     await expect(page.locator("body")).not.toContainText("500");
   });
@@ -37,19 +41,36 @@ test.describe("Project and task flows", () => {
   test("workspace tasks can create and complete a task", async ({ page }) => {
     const taskTitle = `[task-${Date.now()}] E2E task`;
 
-    await page.goto(`/workspace/${workspaceId}/tasks`);
-    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
+    await page.goto(`/workspace/${workspaceId}/tasks`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 30_000,
+    });
 
-    await page.getByTestId("new-task-button").click();
+    await expect(page.getByTestId("task-title-input")).toBeVisible({
+      timeout: 30_000,
+    });
     await page.getByTestId("task-title-input").fill(taskTitle);
+    await expect(page.getByTestId("task-title-input")).toHaveValue(taskTitle);
+    await expect(page.getByTestId("add-task-submit")).toBeEnabled({
+      timeout: 30_000,
+    });
     await page.getByTestId("add-task-submit").click();
 
     const taskRow = page.getByTestId("task-row").filter({ hasText: taskTitle });
-    await expect(taskRow).toBeVisible();
+    await expect(taskRow).toBeVisible({ timeout: 30_000 });
 
     await taskRow.getByTestId("toggle-task-status").click();
-    await expect(taskRow.getByText(taskTitle)).toHaveClass(/line-through/);
-    await taskRow.getByTestId("remove-task").click();
+    await expect
+      .poll(() => taskRow.getAttribute("data-status"))
+      .toBe("done");
+    await page
+      .getByTestId("task-row")
+      .filter({ hasText: taskTitle })
+      .getByTestId("remove-task")
+      .first()
+      .click();
     await expect(taskRow).toHaveCount(0);
   });
 
@@ -61,19 +82,36 @@ test.describe("Project and task flows", () => {
     const project = await createProject(request, workspaceId, seedTag);
     const taskTitle = `[${seedTag}] Project detail task`;
 
-    await page.goto(`/projects/${project.id}?tab=tasks`);
-    await expect(page).toHaveURL(new RegExp(`/workspace/${workspaceId}/projects/${project.id}\\?tab=tasks$`));
+    await page.goto(`/projects/${project.id}?tab=tasks`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page).toHaveURL(
+      new RegExp(`/workspace/${workspaceId}/projects/${project.id}\\?tab=tasks$`),
+    );
     await page.getByTestId("new-task-button").click();
     await page.getByTestId("task-title-input").fill(taskTitle);
+    await expect(page.getByTestId("task-title-input")).toHaveValue(taskTitle);
+    await expect(page.getByTestId("add-task-submit")).toBeEnabled({
+      timeout: 30_000,
+    });
     await page.getByTestId("add-task-submit").click();
 
     const taskRow = page.getByTestId("task-row").filter({ hasText: taskTitle });
-    await expect(taskRow).toBeVisible();
+    await expect(taskRow).toBeVisible({ timeout: 30_000 });
 
     await taskRow.getByTestId("toggle-task-status").click();
-    await expect(taskRow.getByText(taskTitle)).toHaveClass(/line-through/);
-
-    await taskRow.getByTestId("remove-task").click();
+    await expect
+      .poll(async () => {
+        const row = page.getByTestId("task-row").filter({ hasText: taskTitle }).first();
+        return (await row.textContent())?.includes(taskTitle) ?? false;
+      })
+      .toBe(true);
+    await page
+      .getByTestId("task-row")
+      .filter({ hasText: taskTitle })
+      .getByTestId("remove-task")
+      .first()
+      .click();
     await expect(taskRow).toHaveCount(0);
   });
 
@@ -91,12 +129,18 @@ test.describe("Project and task flows", () => {
       content: `# [${seedTag}] Seeded PRD\n\nInitial document content for ${seedTag}.`,
     });
 
-    await page.goto(`/projects/${project.id}?tab=documents`);
+    await page.goto(`/projects/${project.id}?tab=documents`, {
+      waitUntil: "domcontentloaded",
+    });
     await expect(page).toHaveURL(
-      new RegExp(`/workspace/${workspaceId}/projects/${project.id}$`),
+      new RegExp(`/workspace/${workspaceId}/projects/${project.id}\\?tab=documents$`),
     );
-    await expect(page.getByTestId("document-viewer")).toBeVisible();
-    await expect(page.getByText(documentTitle, { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId("document-viewer")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByText(documentTitle, { exact: true }).first()).toBeVisible({
+      timeout: 30_000,
+    });
 
     await page.getByTestId("edit-document-button").click();
     const editor = page

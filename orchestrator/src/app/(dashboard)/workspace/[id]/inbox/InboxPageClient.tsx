@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
 import { SimpleNavbar } from "@/components/chrome/Navbar";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { canRunConvexQuery } from "@/lib/auth/convex";
 import { getProjectRoute } from "@/lib/projects/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -461,19 +463,41 @@ function InboxCard({
 
 export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useCurrentUser();
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
   const [reviewItem, setReviewItem] = useState<InboxItem | null>(null);
-
-  const items = useQuery(api.inboxItems.listByPriority, {
-    workspaceId: workspaceId as Id<"workspaces">,
-  }) as InboxItem[] | undefined;
-
-  const counts = useQuery(api.inboxItems.counts, {
-    workspaceId: workspaceId as Id<"workspaces">,
+  const canLoadConvexData = canRunConvexQuery({
+    isClerkLoaded: isLoaded,
+    isSignedIn,
+    isConvexAuthenticated,
   });
 
-  const projects = useQuery(api.projects.list, {
-    workspaceId: workspaceId as Id<"workspaces">,
-  });
+  const items = useQuery(
+    api.inboxItems.listByPriority,
+    canLoadConvexData
+      ? {
+          workspaceId: workspaceId as Id<"workspaces">,
+        }
+      : "skip",
+  ) as InboxItem[] | undefined;
+
+  const counts = useQuery(
+    api.inboxItems.counts,
+    canLoadConvexData
+      ? {
+          workspaceId: workspaceId as Id<"workspaces">,
+        }
+      : "skip",
+  );
+
+  const projects = useQuery(
+    api.projects.list,
+    canLoadConvexData
+      ? {
+          workspaceId: workspaceId as Id<"workspaces">,
+        }
+      : "skip",
+  );
 
   const dismissMutation = useMutation(api.inboxItems.dismiss);
   const assignMutation = useMutation(api.inboxItems.assignToProject);
@@ -481,28 +505,33 @@ export function InboxPageClient({ workspaceId }: { workspaceId: string }) {
   const createTask = useMutation(api.tasks.create);
 
   const handleDismiss = async (id: Id<"inboxItems">) => {
+    if (!canLoadConvexData) return;
     await dismissMutation({ itemId: id });
     toast.success("Dismissed");
   };
 
   const handleAssign = async (id: Id<"inboxItems">, projectId: Id<"projects">) => {
+    if (!canLoadConvexData) return;
     await assignMutation({ itemId: id, projectId });
     toast.success("Linked to project");
   };
 
   const handleAcceptDirectionChange = async (id: Id<"inboxItems">) => {
+    if (!canLoadConvexData) return;
     await acceptMutation({ itemId: id });
     setReviewItem(null);
     toast.success("Direction change accepted");
   };
 
   const handleIgnoreDirectionChange = async (id: Id<"inboxItems">) => {
+    if (!canLoadConvexData) return;
     await dismissMutation({ itemId: id });
     setReviewItem(null);
     toast.success("Dismissed");
   };
 
   const handleCreateTask = async (item: InboxItem) => {
+    if (!canLoadConvexData) return;
     if (!item.assignedProjectId) {
       toast.error("Link to a project first");
       return;

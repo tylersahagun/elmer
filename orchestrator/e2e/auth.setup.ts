@@ -18,6 +18,10 @@ const authFile = path.join(__dirname, ".auth/user.json");
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 setup("authenticate", async ({ page }) => {
+  if (fs.existsSync(authFile)) {
+    return;
+  }
+
   const email = process.env.E2E_TEST_EMAIL;
   const password = process.env.E2E_TEST_PASSWORD;
 
@@ -27,7 +31,7 @@ setup("authenticate", async ({ page }) => {
     );
   }
 
-  await page.goto("/login");
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
 
   // Clerk renders an email input — fill and continue
   await page

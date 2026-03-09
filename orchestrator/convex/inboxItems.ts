@@ -3,6 +3,23 @@ import { v } from "convex/values";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
+function getUnauthenticatedInboxItemsFallback(identity: unknown): [] | null {
+  return identity ? null : [];
+}
+
+function getUnauthenticatedInboxCountsFallback(
+  identity: unknown,
+): { total: number; pending: number; highImpact: number; directionChange: number } | null {
+  return identity
+    ? null
+    : {
+        total: 0,
+        pending: 0,
+        highImpact: 0,
+        directionChange: 0,
+      };
+}
+
 /** All inbox items for a workspace, sorted by impact score descending. */
 export const listByPriority = query({
   args: {
@@ -12,7 +29,9 @@ export const listByPriority = query({
   },
   handler: async (ctx, { workspaceId, status, limit }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const unauthenticatedFallback =
+      getUnauthenticatedInboxItemsFallback(identity);
+    if (unauthenticatedFallback) return unauthenticatedFallback;
 
     // Fetch all for workspace, then sort + filter in JS
     // (Convex index range scans don't support descending impactScore easily)
@@ -51,7 +70,9 @@ export const counts = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, { workspaceId }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const unauthenticatedFallback =
+      getUnauthenticatedInboxCountsFallback(identity);
+    if (unauthenticatedFallback) return unauthenticatedFallback;
 
     const all = await ctx.db
       .query("inboxItems")

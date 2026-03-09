@@ -303,7 +303,7 @@ export function ProjectTasksPanel({
 
       {/* Completed tasks (collapsible) */}
       {done.length > 0 && (
-        <details className="group">
+        <details className="group" open>
           <summary className="text-xs text-muted-foreground cursor-pointer select-none flex items-center gap-1.5 py-1">
             <span className="text-emerald-500">✓</span>
             {done.length} completed
@@ -329,7 +329,7 @@ export function ProjectTasksPanel({
                   onClick={() => removeTask({ taskId: task._id })}
                   data-testid="remove-task"
                   aria-label={`Remove task ${task.title}`}
-                  className="shrink-0 text-muted-foreground hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity"
+                  className="shrink-0 text-muted-foreground hover:text-destructive transition-opacity opacity-100"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

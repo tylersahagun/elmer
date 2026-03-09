@@ -31,6 +31,7 @@ test.describe("Signal Inbox", () => {
   test("inbox page loads without errors", async ({ page }) => {
     const inbox = new SignalInboxPage(page);
     await inbox.goto(workspaceId);
+    await expect(page.getByTestId("inbox-page")).toBeVisible({ timeout: 30_000 });
     await expect(page.locator("body")).not.toContainText("Something went wrong");
     await expect(page.locator("body")).not.toContainText("500");
   });
@@ -39,14 +40,16 @@ test.describe("Signal Inbox", () => {
     const inbox = new SignalInboxPage(page);
     await inbox.goto(workspaceId);
 
-    // Either signals are present OR an empty state is shown — both are valid
-    const hasSignals = (await inbox.getSignalCount()) > 0;
-    const hasEmptyState = await page
-      .locator("[data-testid='empty-inbox'], [class*='empty']")
-      .count()
-      .then((c) => c > 0);
-
-    expect(hasSignals || hasEmptyState).toBe(true);
+    await expect
+      .poll(async () => {
+        const hasSignals = (await inbox.getSignalCount()) > 0;
+        const hasEmptyState = await page
+          .locator("[data-testid='empty-inbox'], [class*='empty']")
+          .count()
+          .then((c) => c > 0);
+        return hasSignals || hasEmptyState;
+      }, { timeout: 30_000 })
+      .toBe(true);
   });
 
   test("seeded high-impact signal appears in the correct section", async ({
@@ -58,10 +61,13 @@ test.describe("Signal Inbox", () => {
     cleanupTags.add(seedTag);
     const seeded = await seedHighImpactInboxItem(request, workspaceId, seedTag);
     await inbox.goto(workspaceId);
-    await expect(page.getByText(seeded.title)).toBeVisible();
-    await expect(page.getByText(`High-impact issue reported for ${seedTag}`)).toBeVisible();
+    await expect(page.getByText(seeded.title)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(`High-impact issue reported for ${seedTag}`)).toBeVisible({
+      timeout: 30_000,
+    });
     await expect(page.locator("[data-testid='high-impact-section']")).toContainText(
       seeded.title,
+      { timeout: 30_000 },
     );
     await expect(
       inbox.signalCard(seeded.title).locator("[data-testid='impact-badge']"),
@@ -85,7 +91,7 @@ test.describe("Signal Inbox", () => {
     const seededCard = page.locator("[data-testid='inbox-item']").filter({
       hasText: seeded.title,
     });
-    await expect(seededCard).toBeVisible();
+    await expect(seededCard).toBeVisible({ timeout: 30_000 });
     await seededCard.getByTestId("review-impact-button").click();
 
     await expect(page.getByTestId("review-impact-panel")).toBeVisible();
@@ -109,11 +115,18 @@ test.describe("Signal Inbox", () => {
     );
 
     await inbox.goto(workspaceId);
-    await expect(inbox.signalCard(seeded.title)).toContainText(seeded.projectName);
+    await expect(inbox.signalCard(seeded.title)).toContainText(
+      seeded.projectName,
+      { timeout: 30_000 },
+    );
 
     await inbox.openLinkedProject(seeded.title);
 
-    await expect(page).toHaveURL(new RegExp(`/projects/${seeded.projectId}$`));
-    await expect(page.getByText(seeded.projectName, { exact: true }).first()).toBeVisible();
+    await expect(page).toHaveURL(
+      new RegExp(`/(workspace/${workspaceId}/)?projects/${seeded.projectId}$`),
+    );
+    await expect(page.getByText(seeded.projectName, { exact: true }).first()).toBeVisible({
+      timeout: 30_000,
+    });
   });
 });

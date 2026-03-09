@@ -63,6 +63,12 @@ export function ConnectGitHubStep({ onReadyChange }: ConnectGitHubStepProps) {
     queryKey: ["github-status"],
     queryFn: async () => {
       const res = await fetch("/api/github/status");
+      if (res.status === 401) {
+        return {
+          connected: false,
+          connectUrl: GITHUB_OAUTH_CONNECT_URL,
+        };
+      }
       if (!res.ok) throw new Error("Failed to check GitHub status");
       return res.json();
     },

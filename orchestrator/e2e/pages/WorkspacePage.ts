@@ -38,7 +38,21 @@ export class WorkspacePage {
   }
 
   async goto(workspaceId: string) {
-    await this.page.goto(`/workspace/${workspaceId}`);
+    const path = `/workspace/${workspaceId}`;
+    try {
+      await this.page.goto(path, {
+        waitUntil: "domcontentloaded",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/ERR_ABORTED|frame was detached/i.test(message)) {
+        throw error;
+      }
+
+      await expect
+        .poll(() => this.page.url(), { timeout: 10_000 })
+        .toContain(path);
+    }
   }
 
   async navigateTo(route: WorkspaceRoute, workspaceId?: string) {
@@ -121,7 +135,7 @@ export class WorkspacePage {
   }
 
   async signIn(email: string, password: string) {
-    await this.page.goto("/login");
+    await this.page.goto("/login", { waitUntil: "domcontentloaded" });
     await this.page
       .locator(
         'input[type="email"], input[name="identifier"], input[name="emailAddress"]',
@@ -210,7 +224,10 @@ export class WorkspacePage {
       await firstWorkspaceCard.evaluate((element: HTMLElement) => {
         element.click();
       });
-      await this.page.waitForURL(/\/workspace\/[^/]+$/, { timeout: 30_000 });
+      await this.page.waitForURL(/\/workspace\/[^/]+$/, {
+        timeout: 30_000,
+        waitUntil: "domcontentloaded",
+      });
       await this.expectRouteLoaded("dashboard");
       return this.getWorkspaceId();
     }
@@ -367,8 +384,21 @@ export class WorkspacePage {
       return;
     }
 
-    await this.workspaceMenuTrigger.click();
-    await this.page.getByRole("menuitem", { name: /new project/i }).click();
+    const directCreateButton = this.page
+      .getByRole("button", { name: /create new project/i })
+      .first();
+    const fallbackCreateButton = this.page
+      .getByRole("button", { name: /^new project$/i })
+      .first();
+
+    if (await directCreateButton.isVisible().catch(() => false)) {
+      await directCreateButton.click();
+    } else if (await fallbackCreateButton.isVisible().catch(() => false)) {
+      await fallbackCreateButton.click();
+    } else {
+      await this.workspaceMenuTrigger.click();
+      await this.page.getByRole("menuitem", { name: /new project/i }).click();
+    }
 
     const projectName = `Smoke Project ${Date.now()}`;
     await this.page.getByLabel("Project Name").fill(projectName);
@@ -380,6 +410,6 @@ export class WorkspacePage {
   async openFirstProject() {
     await this.ensureProjectExists();
     await this.projectCards.first().click();
-    await expect(this.page).toHaveURL(/\/workspace\/[^/]+\/projects\/[^/]+/);
+    await expect(this.page).toHaveURL(/\/(workspace\/[^/]+\/)?projects\/[^/]+/);
   }
 }

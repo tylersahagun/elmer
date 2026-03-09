@@ -3,6 +3,10 @@ import { v } from "convex/values";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
+function getUnauthenticatedTasksFallback(identity: unknown): [] | null {
+  return identity ? null : [];
+}
+
 export const byProject = query({
   args: {
     projectId: v.id("projects"),
@@ -10,7 +14,8 @@ export const byProject = query({
   },
   handler: async (ctx, { projectId, status }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const unauthenticatedFallback = getUnauthenticatedTasksFallback(identity);
+    if (unauthenticatedFallback) return unauthenticatedFallback;
     const all = await ctx.db
       .query("tasks")
       .withIndex("by_project", (q) => q.eq("projectId", projectId))
@@ -28,7 +33,8 @@ export const byWorkspace = query({
   },
   handler: async (ctx, { workspaceId, status }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const unauthenticatedFallback = getUnauthenticatedTasksFallback(identity);
+    if (unauthenticatedFallback) return unauthenticatedFallback;
     const all = await ctx.db
       .query("tasks")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))

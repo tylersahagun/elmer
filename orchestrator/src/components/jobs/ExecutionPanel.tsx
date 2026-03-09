@@ -215,7 +215,6 @@ export function ExecutionPanel({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       className={cn("w-full max-w-2xl", className)}
-      data-testid="execution-panel"
     >
       <GlassCard className="overflow-hidden" data-testid="agent-execution-panel">
         {/* Header */}
@@ -374,9 +373,8 @@ export function ExecutionPanel({
               <div
                 ref={scrollRef}
                 onScroll={handleScroll}
-                data-testid="execution-logs"
-                className="h-64 overflow-auto bg-black/30 font-mono text-xs p-4"
                 data-testid="execution-log-list"
+                className="h-64 overflow-auto bg-black/30 font-mono text-xs p-4"
               >
                 {logs.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground">

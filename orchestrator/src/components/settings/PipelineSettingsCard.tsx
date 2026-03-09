@@ -59,6 +59,13 @@ const documentTypeLabels: Record<DocumentType, string> = {
   jury_report: "Jury Report",
   metrics: "Metrics",
   state: "State",
+  feature_guide: "Feature Guide",
+  competitive_landscape: "Competitive Landscape",
+  success_criteria: "Success Criteria",
+  gtm_plan: "GTM Plan",
+  retrospective: "Retrospective",
+  decisions: "Decisions",
+  visual_directions: "Visual Directions",
 };
 
 export function PipelineSettingsCard({

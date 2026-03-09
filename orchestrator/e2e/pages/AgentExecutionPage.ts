@@ -1,4 +1,4 @@
-import { type Page, type Locator } from "@playwright/test";
+import { expect, type Page, type Locator } from "@playwright/test";
 
 export class AgentExecutionPage {
   readonly page: Page;
@@ -8,18 +8,45 @@ export class AgentExecutionPage {
   }
 
   async goto(workspaceId: string) {
-    await this.page.goto(`/workspace/${workspaceId}/agents`);
-    await this.page.waitForLoadState("networkidle");
+    const path = `/workspace/${workspaceId}/agents`;
+    try {
+      await this.page.goto(path, {
+        waitUntil: "domcontentloaded",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/ERR_ABORTED|frame was detached/i.test(message)) {
+        throw error;
+      }
+
+      await expect
+        .poll(() => this.page.url(), { timeout: 10_000 })
+        .toContain(path);
+    }
   }
 
   async gotoTrace(workspaceId: string, jobId: string) {
-    await this.page.goto(`/workspace/${workspaceId}/agents/${jobId}`);
+    const path = `/workspace/${workspaceId}/agents/${jobId}`;
+    try {
+      await this.page.goto(path, {
+        waitUntil: "domcontentloaded",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/ERR_ABORTED|frame was detached/i.test(message)) {
+        throw error;
+      }
+
+      await expect
+        .poll(() => this.page.url(), { timeout: 10_000 })
+        .toContain(path);
+    }
   }
 
   traceRoot(): Locator {
-    return this.page.locator(
-      '[data-testid="agent-trace-page"], [data-testid="agent-trace-root"]',
-    );
+    return this.page
+      .locator('[data-testid="agent-trace-page"], [data-testid="agent-trace-root"]')
+      .first();
   }
 
   executionPanel(): Locator {

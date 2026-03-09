@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+const isRemoteBaseURL = /^https?:\/\/(?!localhost(?::|\/|$)|127\.0\.0\.1(?::|\/|$))/.test(
+  baseURL,
+);
+
 /**
  * Playwright config for Elmer E2E tests.
  *
@@ -13,11 +18,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI || isRemoteBaseURL ? 1 : undefined,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "html",
 
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -65,7 +70,7 @@ export default defineConfig({
   ],
 
   // Start local dev server automatically when running locally
-  webServer: process.env.CI
+  webServer: process.env.CI || isRemoteBaseURL
     ? undefined
     : {
         command: "npm run dev",

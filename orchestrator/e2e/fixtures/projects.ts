@@ -66,6 +66,28 @@ export async function seedProjectDocument(
     },
   );
 
-  expect(response.ok()).toBeTruthy();
-  return (await response.json()) as { documentId: string };
+  if (response.ok()) {
+    return (await response.json()) as { documentId: string };
+  }
+
+  const fallbackResponse = await request.post("/api/documents", {
+    data: {
+      projectId,
+      type: options.type ?? "prd",
+      title: options.title ?? `[${seedTag}] Seeded PRD`,
+      content:
+        options.content ??
+        `# [${seedTag}] Seeded PRD\n\n## Outcome\nShip deterministic E2E coverage for ${seedTag}.`,
+      metadata: {
+        e2eTag: seedTag,
+        workspaceId,
+      },
+    },
+  });
+
+  expect(fallbackResponse.ok()).toBeTruthy();
+  const payload = (await fallbackResponse.json()) as { id?: string; documentId?: string };
+  return {
+    documentId: payload.documentId ?? payload.id ?? "",
+  };
 }

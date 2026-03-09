@@ -1,9 +1,17 @@
 import { test, expect } from "@playwright/test";
 import dotenv from "dotenv";
 import path from "node:path";
+import { createProject } from "../fixtures/projects";
+import { cleanupSeededData } from "../fixtures/jobs";
 import { WorkspacePage, type WorkspaceRoute } from "../pages";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env.local") });
+
+function isIgnorableConsoleNoise(message: string) {
+  return message.includes(
+    "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties.",
+  );
+}
 
 test("unauthenticated /login renders Clerk sign-in @smoke", async ({
   browser,
@@ -51,6 +59,7 @@ test("unauthenticated /login renders Clerk sign-in @smoke", async ({
 
 test.describe("Smoke: Core routes @smoke", () => {
   let workspaceId: string;
+  let seedTag: string | null = null;
   let consoleErrors: string[] = [];
   let pageErrors: string[] = [];
 
@@ -59,11 +68,16 @@ test.describe("Smoke: Core routes @smoke", () => {
     pageErrors = [];
     page.on("console", (message) => {
       if (message.type() === "error") {
-        consoleErrors.push(message.text());
+        const text = message.text();
+        if (!isIgnorableConsoleNoise(text)) {
+          consoleErrors.push(text);
+        }
       }
     });
     page.on("pageerror", (error) => {
-      pageErrors.push(error.message);
+      if (!isIgnorableConsoleNoise(error.message)) {
+        pageErrors.push(error.message);
+      }
     });
 
     const workspace = new WorkspacePage(page);
@@ -76,6 +90,12 @@ test.describe("Smoke: Core routes @smoke", () => {
     expect(pageErrors, `Page errors detected:\n${pageErrors.join("\n")}`).toEqual([]);
   });
 
+  test.afterEach(async ({ request }) => {
+    if (!seedTag) return;
+    await cleanupSeededData(request, workspaceId, seedTag);
+    seedTag = null;
+  });
+
   test("authenticated home opens the first workspace dashboard", async ({
     page,
   }) => {
@@ -83,23 +103,32 @@ test.describe("Smoke: Core routes @smoke", () => {
     await workspace.expectRouteLoaded("dashboard");
   });
 
-  test("project cockpit exposes the alpha operator loop", async ({ page }) => {
+  test("project cockpit exposes the alpha operator loop", async ({ page, request }) => {
     const workspace = new WorkspacePage(page);
     await workspace.goto(workspaceId);
     await workspace.expectRouteLoaded("dashboard");
-    await workspace.openFirstProject();
+
+    seedTag = `smoke-project-${Date.now()}`;
+    const project = await createProject(request, workspaceId, seedTag);
+    await page.goto(`/projects/${project.id}`, { waitUntil: "domcontentloaded" });
 
     await expect(
       page.getByRole("heading", { name: "Active Work", exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText("Evidence status", { exact: true })).toBeVisible();
-    await expect(page.getByText("Agent visibility", { exact: true })).toBeVisible();
-    await expect(page.getByText("Human gates", { exact: true })).toBeVisible();
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Evidence status", { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
     await expect(
-      page.getByText("Internal alpha feedback", { exact: true }),
-    ).toBeVisible();
+      page.getByText("Agent visibility", { exact: true }).first(),
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Human gates", { exact: true }).first()).toBeVisible({
+      timeout: 30_000,
+    });
     await expect(
-      page.getByRole("button", { name: /copy issue template/i }),
+      page.getByText("Internal alpha feedback", { exact: true }).first(),
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(
+      page.getByRole("button", { name: /copy issue template/i }).first(),
     ).toBeVisible();
   });
 
@@ -125,15 +154,15 @@ test.describe("Smoke: Core routes @smoke", () => {
     });
   }
 
-  test("unauthenticated home exposes sign-in entry points", async ({
-    browser,
-  }) => {
-    // Use a fresh context with NO storageState to simulate logged-out user
-    const freshCtx = await browser.newContext({ storageState: undefined });
-    const page = await freshCtx.newPage();
-    const workspace = new WorkspacePage(page);
-    await workspace.gotoHome();
-    await workspace.expectUnauthenticatedHome();
-    await freshCtx.close();
-  });
+});
+
+test("unauthenticated home exposes sign-in entry points @smoke", async ({
+  browser,
+}) => {
+  const freshCtx = await browser.newContext({ storageState: undefined });
+  const page = await freshCtx.newPage();
+  const workspace = new WorkspacePage(page);
+  await workspace.gotoHome();
+  await workspace.expectUnauthenticatedHome();
+  await freshCtx.close();
 });

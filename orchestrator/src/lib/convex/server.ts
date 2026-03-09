@@ -90,6 +90,15 @@ export async function createConvexProject(data: Record<string, unknown>) {
   return await res.json();
 }
 
+export async function createConvexDocument(data: Record<string, unknown>) {
+  const res = await convexFetch(`/mcp/e2e/project-document`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create document");
+  return await res.json();
+}
+
 export async function updateConvexProject(projectId: string, data: Record<string, unknown>) {
   const res = await convexFetch(`/mcp/project`, {
     method: "PATCH",

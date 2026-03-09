@@ -1023,7 +1023,6 @@ http.route({
       questionText: body.questionText as string,
       choices: body.choices as string[] | undefined,
       scenario: body.scenario as string | undefined,
-      seedTag: body.seedTag as string | undefined,
     });
     return jsonOk(result);
   }),
