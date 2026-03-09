@@ -11,6 +11,12 @@ import { buildServerTools, getAnthropicTools, resolveModel } from "./tools/index
 import { getGitHubHeaders } from "./tools/githubAuth";
 import type { Id } from "./_generated/dataModel";
 import {
+  buildDefinitionMetadata,
+  parseFrontmatter,
+  parseGraphEdges,
+  relationTargetEntityType,
+} from "./lib/agentSyncParser";
+import {
   buildStubJobInput,
   STUB_HITL_INITIAL_LOGS,
   STUB_HITL_RESUME_LOGS,
@@ -494,105 +500,12 @@ export const resume = internalAction({
 // all content is in tylersahagun/elmer.
 const PM_WORKSPACE_REPO = "tylersahagun/elmer";
 
-function parseFrontmatter(content: string): { meta: Record<string, unknown>; body: string } {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  if (!match) return { meta: {}, body: content };
-  const meta: Record<string, unknown> = {};
-  for (const line of match[1].split("\n")) {
-    const [key, ...rest] = line.split(":");
-    if (key && rest.length) {
-      const val = rest.join(":").trim();
-      if (val.startsWith("[") && val.endsWith("]"))
-        meta[key.trim()] = val.slice(1, -1).split(",").map((s) => s.trim().replace(/^["']|["']$/g, ""));
-      else meta[key.trim()] = val.replace(/^["']|["']$/g, "");
-    }
-  }
-  return { meta, body: match[2].trim() };
-}
-
 const SYNC_PATHS = [
   { prefix: ".cursor/agents/", type: "subagent" as const },
   { prefix: ".cursor/skills/", type: "skill" as const },
   { prefix: ".cursor/commands/", type: "command" as const },
   { prefix: ".cursor/rules/", type: "rule" as const },
 ];
-
-// ── GTM-45: Graph edge parsing ────────────────────────────────────────────────
-
-interface ParsedEdge {
-  relationType: string;
-  targetName: string;
-}
-
-/**
- * Extract graph relationships from agent/command/skill markdown content.
- * Looks for:
- *   - "Delegates to: [agent-name]" / "**Delegates to:** `agent-name`"
- *   - "Uses skill: skill-name"
- *   - "@elmer-docs/company-context/..." (reads_context)
- *   - "produces: [document-type]" in frontmatter
- *   - "human_gate: ..." in frontmatter
- *   - "Invoke for /command-name" (triggers command)
- */
-function parseGraphEdges(content: string, meta: Record<string, unknown>): ParsedEdge[] {
-  const edges: ParsedEdge[] = [];
-  const seen = new Set<string>();
-
-  const add = (relationType: string, targetName: string) => {
-    const key = `${relationType}:${targetName}`;
-    if (!seen.has(key)) { seen.add(key); edges.push({ relationType, targetName }); }
-  };
-
-  // delegates_to — various patterns from agent files
-  const delegatePatterns = [
-    /[Dd]elegates?\s+to[:\s]+[`"]?([a-z][a-z0-9-]+)[`"]?/g,
-    /\*\*[Dd]elegates?\s+to[:\s]*\*\*\s+[`"]?([a-z][a-z0-9-]+)[`"]?/g,
-    /Subagent[:\s]+[`"]?([a-z][a-z0-9-]+)[`"]?/g,
-  ];
-  for (const pattern of delegatePatterns) {
-    for (const m of content.matchAll(pattern)) {
-      add("delegates_to", m[1].trim());
-    }
-  }
-
-  // uses_skill
-  const skillPatterns = [
-    /[Uu]ses?\s+skill[:\s]+[`"]?([a-z][a-z0-9-]+)[`"]?/g,
-    /[Ss]kill[:\s]+[`"]?([a-z][a-z0-9-]+)[`"]?/g,
-  ];
-  for (const pattern of skillPatterns) {
-    for (const m of content.matchAll(pattern)) {
-      add("uses_skill", m[1].trim());
-    }
-  }
-
-  // reads_context — @elmer-docs/company-context/* or pm-workspace-docs/company-context/*
-  for (const m of content.matchAll(/@(?:elmer-docs|pm-workspace-docs)\/company-context\/([^\s\)]+)/g)) {
-    add("reads_context", m[1].trim());
-  }
-  for (const m of content.matchAll(/`(?:elmer-docs|pm-workspace-docs)\/company-context\/([^\s`]+)`/g)) {
-    add("reads_context", m[1].trim());
-  }
-
-  // produces — from frontmatter metadata
-  const produced = meta.producedArtifacts ?? meta.produces;
-  if (Array.isArray(produced)) {
-    for (const p of produced) { if (typeof p === "string") add("produces", p); }
-  } else if (typeof produced === "string") {
-    add("produces", produced);
-  }
-
-  // human_gate
-  const gate = meta.humanGate ?? meta.human_gate;
-  if (gate && typeof gate === "string") add("human_gate", gate);
-
-  // triggers — "Invoke for /command-name" patterns
-  for (const m of content.matchAll(/[Ii]nvoke for\s+`?\/([a-z][a-z0-9-]+)`?/g)) {
-    add("triggers", m[1].trim());
-  }
-
-  return edges;
-}
 
 async function doSync(workspaceId: Id<"workspaces">, ctx: any) {
   let headers: Record<string, string>;
@@ -630,14 +543,39 @@ async function doSync(workspaceId: Id<"workspaces">, ctx: any) {
       const parts = file.path.split("/");
       const fileName = parts[parts.length - 1].replace(/\.md$/, "");
       const name = classification.type === "skill" ? parts[parts.length - 2] ?? fileName : fileName;
+      const parsedTriggers = Array.isArray(meta.triggers)
+        ? meta.triggers.filter((entry): entry is string => typeof entry === "string")
+        : typeof meta.triggers === "string"
+          ? meta.triggers
+              .split(",")
+              .map((entry) => entry.trim())
+              .filter(Boolean)
+          : undefined;
+      const definitionMetadata = buildDefinitionMetadata(meta, file.path, file.sha);
+      const executionMode =
+        typeof definitionMetadata.executionMode === "string"
+          ? definitionMetadata.executionMode
+          : "server";
+      const requiredArtifacts = Array.isArray(definitionMetadata.requiredArtifacts)
+        ? definitionMetadata.requiredArtifacts.filter((entry): entry is string => typeof entry === "string")
+        : undefined;
+      const producedArtifacts = Array.isArray(definitionMetadata.producedArtifacts)
+        ? definitionMetadata.producedArtifacts.filter((entry): entry is string => typeof entry === "string")
+        : undefined;
 
-      const defId = await ctx.runMutation(api.agentDefinitions.upsert, {
+      await ctx.runMutation(api.agentDefinitions.upsert, {
         workspaceId, name, type: classification.type,
         content: body || raw,
         description: meta.description as string | undefined,
-        triggers: meta.triggers as string[] | undefined,
-        executionMode: (meta.executionMode as string | undefined) ?? "server",
-        metadata: { filePath: file.path, githubSha: file.sha, model: meta.model },
+        triggers: parsedTriggers,
+        phase:
+          typeof definitionMetadata.phase === "string"
+            ? definitionMetadata.phase
+            : undefined,
+        executionMode,
+        requiredArtifacts,
+        producedArtifacts,
+        metadata: definitionMetadata,
       });
 
       // GTM-45: Auto-create a graph node for this agent definition (idempotent)
@@ -647,35 +585,40 @@ async function doSync(workspaceId: Id<"workspaces">, ctx: any) {
         entityType: classification.type,
         entityId: name,
         name,
-        domain: meta.phase as string | undefined,
+        domain:
+          typeof definitionMetadata.phase === "string"
+            ? definitionMetadata.phase
+            : undefined,
         accessWeight: 1.0,
         decayRate: 0.001, // agent definitions decay very slowly
-        metadata: { filePath: file.path },
+        metadata: { filePath: file.path, source: "agent-sync" },
       });
 
       // GTM-45: Parse and create graph edges from content
       const edges = parseGraphEdges(body || raw, meta);
       for (const edge of edges) {
-        // Find or create the target node (by name, any entity type)
-        const targetNode = await ctx.runQuery(api.graph.getNodeByEntity, {
-          entityType: edge.relationType === "delegates_to" ? "subagent"
-            : edge.relationType === "uses_skill" ? "skill"
-            : edge.relationType === "triggers" ? "command"
-            : "context",
+        const targetNodeId = await ctx.runMutation(internal.graph.createNode, {
+          workspaceId,
+          entityType: relationTargetEntityType(edge.relationType),
           entityId: edge.targetName,
+          name: edge.targetName,
+          accessWeight: 1.0,
+          decayRate: 0.001,
+          metadata: {
+            source: "agent-sync-placeholder",
+            relationType: edge.relationType,
+          },
         });
 
-        if (targetNode) {
-          await ctx.runMutation(internal.graph.createEdge, {
-            workspaceId,
-            fromNodeId: nodeId,
-            toNodeId: targetNode._id,
-            relationType: edge.relationType,
-            weight: 1.0,
-            confidence: 0.9,
-            source: "agent",
-          });
-        }
+        await ctx.runMutation(internal.graph.createEdge, {
+          workspaceId,
+          fromNodeId: nodeId,
+          toNodeId: targetNodeId,
+          relationType: edge.relationType,
+          weight: 1.0,
+          confidence: 0.9,
+          source: "agent",
+        });
       }
 
       synced++;

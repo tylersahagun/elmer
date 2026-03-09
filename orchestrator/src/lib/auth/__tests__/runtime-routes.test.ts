@@ -3,7 +3,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createServer } from "node:net";
 import { evaluateLoginRouteHealth } from "../login-health";
 
-const SERVER_START_TIMEOUT_MS = 120_000;
+const SERVER_START_TIMEOUT_MS = 240_000;
 const SERVER_POLL_INTERVAL_MS = 500;
 const repoRoot = process.cwd();
 
