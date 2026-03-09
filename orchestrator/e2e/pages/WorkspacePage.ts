@@ -310,9 +310,16 @@ export class WorkspacePage {
           .toMatch(/loading|ready/);
         break;
       case "settings":
-        await expect(
-          this.page.getByRole("heading", { name: "Workspace Settings" }),
-        ).toBeVisible();
+        await expect
+          .poll(
+            async () =>
+              this.page
+                .getByRole("heading", { name: "Workspace Settings" })
+                .isVisible()
+                .catch(() => false),
+            { timeout: 30_000 },
+          )
+          .toBe(true);
         break;
       case "personas":
         await expect

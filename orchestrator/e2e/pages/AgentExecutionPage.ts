@@ -56,9 +56,9 @@ export class AgentExecutionPage {
   }
 
   executionLogs(): Locator {
-    return this.page.locator(
-      '[data-testid="execution-log-list"], [data-testid="execution-logs"]',
-    );
+    return this.page
+      .locator('[data-testid="execution-log-list"], [data-testid="execution-logs"]')
+      .first();
   }
 
   executionOutput(): Locator {

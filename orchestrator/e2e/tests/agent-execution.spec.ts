@@ -66,12 +66,18 @@ test.describe("Agent execution", () => {
     await trace.gotoTrace(workspaceId, execution.jobId);
     await expect(trace.traceRoot()).toBeVisible();
     await expect(trace.executionPanel()).toBeVisible();
-    await expect(trace.executionLogs()).toContainText(
-      "Stub HITL scenario seeded for deterministic E2E validation",
-    );
-    await expect(trace.executionLogs()).toContainText(
-      "Completed after deterministic HITL approval",
-    );
+    await expect
+      .poll(async () => (await trace.executionLogs().textContent()) ?? "", {
+        timeout: 30_000,
+        intervals: [500, 1000, 2000],
+      })
+      .toContain("Stub HITL scenario seeded for deterministic E2E validation");
+    await expect
+      .poll(async () => (await trace.executionLogs().textContent()) ?? "", {
+        timeout: 30_000,
+        intervals: [500, 1000, 2000],
+      })
+      .toContain("Completed after deterministic HITL approval");
     await expect(trace.executionOutput()).toContainText(
       "Deterministic HITL stub completed successfully",
     );

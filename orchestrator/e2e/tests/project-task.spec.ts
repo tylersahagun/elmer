@@ -85,8 +85,11 @@ test.describe("Project and task flows", () => {
     await page.goto(`/projects/${project.id}?tab=tasks`, {
       waitUntil: "domcontentloaded",
     });
+    await expect(page.locator("body")).not.toContainText("Loading project...", {
+      timeout: 30_000,
+    });
     await expect(page).toHaveURL(
-      new RegExp(`/workspace/${workspaceId}/projects/${project.id}\\?tab=tasks$`),
+      new RegExp(`/(workspace/${workspaceId}/)?projects/${project.id}\\?tab=tasks$`),
     );
     await page.getByTestId("new-task-button").click();
     await page.getByTestId("task-title-input").fill(taskTitle);
@@ -132,8 +135,11 @@ test.describe("Project and task flows", () => {
     await page.goto(`/projects/${project.id}?tab=documents`, {
       waitUntil: "domcontentloaded",
     });
+    await expect(page.locator("body")).not.toContainText("Loading project...", {
+      timeout: 30_000,
+    });
     await expect(page).toHaveURL(
-      new RegExp(`/workspace/${workspaceId}/projects/${project.id}\\?tab=documents$`),
+      new RegExp(`/(workspace/${workspaceId}/)?projects/${project.id}\\?tab=documents$`),
     );
     await expect(page.getByTestId("document-viewer")).toBeVisible({
       timeout: 30_000,

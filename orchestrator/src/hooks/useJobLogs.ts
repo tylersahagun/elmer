@@ -10,6 +10,9 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { canRunConvexQuery } from "@/lib/auth/convex";
+import { useConvexAuth } from "convex/react";
 
 export interface JobLogEntry {
   _id: string;
@@ -53,19 +56,28 @@ interface UseJobLogsReturn {
  * Pass `null` or `undefined` to skip (hook is always called but returns empty).
  */
 export function useJobLogs(jobId: string | null | undefined): UseJobLogsReturn {
+  const { isLoaded, isSignedIn } = useCurrentUser();
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+  const canLoadConvexData = canRunConvexQuery({
+    isClerkLoaded: isLoaded,
+    isSignedIn,
+    isConvexAuthenticated,
+  });
+
   const job = useQuery(
     api.jobs.get,
-    jobId ? { jobId: jobId as Id<"jobs"> } : "skip",
+    jobId && canLoadConvexData ? { jobId: jobId as Id<"jobs"> } : "skip",
   ) as JobState | null | undefined;
 
   const logs = useQuery(
     api.jobs.getLogs,
-    jobId ? { jobId: jobId as Id<"jobs"> } : "skip",
+    jobId && canLoadConvexData ? { jobId: jobId as Id<"jobs"> } : "skip",
   ) as JobLogEntry[] | undefined;
 
   return {
     logs: logs ?? [],
     job: job ?? null,
-    isLoading: jobId ? logs === undefined || job === undefined : false,
+    isLoading:
+      jobId && canLoadConvexData ? logs === undefined || job === undefined : false,
   };
 }

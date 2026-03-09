@@ -3,7 +3,11 @@
 import { useState, useEffect, use, useRef } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useQuery as useConvexQuery, useMutation as useConvexMutation } from "convex/react";
+import {
+  useConvexAuth,
+  useMutation as useConvexMutation,
+  useQuery as useConvexQuery,
+} from "convex/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +79,7 @@ import type {
   SignalAutomationSettings,
   SourceRepoTransformation,
 } from "@/lib/db/schema";
+import { canRunConvexQuery } from "@/lib/auth/convex";
 
 interface WorkspaceMember {
   id: string;
@@ -190,7 +195,13 @@ export default function WorkspaceSettingsPage({
 }) {
   const { id: workspaceId } = use(params);
   const queryClient = useQueryClient();
-  const { user } = useCurrentUser();
+  const { user, isLoaded, isSignedIn } = useCurrentUser();
+  const { isAuthenticated: isConvexAuthenticated } = useConvexAuth();
+  const canLoadConvexData = canRunConvexQuery({
+    isClerkLoaded: isLoaded,
+    isSignedIn,
+    isConvexAuthenticated,
+  });
 
   // UI state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -257,9 +268,14 @@ export default function WorkspaceSettingsPage({
       enabled: !!workspaceId,
     });
 
-  const rawMembers = useConvexQuery(api.memberships.listByWorkspace, {
-    workspaceId: workspaceId as Id<"workspaces">,
-  }) as
+  const rawMembers = useConvexQuery(
+    api.memberships.listByWorkspace,
+    canLoadConvexData
+      ? {
+          workspaceId: workspaceId as Id<"workspaces">,
+        }
+      : "skip",
+  ) as
     | Array<{
         _id: string;
         userId?: string;
@@ -287,9 +303,14 @@ export default function WorkspaceSettingsPage({
     })) ?? [];
 
   // Fetch workspace invitations (admin only)
-  const rawInvitations = useConvexQuery(api.invitations.listByWorkspace, {
-    workspaceId: workspaceId as Id<"workspaces">,
-  }) as
+  const rawInvitations = useConvexQuery(
+    api.invitations.listByWorkspace,
+    canLoadConvexData
+      ? {
+          workspaceId: workspaceId as Id<"workspaces">,
+        }
+      : "skip",
+  ) as
     | Array<{
         _id: string;
         email: string;
