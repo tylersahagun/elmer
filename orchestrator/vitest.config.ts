@@ -8,13 +8,18 @@ dotenv.config({ path: path.resolve(__dirname, ".env.local") });
 export default defineConfig({
   test: {
     globals: true,
-    environment: "node",
     include: [
       "src/__tests__/**/*.test.ts",
       "src/**/__tests__/**/*.test.ts",
       "convex/__tests__/**/*.test.ts",
     ],
     exclude: ["node_modules", ".next"],
+    // Use edge-runtime for convex/ tests (required by convex-test)
+    // Use node for all other tests
+    environmentMatchGlobs: [
+      ["convex/**", "edge-runtime"],
+      ["**", "node"],
+    ],
     setupFiles: ["./src/__tests__/setup.ts"],
     coverage: {
       provider: "v8",

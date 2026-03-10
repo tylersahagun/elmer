@@ -48,7 +48,17 @@ import {
   MessageSquare,
   ShieldCheck,
 } from "lucide-react";
-import type { GraduationCriteria, DocumentType } from "@/lib/db/schema";
+type DocumentType = "research" | "prd" | "design_brief" | "engineering_spec" | "gtm_brief" | "prototype_notes" | "jury_report" | "metrics" | "state" | "feature_guide" | "competitive_landscape" | "success_criteria" | "gtm_plan" | "retrospective" | "decisions" | "visual_directions";
+interface GraduationCriteria {
+  requiredDocuments?: DocumentType[];
+  minApprovalRate?: number;
+  minJuryEvaluations?: number;
+  requirePrototype?: boolean;
+  minSignalsProcessed?: number;
+  requireMetricsGate?: boolean;
+  allowManualOverride?: boolean;
+  customRules?: Record<string, unknown>;
+}
 
 interface ColumnConfig {
   id: string;

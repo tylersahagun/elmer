@@ -1,16 +1,37 @@
+/**
+ * POST /api/workspaces/[id]/signals/ingest
+ * Ingest signals from connected sources (Slack, HubSpot, etc.) or direct items.
+ * Migrated to Convex (replaces Drizzle).
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { createSignal, getWorkspace } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../../convex/_generated/dataModel";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { composioService } from "@/lib/composio/service";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
-import { logActivity } from "@/lib/activity";
-import { db } from "@/lib/db";
-import { signals } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { createConvexWorkspaceActivity } from "@/lib/convex/server";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { commitToGitHub } from "@/lib/github/writeback-service";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
+async function getAuthenticatedClient() {
+  const auth = await clerkAuth();
+  const token = await auth.getToken({ template: "convex" });
+  const client = getConvexClient();
+  if (token) client.setAuth(token);
+  return client;
+}
 
 function findIngestTool(
   tools: Array<Record<string, unknown>>,
@@ -61,7 +82,8 @@ export async function POST(
   try {
     const { id } = await params;
     const membership = await requireWorkspaceAccess(id, "member");
-    const workspace = await getWorkspace(id);
+
+    const workspace = await getConvexWorkspace(id);
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
@@ -81,7 +103,7 @@ export async function POST(
     }
 
     if (items.length === 0) {
-      const composio = workspace.settings?.composio;
+      const composio = (workspace as { settings?: { composio?: { enabled?: boolean; connectedServices?: string[] } } }).settings?.composio;
       const connected = composio?.connectedServices || [];
       if (!composio?.enabled || !connected.includes(source)) {
         return NextResponse.json(
@@ -123,68 +145,90 @@ export async function POST(
       }));
     }
 
+    const client = await getAuthenticatedClient();
     let created = 0;
+
     for (const item of body.items || []) {
-      await createSignal({
-        workspaceId: id,
+      await client.mutation(api.signals.create, {
+        workspaceId: id as Id<"workspaces">,
         verbatim: String(item.verbatim || ""),
         interpretation: item.interpretation
           ? String(item.interpretation)
           : undefined,
-        source: source as "slack" | "hubspot" | "other",
+        source: source,
         sourceRef: item.sourceRef ? String(item.sourceRef) : undefined,
-        sourceMetadata: item.sourceMetadata || undefined,
       });
       created += 1;
     }
 
-    await logActivity(id, null, "signals.ingested", {
+    await createConvexWorkspaceActivity({
+      workspaceId: id,
+      userId: membership.userId,
+      action: "signals.ingested",
       targetType: "workspace",
       targetId: id,
       metadata: { source, created },
-    });
+    }).catch(() => {});
 
     // Write signals index to repo (best-effort)
-    if (workspace.githubRepo && membership?.userId) {
+    const workspaceData = workspace as {
+      githubRepo?: string;
+      settings?: { baseBranch?: string };
+      contextPath?: string;
+      name?: string;
+    };
+    if (workspaceData.githubRepo && membership?.userId) {
       try {
-        const [owner, repo] = workspace.githubRepo.split("/");
+        const [owner, repo] = workspaceData.githubRepo.split("/");
         if (!owner || !repo) {
           throw new Error("Invalid github repo format");
         }
-        const allSignals = await db.query.signals.findMany({
-          where: eq(signals.workspaceId, id),
+
+        const allSignals = await client.query(api.signals.list, {
+          workspaceId: id as Id<"workspaces">,
         });
 
         const contextRoot =
-          workspace.contextPath &&
-          workspace.contextPath !== "elmer-docs/" &&
-          workspace.contextPath !== "elmer-docs"
-            ? workspace.contextPath
+          workspaceData.contextPath &&
+          workspaceData.contextPath !== "elmer-docs/" &&
+          workspaceData.contextPath !== "elmer-docs"
+            ? workspaceData.contextPath
             : "pm-workspace-docs/";
         const rootPath = contextRoot.endsWith("/")
           ? contextRoot
           : `${contextRoot}/`;
         const indexPath = `${rootPath}signals/_index.json`;
 
-        const indexPayload = allSignals.map((signal) => ({
-          id: signal.id,
-          source: signal.source,
-          sourceRef: signal.sourceRef,
-          status: signal.status,
-          severity: signal.severity,
-          frequency: signal.frequency,
-          createdAt: signal.createdAt,
-          tags: signal.tags || [],
-        }));
+        const indexPayload = allSignals.map(
+          (signal: {
+            _id: string;
+            source: string;
+            sourceRef?: string;
+            status: string;
+            severity?: string;
+            frequency?: string;
+            _creationTime: number;
+            tags?: string[];
+          }) => ({
+            id: signal._id,
+            source: signal.source,
+            sourceRef: signal.sourceRef,
+            status: signal.status,
+            severity: signal.severity,
+            frequency: signal.frequency,
+            createdAt: new Date(signal._creationTime).toISOString(),
+            tags: signal.tags || [],
+          }),
+        );
 
         await commitToGitHub(
           {
             workspaceId: id,
             projectId: undefined,
-            projectName: workspace.name,
+            projectName: workspaceData.name ?? "workspace",
             owner,
             repo,
-            branch: workspace.settings?.baseBranch || "main",
+            branch: workspaceData.settings?.baseBranch || "main",
           },
           [
             {
@@ -194,7 +238,7 @@ export async function POST(
           ],
           {
             projectId: undefined,
-            projectName: workspace.name,
+            projectName: workspaceData.name ?? "workspace",
             documentType: "signals_index",
             triggeredBy: "signals.ingest",
           },

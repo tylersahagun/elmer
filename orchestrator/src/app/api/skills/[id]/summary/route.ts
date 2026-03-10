@@ -5,14 +5,17 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { skills } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
 import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs/promises";
 import path from "path";
 
 const anthropic = new Anthropic();
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
 
 // Static summaries for built-in job types (cached)
 const BUILTIN_SUMMARIES: Record<string, string> = {
@@ -31,7 +34,6 @@ const BUILTIN_SUMMARIES: Record<string, string> = {
   create_feature_branch: "Creates a Git feature branch with proper naming convention and initial commit structure.",
 };
 
-// Try to load skill prompt from filesystem for more detailed summary
 async function loadSkillPrompt(skillId: string): Promise<string | null> {
   const commandsPath = path.join(process.cwd(), "..", ".cursor", "commands");
   const altPath = path.join(process.cwd(), ".cursor", "commands");
@@ -48,7 +50,6 @@ async function loadSkillPrompt(skillId: string): Promise<string | null> {
     }
   }
   
-  // Map skill IDs to potential command files
   const mappings: Record<string, string[]> = {
     analyze_transcript: ["RESEARCH.md", "INGEST.md"],
     generate_prd: ["PM.md", "PRD.md"],
@@ -82,18 +83,21 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const regenerate = searchParams.get("regenerate") === "true";
     
-    // Check if we have a cached summary in the database
+    // Check if we have a cached summary in Convex
     if (!regenerate) {
-      const skill = await db.query.skills.findFirst({
-        where: eq(skills.id, skillId),
-      });
-      
-      if (skill?.metadata?.aiSummary) {
-        return NextResponse.json({
-          skillId,
-          summary: skill.metadata.aiSummary,
-          source: "cached",
-        });
+      try {
+        const client = getConvexClient();
+        const skill = await client.query(api.skills.getByLegacyId, { legacyId: skillId });
+        const meta = skill?.metadata as Record<string, unknown> | null;
+        if (meta?.aiSummary) {
+          return NextResponse.json({
+            skillId,
+            summary: meta.aiSummary,
+            source: "cached",
+          });
+        }
+      } catch {
+        // Cache miss, continue
       }
     }
     
@@ -110,7 +114,6 @@ export async function GET(
     const promptContent = await loadSkillPrompt(skillId);
     
     if (!promptContent) {
-      // Return a generic summary based on the skill ID
       const genericSummary = `Executes the ${skillId.replace(/_/g, " ")} workflow as part of the PM automation pipeline.`;
       return NextResponse.json({
         skillId,
@@ -136,27 +139,6 @@ export async function GET(
     }
     
     const summary = content.text.trim();
-    
-    // Try to cache in database if skill exists
-    try {
-      const existingSkill = await db.query.skills.findFirst({
-        where: eq(skills.id, skillId),
-      });
-      
-      if (existingSkill) {
-        await db.update(skills)
-          .set({
-            metadata: {
-              ...(existingSkill.metadata || {}),
-              aiSummary: summary,
-            },
-            updatedAt: new Date(),
-          })
-          .where(eq(skills.id, skillId));
-      }
-    } catch {
-      // Caching failed, continue anyway
-    }
     
     return NextResponse.json({
       skillId,

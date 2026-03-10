@@ -83,7 +83,7 @@ import {
 } from "@/lib/projects/navigation";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
-import type { DocumentType } from "@/lib/db/schema";
+type DocumentType = string;
 import { InitiativeDashboardEmbed } from "@/components/agents/InitiativeDashboardEmbed";
 
 interface ProjectDetailPageProps {
@@ -593,12 +593,41 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const handleSyncTickets = useCallback(
     async (toolkit: string) => {
       if (!project) return;
+      const pendingCount = (project.tickets || []).filter((ticket) => {
+        if (toolkit === "jira") {
+          return (
+            (ticket.metadata as { jiraSyncStatus?: string } | null)
+              ?.jiraSyncStatus !== "synced"
+          );
+        }
+        return !ticket.linearIdentifier;
+      }).length;
+
+      if (pendingCount === 0) {
+        toast.success(`No ${toolkit} tickets need syncing`);
+        return;
+      }
+
+      const expectedConfirmation = `sync ${pendingCount} ${toolkit} ticket${pendingCount === 1 ? "" : "s"}`;
+      const confirmation = window.prompt(
+        `This will create or sync ${pendingCount} ticket${pendingCount === 1 ? "" : "s"} in ${toolkit.toUpperCase()}.\n\nType "${expectedConfirmation}" to continue.`,
+      );
+
+      if (confirmation !== expectedConfirmation) {
+        toast.message("Ticket sync cancelled");
+        return;
+      }
+
       setTicketSyncing(toolkit);
       try {
         const res = await fetch(
           `/api/projects/${project.id}/tickets/sync?toolkit=${toolkit}`,
           {
             method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ confirm: expectedConfirmation }),
           },
         );
         if (!res.ok) {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCurrentAppUser } from "@/lib/auth/server";
-import { getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { syncSignals } from "@/lib/signals/sync";
 import {
   requireWorkspaceAccess,
@@ -29,8 +28,6 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    await requireCurrentAppUser();
-
     // Parse optional body parameters
     const body = await request.json().catch(() => ({}));
     const signalsPaths = Array.isArray(body?.signalsPaths)
@@ -43,7 +40,7 @@ export async function POST(
     await requireWorkspaceAccess(id, "member");
 
     // Verify workspace exists
-    const workspace = await getWorkspace(id);
+    const workspace = await getConvexWorkspace(id) as { _id: string } | null;
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },

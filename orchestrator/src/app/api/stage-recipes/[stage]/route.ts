@@ -11,7 +11,7 @@ import {
   canRunFullyAuto,
   type UpdateRecipeInput,
 } from "@/lib/skills";
-import type { ProjectStage } from "@/lib/db/schema";
+type ProjectStage = "inbox" | "discovery" | "prd" | "design" | "prototype" | "validate" | "tickets" | "build" | "alpha" | "beta" | "ga";
 
 export async function GET(
   request: Request,

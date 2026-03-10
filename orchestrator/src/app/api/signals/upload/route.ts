@@ -3,6 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -14,10 +17,8 @@ import {
   MAX_FILE_SIZE_BYTES,
   MAX_FILE_SIZE_DISPLAY,
 } from "@/lib/files";
-import { createSignal } from "@/lib/db/queries";
-import { db } from "@/lib/db";
-import { activityLogs } from "@/lib/db/schema";
 import { processSignalExtraction } from "@/lib/signals";
+import { createConvexWorkspaceActivity } from "@/lib/convex/server";
 
 const ALLOWED_MIME_TYPES = ["application/pdf", "text/csv", "text/plain"];
 const ALLOWED_EXTENSIONS = ["pdf", "csv", "txt"];
@@ -38,7 +39,6 @@ export async function POST(request: NextRequest) {
     const workspaceId = formData.get("workspaceId") as string | null;
     const interpretation = formData.get("interpretation") as string | null;
 
-    // Validate required fields
     if (!file) {
       return NextResponse.json({ error: "File is required" }, { status: 400 });
     }
@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size
     if (file.size > MAX_FILE_SIZE_BYTES) {
       return NextResponse.json(
         { error: `File too large. Maximum size is ${MAX_FILE_SIZE_DISPLAY}` },
@@ -57,12 +56,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size > 0
     if (file.size === 0) {
       return NextResponse.json({ error: "File is empty" }, { status: 400 });
     }
 
-    // Validate file type (MIME and/or extension)
     const extension = file.name.toLowerCase().split(".").pop() || "";
     const mimeValid = ALLOWED_MIME_TYPES.includes(file.type);
     const extensionValid = ALLOWED_EXTENSIONS.includes(extension);
@@ -74,14 +71,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Require member access to create signals
     await requireWorkspaceAccess(workspaceId, "member");
 
-    // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Server-side content validation (magic bytes for PDFs)
     const contentValidation = await validateFileContent(buffer, file.type);
     if (!contentValidation.valid) {
       return NextResponse.json(
@@ -90,7 +84,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract text from file
     let extraction;
     try {
       extraction = await extractTextFromFile(buffer, file.name, file.type);
@@ -102,7 +95,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    // Verify extraction produced text
     if (!extraction.text || extraction.text.trim().length === 0) {
       return NextResponse.json(
         { error: "Could not extract text from file. File may be empty or unreadable." },
@@ -110,57 +102,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create signal with extracted text
     const sourceRef = `upload-${Date.now()}-${nanoid(6)}`;
-    const signal = await createSignal({
-      workspaceId,
+    const client = getConvexClient();
+    const signalId = await client.mutation(api.signals.create, {
+      workspaceId: workspaceId as Id<"workspaces">,
       verbatim: extraction.text,
       interpretation: interpretation?.trim() || undefined,
       source: "upload",
       sourceRef,
-      sourceMetadata: {
-        sourceName: file.name,
-        rawPayload: {
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: extraction.metadata.fileType,
-          originalFileName: extraction.metadata.originalFileName,
-          charCount: extraction.metadata.charCount,
-          pageCount: extraction.metadata.pageCount,
-          rowCount: extraction.metadata.rowCount,
-        },
-      },
+      status: "new",
     });
 
-    // Log activity asynchronously (queue-first pattern from Phase 13)
     after(async () => {
       try {
-        await db.insert(activityLogs).values({
-          id: nanoid(),
+        await createConvexWorkspaceActivity({
           workspaceId,
           action: "signal.created",
           targetType: "signal",
-          targetId: signal!.id,
+          targetId: signalId as string,
           metadata: {
             source: "upload",
             fileName: file.name,
             fileType: extraction.metadata.fileType,
             charCount: extraction.metadata.charCount,
           },
-          createdAt: new Date(),
         });
       } catch (logError) {
-        // Never throw in after() context - log errors for debugging (Phase 13 pattern)
         console.error("Failed to log upload activity:", logError);
       }
     });
 
-    // Queue AI extraction and embedding (Phase 15)
     after(async () => {
       try {
-        await processSignalExtraction(signal!.id);
+        await processSignalExtraction(signalId as string);
       } catch (error) {
-        console.error(`Failed to process uploaded signal ${signal!.id}:`, error);
+        console.error(`Failed to process uploaded signal ${signalId}:`, error);
       }
     });
 
@@ -168,13 +144,13 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         signal: {
-          id: signal!.id,
+          id: signalId,
           verbatim:
-            signal!.verbatim.length > 200
-              ? signal!.verbatim.slice(0, 200) + "..."
-              : signal!.verbatim,
-          source: signal!.source,
-          status: signal!.status,
+            extraction.text.length > 200
+              ? extraction.text.slice(0, 200) + "..."
+              : extraction.text,
+          source: "upload",
+          status: "new",
         },
         extraction: {
           fileType: extraction.metadata.fileType,
@@ -197,4 +173,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
 }

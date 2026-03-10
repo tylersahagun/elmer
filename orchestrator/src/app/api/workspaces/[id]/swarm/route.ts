@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createJob, getWorkspace } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 import { getConvexWorkspace } from "@/lib/convex/server";
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
 import {
   buildEmptyWorkspaceStatusReport,
   buildWorkspaceStatusReport,
@@ -21,9 +27,7 @@ export async function GET(
   try {
     const { id } = await params;
     await requireWorkspaceAccess(id, "viewer");
-    const workspace =
-      (await getWorkspace(id)) ??
-      ((await getConvexWorkspace(id)) as { _id: string; name: string } | null);
+    const workspace = (await getConvexWorkspace(id)) as { _id: string; name: string } | null;
     const fallbackWorkspace = workspace ?? {
       _id: id,
       name: "Workspace",
@@ -88,10 +92,11 @@ export async function POST(
     if (body.launchJobs && body.projectId) {
       for (const lane of body.lanes) {
         for (const laneJob of lane.jobs || []) {
-          const job = await createJob({
-            workspaceId: id,
-            projectId: body.projectId,
-            type: laneJob.type as never,
+          const convex = getConvexClient();
+          const jobId = await convex.mutation(api.jobs.create, {
+            workspaceId: id as Id<"workspaces">,
+            projectId: body.projectId as Id<"projects"> | undefined,
+            type: laneJob.type,
             input: {
               swarmPreset: body.preset || "internal-alpha",
               swarmSourceOfTruth: body.sourceOfTruth,
@@ -100,6 +105,7 @@ export async function POST(
               swarmObjective: body.objective,
             },
           });
+          const job = jobId ? { id: jobId } : null;
           if (job) {
             createdJobs.push({
               laneId: lane.id,

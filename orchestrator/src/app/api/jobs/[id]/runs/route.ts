@@ -1,16 +1,18 @@
+/**
+ * GET /api/jobs/[id]/runs - Get stage runs for a job
+ * Migrated to Convex (replaces Drizzle jobRuns table).
+ *
+ * Stage runs are managed by the execution worker agent.
+ * This endpoint returns an empty array as a stub until stageRuns
+ * are queried via the execution worker's Convex integration.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { jobRuns } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const runs = await db.query.jobRuns.findMany({
-    where: eq(jobRuns.jobId, id),
-    orderBy: [desc(jobRuns.startedAt)],
-  });
-  return NextResponse.json(runs);
+  await params;
+  return NextResponse.json([]);
 }

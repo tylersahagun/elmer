@@ -8,16 +8,16 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
-import { getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { scanRepository } from "@/lib/discovery";
 
 export async function GET(request: NextRequest) {
   // 1. Auth check
-  const session = await auth();
-  if (!session?.user?.id) {
+  const { userId } = await clerkAuth();
+  if (!userId) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
@@ -29,7 +29,12 @@ export async function GET(request: NextRequest) {
   }
 
   // 3. Load workspace and validate
-  const workspace = await getWorkspace(workspaceId);
+  const workspace = await getConvexWorkspace(workspaceId) as {
+    _id: string;
+    githubRepo?: string;
+    onboardingData?: { selectedBranch?: string };
+    settings?: { baseBranch?: string };
+  } | null;
   if (!workspace) {
     return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
   }
@@ -56,7 +61,7 @@ export async function GET(request: NextRequest) {
     "main";
 
   // 6. Get GitHub client
-  const octokit = await getGitHubClient(session.user.id);
+  const octokit = await getGitHubClient(userId);
   if (!octokit) {
     return NextResponse.json(
       {

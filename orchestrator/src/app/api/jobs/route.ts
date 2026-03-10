@@ -1,27 +1,42 @@
+/**
+ * Jobs API - List, create, retry, and delete jobs
+ * Migrated to Convex (replaces Drizzle).
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { createJob, getJobs, getProject } from "@/lib/db/queries";
-import { db } from "@/lib/db";
-import { jobs } from "@/lib/db/schema";
-import { eq, and, or } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
-import { logJobTriggered } from "@/lib/activity";
-import type { JobType, JobStatus } from "@/lib/db/schema";
+import { createConvexWorkspaceActivity } from "@/lib/convex/server";
+
+type JobType = string;
+type JobStatus = string;
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
+async function getAuthenticatedClient() {
+  const auth = await clerkAuth();
+  const token = await auth.getToken({ template: "convex" });
+  const client = getConvexClient();
+  if (token) client.setAuth(token);
+  return client;
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspaceId");
-    const status = searchParams.get("status") as
-      | "pending"
-      | "running"
-      | "completed"
-      | "failed"
-      | "cancelled"
-      | null;
+    const status = searchParams.get("status") as JobStatus | null;
 
     if (!workspaceId) {
       return NextResponse.json(
@@ -30,10 +45,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Require viewer access to list jobs
     await requireWorkspaceAccess(workspaceId, "viewer");
 
-    const jobsList = await getJobs(workspaceId, status || undefined);
+    const client = getConvexClient();
+    const jobsList = await client.query(api.jobs.list, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      status: status ?? undefined,
+    });
+
     return NextResponse.json(jobsList);
   } catch (error) {
     if (error instanceof PermissionError) {
@@ -57,10 +76,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Require member access to trigger jobs
     const membership = await requireWorkspaceAccess(workspaceId, "member");
 
-    // Validate job type
     const validJobTypes: JobType[] = [
       "generate_prd",
       "generate_design_brief",
@@ -87,34 +104,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const job = await createJob({
-      workspaceId,
-      projectId,
-      type: type as JobType,
+    const client = await getAuthenticatedClient();
+    const jobId = await client.mutation(api.jobs.create, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      projectId: projectId ? (projectId as Id<"projects">) : undefined,
+      type,
       input,
     });
 
-    // Get project name for logging
-    let projectName: string | undefined;
-    if (projectId) {
-      const project = await getProject(projectId);
-      projectName = project?.name;
-    }
-
-    // Log activity
-    if (job) {
-      await logJobTriggered(
-        workspaceId,
-        membership.userId,
-        job.id,
-        type,
-        projectName,
-      );
-    }
+    await createConvexWorkspaceActivity({
+      workspaceId,
+      userId: membership.userId,
+      action: "job.triggered",
+      targetType: "job",
+      targetId: jobId,
+      metadata: { type, projectId },
+    }).catch(() => {});
 
     console.log(`📋 Job created: ${type} for project ${projectId}`);
 
-    return NextResponse.json(job, { status: 201 });
+    return NextResponse.json({ id: jobId }, { status: 201 });
   } catch (error) {
     if (error instanceof PermissionError) {
       const { error: message, status } = handlePermissionError(error);
@@ -133,7 +142,7 @@ export async function POST(request: NextRequest) {
  *
  * Body:
  *   - workspaceId: required
- *   - projectId: optional, filter by project
+ *   - projectId: optional
  *   - action: "retry_failed" | "reset_pending"
  */
 export async function PATCH(request: NextRequest) {
@@ -148,7 +157,6 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Require member access to retry jobs
     await requireWorkspaceAccess(workspaceId, "member");
 
     if (action !== "retry_failed" && action !== "reset_pending") {
@@ -158,46 +166,19 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Build the where conditions
-    const whereConditions = [eq(jobs.workspaceId, workspaceId)];
+    const client = await getAuthenticatedClient();
+    const result = await client.mutation(api.jobs.bulkRetry, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      projectId: projectId ? (projectId as Id<"projects">) : undefined,
+      includeRunning: action === "reset_pending",
+    });
 
-    if (action === "retry_failed") {
-      whereConditions.push(eq(jobs.status, "failed"));
-    } else {
-      // reset_pending - also reset jobs that are stuck in running
-      whereConditions.push(
-        or(eq(jobs.status, "failed"), eq(jobs.status, "running")) as ReturnType<
-          typeof eq
-        >,
-      );
-    }
-
-    if (projectId) {
-      whereConditions.push(eq(jobs.projectId, projectId));
-    }
-
-    // Reset jobs to pending
-    const result = await db
-      .update(jobs)
-      .set({
-        status: "pending",
-        error: null,
-        progress: 0,
-        attempts: 0,
-        startedAt: null,
-        completedAt: null,
-      })
-      .where(and(...whereConditions))
-      .returning();
-
-    console.log(
-      `🔄 Reset ${result.length} jobs to pending for workspace ${workspaceId}`,
-    );
+    console.log(`🔄 Reset ${result.reset} jobs to pending for workspace ${workspaceId}`);
 
     return NextResponse.json({
       success: true,
-      reset: result.length,
-      jobs: result.map((j) => ({ id: j.id, type: j.type })),
+      reset: result.reset,
+      jobs: result.jobs,
     });
   } catch (error) {
     if (error instanceof PermissionError) {
@@ -217,8 +198,8 @@ export async function PATCH(request: NextRequest) {
  *
  * Query params:
  *   - workspaceId: required
- *   - status: "failed" | "cancelled" | "all_terminal" (defaults to "failed")
- *   - projectId: optional, filter by project
+ *   - status: "failed" | "cancelled" | "all_terminal"
+ *   - projectId: optional
  */
 export async function DELETE(request: NextRequest) {
   try {
@@ -234,44 +215,31 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Require admin access to clear jobs
     await requireWorkspaceAccess(workspaceId, "admin");
 
-    // Build the status filter
-    let statusFilter;
-    if (status === "all_terminal") {
-      statusFilter = or(
-        eq(jobs.status, "failed"),
-        eq(jobs.status, "cancelled"),
-      );
-    } else if (status === "failed" || status === "cancelled") {
-      statusFilter = eq(jobs.status, status as JobStatus);
-    } else {
+    if (
+      status !== "failed" &&
+      status !== "cancelled" &&
+      status !== "all_terminal"
+    ) {
       return NextResponse.json(
         { error: "status must be 'failed', 'cancelled', or 'all_terminal'" },
         { status: 400 },
       );
     }
 
-    // Build the full where clause
-    const whereConditions = [eq(jobs.workspaceId, workspaceId), statusFilter];
+    const client = await getAuthenticatedClient();
+    const result = await client.mutation(api.jobs.bulkDelete, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      projectId: projectId ? (projectId as Id<"projects">) : undefined,
+      status,
+    });
 
-    if (projectId) {
-      whereConditions.push(eq(jobs.projectId, projectId));
-    }
-
-    const result = await db
-      .delete(jobs)
-      .where(and(...whereConditions))
-      .returning();
-
-    console.log(
-      `🗑️ Cleared ${result.length} ${status} jobs for workspace ${workspaceId}`,
-    );
+    console.log(`🗑️ Cleared ${result.cleared} ${status} jobs for workspace ${workspaceId}`);
 
     return NextResponse.json({
       success: true,
-      cleared: result.length,
+      cleared: result.cleared,
       status,
     });
   } catch (error) {

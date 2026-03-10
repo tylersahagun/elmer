@@ -1,4 +1,3 @@
-import { getProjectsWithCounts, getWorkspace } from "@/lib/db/queries";
 import { checkGraduationCriteria } from "@/lib/graduation/criteria-service";
 import { getConvexWorkspace, listConvexProjects } from "@/lib/convex/server";
 import {
@@ -10,7 +9,19 @@ import type {
   WorkspaceStatusReport,
 } from "./types";
 import type { GraduationCheckResult } from "@/lib/graduation/criteria-service";
-import type { ProjectStage } from "@/lib/db/schema";
+
+type ProjectStage =
+  | "inbox"
+  | "discovery"
+  | "prd"
+  | "design"
+  | "prototype"
+  | "validate"
+  | "tickets"
+  | "build"
+  | "alpha"
+  | "beta"
+  | "ga";
 
 function buildSummary(initiatives: InitiativeStatusSnapshot[]) {
   const byStage = initiatives.reduce<Record<string, number>>((acc, initiative) => {
@@ -201,57 +212,42 @@ export function buildEmptyWorkspaceStatusReport(
 }
 
 export async function buildWorkspaceStatusReport(workspaceId: string) {
-  const legacyWorkspace = await getWorkspace(workspaceId).catch(() => null);
+  const convexWorkspace = (await getConvexWorkspace(
+    workspaceId,
+  )) as ConvexWorkspaceRecord | null;
+  if (!convexWorkspace) return null;
+
   const initiatives: InitiativeStatusSnapshot[] = [];
-  let workspaceName = legacyWorkspace?.name;
+  const workspaceName = convexWorkspace.name;
 
-  if (legacyWorkspace) {
-    const projects = await getProjectsWithCounts(workspaceId).catch(() => []);
+  const convexProjects = (await listConvexProjects(
+    workspaceId,
+  )) as ConvexProjectRecord[];
 
-    for (const project of projects) {
-      const graduation = await checkGraduationCriteria(project.id).catch(
-        () => FALLBACK_GRADUATION,
-      );
-      initiatives.push(
-        buildInitiativeSnapshot({
-          project,
-          graduation,
-        }),
-      );
-    }
-  } else {
-    const convexWorkspace = (await getConvexWorkspace(
-      workspaceId,
-    )) as ConvexWorkspaceRecord | null;
-    if (!convexWorkspace) return null;
-
-    workspaceName = convexWorkspace.name;
-    const convexProjects = (await listConvexProjects(
-      workspaceId,
-    )) as ConvexProjectRecord[];
-
-    for (const project of convexProjects) {
-      initiatives.push(
-        buildInitiativeSnapshot({
-          project: {
-            id: project._id,
-            name: project.name,
-            description: project.description ?? null,
-            stage: normalizeProjectStage(project.stage),
-            status: normalizeProjectStatus(project.status),
-            priority: normalizeProjectPriority(project.priority),
-            updatedAt: new Date(project._creationTime).toISOString(),
-            createdAt: new Date(project._creationTime).toISOString(),
-            signalCount: 0,
-            documentCount: 0,
-            prototypeCount: 0,
-            documents: [],
-            metadata: project.metadata ?? {},
-          },
-          graduation: FALLBACK_GRADUATION,
-        }),
-      );
-    }
+  for (const project of convexProjects) {
+    const graduation = await checkGraduationCriteria(project._id).catch(
+      () => FALLBACK_GRADUATION,
+    );
+    initiatives.push(
+      buildInitiativeSnapshot({
+        project: {
+          id: project._id,
+          name: project.name,
+          description: project.description ?? null,
+          stage: normalizeProjectStage(project.stage),
+          status: normalizeProjectStatus(project.status),
+          priority: normalizeProjectPriority(project.priority),
+          updatedAt: new Date(project._creationTime).toISOString(),
+          createdAt: new Date(project._creationTime).toISOString(),
+          signalCount: 0,
+          documentCount: 0,
+          prototypeCount: 0,
+          documents: [],
+          metadata: project.metadata ?? {},
+        },
+        graduation,
+      }),
+    );
   }
 
   initiatives.sort((left, right) => {

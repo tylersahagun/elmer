@@ -1,18 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSignal, updateSignal, deleteSignal } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
 
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
+    const client = getConvexClient();
 
-    const signal = await getSignal(id);
+    const signal = await client.query(api.signals.get, {
+      signalId: id as Id<"signals">,
+    });
 
     if (!signal) {
       return NextResponse.json(
@@ -21,10 +32,27 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Require viewer access to the workspace
-    await requireWorkspaceAccess(signal.workspaceId, "viewer");
+    await requireWorkspaceAccess(signal.workspaceId as string, "viewer");
 
-    return NextResponse.json(signal);
+    return NextResponse.json({
+      id: signal._id,
+      workspaceId: signal.workspaceId,
+      verbatim: signal.verbatim,
+      interpretation: signal.interpretation ?? null,
+      source: signal.source,
+      status: signal.status,
+      severity: signal.severity ?? null,
+      frequency: signal.frequency ?? null,
+      userSegment: signal.userSegment ?? null,
+      tags: signal.tags ?? null,
+      sourceRef: signal.sourceRef ?? null,
+      classification: signal.classification ?? null,
+      processedAt: signal.processedAt
+        ? new Date(signal.processedAt as number).toISOString()
+        : null,
+      embeddingVector: signal.embeddingVector ?? null,
+      createdAt: new Date(signal._creationTime).toISOString(),
+    });
   } catch (error) {
     if (error instanceof PermissionError) {
       const { error: message, status } = handlePermissionError(error);
@@ -43,7 +71,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const body = await request.json();
 
-    // Extract updatable fields
     const {
       verbatim,
       interpretation,
@@ -51,12 +78,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       severity,
       frequency,
       userSegment,
-      sourceRef,
-      sourceMetadata,
     } = body;
 
-    // Verify signal exists and get workspaceId
-    const signal = await getSignal(id);
+    const client = getConvexClient();
+    const signal = await client.query(api.signals.get, {
+      signalId: id as Id<"signals">,
+    });
 
     if (!signal) {
       return NextResponse.json(
@@ -65,21 +92,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Require member access to update
-    await requireWorkspaceAccess(signal.workspaceId, "member");
+    await requireWorkspaceAccess(signal.workspaceId as string, "member");
 
-    // Build update data
-    const updateData: Parameters<typeof updateSignal>[1] = {};
-    if (verbatim !== undefined) updateData.verbatim = verbatim;
-    if (interpretation !== undefined) updateData.interpretation = interpretation;
-    if (status !== undefined) updateData.status = status;
-    if (severity !== undefined) updateData.severity = severity;
-    if (frequency !== undefined) updateData.frequency = frequency;
-    if (userSegment !== undefined) updateData.userSegment = userSegment;
-    if (sourceRef !== undefined) updateData.sourceRef = sourceRef;
-    if (sourceMetadata !== undefined) updateData.sourceMetadata = sourceMetadata;
-
-    const updated = await updateSignal(id, updateData);
+    const updated = await client.mutation(api.signals.update, {
+      signalId: id as Id<"signals">,
+      ...(verbatim !== undefined ? { verbatim } : {}),
+      ...(interpretation !== undefined ? { interpretation } : {}),
+      ...(status !== undefined ? { status } : {}),
+      ...(severity !== undefined ? { severity } : {}),
+      ...(frequency !== undefined ? { frequency } : {}),
+      ...(userSegment !== undefined ? { userSegment } : {}),
+    });
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -98,9 +121,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
+    const client = getConvexClient();
 
-    // Verify signal exists and get workspaceId
-    const signal = await getSignal(id);
+    const signal = await client.query(api.signals.get, {
+      signalId: id as Id<"signals">,
+    });
 
     if (!signal) {
       return NextResponse.json(
@@ -109,10 +134,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Require member access to delete
-    await requireWorkspaceAccess(signal.workspaceId, "member");
+    await requireWorkspaceAccess(signal.workspaceId as string, "member");
 
-    await deleteSignal(id);
+    await client.mutation(api.signals.remove, {
+      signalId: id as Id<"signals">,
+    });
 
     return NextResponse.json({ success: true, id });
   } catch (error) {

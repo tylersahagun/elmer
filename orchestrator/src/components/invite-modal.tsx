@@ -31,7 +31,7 @@ import {
   UserCircle,
   Eye,
 } from "lucide-react";
-import type { WorkspaceRole } from "@/lib/db/schema";
+type WorkspaceRole = "admin" | "member" | "viewer";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 

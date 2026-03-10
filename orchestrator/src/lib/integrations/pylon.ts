@@ -4,11 +4,12 @@
  * - Signal creation from Pylon tickets
  */
 import crypto from "crypto";
-import { db } from "@/lib/db";
-import { signals, activityLogs } from "@/lib/db/schema";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import type { PylonTicketInput, SignalCreateResult } from "./types";
 import { processSignalExtraction } from "@/lib/signals";
+import { logActivity } from "@/lib/activity";
 
 /**
  * Verify Pylon webhook signature
@@ -53,18 +54,17 @@ export function verifyPylonSignature(
 
 /**
  * Strip HTML tags and normalize whitespace
- * Simple approach - not a full HTML parser
  */
 function stripHtml(html: string): string {
   return html
-    .replace(/<[^>]*>/g, " ") // Replace tags with spaces
-    .replace(/&nbsp;/g, " ") // Handle non-breaking spaces
-    .replace(/&amp;/g, "&") // Handle ampersands
-    .replace(/&lt;/g, "<") // Handle less than
-    .replace(/&gt;/g, ">") // Handle greater than
-    .replace(/&quot;/g, '"') // Handle quotes
-    .replace(/&#39;/g, "'") // Handle apostrophes
-    .replace(/\s+/g, " ") // Collapse whitespace
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -75,7 +75,7 @@ function stripHtml(html: string): string {
 export async function createSignalFromPylon(
   input: PylonTicketInput
 ): Promise<SignalCreateResult> {
-  const { workspaceId, payload, receivedAt } = input;
+  const { workspaceId, payload } = input;
 
   // Generate unique sourceRef
   const sourceRef = `pylon-${payload.id}`;
@@ -93,60 +93,44 @@ export async function createSignalFromPylon(
   }
 
   try {
-    // Check for existing (idempotency)
-    const existing = await db.query.signals.findFirst({
-      where: (signals, { and, eq }) =>
-        and(
-          eq(signals.workspaceId, workspaceId),
-          eq(signals.source, "pylon"),
-          eq(signals.sourceRef, sourceRef)
-        ),
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL not set");
+    const client = new ConvexHttpClient(convexUrl);
+
+    const result = await client.mutation(api.signals.createFromIntegration, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      verbatim,
+      source: "pylon",
+      sourceRef,
+      sourceMetadata: {
+        ticketId: payload.id,
+        ticketStatus: payload.state,
+        customerEmail: payload.requester?.email,
+        sourceName: payload.requester?.name,
+        sourceUrl: payload.link,
+        rawPayload: payload as unknown as Record<string, unknown>,
+      },
+      status: "new",
     });
 
-    if (existing) {
-      return { created: false, signalId: existing.id, duplicate: true };
+    if (result.duplicate) {
+      return { created: false, signalId: result.signalId as string, duplicate: true };
     }
 
-    const signalId = nanoid();
-    const [signal] = await db
-      .insert(signals)
-      .values({
-        id: signalId,
-        workspaceId,
-        verbatim,
-        source: "pylon",
-        sourceRef,
-        sourceMetadata: {
-          ticketId: payload.id,
-          ticketStatus: payload.state,
-          customerEmail: payload.requester?.email,
-          sourceName: payload.requester?.name,
-          sourceUrl: payload.link,
-          rawPayload: payload as unknown as Record<string, unknown>,
-        },
-        status: "new",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+    const signalId = result.signalId as string;
 
-    // Log activity
-    await db.insert(activityLogs).values({
-      id: nanoid(),
-      workspaceId,
-      action: "signal.created",
-      targetType: "signal",
+    // Log activity (non-blocking, best-effort)
+    logActivity(workspaceId, null, "signal.created", {
+      targetType: "sync",
       targetId: signalId,
       metadata: {
         source: "pylon",
         ticketId: payload.id,
         verbatimPreview: verbatim.slice(0, 100),
       },
-      createdAt: new Date(),
-    });
+    }).catch(() => {});
 
-    // Queue AI extraction and embedding (Phase 15)
-    // Already in after() context, errors caught and logged
+    // Queue AI extraction and embedding
     try {
       await processSignalExtraction(signalId);
     } catch (error) {

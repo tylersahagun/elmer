@@ -1,12 +1,11 @@
-import { auth as clerkAuth } from "@clerk/nextjs/server";
-import { AppAuthenticationError, getCurrentAppUser, requireCurrentAppUser } from "@/lib/auth/server";
-import { getWorkspaceMembership } from "@/lib/db/queries";
+import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
 import { getConvexWorkspaceAccess, listConvexWorkspaceMembers } from "@/lib/convex/server";
 import {
   canUseCoordinatorViewerAccess,
   normalizeViewerEmail,
 } from "@/lib/auth/coordinator-viewer";
-import type { WorkspaceRole } from "@/lib/db/schema";
+
+export type WorkspaceRole = "viewer" | "member" | "admin";
 
 /**
  * Role hierarchy - higher number = more permissions
@@ -110,17 +109,15 @@ export interface WorkspaceMembership {
 }
 
 /**
- * Require workspace access with optional role requirement
- * 
+ * Require workspace access with optional role requirement.
+ *
+ * Authorization is Convex-only. There is no Postgres/Drizzle fallback.
+ * Identity is Clerk (clerkUserId). Membership is stored in Convex workspaceMembers.
+ *
  * @param workspaceId - The workspace to check access for
  * @param requiredRole - Minimum role required (default: viewer)
  * @returns The user's membership if authorized
  * @throws PermissionError if not authorized
- * 
- * @example
- * // In an API route:
- * const membership = await requireWorkspaceAccess(workspaceId, "admin");
- * // membership.role is guaranteed to be "admin"
  */
 export async function requireWorkspaceAccess(
   workspaceId: string,
@@ -131,78 +128,61 @@ export async function requireWorkspaceAccess(
     throw new UnauthenticatedError();
   }
 
-  // Check Convex membership first (source of truth for newly created workspaces)
+  // Primary path: Convex membership lookup by Clerk user ID
   const convexAccess = await getConvexWorkspaceAccess(workspaceId, clerkUserId);
   const convexMembership = (convexAccess as { membership?: { role: WorkspaceRole; workspaceId: string } } | null)?.membership;
-  let currentAppUser = null;
-  let convexMembers: Array<{
-    _id: string;
-    userId?: string;
-    clerkUserId: string;
-    role: WorkspaceRole;
-    joinedAt: number;
-    email?: string;
-  }> | null = null;
 
   if (convexMembership) {
     if (!hasPermission(convexMembership.role, requiredRole)) {
       throw new InsufficientRoleError(requiredRole);
     }
-
-    let fallbackUserId = clerkUserId;
-    try {
-      currentAppUser = await getCurrentAppUser();
-      if (currentAppUser?.id) {
-        fallbackUserId = currentAppUser.id;
-      }
-    } catch (error) {
-      console.warn(
-        "Convex workspace access succeeded but local app user resolution failed; continuing with Clerk identity fallback.",
-        error,
-      );
-    }
-
     return {
       id: `${workspaceId}:${clerkUserId}`,
-      userId: fallbackUserId,
+      userId: clerkUserId,
       workspaceId: convexMembership.workspaceId,
       role: convexMembership.role,
       joinedAt: new Date(),
     };
   }
 
+  // Email bridge: user was added by email before their Clerk ID was recorded.
+  // Resolve their Clerk email and scan workspace members for a match.
+  type ConvexMember = {
+    _id: string;
+    userId?: string;
+    clerkUserId: string;
+    role: WorkspaceRole;
+    joinedAt: number;
+    email?: string;
+  };
+  let convexMembers: ConvexMember[] | null = null;
+
+  let currentEmail: string | null = null;
   try {
-    currentAppUser ??= await getCurrentAppUser();
-  } catch (error) {
-    console.warn(
-      "Direct Convex workspace membership lookup failed to resolve the local app user bridge.",
-      error,
+    const clerkUser = await currentUser();
+    currentEmail = normalizeViewerEmail(
+      clerkUser?.primaryEmailAddress?.emailAddress ??
+      clerkUser?.emailAddresses?.[0]?.emailAddress ??
+      null
     );
+  } catch {
+    // If Clerk user resolution fails, we proceed without email bridge
   }
 
-  const currentAppUserEmail = normalizeViewerEmail(currentAppUser?.email);
-  if (currentAppUserEmail) {
+  if (currentEmail) {
     try {
-      convexMembers = await listConvexWorkspaceMembers(workspaceId) as Array<{
-        _id: string;
-        userId?: string;
-        clerkUserId: string;
-        role: WorkspaceRole;
-        joinedAt: number;
-        email?: string;
-      }>;
-      const bridgedMembership = convexMembers.find(
-        (member) => normalizeViewerEmail(member.email) === currentAppUserEmail,
+      convexMembers = await listConvexWorkspaceMembers(workspaceId) as ConvexMember[];
+      const bridgedMembership = convexMembers?.find(
+        (member) => normalizeViewerEmail(member.email) === currentEmail,
       );
 
       if (bridgedMembership) {
         if (!hasPermission(bridgedMembership.role, requiredRole)) {
           throw new InsufficientRoleError(requiredRole);
         }
-
         return {
           id: bridgedMembership._id,
-          userId: currentAppUser?.id ?? bridgedMembership.userId ?? clerkUserId,
+          userId: bridgedMembership.userId ?? clerkUserId,
           workspaceId,
           role: bridgedMembership.role,
           joinedAt: new Date(bridgedMembership.joinedAt),
@@ -213,72 +193,41 @@ export async function requireWorkspaceAccess(
         throw error;
       }
       console.warn(
-        "Convex workspace email bridge lookup failed; falling back to legacy membership.",
+        "Convex workspace email bridge lookup failed.",
         error,
       );
     }
   }
 
+  // Coordinator viewer bridge for bootstrapping the coordinator workspace
   if (
     canUseCoordinatorViewerAccess({
       workspaceId,
       clerkUserId,
-      email: currentAppUserEmail,
+      email: currentEmail,
       requiredRole,
       convexMembersCount: convexMembers?.length ?? null,
     })
   ) {
     console.warn(
       "Allowing coordinator viewer access without a Convex membership mirror.",
-      { workspaceId, clerkUserId, email: currentAppUserEmail },
+      { workspaceId, clerkUserId, email: currentEmail },
     );
     return {
       id: `${workspaceId}:${clerkUserId}:internal-viewer`,
-      userId: currentAppUser?.id ?? clerkUserId,
+      userId: clerkUserId,
       workspaceId,
       role: "viewer",
       joinedAt: new Date(),
     };
   }
 
-  // Fallback to legacy app-user membership while migration is in progress
-  let appUser;
-  try {
-    appUser = currentAppUser ?? (await requireCurrentAppUser());
-  } catch (error) {
-    if (error instanceof AppAuthenticationError) {
-      throw new UnauthenticatedError();
-    }
-    throw error;
-  }
-
-  if (!appUser?.id) {
-    throw new UnauthenticatedError();
-  }
-
-  // Fallback to legacy Drizzle membership while migration is in progress
-  const membership = await getWorkspaceMembership(workspaceId, appUser.id);
-  if (!membership) {
-    throw new NotMemberError();
-  }
-
-  // Check role
-  if (!hasPermission(membership.role, requiredRole)) {
-    throw new InsufficientRoleError(requiredRole);
-  }
-
-  return {
-    id: membership.id,
-    userId: appUser.id,
-    workspaceId: membership.workspaceId,
-    role: membership.role,
-    joinedAt: membership.joinedAt,
-  };
+  throw new NotMemberError();
 }
 
 /**
- * Get current user's workspace membership without throwing
- * Returns null if not authenticated or not a member
+ * Get current user's workspace membership without throwing.
+ * Returns null if not authenticated or not a member.
  */
 export async function getWorkspaceAccessSafe(
   workspaceId: string
@@ -349,27 +298,4 @@ export function canPerformAction(
 ): boolean {
   const requiredRole = PERMISSION_REQUIREMENTS[action];
   return hasPermission(userRole, requiredRole);
-}
-
-/**
- * Check workspace access without authentication (for testing)
- * Returns membership if found, null otherwise
- */
-export async function checkWorkspaceAccess(
-  workspaceId: string,
-  userId: string
-): Promise<WorkspaceMembership | null> {
-  const membership = await getWorkspaceMembership(workspaceId, userId);
-  
-  if (!membership) {
-    return null;
-  }
-
-  return {
-    id: membership.id,
-    userId,
-    workspaceId: membership.workspaceId,
-    role: membership.role,
-    joinedAt: membership.joinedAt,
-  };
 }

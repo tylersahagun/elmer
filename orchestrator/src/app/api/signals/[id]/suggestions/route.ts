@@ -2,28 +2,30 @@
  * GET /api/signals/[id]/suggestions
  *
  * Returns project association suggestions for an orphan signal.
- * Uses Phase 17 classification to suggest relevant projects.
- *
- * MAINT-01: Cleanup agent suggests signal-to-project associations for unlinked signals.
+ * Uses Convex-stored embeddings with in-process cosine similarity
+ * (replaces pgvector cosine distance).
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { signals } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import {
-  getWorkspaceMaintenanceSettings,
-  findBestProjectMatches,
-} from "@/lib/db/queries";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+import { findBestProjectMatchesConvex } from "@/lib/signals/similarity";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: signalId } = await params;
@@ -33,47 +35,32 @@ export async function GET(
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspaceId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Require viewer access to get suggestions
     await requireWorkspaceAccess(workspaceId, "viewer");
 
-    // Get the signal with its embedding
-    const signal = await db.query.signals.findFirst({
-      where: and(eq(signals.id, signalId), eq(signals.workspaceId, workspaceId)),
-      columns: {
-        id: true,
-        verbatim: true,
-        embeddingVector: true,
-        status: true,
-      },
+    const client = getConvexClient();
+    const signal = await client.query(api.signals.get, {
+      signalId: signalId as Id<"signals">,
     });
 
     if (!signal) {
       return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
-    if (!signal.embeddingVector) {
+    const embeddingVector = signal.embeddingVector as number[] | undefined;
+    if (!embeddingVector || embeddingVector.length === 0) {
       return NextResponse.json({
         suggestions: [],
         reason: "Signal has no embedding - cannot compute similarity",
       });
     }
 
-    // Get maintenance settings for confidence threshold
-    const settings = await getWorkspaceMaintenanceSettings(workspaceId);
-    const minConfidence = settings.minSuggestionConfidence || 0.6;
+    const minConfidence = 0.6;
+    const matches = await findBestProjectMatchesConvex(workspaceId, embeddingVector, 5);
 
-    // Find similar projects using Phase 17's classification infrastructure
-    const matches = await findBestProjectMatches(
-      workspaceId,
-      signal.embeddingVector,
-      5 // Return top 5 matches
-    );
-
-    // Filter by confidence threshold and format response
     const suggestions = matches
       .filter((match) => match.similarity >= minConfidence)
       .map((match) => ({
@@ -97,6 +84,7 @@ export async function GET(
       const { error: message, status } = handlePermissionError(error);
       return NextResponse.json({ error: message }, { status });
     }
-    throw error;
+    console.error("[API /signals/suggestions]", error);
+    return NextResponse.json({ error: "Failed to get suggestions" }, { status: 500 });
   }
 }

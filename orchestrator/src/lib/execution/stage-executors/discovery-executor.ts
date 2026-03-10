@@ -1,6 +1,6 @@
 /**
  * Discovery Stage Executor
- * 
+ *
  * Inputs: ≥3 signals from inbox + product context
  * Automation:
  *   - Synthesize signals into hypotheses
@@ -15,12 +15,17 @@
  *   - Strategic alignment score
  */
 
-import { db } from "@/lib/db";
-import { documents, type DocumentType } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { getDefaultProvider, type StreamCallback } from "../providers";
 import type { StageContext, StageExecutionResult } from "./index";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 const DISCOVERY_SYSTEM_PROMPT = `You are a PM research synthesizer. Your task is to analyze multiple signals and synthesize them into actionable hypotheses.
 
@@ -60,16 +65,15 @@ For each hypothesis:
 
 export async function executeDiscovery(
   context: StageContext,
-  callbacks: StreamCallback
+  callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
   const { run, project, documents: existingDocs } = context;
-  
+
   callbacks.onLog("info", "Starting discovery synthesis", "discovery");
   callbacks.onProgress(0.2, "Gathering research signals...");
 
-  // Get research documents
   const researchDocs = existingDocs.filter((doc) => doc.type === "research");
-  
+
   if (researchDocs.length === 0) {
     callbacks.onLog("warn", "No research documents found", "discovery");
     return {
@@ -78,14 +82,12 @@ export async function executeDiscovery(
     };
   }
 
-  // Compile all research content
   const researchContent = researchDocs
     .map((doc) => `## ${doc.title}\n\n${doc.content}`)
     .join("\n\n---\n\n");
 
   callbacks.onProgress(0.4, "Synthesizing signals...");
 
-  // Execute with AI provider
   const provider = getDefaultProvider();
   const userPrompt = `Synthesize these ${researchDocs.length} research signals into hypotheses and insights:
 
@@ -100,12 +102,12 @@ ${researchContent}`;
     DISCOVERY_SYSTEM_PROMPT,
     userPrompt,
     {
-      runId: run.id,
+      runId: run._id,
       workspaceId: run.workspaceId,
       cardId: run.cardId,
       stage: run.stage,
     },
-    callbacks
+    callbacks,
   );
 
   if (!result.success) {
@@ -118,49 +120,38 @@ ${researchContent}`;
 
   callbacks.onProgress(0.7, "Saving discovery document...");
 
-  // Check if research doc already exists
-  const existingResearch = existingDocs.find((doc) => doc.type === "research" && doc.title.includes("Discovery"));
-  
-  const now = new Date();
-  const docId = existingResearch?.id || `doc_${nanoid()}`;
+  const client = getConvexClient();
+
+  const existingResearch = existingDocs.find(
+    (doc) => doc.type === "research" && doc.title.includes("Discovery"),
+  );
+
+  let docId: string;
 
   if (existingResearch) {
-    // Update existing document
-    await db
-      .update(documents)
-      .set({
-        content: result.output || "",
-        version: existingResearch.version + 1,
-        updatedAt: now,
-      })
-      .where(eq(documents.id, existingResearch.id));
+    await client.mutation(api.documents.update, {
+      documentId: existingResearch._id as Id<"documents">,
+      content: result.output || "",
+      title: `Discovery - ${project.name}`,
+    });
+    docId = existingResearch._id;
   } else {
-    // Create new document
-    await db.insert(documents).values({
-      id: docId,
-      projectId: project.id,
-      type: "research" as DocumentType,
+    const newDocId = await client.mutation(api.documents.create, {
+      workspaceId: run.workspaceId as Id<"workspaces">,
+      projectId: run.cardId as Id<"projects">,
+      type: "research",
       title: `Discovery - ${project.name}`,
       content: result.output || "",
-      version: 1,
-      filePath: `initiatives/${project.name.toLowerCase().replace(/\s+/g, "-")}/research.md`,
-      metadata: {
-        generatedBy: "ai",
-        model: "claude-sonnet-4-20250514",
-        promptVersion: "discovery-v1",
-        signalCount: researchDocs.length,
-      },
-      createdAt: now,
-      updatedAt: now,
+      generatedByAgent: "discovery-executor",
     });
+    docId = newDocId as string;
   }
 
-  // Create artifact
   await callbacks.onArtifact(
     "file",
     "Discovery Document",
-    `documents/${docId}`,
-    { documentType: "research", signalCount: researchDocs.length }
+    `projects/${run.cardId}/documents/${docId}`,
+    { documentType: "research", signalCount: researchDocs.length },
   );
 
   callbacks.onLog("info", "Discovery synthesis complete", "discovery");
@@ -170,7 +161,7 @@ ${researchContent}`;
     success: true,
     tokensUsed: result.tokensUsed,
     skillsExecuted: ["synthesize_signals", "generate_hypotheses"],
-    autoAdvance: researchDocs.length >= 3, // Only auto-advance if we have enough signals
+    autoAdvance: researchDocs.length >= 3,
     nextStage: "prd",
     gateResults: {
       signal_count: {

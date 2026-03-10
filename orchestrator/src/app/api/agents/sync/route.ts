@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import {
   requireWorkspaceAccess,
@@ -8,13 +8,31 @@ import {
 } from "@/lib/permissions";
 import { getGitHubClient } from "@/lib/github/auth";
 import { syncAgentArchitecture } from "@/lib/agents/sync";
-import { ensureDefaultColumnConfigs, getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace, ensureConvexColumns } from "@/lib/convex/server";
 import { logAgentsSynced } from "@/lib/activity";
+
+type PathMapping = {
+  from: string;
+  to: string;
+};
+
+type SourceRepoTransformation = {
+  sourceRepo: string;
+  name: string;
+  enabled: boolean;
+  pathMappings: PathMapping[];
+  chromaticConfig?: {
+    token?: string;
+    appId?: string;
+    productionUrl?: string;
+  };
+  lastSynced?: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await clerkAuth();
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -30,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     await requireWorkspaceAccess(workspaceId, "admin");
 
-    const octokit = await getGitHubClient(session.user.id);
+    const octokit = await getGitHubClient(userId);
     if (!octokit) {
       return NextResponse.json(
         {
@@ -41,7 +59,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const workspace = await getWorkspace(workspaceId);
+    const workspace = await getConvexWorkspace(workspaceId) as {
+      _id: string;
+      contextPath?: string;
+      settings?: Record<string, unknown> & {
+        contextPaths?: string[];
+        sourceRepoTransformations?: unknown[];
+      };
+    } | null;
+
     const contextPaths = workspace?.settings?.contextPaths?.length
       ? workspace.settings.contextPaths
       : workspace?.contextPath
@@ -50,7 +76,8 @@ export async function POST(request: NextRequest) {
 
     // Look up transformation for this source repo
     const sourceRepo = `${owner}/${repo}`;
-    const transformation = workspace?.settings?.sourceRepoTransformations?.find(
+    const transformations = (workspace?.settings?.sourceRepoTransformations ?? []) as SourceRepoTransformation[];
+    const transformation = transformations.find(
       (t) => t.sourceRepo === sourceRepo && t.enabled,
     );
 
@@ -66,14 +93,14 @@ export async function POST(request: NextRequest) {
     });
 
     const pipeline = createPipeline
-      ? await ensureDefaultColumnConfigs(workspaceId)
+      ? await ensureConvexColumns(workspaceId)
       : { created: 0, existing: 0 };
 
     // Log the sync activity
     const totalSynced = result.count ?? 0;
     await logAgentsSynced(
       workspaceId,
-      session.user.id,
+      userId,
       totalSynced,
       `${owner}/${repo}`,
     );

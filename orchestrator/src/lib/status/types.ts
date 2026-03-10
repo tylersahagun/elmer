@@ -1,4 +1,6 @@
-import type { DocumentType, ProjectStage, ProjectStatus } from "@/lib/db/schema";
+type DocumentType = string;
+type ProjectStage = string;
+type ProjectStatus = string;
 
 export const STATUS_ARTIFACT_TYPES: DocumentType[] = [
   "research",

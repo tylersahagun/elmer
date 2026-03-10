@@ -5,7 +5,7 @@
  * using fuzzy matching with ambiguity detection.
  */
 
-import type { ProjectStage } from '@/lib/db/schema';
+type ProjectStage = string;
 
 // =============================================================================
 // TYPES

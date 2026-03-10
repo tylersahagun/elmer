@@ -3,25 +3,16 @@
  *
  * Create a new project from a cluster of signals and bulk-link all signals.
  * Used when /synthesize suggests "new_project" action for a cluster.
- *
- * Request body:
- * - workspaceId: string (required)
- * - name: string (required)
- * - description?: string (optional)
- * - signalIds: string[] (required - signals to link)
- * - clusterTheme?: string (optional - for link reason)
- *
- * Response:
- * - success: boolean
- * - projectId: string
- * - linkedSignals: number
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { nanoid } from "nanoid";
-import { db } from "@/lib/db";
-import { projects, signalProjects, signals } from "@/lib/db/schema";
-import { inArray } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+import {
+  createConvexProject,
+  getConvexWorkspace,
+} from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -29,12 +20,17 @@ import {
 } from "@/lib/permissions";
 import { logProjectCreated } from "@/lib/activity";
 
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { workspaceId, name, description, signalIds, clusterTheme } = body;
 
-    // Validate required fields
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspaceId is required" },
@@ -56,55 +52,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Require member access
     const membership = await requireWorkspaceAccess(workspaceId, "member");
-    const userId = membership.userId;
 
-    const projectId = `proj_${nanoid()}`;
-    const now = new Date();
+    // Verify workspace exists
+    const workspace = await getConvexWorkspace(workspaceId);
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+    }
 
-    // Create project
-    await db.insert(projects).values({
-      id: projectId,
+    // Create the project in Convex
+    const created = (await createConvexProject({
       workspaceId,
       name: name.trim(),
-      description: description?.trim() || null,
+      description: description?.trim() || undefined,
       stage: "inbox",
-      status: "active",
-      createdAt: now,
-      updatedAt: now,
-    });
+      priority: "P2",
+    })) as { id: string };
 
-    // Bulk link signals to project
+    const client = getConvexClient();
     const linkReason = clusterTheme
       ? `Created from signal cluster: ${clusterTheme}`
       : "Created from signal cluster";
 
-    await db.insert(signalProjects).values(
-      signalIds.map((signalId: string) => ({
-        id: nanoid(),
-        signalId,
-        projectId,
-        linkedBy: userId,
-        linkReason,
-        confidence: null, // User-initiated, not AI
-        linkedAt: now,
-      }))
-    );
-
-    // Update signal statuses to "linked"
-    await db
-      .update(signals)
-      .set({ status: "linked", updatedAt: now })
-      .where(inArray(signals.id, signalIds));
+    // Bulk link signals to the new project
+    let linkedCount = 0;
+    for (const signalId of signalIds) {
+      try {
+        await client.mutation(api.signals.linkToProject, {
+          signalId: signalId as Id<"signals">,
+          projectId: created.id as Id<"projects">,
+          linkedBy: membership.userId,
+        });
+        linkedCount++;
+      } catch {
+        // Signal may not exist or already linked — skip
+      }
+    }
 
     // Log activity
-    await logProjectCreated(workspaceId, userId, projectId, name);
+    await logProjectCreated(workspaceId, membership.userId, created.id, name);
 
     return NextResponse.json({
       success: true,
-      projectId,
-      linkedSignals: signalIds.length,
+      projectId: created.id,
+      linkedSignals: linkedCount,
     });
   } catch (error) {
     if (error instanceof PermissionError) {

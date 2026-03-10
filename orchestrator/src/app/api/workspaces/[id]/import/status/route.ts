@@ -16,18 +16,19 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import {
-  projects,
-  agentDefinitions,
-  agentKnowledgeSources,
-} from "@/lib/db/schema";
-import { eq, and, gte, count, max } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+import { listConvexKnowledge } from "@/lib/convex/server";
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
 
 export async function GET(
   request: NextRequest,
@@ -39,46 +40,44 @@ export async function GET(
     // Require read access to check status
     await requireWorkspaceAccess(workspaceId, "viewer");
 
-    // Get project counts
-    const [projectStats] = await db
-      .select({
-        total: count(),
-        lastCreatedAt: max(projects.createdAt),
-      })
-      .from(projects)
-      .where(eq(projects.workspaceId, workspaceId));
+    const client = getConvexClient();
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
 
-    // Count projects created in last 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const [recentProjects] = await db
-      .select({ count: count() })
-      .from(projects)
-      .where(
-        and(
-          eq(projects.workspaceId, workspaceId),
-          gte(projects.createdAt, fiveMinutesAgo),
-        ),
-      );
+    // Fetch projects, agents, and knowledge concurrently
+    const [projects, agents, knowledge] = await Promise.all([
+      client.query(api.projects.list, {
+        workspaceId: workspaceId as Id<"workspaces">,
+      }),
+      client.query(api.agentDefinitions.list, {
+        workspaceId: workspaceId as Id<"workspaces">,
+      }),
+      listConvexKnowledge(workspaceId),
+    ]);
 
-    // Get agent definition count
-    const [agentStats] = await db
-      .select({ count: count() })
-      .from(agentDefinitions)
-      .where(eq(agentDefinitions.workspaceId, workspaceId));
+    const typedProjects = projects as Array<{
+      _id: string;
+      _creationTime: number;
+    }>;
 
-    // Get knowledge source count
-    const [knowledgeStats] = await db
-      .select({ count: count() })
-      .from(agentKnowledgeSources)
-      .where(eq(agentKnowledgeSources.workspaceId, workspaceId));
+    const recentlyCreated = typedProjects.filter(
+      (p) => p._creationTime >= fiveMinutesAgo,
+    ).length;
+
+    const sortedByCreation = [...typedProjects].sort(
+      (a, b) => b._creationTime - a._creationTime,
+    );
+    const lastProjectCreatedAt =
+      sortedByCreation[0]
+        ? new Date(sortedByCreation[0]._creationTime).toISOString()
+        : null;
 
     return NextResponse.json({
-      hasData: (projectStats?.total ?? 0) > 0,
-      projectCount: projectStats?.total ?? 0,
-      recentlyCreated: recentProjects?.count ?? 0,
-      agentCount: agentStats?.count ?? 0,
-      knowledgeCount: knowledgeStats?.count ?? 0,
-      lastProjectCreatedAt: projectStats?.lastCreatedAt?.toISOString() ?? null,
+      hasData: typedProjects.length > 0,
+      projectCount: typedProjects.length,
+      recentlyCreated,
+      agentCount: (agents as unknown[]).length,
+      knowledgeCount: (knowledge as unknown[]).length,
+      lastProjectCreatedAt,
     });
   } catch (error) {
     if (error instanceof PermissionError) {

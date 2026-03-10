@@ -19,7 +19,7 @@ import {
   Lock,
   Clock,
 } from "lucide-react";
-import type { AgentDefinitionType } from "@/lib/db/schema";
+type AgentDefinitionType = "agents_md" | "skill" | "command" | "subagent" | "rule";
 import { AgentExecutionHistory } from "./AgentExecutionHistory";
 
 interface AgentDetailCardProps {

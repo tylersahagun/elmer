@@ -27,7 +27,7 @@ import {
   Plus,
   BarChart3,
 } from "lucide-react";
-import type { DocumentType } from "@/lib/db/schema";
+type DocumentType = "research" | "prd" | "design_brief" | "engineering_spec" | "gtm_brief" | "prototype_notes" | "jury_report" | "metrics" | "state" | "feature_guide" | "competitive_landscape" | "success_criteria" | "gtm_plan" | "retrospective" | "decisions" | "visual_directions";
 import { ContextPeekPopover } from "@/components/chat/ContextPeekPopover";
 import {
   DOCUMENT_TYPE_ORDER,

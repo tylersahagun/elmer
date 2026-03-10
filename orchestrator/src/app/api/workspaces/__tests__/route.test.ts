@@ -6,9 +6,7 @@ vi.mock("@clerk/nextjs/server", () => ({
   currentUser: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/server", () => ({
-  getCurrentAppUser: vi.fn(),
-}));
+// getCurrentAppUser is no longer used by the workspaces route (removed Drizzle bridge)
 
 vi.mock("@/lib/convex/server", () => ({
   listConvexWorkspaces: vi.fn(),
@@ -17,7 +15,6 @@ vi.mock("@/lib/convex/server", () => ({
 
 import { GET, POST } from "../route";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { getCurrentAppUser } from "@/lib/auth/server";
 import {
   createConvexWorkspace,
   listConvexWorkspaces,
@@ -25,7 +22,6 @@ import {
 
 const mockAuth = vi.mocked(auth);
 const mockCurrentUser = vi.mocked(currentUser);
-const mockGetCurrentAppUser = vi.mocked(getCurrentAppUser);
 const mockListConvexWorkspaces = vi.mocked(listConvexWorkspaces);
 const mockCreateConvexWorkspace = vi.mocked(createConvexWorkspace);
 let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
@@ -65,13 +61,7 @@ describe("workspaces route", () => {
       },
       emailAddresses: [],
     } as unknown as Awaited<ReturnType<typeof currentUser>>);
-    mockGetCurrentAppUser.mockResolvedValue({
-      id: "local_user_1",
-      clerkUserId: "clerk_user_1",
-      email: "user@example.com",
-      name: "User Example",
-      image: "https://example.com/avatar.png",
-    });
+    // No getCurrentAppUser mock needed — route uses Clerk identity directly
   });
 
   afterEach(() => {
@@ -146,7 +136,7 @@ describe("workspaces route", () => {
       description: undefined,
       githubRepo: undefined,
       contextPath: undefined,
-      actorUserId: "local_user_1",
+      actorUserId: "clerk_user_1",
       actorEmail: "user@example.com",
       actorName: "User Example",
       actorImage: "https://example.com/avatar.png",
@@ -154,13 +144,10 @@ describe("workspaces route", () => {
     expect(data.id).toBe("ws_2");
   });
 
-  it("continues workspace creation when local app-user resolution fails", async () => {
-    mockGetCurrentAppUser.mockRejectedValue(
-      new Error("Local app-user bridge unavailable"),
-    );
+  it("creates a workspace using Clerk user ID as actorUserId (no Drizzle bridge)", async () => {
     mockCreateConvexWorkspace.mockResolvedValue({
       id: "ws_3",
-      name: "Bridgeless Workspace",
+      name: "Clerk Only Workspace",
       description: null,
       role: "admin",
       updatedAt: "2026-03-07T00:00:00.000Z",
@@ -169,7 +156,7 @@ describe("workspaces route", () => {
     const request = new NextRequest("http://localhost:3000/api/workspaces", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Bridgeless Workspace" }),
+      body: JSON.stringify({ name: "Clerk Only Workspace" }),
     });
 
     const response = await POST(request);
@@ -177,12 +164,12 @@ describe("workspaces route", () => {
     expect(response.status).toBe(201);
     expect(mockCreateConvexWorkspace).toHaveBeenCalledWith({
       clerkUserId: "clerk_user_1",
-      name: "Bridgeless Workspace",
-      slug: "bridgeless-workspace",
+      name: "Clerk Only Workspace",
+      slug: "clerk-only-workspace",
       description: undefined,
       githubRepo: undefined,
       contextPath: undefined,
-      actorUserId: undefined,
+      actorUserId: "clerk_user_1",
       actorEmail: "user@example.com",
       actorName: "User Example",
       actorImage: "https://example.com/avatar.png",

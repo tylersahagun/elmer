@@ -10,7 +10,7 @@ import { DocumentViewer } from "@/components/documents/DocumentViewer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { DocumentType } from "@/lib/db/schema";
+type DocumentType = "research" | "prd" | "design_brief" | "engineering_spec" | "gtm_brief" | "prototype_notes" | "jury_report" | "metrics" | "state" | "feature_guide" | "competitive_landscape" | "success_criteria" | "gtm_plan" | "retrospective" | "decisions" | "visual_directions";
 import { cn } from "@/lib/utils";
 import { getDocumentTypeLabel } from "@/lib/documentTypes";
 import {

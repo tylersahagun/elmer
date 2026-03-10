@@ -4,11 +4,12 @@
  * - Signal creation from Slack messages
  */
 import crypto from "crypto";
-import { db } from "@/lib/db";
-import { signals, activityLogs } from "@/lib/db/schema";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import type { SlackMessageInput, SignalCreateResult } from "./types";
 import { processSignalExtraction } from "@/lib/signals";
+import { logActivity } from "@/lib/activity";
 
 /**
  * Verify Slack request signature
@@ -55,65 +56,49 @@ export function verifySlackSignature(
 export async function createSignalFromSlack(
   input: SlackMessageInput
 ): Promise<SignalCreateResult> {
-  const { workspaceId, event, teamId, receivedAt } = input;
+  const { workspaceId, event, teamId } = input;
 
   // Generate unique sourceRef for idempotency
   const sourceRef = `slack-${teamId}-${event.channel}-${event.ts}`;
 
   try {
-    // Check for existing (idempotency)
-    const existing = await db.query.signals.findFirst({
-      where: (signals, { and, eq }) =>
-        and(
-          eq(signals.workspaceId, workspaceId),
-          eq(signals.source, "slack"),
-          eq(signals.sourceRef, sourceRef)
-        ),
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL not set");
+    const client = new ConvexHttpClient(convexUrl);
+
+    const result = await client.mutation(api.signals.createFromIntegration, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      verbatim: event.text,
+      source: "slack",
+      sourceRef,
+      sourceMetadata: {
+        channelId: event.channel,
+        messageTs: event.ts,
+        threadTs: event.thread_ts,
+        externalId: `${teamId}/${event.channel}/${event.ts}`,
+        rawPayload: event as unknown as Record<string, unknown>,
+      },
+      status: "new",
     });
 
-    if (existing) {
-      return { created: false, signalId: existing.id, duplicate: true };
+    if (result.duplicate) {
+      return { created: false, signalId: result.signalId as string, duplicate: true };
     }
 
-    const signalId = nanoid();
-    const [signal] = await db
-      .insert(signals)
-      .values({
-        id: signalId,
-        workspaceId,
-        verbatim: event.text,
-        source: "slack",
-        sourceRef,
-        sourceMetadata: {
-          channelId: event.channel,
-          messageTs: event.ts,
-          threadTs: event.thread_ts,
-          externalId: `${teamId}/${event.channel}/${event.ts}`,
-          rawPayload: event as unknown as Record<string, unknown>,
-        },
-        status: "new",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+    const signalId = result.signalId as string;
 
-    // Log activity
-    await db.insert(activityLogs).values({
-      id: nanoid(),
-      workspaceId,
-      action: "signal.created",
-      targetType: "signal",
+    // Log activity (non-blocking, best-effort)
+    logActivity(workspaceId, null, "signal.created", {
+      targetType: "sync",
       targetId: signalId,
       metadata: {
         source: "slack",
         channelId: event.channel,
         verbatimPreview: event.text.slice(0, 100),
       },
-      createdAt: new Date(),
-    });
+    }).catch(() => {});
 
-    // Queue AI extraction and embedding (Phase 15)
-    // Already in after() context, errors caught and logged
+    // Queue AI extraction and embedding
     try {
       await processSignalExtraction(signalId);
     } catch (error) {

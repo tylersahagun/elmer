@@ -1,19 +1,21 @@
 /**
  * Webhook endpoint for ingesting documents, transcripts, and signals
- * 
- * This endpoint accepts incoming data from external sources like:
+ *
+ * Accepts incoming data from external sources like:
  * - Ask Elephant (transcripts from calls)
  * - Zapier/Make integrations
  * - Email forwarding
  * - Direct API calls
- * 
+ *
  * POST /api/webhooks/ingest
+ * Migrated to Convex (replaces Drizzle).
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { inboxItems, workspaces } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import crypto from "crypto";
 
 // Types for incoming webhook payloads
@@ -53,115 +55,87 @@ interface WebhookRequest {
   payload: IngestPayload;
 }
 
-// Validate webhook signature (optional but recommended)
 function validateSignature(request: NextRequest, body: string): boolean {
   const signature = request.headers.get("x-webhook-signature");
   const webhookSecret = process.env.WEBHOOK_SECRET;
-  
-  // If no secret configured, skip validation
+
   if (!webhookSecret) return true;
   if (!signature) return false;
-  
+
   const expectedSignature = crypto
     .createHmac("sha256", webhookSecret)
     .update(body)
     .digest("hex");
-  
+
   return crypto.timingSafeEqual(
     Buffer.from(signature),
-    Buffer.from(`sha256=${expectedSignature}`)
+    Buffer.from(`sha256=${expectedSignature}`),
   );
+}
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
 }
 
 export async function POST(request: NextRequest) {
   try {
     const bodyText = await request.text();
-    
-    // Validate signature if configured
+
     if (!validateSignature(request, bodyText)) {
       return NextResponse.json(
         { error: "Invalid webhook signature" },
-        { status: 401 }
+        { status: 401 },
       );
     }
-    
+
     const body: WebhookRequest = JSON.parse(bodyText);
     const { workspaceId, source = "webhook", sourceRef, payload } = body;
-    
-    // Validate required fields
+
     if (!workspaceId || !payload || !payload.title || !payload.content) {
       return NextResponse.json(
-        { error: "Missing required fields: workspaceId, payload.title, payload.content" },
-        { status: 400 }
+        {
+          error:
+            "Missing required fields: workspaceId, payload.title, payload.content",
+        },
+        { status: 400 },
       );
     }
-    
-    // Verify workspace exists
-    const workspace = await db.query.workspaces.findFirst({
-      where: eq(workspaces.id, workspaceId),
-    });
-    
+
+    // Verify workspace exists via the server helper (no user auth needed)
+    const workspace = await getConvexWorkspace(workspaceId);
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
-    
-    // Build metadata based on payload type
-    const metadata: Record<string, unknown> = {
-      tags: payload.tags || [],
-    };
-    
-    if (payload.type === "transcript") {
-      const tp = payload as TranscriptPayload;
-      metadata.participants = tp.participants;
-      metadata.duration = tp.duration;
-      metadata.sourceUrl = tp.sourceUrl;
-    } else if (payload.type === "document") {
-      const dp = payload as DocumentPayload;
-      metadata.fileType = dp.fileType;
-      metadata.sourceUrl = dp.sourceUrl;
-    } else {
-      const sp = payload as SignalPayload;
-      metadata.sourceName = sp.sourceName;
-    }
-    
-    // Create inbox item
-    const id = crypto.randomUUID();
-    const now = new Date();
-    
-    await db.insert(inboxItems).values({
-      id,
-      workspaceId,
+
+    const client = getConvexClient();
+    const itemId = await client.mutation(api.inboxItems.createFromWebhook, {
+      workspaceId: workspaceId as Id<"workspaces">,
       type: payload.type || "document",
-      source: source as "webhook" | "upload" | "email" | "api" | "sync",
-      sourceRef,
+      source,
+      sourceRef: sourceRef ?? undefined,
       title: payload.title,
       rawContent: payload.content,
-      status: "pending",
-      metadata,
-      createdAt: now,
-      updatedAt: now,
     });
-    
-    // Return success with item ID
+
     return NextResponse.json({
       success: true,
-      itemId: id,
+      itemId,
       message: `Inbox item created: ${payload.title}`,
     });
-    
   } catch (error) {
     console.error("Webhook ingest error:", error);
     return NextResponse.json(
       { error: "Failed to process webhook" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// GET endpoint to check webhook health
 export async function GET() {
   return NextResponse.json({
     status: "ok",

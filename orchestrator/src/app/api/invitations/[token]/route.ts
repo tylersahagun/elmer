@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  AppAuthenticationError,
-  requireCurrentAppUser,
-} from "@/lib/auth/server";
+import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
 import { getConvexInvitationByToken, acceptConvexInvitation } from "@/lib/convex/server";
 import { logMemberJoined } from "@/lib/activity";
-import type { WorkspaceRole } from "@/lib/db/schema";
+type WorkspaceRole = "admin" | "member" | "viewer";
 
 export async function GET(
   request: NextRequest,
@@ -66,7 +63,20 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const appUser = await requireCurrentAppUser();
+    const { userId: clerkUserId } = await clerkAuth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const clerkUser = await currentUser();
+    const email =
+      clerkUser?.primaryEmailAddress?.emailAddress ??
+      clerkUser?.emailAddresses?.[0]?.emailAddress ??
+      null;
+
+    if (!clerkUser || !email) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
 
     const { token } = await params;
 
@@ -77,11 +87,11 @@ export async function POST(
 
     const result = await acceptConvexInvitation({
       token,
-      userId: appUser.id,
-      clerkUserId: appUser.clerkUserId,
-      email: appUser.email,
-      name: appUser.name ?? undefined,
-      image: appUser.image ?? undefined,
+      userId: clerkUserId,
+      clerkUserId,
+      email,
+      name: clerkUser.fullName ?? clerkUser.username ?? undefined,
+      image: clerkUser.imageUrl ?? undefined,
     });
 
     if (!result.success) {
@@ -93,7 +103,7 @@ export async function POST(
 
     // Log activity for member joined
     if ((result as { workspaceId?: string }).workspaceId && invitation) {
-      await logMemberJoined(result.workspaceId, appUser.id, invitation.role);
+      await logMemberJoined(result.workspaceId, clerkUserId, invitation.role);
     }
 
     return NextResponse.json({
@@ -101,9 +111,6 @@ export async function POST(
       workspaceId: result.workspaceId,
     });
   } catch (error) {
-    if (error instanceof AppAuthenticationError) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
-    }
     console.error("Failed to accept invitation:", error);
     return NextResponse.json(
       { error: "Failed to accept invitation" },

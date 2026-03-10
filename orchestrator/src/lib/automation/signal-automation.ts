@@ -10,11 +10,57 @@
  */
 
 import { findSignalClusters, type SignalCluster } from "@/lib/classification/clustering";
-import { getWorkspaceAutomationSettings } from "@/lib/db/queries";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { canPerformAutoAction, recordAutomationAction, hasClusterBeenActioned } from "./rate-limiter";
 import { createProjectFromClusterAuto, triggerPrdGeneration } from "./auto-actions";
 import { notifyClusterDiscovered } from "@/lib/notifications";
-import type { SignalSeverity, SignalAutomationSettings } from "@/lib/db/schema";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type SignalSeverity = "critical" | "high" | "medium" | "low";
+
+interface SignalAutomationSettings {
+  automationDepth: "manual" | "suggest" | "auto_create" | "full_auto";
+  autoPrdThreshold: number;
+  autoInitiativeThreshold: number;
+  minClusterConfidence: number;
+  minSeverityForAuto: SignalSeverity | null;
+  notifyOnClusterSize: number | null;
+  notifyOnSeverity: SignalSeverity | null;
+  suppressDuplicateNotifications: boolean;
+  maxAutoActionsPerDay: number;
+  cooldownMinutes: number;
+}
+
+const DEFAULT_SIGNAL_AUTOMATION: SignalAutomationSettings = {
+  automationDepth: "suggest",
+  autoPrdThreshold: 5,
+  autoInitiativeThreshold: 3,
+  minClusterConfidence: 0.7,
+  minSeverityForAuto: null,
+  notifyOnClusterSize: 3,
+  notifyOnSeverity: null,
+  suppressDuplicateNotifications: true,
+  maxAutoActionsPerDay: 10,
+  cooldownMinutes: 60,
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function getWorkspaceAutomationSettings(
+  workspaceId: string,
+): Promise<SignalAutomationSettings> {
+  const workspace = await getConvexWorkspace(workspaceId);
+  if (!workspace?.settings?.signalAutomation) {
+    return DEFAULT_SIGNAL_AUTOMATION;
+  }
+  return {
+    ...DEFAULT_SIGNAL_AUTOMATION,
+    ...(workspace.settings.signalAutomation as Partial<SignalAutomationSettings>),
+  };
+}
+
+// ── Public Interfaces ────────────────────────────────────────────────────────
 
 export interface AutomationCheckResult {
   clustersChecked: number;
@@ -45,12 +91,10 @@ export async function checkSignalAutomation(
   const actionsTriggered: AutoActionRecord[] = [];
   const skipped: SkippedCluster[] = [];
 
-  // Exit early if automation is manual
   if (settings.automationDepth === "manual") {
     return { clustersChecked: 0, actionsTriggered, skipped };
   }
 
-  // Find current clusters (minimum 2 signals)
   const clusters = await findSignalClusters(workspaceId, 2);
 
   for (const cluster of clusters) {
@@ -63,20 +107,18 @@ export async function checkSignalAutomation(
 
     const now = new Date().toISOString();
 
-    // SUGGEST MODE: Only notify, no actions
     if (settings.automationDepth === "suggest") {
       await notifyClusterDiscovered(
         workspaceId,
         cluster.id,
         cluster.theme,
         cluster.signalCount,
-        cluster.severity,
+        cluster.severity as SignalSeverity,
         cluster.signalCount >= 3 ? "new_project" : "review"
       );
-      continue; // Don't proceed to auto-actions
+      continue;
     }
 
-    // AUTO-04: Auto-create initiative from cluster above threshold
     if (settings.automationDepth === "auto_create" || settings.automationDepth === "full_auto") {
       if (cluster.signalCount >= settings.autoInitiativeThreshold) {
         const projectId = await createProjectFromClusterAuto(workspaceId, cluster);
@@ -96,17 +138,15 @@ export async function checkSignalAutomation(
           timestamp: now,
         });
 
-        // Notify user of auto-created project
         await notifyClusterDiscovered(
           workspaceId,
           cluster.id,
           cluster.theme,
           cluster.signalCount,
-          cluster.severity,
-          "new_project" // Project was created, action completed
+          cluster.severity as SignalSeverity,
+          "new_project"
         );
 
-        // AUTO-02: Auto-trigger PRD if full_auto and threshold met
         if (settings.automationDepth === "full_auto" &&
             cluster.signalCount >= settings.autoPrdThreshold) {
           const jobId = await triggerPrdGeneration(projectId, workspaceId);
@@ -146,29 +186,24 @@ async function evaluateCluster(
   workspaceId: string,
   settings: SignalAutomationSettings
 ): Promise<SkippedCluster["reason"] | null> {
-  // Check if already actioned
   if (await hasClusterBeenActioned(workspaceId, cluster.id)) {
     return "already_actioned";
   }
 
-  // Check rate limiting
   const rateCheck = await canPerformAutoAction(workspaceId, cluster.id, settings);
   if (!rateCheck.allowed) {
     return rateCheck.reason?.includes("cooldown") ? "cooldown" : "rate_limited";
   }
 
-  // Check confidence threshold
   if (cluster.confidence < settings.minClusterConfidence) {
     return "low_confidence";
   }
 
-  // Check severity filter
   if (settings.minSeverityForAuto &&
-      !meetsSeverityThreshold(cluster.severity, settings.minSeverityForAuto)) {
+      !meetsSeverityThreshold(cluster.severity as SignalSeverity, settings.minSeverityForAuto)) {
     return "severity_filter";
   }
 
-  // Check size threshold
   if (cluster.signalCount < settings.autoInitiativeThreshold) {
     return "below_threshold";
   }
@@ -201,20 +236,16 @@ export async function checkSignalAutomationForNewSignal(
   try {
     const settings = await getWorkspaceAutomationSettings(workspaceId);
 
-    // Exit early if automation is disabled
     if (settings.automationDepth === "manual") return;
 
-    // Run full automation check
     const result = await checkSignalAutomation(workspaceId);
 
-    // Log for observability
     if (result.actionsTriggered.length > 0) {
       console.log(
         `[SignalAutomation] Triggered ${result.actionsTriggered.length} actions after signal ${triggeringSignalId}`
       );
     }
   } catch (error) {
-    // Never throw in after() context - log and continue
     console.error(`[SignalAutomation] Error checking automation for signal ${triggeringSignalId}:`, error);
   }
 }

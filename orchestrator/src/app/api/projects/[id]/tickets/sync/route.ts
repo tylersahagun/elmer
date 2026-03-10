@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { tickets } from "@/lib/db/schema";
-import { getProject, getTickets } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../../convex/_generated/dataModel";
 import { composioService } from "@/lib/composio/service";
 import {
   requireWorkspaceAccess,
@@ -9,7 +9,13 @@ import {
   PermissionError,
 } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
-import { eq } from "drizzle-orm";
+import { getConvexProjectWithDocuments, getConvexWorkspace } from "@/lib/convex/server";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 function findCreateIssueTool(
   tools: Array<Record<string, unknown>>,
@@ -40,16 +46,35 @@ export async function POST(
     const { searchParams } = new URL(request.url);
     const toolkit = (searchParams.get("toolkit") || "linear").toLowerCase();
     const { id } = await params;
-    const project = await getProject(id);
-    if (!project) {
+
+    // Get project from Convex
+    const projectData = await getConvexProjectWithDocuments(id);
+    if (!projectData) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
+
+    const project = projectData.project as {
+      _id: string;
+      workspaceId: string;
+      name: string;
+    };
 
     const membership = await requireWorkspaceAccess(
       project.workspaceId,
       "member",
     );
-    const composio = project.workspace?.settings?.composio;
+
+    // Get workspace settings from Convex
+    const workspaceData = await getConvexWorkspace(project.workspaceId) as {
+      settings?: {
+        composio?: {
+          enabled?: boolean;
+          connectedServices?: string[];
+        };
+      };
+    } | null;
+
+    const composio = workspaceData?.settings?.composio;
     const connected = composio?.connectedServices || [];
 
     if (!composio?.enabled || !connected.includes(toolkit)) {
@@ -59,9 +84,35 @@ export async function POST(
       );
     }
 
-    const ticketsToSync = await getTickets(id);
-    if (ticketsToSync.length === 0) {
+    // Get tickets from Convex
+    const client = getConvexClient();
+    const allTickets = await client.query(api.tickets.listByProject, {
+      projectId: id as Id<"projects">,
+    });
+
+    const pendingTickets = allTickets.filter((t: { linearId?: string; jiraId?: string }) =>
+      toolkit === "linear" ? !t.linearId : !t.jiraId
+    );
+
+    if (pendingTickets.length === 0) {
       return NextResponse.json({ ok: true, synced: 0 });
+    }
+
+    let body: { confirm?: string } = {};
+    try {
+      body = (await request.json()) as { confirm?: string };
+    } catch {
+      body = {};
+    }
+
+    const expectedConfirmation = `sync ${pendingTickets.length} ${toolkit} ticket${pendingTickets.length === 1 ? "" : "s"}`;
+    if (body.confirm !== expectedConfirmation) {
+      return NextResponse.json(
+        {
+          error: `Confirmation required. Re-submit with confirm="${expectedConfirmation}" to sync tickets.`,
+        },
+        { status: 400 },
+      );
     }
 
     const toolsResult = await composioService.listTools(project.workspaceId, [
@@ -86,8 +137,8 @@ export async function POST(
 
     const toolName = String(tool.name || tool.toolName || tool.id);
     let synced = 0;
-    for (const ticket of ticketsToSync) {
-      if (ticket.linearId) continue;
+
+    for (const ticket of pendingTickets) {
       try {
         const response = await composioService.executeTool(
           project.workspaceId,
@@ -106,32 +157,20 @@ export async function POST(
           (response as { identifier?: string })?.identifier ||
           null;
 
-        await db
-          .update(tickets)
-          .set({
-            linearId: linearId || undefined,
-            linearIdentifier: identifier || undefined,
-            metadata: {
-              ...(ticket.metadata || {}),
-              linearSyncStatus: toolkit === "linear" ? "synced" : undefined,
-              jiraSyncStatus: toolkit === "jira" ? "synced" : undefined,
-            },
-            updatedAt: new Date(),
-          })
-          .where(eq(tickets.id, ticket.id));
+        await client.mutation(api.tickets.updateLinearSync, {
+          ticketId: ticket._id as Id<"tickets">,
+          linearId: linearId || undefined,
+          linearIdentifier: identifier || undefined,
+          syncStatus: "synced",
+          toolkit,
+        });
         synced += 1;
       } catch (error) {
-        await db
-          .update(tickets)
-          .set({
-            metadata: {
-              ...(ticket.metadata || {}),
-              linearSyncStatus: toolkit === "linear" ? "failed" : undefined,
-              jiraSyncStatus: toolkit === "jira" ? "failed" : undefined,
-            },
-            updatedAt: new Date(),
-          })
-          .where(eq(tickets.id, ticket.id));
+        await client.mutation(api.tickets.updateLinearSync, {
+          ticketId: ticket._id as Id<"tickets">,
+          syncStatus: "failed",
+          toolkit,
+        });
         console.error("Failed to sync ticket:", error);
       }
     }
@@ -142,7 +181,7 @@ export async function POST(
       "tickets.synced",
       {
         targetType: "project",
-        targetId: project.id,
+        targetId: project._id,
         metadata: { synced, toolName },
       },
     );

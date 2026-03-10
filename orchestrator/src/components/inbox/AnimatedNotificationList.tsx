@@ -5,7 +5,8 @@ import { ArrowUpRight, X, Check, RefreshCw, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence, type Transition } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import type { NotificationType, NotificationPriority } from '@/lib/db/schema';
+type NotificationType = "job_failed" | "job_completed" | "missing_transcript" | "missing_document" | "approval_required" | "jury_failed" | "integration_error" | "stage_blocked" | "action_required";
+type NotificationPriority = "low" | "medium" | "high" | "urgent";
 
 // Types
 interface NotificationItem {

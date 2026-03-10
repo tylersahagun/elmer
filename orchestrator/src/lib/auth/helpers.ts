@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth/legacy-next-auth"
+import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 
 /**
@@ -6,8 +6,9 @@ import { redirect } from "next/navigation"
  * Returns null if not authenticated.
  */
 export async function getCurrentUser() {
-  const session = await auth()
-  return session?.user ?? null
+  const { userId } = await auth()
+  if (!userId) return null
+  return { id: userId }
 }
 
 /**
@@ -15,11 +16,11 @@ export async function getCurrentUser() {
  * Use in Server Components and Server Actions.
  */
 export async function requireAuth() {
-  const session = await auth()
-  if (!session?.user) {
+  const { userId } = await auth()
+  if (!userId) {
     redirect("/login")
   }
-  return session.user
+  return { id: userId }
 }
 
 /**
@@ -27,6 +28,7 @@ export async function requireAuth() {
  * Returns null if not authenticated.
  */
 export async function getSessionForApi() {
-  const session = await auth()
-  return session
+  const { userId } = await auth()
+  if (!userId) return null
+  return { user: { id: userId } }
 }

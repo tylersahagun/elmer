@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getSignal,
-  getSignalWithLinks,
-  linkSignalToPersona,
-  unlinkSignalFromPersona,
-} from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -13,9 +10,14 @@ import {
 import {
   linkConvexSignalPersona,
   listConvexSignalPersonas,
-  listConvexPersonas,
   unlinkConvexSignalPersona,
 } from "@/lib/convex/server";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -26,17 +28,18 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id: signalId } = await context.params;
+    const client = getConvexClient();
 
-    // Get signal to verify it exists and get workspaceId
-    const signal = await getSignal(signalId);
+    const signal = await client.query(api.signals.get, {
+      signalId: signalId as Id<"signals">,
+    });
     if (!signal) {
       return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
-    // Verify membership (viewer can read)
-    await requireWorkspaceAccess(signal.workspaceId, "viewer");
+    await requireWorkspaceAccess(signal.workspaceId as string, "viewer");
 
-    const signalPersonas = await listConvexSignalPersonas(signalId) as Array<{
+    const signalPersonas = (await listConvexSignalPersonas(signalId)) as Array<{
       persona: { _id: string; archetypeId: string } | null;
       linkedAt: string;
     }>;
@@ -77,22 +80,24 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Get signal to verify it exists and get workspaceId
-    const signal = await getSignal(signalId);
+    const client = getConvexClient();
+    const signal = await client.query(api.signals.get, {
+      signalId: signalId as Id<"signals">,
+    });
     if (!signal) {
       return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
-    // Verify membership (member can write)
-    const membership = await requireWorkspaceAccess(signal.workspaceId, "member");
+    const membership = await requireWorkspaceAccess(
+      signal.workspaceId as string,
+      "member"
+    );
 
     await linkConvexSignalPersona({
       signalId,
       personaId,
       linkedBy: membership.userId,
     });
-
-    // Note: Persona linking does NOT affect signal status (only project linking does)
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -124,16 +129,17 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const signal = await getSignal(signalId);
+    const client = getConvexClient();
+    const signal = await client.query(api.signals.get, {
+      signalId: signalId as Id<"signals">,
+    });
     if (!signal) {
       return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
-    await requireWorkspaceAccess(signal.workspaceId, "member");
+    await requireWorkspaceAccess(signal.workspaceId as string, "member");
 
     await unlinkConvexSignalPersona(signalId, personaId);
-
-    // Note: Persona unlinking does NOT affect signal status
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -30,11 +30,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  DEFAULT_SIGNAL_AUTOMATION,
-  type SignalAutomationSettings,
-  type SignalSeverity,
-} from "@/lib/db/schema";
+type SignalSeverity = "critical" | "high" | "medium" | "low";
+
+interface SignalAutomationSettings {
+  automationDepth: "manual" | "suggest" | "auto_create" | "full_auto";
+  autoPrdThreshold: number;
+  autoInitiativeThreshold: number;
+  minClusterConfidence: number;
+  minSeverityForAuto: SignalSeverity | null;
+  notifyOnClusterSize: number | null;
+  notifyOnSeverity: SignalSeverity | null;
+  suppressDuplicateNotifications: boolean;
+  maxAutoActionsPerDay: number;
+  cooldownMinutes: number;
+}
+
+const DEFAULT_SIGNAL_AUTOMATION: SignalAutomationSettings = {
+  automationDepth: "suggest",
+  autoPrdThreshold: 5,
+  autoInitiativeThreshold: 3,
+  minClusterConfidence: 0.7,
+  minSeverityForAuto: null,
+  notifyOnClusterSize: 3,
+  notifyOnSeverity: null,
+  suppressDuplicateNotifications: true,
+  maxAutoActionsPerDay: 10,
+  cooldownMinutes: 60,
+};
 import { Zap, Bell, Shield, Clock, Save, RotateCcw } from "lucide-react";
 
 // Controlled mode props (for modals with external save)

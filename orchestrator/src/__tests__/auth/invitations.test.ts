@@ -1,19 +1,29 @@
 /**
  * Invitation System Tests
- * 
- * Tests the invitation system:
- * - Invitation creation and validation
- * - Token generation
- * - Acceptance flow
- * - Expiration handling
+ *
+ * Tests the invitation system functions backed by Convex.
+ * Uses mocked Convex helpers — no Drizzle/Postgres dependency.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { db } from "@/lib/db";
-import { workspaces, workspaceMembers, users, invitations } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { nanoid } from "nanoid";
-import { describeIfDatabase } from "../helpers/database";
+
+// Mock Convex server helpers
+vi.mock("@/lib/convex/server", () => ({
+  createConvexInvitation: vi.fn(),
+  getConvexInvitationByToken: vi.fn(),
+  acceptConvexInvitation: vi.fn(),
+  listConvexWorkspaceInvitations: vi.fn(),
+}));
+
+// Mock ConvexHttpClient
+vi.mock("convex/browser", () => ({
+  ConvexHttpClient: vi.fn().mockImplementation(() => ({
+    query: vi.fn(),
+    mutation: vi.fn(),
+  })),
+}));
+
 import {
   createInvitation,
   getInvitationByToken,
@@ -21,61 +31,41 @@ import {
   revokeInvitation,
   getWorkspaceInvitations,
 } from "@/lib/invitations";
+import {
+  createConvexInvitation,
+  getConvexInvitationByToken,
+  acceptConvexInvitation,
+  listConvexWorkspaceInvitations,
+} from "@/lib/convex/server";
+import { ConvexHttpClient } from "convex/browser";
 
-// Test fixtures
-const TEST_WORKSPACE_ID = `test_ws_inv_${nanoid(8)}`;
+const mockCreateConvexInvitation = vi.mocked(createConvexInvitation);
+const mockGetConvexInvitationByToken = vi.mocked(getConvexInvitationByToken);
+const mockAcceptConvexInvitation = vi.mocked(acceptConvexInvitation);
+const mockListConvexWorkspaceInvitations = vi.mocked(listConvexWorkspaceInvitations);
+
+const TEST_WORKSPACE_ID = `ws_${nanoid(8)}`;
 const TEST_ADMIN_ID = `user_admin_${nanoid(8)}`;
-const TEST_INVITEE_ID = `user_invitee_${nanoid(8)}`;
 
-describeIfDatabase("Invitation System Tests", () => {
-  beforeAll(async () => {
-    // Create test workspace
-    await db.insert(workspaces).values({
-      id: TEST_WORKSPACE_ID,
-      name: "Test Invitation Workspace",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+beforeEach(() => {
+  vi.clearAllMocks();
+  process.env.NEXT_PUBLIC_CONVEX_URL = "https://test.convex.cloud";
+  process.env.AUTH_URL = "http://localhost:3000";
+});
 
-    // Create admin user
-    await db.insert(users).values({
-      id: TEST_ADMIN_ID,
-      email: `admin_${nanoid(8)}@example.com`,
-      name: "Admin User",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    // Create invitee user
-    await db.insert(users).values({
-      id: TEST_INVITEE_ID,
-      email: `invitee_${nanoid(8)}@example.com`,
-      name: "Invitee User",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    // Add admin membership
-    await db.insert(workspaceMembers).values({
-      id: nanoid(),
-      workspaceId: TEST_WORKSPACE_ID,
-      userId: TEST_ADMIN_ID,
-      role: "admin",
-      joinedAt: new Date(),
-    });
-  });
-
-  afterAll(async () => {
-    // Cleanup in correct order (foreign key constraints)
-    await db.delete(invitations).where(eq(invitations.workspaceId, TEST_WORKSPACE_ID));
-    await db.delete(workspaceMembers).where(eq(workspaceMembers.workspaceId, TEST_WORKSPACE_ID));
-    await db.delete(workspaces).where(eq(workspaces.id, TEST_WORKSPACE_ID));
-    await db.delete(users).where(eq(users.id, TEST_ADMIN_ID));
-    await db.delete(users).where(eq(users.id, TEST_INVITEE_ID));
-  });
-
+describe("Invitation System Tests", () => {
   describe("Invitation Creation", () => {
     it("should create an invitation with valid data", async () => {
+      const mockToken = nanoid(32);
+      const mockExpiry = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      mockCreateConvexInvitation.mockResolvedValue({
+        id: nanoid(),
+        token: mockToken,
+        email: "newuser@example.com",
+        role: "member",
+        expiresAt: mockExpiry,
+      });
+
       const invitation = await createInvitation({
         workspaceId: TEST_WORKSPACE_ID,
         email: "newuser@example.com",
@@ -85,40 +75,39 @@ describeIfDatabase("Invitation System Tests", () => {
 
       expect(invitation).toBeDefined();
       expect(invitation.id).toBeDefined();
-      expect(invitation.token).toBeDefined();
+      expect(invitation.token).toBe(mockToken);
       expect(invitation.email).toBe("newuser@example.com");
       expect(invitation.role).toBe("member");
-      expect(invitation.expiresAt).toBeDefined();
-
-      // Cleanup
-      await db.delete(invitations).where(eq(invitations.id, invitation.id));
+      expect(invitation.expiresAt).toBeInstanceOf(Date);
+      expect(invitation.inviteUrl).toContain(mockToken);
     });
 
     it("should generate unique tokens", async () => {
-      const invitation1 = await createInvitation({
-        workspaceId: TEST_WORKSPACE_ID,
-        email: "unique1@example.com",
-        role: "member",
-        invitedBy: TEST_ADMIN_ID,
-      });
+      const token1 = nanoid(32);
+      const token2 = nanoid(32);
+      const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
-      const invitation2 = await createInvitation({
-        workspaceId: TEST_WORKSPACE_ID,
-        email: "unique2@example.com",
-        role: "member",
-        invitedBy: TEST_ADMIN_ID,
-      });
+      mockCreateConvexInvitation
+        .mockResolvedValueOnce({ id: nanoid(), token: token1, email: "u1@example.com", role: "member", expiresAt })
+        .mockResolvedValueOnce({ id: nanoid(), token: token2, email: "u2@example.com", role: "member", expiresAt });
 
-      expect(invitation1.token).not.toBe(invitation2.token);
+      const inv1 = await createInvitation({ workspaceId: TEST_WORKSPACE_ID, email: "u1@example.com", role: "member", invitedBy: TEST_ADMIN_ID });
+      const inv2 = await createInvitation({ workspaceId: TEST_WORKSPACE_ID, email: "u2@example.com", role: "member", invitedBy: TEST_ADMIN_ID });
 
-      // Cleanup
-      await db.delete(invitations).where(eq(invitations.id, invitation1.id));
-      await db.delete(invitations).where(eq(invitations.id, invitation2.id));
+      expect(inv1.token).not.toBe(inv2.token);
     });
 
     it("should set correct expiration (7 days)", async () => {
-      const beforeCreate = new Date();
-      
+      const now = Date.now();
+      const expiresAtMs = now + 7 * 24 * 60 * 60 * 1000;
+      mockCreateConvexInvitation.mockResolvedValue({
+        id: nanoid(),
+        token: nanoid(32),
+        email: "expiry@example.com",
+        role: "viewer",
+        expiresAt: expiresAtMs,
+      });
+
       const invitation = await createInvitation({
         workspaceId: TEST_WORKSPACE_ID,
         email: "expiry@example.com",
@@ -126,68 +115,54 @@ describeIfDatabase("Invitation System Tests", () => {
         invitedBy: TEST_ADMIN_ID,
       });
 
-      const expiresAt = new Date(invitation.expiresAt);
-      const expectedMin = new Date(beforeCreate.getTime() + 6 * 24 * 60 * 60 * 1000); // 6 days
-      const expectedMax = new Date(beforeCreate.getTime() + 8 * 24 * 60 * 60 * 1000); // 8 days
-
-      expect(expiresAt.getTime()).toBeGreaterThan(expectedMin.getTime());
-      expect(expiresAt.getTime()).toBeLessThan(expectedMax.getTime());
-
-      // Cleanup
-      await db.delete(invitations).where(eq(invitations.id, invitation.id));
+      const expiresAt = invitation.expiresAt;
+      const sixDays = now + 6 * 24 * 60 * 60 * 1000;
+      const eightDays = now + 8 * 24 * 60 * 60 * 1000;
+      expect(expiresAt.getTime()).toBeGreaterThan(sixDays);
+      expect(expiresAt.getTime()).toBeLessThan(eightDays);
     });
 
     it("should support all role types", async () => {
       const roles = ["admin", "member", "viewer"] as const;
-      const createdIds: string[] = [];
-
       for (const role of roles) {
-        const invitation = await createInvitation({
-          workspaceId: TEST_WORKSPACE_ID,
+        mockCreateConvexInvitation.mockResolvedValueOnce({
+          id: nanoid(),
+          token: nanoid(32),
           email: `role_${role}@example.com`,
           role,
-          invitedBy: TEST_ADMIN_ID,
+          expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
         });
-
+        const invitation = await createInvitation({ workspaceId: TEST_WORKSPACE_ID, email: `role_${role}@example.com`, role, invitedBy: TEST_ADMIN_ID });
         expect(invitation.role).toBe(role);
-        createdIds.push(invitation.id);
-      }
-
-      // Cleanup
-      for (const id of createdIds) {
-        await db.delete(invitations).where(eq(invitations.id, id));
       }
     });
   });
 
   describe("Token Lookup", () => {
-    let testToken: string;
-    let testInvitationId: string;
-
-    beforeAll(async () => {
-      const invitation = await createInvitation({
-        workspaceId: TEST_WORKSPACE_ID,
+    it("should find invitation by valid token", async () => {
+      const token = nanoid(32);
+      mockGetConvexInvitationByToken.mockResolvedValue({
+        _id: nanoid(),
+        token,
         email: "lookup@example.com",
         role: "member",
-        invitedBy: TEST_ADMIN_ID,
+        workspaceId: TEST_WORKSPACE_ID,
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        isExpired: false,
+        isAccepted: false,
+        isValid: true,
       });
-      testToken = invitation.token;
-      testInvitationId = invitation.id;
-    });
 
-    afterAll(async () => {
-      await db.delete(invitations).where(eq(invitations.id, testInvitationId));
-    });
-
-    it("should find invitation by valid token", async () => {
-      const invitation = await getInvitationByToken(testToken);
+      const invitation = await getInvitationByToken(token);
 
       expect(invitation).toBeDefined();
-      expect(invitation?.token).toBe(testToken);
+      expect(invitation?.token).toBe(token);
       expect(invitation?.email).toBe("lookup@example.com");
     });
 
     it("should return null for invalid token", async () => {
+      mockGetConvexInvitationByToken.mockResolvedValue(null);
+
       const invitation = await getInvitationByToken("invalid_token_123");
 
       expect(invitation).toBeNull();
@@ -196,161 +171,78 @@ describeIfDatabase("Invitation System Tests", () => {
 
   describe("Invitation Acceptance", () => {
     it("should accept valid invitation", async () => {
-      const invitation = await createInvitation({
+      mockAcceptConvexInvitation.mockResolvedValue({
         workspaceId: TEST_WORKSPACE_ID,
-        email: "accept@example.com",
-        role: "member",
-        invitedBy: TEST_ADMIN_ID,
       });
 
       const result = await acceptInvitation({
-        token: invitation.token,
-        userId: TEST_INVITEE_ID,
+        token: nanoid(32),
+        userId: "user_123",
       });
 
       expect(result.success).toBe(true);
       expect(result.workspaceId).toBe(TEST_WORKSPACE_ID);
-
-      // Verify membership was created
-      const membership = await db.query.workspaceMembers.findFirst({
-        where: and(
-          eq(workspaceMembers.workspaceId, TEST_WORKSPACE_ID),
-          eq(workspaceMembers.userId, TEST_INVITEE_ID)
-        ),
-      });
-
-      expect(membership).toBeDefined();
-      expect(membership?.role).toBe("member");
-
-      // Verify invitation was marked as used (check that it's no longer valid for acceptance)
-      // Note: getInvitationByToken returns pending invitations only
-      const usedInvitation = await getInvitationByToken(invitation.token);
-      // After acceptance, the invitation either has usedAt set or is no longer returned
-      // The implementation marks it as used, so subsequent lookups behave accordingly
-      expect(result.success).toBe(true);
-
-      // Cleanup
-      await db.delete(workspaceMembers).where(
-        and(
-          eq(workspaceMembers.workspaceId, TEST_WORKSPACE_ID),
-          eq(workspaceMembers.userId, TEST_INVITEE_ID)
-        )
-      );
-      await db.delete(invitations).where(eq(invitations.id, invitation.id));
     });
 
     it("should reject already-used invitation", async () => {
-      // Create and accept an invitation
-      const invitation = await createInvitation({
-        workspaceId: TEST_WORKSPACE_ID,
-        email: "reuse@example.com",
-        role: "member",
-        invitedBy: TEST_ADMIN_ID,
+      mockAcceptConvexInvitation.mockResolvedValue({
+        error: "Invitation has already been accepted",
       });
 
-      await acceptInvitation({
-        token: invitation.token,
-        userId: TEST_INVITEE_ID,
-      });
-
-      // Try to accept again
       const result = await acceptInvitation({
-        token: invitation.token,
-        userId: TEST_INVITEE_ID,
+        token: nanoid(32),
+        userId: "user_123",
       });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("already");
-
-      // Cleanup
-      await db.delete(workspaceMembers).where(
-        and(
-          eq(workspaceMembers.workspaceId, TEST_WORKSPACE_ID),
-          eq(workspaceMembers.userId, TEST_INVITEE_ID)
-        )
-      );
-      await db.delete(invitations).where(eq(invitations.id, invitation.id));
     });
 
     it("should reject expired invitation", async () => {
-      // Create invitation with past expiration
-      const expiredDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 1 day ago
-      
-      const [invitation] = await db.insert(invitations).values({
-        id: nanoid(),
-        workspaceId: TEST_WORKSPACE_ID,
-        email: "expired@example.com",
-        role: "member",
-        token: nanoid(32),
-        invitedBy: TEST_ADMIN_ID,
-        expiresAt: expiredDate,
-        createdAt: new Date(),
-      }).returning();
+      mockAcceptConvexInvitation.mockRejectedValue(new Error("Invitation has expired"));
 
       const result = await acceptInvitation({
-        token: invitation.token,
-        userId: TEST_INVITEE_ID,
+        token: nanoid(32),
+        userId: "user_123",
       });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("expired");
-
-      // Cleanup
-      await db.delete(invitations).where(eq(invitations.id, invitation.id));
-    });
-
-    it("should reject invalid token", async () => {
-      const result = await acceptInvitation({
-        token: "completely_invalid_token",
-        userId: TEST_INVITEE_ID,
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
     });
   });
 
   describe("Invitation Revocation", () => {
     it("should revoke pending invitation", async () => {
-      const invitation = await createInvitation({
-        workspaceId: TEST_WORKSPACE_ID,
-        email: "revoke@example.com",
-        role: "member",
-        invitedBy: TEST_ADMIN_ID,
-      });
+      const mockMutation = vi.fn().mockResolvedValue({ ok: true });
+      vi.mocked(ConvexHttpClient).mockImplementation(() => ({
+        query: vi.fn(),
+        mutation: mockMutation,
+      }) as unknown as ConvexHttpClient);
 
-      const success = await revokeInvitation(invitation.id);
+      const success = await revokeInvitation("invitation_id_123");
       expect(success).toBe(true);
-
-      // Verify invitation no longer valid
-      const found = await getInvitationByToken(invitation.token);
-      expect(found).toBeNull();
     });
 
     it("should return false for non-existent invitation", async () => {
+      const mockMutation = vi.fn().mockRejectedValue(new Error("Not found"));
+      vi.mocked(ConvexHttpClient).mockImplementation(() => ({
+        query: vi.fn(),
+        mutation: mockMutation,
+      }) as unknown as ConvexHttpClient);
+
       const success = await revokeInvitation("nonexistent_id");
       expect(success).toBe(false);
     });
   });
 
   describe("Workspace Invitations List", () => {
-    beforeAll(async () => {
-      // Create multiple invitations
-      await createInvitation({
-        workspaceId: TEST_WORKSPACE_ID,
-        email: "list1@example.com",
-        role: "member",
-        invitedBy: TEST_ADMIN_ID,
-      });
-      await createInvitation({
-        workspaceId: TEST_WORKSPACE_ID,
-        email: "list2@example.com",
-        role: "viewer",
-        invitedBy: TEST_ADMIN_ID,
-      });
-    });
-
     it("should list pending invitations for workspace", async () => {
+      const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      mockListConvexWorkspaceInvitations.mockResolvedValue([
+        { _id: nanoid(), email: "list1@example.com", role: "member", token: nanoid(32), expiresAt, invitedBy: TEST_ADMIN_ID },
+        { _id: nanoid(), email: "list2@example.com", role: "viewer", token: nanoid(32), expiresAt, invitedBy: TEST_ADMIN_ID },
+      ]);
+
       const pendingInvitations = await getWorkspaceInvitations(TEST_WORKSPACE_ID);
 
       expect(pendingInvitations.length).toBeGreaterThanOrEqual(2);

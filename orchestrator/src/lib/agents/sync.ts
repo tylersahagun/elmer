@@ -1,18 +1,22 @@
 import { Octokit } from "@octokit/rest";
-import { nanoid } from "nanoid";
-import { db } from "@/lib/db";
 import {
-  agentDefinitions,
-  agentKnowledgeSources,
-  type SourceRepoTransformation,
-} from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+  syncConvexAgentDefinitions,
+  syncConvexAgentKnowledgeSources,
+} from "@/lib/convex/server";
 import { parseCommand, parseRule, parseSkill, parseSubagent } from "./parser";
+
+type SourceRepoTransformation = {
+  enabled?: boolean;
+  pathMappings?: Array<{ from: string; to: string }>;
+  chromaticConfig?: {
+    token?: string;
+    appId?: string;
+    productionUrl?: string;
+  };
+};
 
 /**
  * Apply path transformations to content based on source repo mappings.
- * This is used when syncing agents from external repos (like pm-workspace)
- * to ensure paths are correctly adapted for the target workspace.
  */
 function applyPathTransformations(
   content: string,
@@ -25,17 +29,14 @@ function applyPathTransformations(
   let transformedContent = content;
 
   for (const mapping of transformation.pathMappings) {
-    // Create regex for global replacement
     const escapedFrom = mapping.from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(escapedFrom, "g");
     transformedContent = transformedContent.replace(regex, mapping.to);
   }
 
-  // Apply Chromatic config if specified
   if (transformation.chromaticConfig) {
-    const { token, appId, productionUrl } = transformation.chromaticConfig;
+    const { token, appId } = transformation.chromaticConfig;
 
-    // Replace Chromatic token patterns
     if (token) {
       transformedContent = transformedContent.replace(
         /CHROMATIC_PROJECT_TOKEN="[^"]+"/g,
@@ -47,9 +48,7 @@ function applyPathTransformations(
       );
     }
 
-    // Replace Chromatic app ID in URLs
     if (appId) {
-      // Match Chromatic URL patterns and replace the app ID portion
       transformedContent = transformedContent.replace(
         /--[a-f0-9]+\.chromatic\.com/g,
         `--${appId}.chromatic.com`,
@@ -69,7 +68,6 @@ async function fetchFileContent(
 ): Promise<string | null> {
   const { data } = await octokit.repos.getContent({ owner, repo, path, ref });
   if (Array.isArray(data)) return null;
-  // Type guard: only file type has content property
   if (data.type !== "file" || !data.content) return null;
   if (data.encoding === "base64") {
     return Buffer.from(data.content, "base64").toString("utf-8");
@@ -117,7 +115,7 @@ export async function syncAgentArchitecture(params: {
     transformation,
   } = params;
   const sourceRepo = `${owner}/${repo}`;
-  const syncedAt = new Date();
+  const syncedAt = Date.now();
   const include = {
     agentsMd: selection?.agentsMd !== false,
     skills: selection?.skills !== false,
@@ -134,19 +132,14 @@ export async function syncAgentArchitecture(params: {
   );
 
   const definitions: Array<{
-    id: string;
-    workspaceId: string;
-    sourceRepo: string;
-    sourceRef: string;
-    sourcePath: string;
-    type: "agents_md" | "skill" | "command" | "subagent" | "rule";
     name: string;
+    type: "agents_md" | "skill" | "command" | "subagent" | "rule";
+    sourcePath: string;
     description?: string;
     triggers?: string[];
     content: string;
     metadata?: Record<string, unknown>;
-    syncedAt: Date;
-    createdAt: Date;
+    syncedAt: number;
   }> = [];
 
   if (include.agentsMd) {
@@ -159,16 +152,11 @@ export async function syncAgentArchitecture(params: {
     );
     if (agentsContent) {
       definitions.push({
-        id: nanoid(),
-        workspaceId,
-        sourceRepo,
-        sourceRef: ref || "default",
-        sourcePath: "AGENTS.md",
-        type: "agents_md",
         name: "AGENTS.md",
+        type: "agents_md",
+        sourcePath: "AGENTS.md",
         content: applyPathTransformations(agentsContent, transformation),
         syncedAt,
-        createdAt: syncedAt,
       });
     }
   }
@@ -206,13 +194,9 @@ export async function syncAgentArchitecture(params: {
           );
           const skill = parseSkill(transformedContent, path);
           definitions.push({
-            id: nanoid(),
-            workspaceId,
-            sourceRepo,
-            sourceRef: ref || "default",
-            sourcePath: path,
-            type: "skill",
             name: skill.name,
+            type: "skill",
+            sourcePath: path,
             description: skill.description,
             triggers: skill.triggers,
             content: skill.content,
@@ -222,11 +206,9 @@ export async function syncAgentArchitecture(params: {
               outputPaths: skill.outputPaths,
             },
             syncedAt,
-            createdAt: syncedAt,
           });
         }
       } catch (error) {
-        // Handle 404 or other errors gracefully - the folder may not exist
         console.warn(
           `[syncAgentArchitecture] Failed to list .cursor/skills: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
@@ -259,13 +241,9 @@ export async function syncAgentArchitecture(params: {
           );
           const command = parseCommand(transformedContent, path);
           definitions.push({
-            id: nanoid(),
-            workspaceId,
-            sourceRepo,
-            sourceRef: ref || "default",
-            sourcePath: path,
-            type: "command",
             name: command.name,
+            type: "command",
+            sourcePath: path,
             description: command.description,
             content: transformedContent,
             metadata: {
@@ -275,11 +253,9 @@ export async function syncAgentArchitecture(params: {
               usage: command.usage,
             },
             syncedAt,
-            createdAt: syncedAt,
           });
         }
       } catch (error) {
-        // Handle 404 or other errors gracefully - the folder may not exist
         console.warn(
           `[syncAgentArchitecture] Failed to list .cursor/commands: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
@@ -312,13 +288,9 @@ export async function syncAgentArchitecture(params: {
           );
           const subagent = parseSubagent(transformedContent, path);
           definitions.push({
-            id: nanoid(),
-            workspaceId,
-            sourceRepo,
-            sourceRef: ref || "default",
-            sourcePath: path,
-            type: "subagent",
             name: subagent.name,
+            type: "subagent",
+            sourcePath: path,
             description: subagent.description,
             content: transformedContent,
             metadata: {
@@ -328,11 +300,9 @@ export async function syncAgentArchitecture(params: {
               outputPaths: subagent.outputPaths,
             },
             syncedAt,
-            createdAt: syncedAt,
           });
         }
       } catch (error) {
-        // Handle 404 or other errors gracefully - the folder may not exist
         console.warn(
           `[syncAgentArchitecture] Failed to list .cursor/agents: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
@@ -365,13 +335,9 @@ export async function syncAgentArchitecture(params: {
           );
           const rule = parseRule(transformedContent, path);
           definitions.push({
-            id: nanoid(),
-            workspaceId,
-            sourceRepo,
-            sourceRef: ref || "default",
-            sourcePath: path,
-            type: "rule",
             name: rule.description || file.name,
+            type: "rule",
+            sourcePath: path,
             description: rule.description,
             content: transformedContent,
             metadata: {
@@ -379,11 +345,9 @@ export async function syncAgentArchitecture(params: {
               alwaysApply: rule.alwaysApply,
             },
             syncedAt,
-            createdAt: syncedAt,
           });
         }
       } catch (error) {
-        // Handle 404 or other errors gracefully - the folder may not exist
         console.warn(
           `[syncAgentArchitecture] Failed to list .cursor/rules: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
@@ -391,19 +355,13 @@ export async function syncAgentArchitecture(params: {
     }
   }
 
-  // Replace existing definitions for this repo/ref
-  await db
-    .delete(agentDefinitions)
-    .where(
-      and(
-        eq(agentDefinitions.workspaceId, workspaceId),
-        eq(agentDefinitions.sourceRepo, sourceRepo),
-        eq(agentDefinitions.sourceRef, ref || "default"),
-      ),
-    );
-  if (definitions.length > 0) {
-    await db.insert(agentDefinitions).values(definitions);
-  }
+  // Sync definitions to Convex (delete old, insert new)
+  await syncConvexAgentDefinitions({
+    workspaceId,
+    sourceRepo,
+    sourceRef: ref || "default",
+    definitions,
+  });
 
   const normalizeContextPath = (value: string) =>
     value.replace(/^\/+/, "").replace(/^\.\//, "").replace(/\/+$/, "");
@@ -431,26 +389,18 @@ export async function syncAgentArchitecture(params: {
           .map((item) => item.name);
 
   if (include.knowledge && knowledgePaths.length) {
-    await db
-      .delete(agentKnowledgeSources)
-      .where(
-        and(
-          eq(agentKnowledgeSources.workspaceId, workspaceId),
-          eq(agentKnowledgeSources.sourceRepo, sourceRepo),
-          eq(agentKnowledgeSources.sourceRef, ref || "default"),
-        ),
-      );
     const entries = knowledgePaths.map((path) => ({
-      id: nanoid(),
-      workspaceId,
-      sourceRepo,
-      sourceRef: ref || "default",
       sourcePath: `${normalizeContextPath(path)}/`,
       type: "knowledge",
       name: path,
       syncedAt,
     }));
-    await db.insert(agentKnowledgeSources).values(entries);
+    await syncConvexAgentKnowledgeSources({
+      workspaceId,
+      sourceRepo,
+      sourceRef: ref || "default",
+      entries,
+    });
   }
 
   if (include.personas && knowledgePaths.length) {
@@ -477,27 +427,19 @@ export async function syncAgentArchitecture(params: {
     }
 
     if (personaPaths.length) {
-      await db
-        .delete(agentKnowledgeSources)
-        .where(
-          and(
-            eq(agentKnowledgeSources.workspaceId, workspaceId),
-            eq(agentKnowledgeSources.sourceRepo, sourceRepo),
-            eq(agentKnowledgeSources.sourceRef, ref || "default"),
-            eq(agentKnowledgeSources.type, "personas"),
-          ),
-        );
       const personaEntries = Array.from(new Set(personaPaths)).map((path) => ({
-        id: nanoid(),
-        workspaceId,
-        sourceRepo,
-        sourceRef: ref || "default",
         sourcePath: path,
         type: "personas",
         name: "personas",
         syncedAt,
       }));
-      await db.insert(agentKnowledgeSources).values(personaEntries);
+      await syncConvexAgentKnowledgeSources({
+        workspaceId,
+        sourceRepo,
+        sourceRef: ref || "default",
+        typeFilter: "personas",
+        entries: personaEntries,
+      });
     }
   }
 

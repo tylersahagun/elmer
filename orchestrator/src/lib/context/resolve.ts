@@ -2,12 +2,9 @@ import {
   getConvexProjectRuntimeContext,
   getConvexProjectWithDocuments,
   listConvexWorkspaceRuntimeContext,
+  getConvexDocumentByProjectAndType,
+  upsertConvexDocumentByType,
 } from "@/lib/convex/server";
-import type { DocumentType } from "@/lib/db/schema";
-import { db } from "@/lib/db";
-import { documents } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { nanoid } from "nanoid";
 
 type RuntimeContextItem = {
   entityType: string;
@@ -225,18 +222,8 @@ export interface ProjectStateUpdate {
  * Get the current project state document
  */
 export async function getProjectState(projectId: string): Promise<string | null> {
-  const docs = await db
-    .select()
-    .from(documents)
-    .where(
-      and(
-        eq(documents.projectId, projectId),
-        eq(documents.type, "state" as DocumentType)
-      )
-    )
-    .limit(1);
-  
-  return docs[0]?.content ?? null;
+  const doc = await getConvexDocumentByProjectAndType(projectId, "state");
+  return doc?.content ?? null;
 }
 
 /**
@@ -247,7 +234,7 @@ export async function updateProjectState(
   update: ProjectStateUpdate
 ): Promise<void> {
   const now = new Date();
-  
+
   const content = `# Project State
 
 ## Current Phase
@@ -277,50 +264,17 @@ ${update.nextSteps && update.nextSteps.length > 0
 _Last updated: ${now.toISOString()}_
 `;
 
-  // Check if state document exists
-  const existing = await db
-    .select()
-    .from(documents)
-    .where(
-      and(
-        eq(documents.projectId, projectId),
-        eq(documents.type, "state" as DocumentType)
-      )
-    )
-    .limit(1);
+  const bundle = await getConvexProjectWithDocuments(projectId) as ConvexProjectBundle;
+  const workspaceId = (bundle as unknown as { project: { workspaceId?: string } | null })?.project?.workspaceId;
+  if (!workspaceId) throw new Error(`Cannot resolve workspaceId for project ${projectId}`);
 
-  if (existing.length > 0) {
-    // Update existing
-    await db
-      .update(documents)
-      .set({
-        content,
-        version: (existing[0].version || 1) + 1,
-        updatedAt: now,
-      })
-      .where(eq(documents.id, existing[0].id));
-  } else {
-    // Create new
-    const bundle = await getConvexProjectWithDocuments(projectId) as ConvexProjectBundle;
-    const projectSlug =
-      bundle?.project?.name?.toLowerCase().replace(/\s+/g, "-") || "project";
-
-    await db.insert(documents).values({
-      id: `doc_${nanoid()}`,
-      projectId,
-      type: "state" as DocumentType,
-      title: "Project State",
-      content,
-      version: 1,
-      filePath: `initiatives/${projectSlug}/state.md`,
-      metadata: {
-        generatedBy: "ai",
-        actualType: "state",
-      },
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
+  await upsertConvexDocumentByType({
+    projectId,
+    workspaceId,
+    type: "state",
+    title: "Project State",
+    content,
+  });
 }
 
 /**
@@ -328,18 +282,7 @@ _Last updated: ${now.toISOString()}_
  */
 export async function getDocumentByType(
   projectId: string,
-  docType: DocumentType
-): Promise<typeof documents.$inferSelect | null> {
-  const docs = await db
-    .select()
-    .from(documents)
-    .where(
-      and(
-        eq(documents.projectId, projectId),
-        eq(documents.type, docType)
-      )
-    )
-    .limit(1);
-  
-  return docs[0] ?? null;
+  docType: string
+): Promise<{ _id: string; projectId: string; workspaceId: string; type: string; title: string; content: string; version: number } | null> {
+  return getConvexDocumentByProjectAndType(projectId, docType);
 }

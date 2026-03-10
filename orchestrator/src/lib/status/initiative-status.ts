@@ -1,9 +1,19 @@
-import type {
-  DocumentType,
-  ProjectStage,
-  ReleaseMetricsThreshold,
-  ReleaseMetricsValues,
-} from "@/lib/db/schema";
+type DocumentType = string;
+type ProjectStage = string;
+
+interface ReleaseMetricsThreshold {
+  users: number;
+  engagement: number;
+  errors: number;
+  satisfaction: number;
+}
+
+interface ReleaseMetricsValues {
+  users: number;
+  engagement: number;
+  errors: number;
+  satisfaction: number;
+}
 import {
   STATUS_ARTIFACT_TYPES,
   type ArtifactState,

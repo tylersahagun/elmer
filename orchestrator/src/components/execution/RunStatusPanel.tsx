@@ -31,7 +31,18 @@ import {
   GitCommit,
   CircleDot,
 } from "lucide-react";
-import type { ProjectStage, TaskVerificationResult } from "@/lib/db/schema";
+type ProjectStage = "inbox" | "discovery" | "prd" | "design" | "prototype" | "validate" | "tickets" | "build" | "alpha" | "beta" | "ga";
+interface TaskVerificationResult {
+  taskName: string;
+  passed: boolean;
+  criteriaResults: Array<{
+    criterion: string;
+    passed: boolean;
+    evidence?: string;
+  }>;
+  verifiedAt: string;
+  commitHash?: string;
+}
 
 interface RunStatusPanelProps {
   cardId: string;

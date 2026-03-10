@@ -1,4 +1,4 @@
-import type { JobType } from "@/lib/db/schema";
+type JobType = string;
 import type { SwarmLane, SwarmPreset, SwarmReport } from "./types";
 
 const NO_JOBS: JobType[] = [];

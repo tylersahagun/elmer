@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
-import { getProjectCommitHistory, getProjectCommitCount } from "@/lib/db/queries";
-import { db } from "@/lib/db";
-import { projects, workspaceMembers } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
+import { requireWorkspaceAccess, handlePermissionError, PermissionError } from "@/lib/permissions";
+import { getConvexProjectWithDocuments } from "@/lib/convex/server";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -11,57 +17,45 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
     const { id: projectId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get("limit") || "20", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
 
-    // Get project and verify access
-    const project = await db.query.projects.findFirst({
-      where: eq(projects.id, projectId),
-    });
-
-    if (!project) {
+    // Get project from Convex to get workspaceId for auth check
+    const projectData = await getConvexProjectWithDocuments(projectId);
+    if (!projectData) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Verify user has access to workspace
-    const membership = await db.query.workspaceMembers.findFirst({
-      where: and(
-        eq(workspaceMembers.workspaceId, project.workspaceId),
-        eq(workspaceMembers.userId, session.user.id)
-      ),
+    const project = projectData.project as { _id: string; workspaceId: string };
+    await requireWorkspaceAccess(project.workspaceId, "viewer");
+
+    const client = getConvexClient();
+    const result = await client.query(api.projectCommits.listByProject, {
+      projectId: projectId as Id<"projects">,
+      limit,
+      offset,
     });
 
-    if (!membership) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
-    }
-
-    // Fetch commit history
-    const [commits, totalCount] = await Promise.all([
-      getProjectCommitHistory(projectId, { limit, offset }),
-      getProjectCommitCount(projectId),
-    ]);
-
     return NextResponse.json({
-      commits,
+      commits: result.commits,
       pagination: {
-        total: totalCount,
+        total: result.total,
         limit,
         offset,
-        hasMore: offset + commits.length < totalCount,
+        hasMore: offset + result.commits.length < result.total,
       },
     });
   } catch (error) {
+    if (error instanceof PermissionError) {
+      const { error: message, status } = handlePermissionError(error);
+      return NextResponse.json({ error: message }, { status });
+    }
     console.error("Failed to fetch commit history:", error);
     return NextResponse.json(
       { error: "Failed to fetch commit history" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

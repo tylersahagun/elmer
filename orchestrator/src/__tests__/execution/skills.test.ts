@@ -1,19 +1,10 @@
 /**
  * Contract Tests: Skills System
  *
- * Tests the skills catalog functionality:
- * - Local skill management
- * - SkillsMP integration
- * - Trust levels and vetting
- * - Skill search
+ * Tests the skills catalog functionality using mocked Convex.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { db } from "@/lib/db";
-import { workspaces, skills } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
-import { describeIfDatabase } from "../helpers/database";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createSkill,
   getSkillById,
@@ -25,24 +16,75 @@ import {
   type CreateSkillInput,
 } from "@/lib/skills";
 
-// Test fixtures
-const TEST_WORKSPACE_ID = `test_ws_${nanoid(8)}`;
+// In-memory store simulating Convex
+let skillStore: Record<string, unknown>[] = [];
+let idCounter = 1;
 
-describeIfDatabase("Skills System Contract Tests", () => {
-  beforeAll(async () => {
-    // Create test workspace
-    await db.insert(workspaces).values({
-      id: TEST_WORKSPACE_ID,
-      name: "Test Workspace",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-  });
+// Mock the Convex API module with identifiable functions
+vi.mock("../../../convex/_generated/api", () => ({
+  api: {
+    skills: {
+      list: "skills:list",
+      get: "skills:get",
+      getByLegacyId: "skills:getByLegacyId",
+      create: "skills:create",
+      update: "skills:update",
+      remove: "skills:remove",
+      upsertByEntrypoint: "skills:upsertByEntrypoint",
+    },
+  },
+}));
 
-  afterAll(async () => {
-    // Cleanup test data
-    await db.delete(skills).where(eq(skills.workspaceId, TEST_WORKSPACE_ID));
-    await db.delete(workspaces).where(eq(workspaces.id, TEST_WORKSPACE_ID));
+vi.mock("convex/browser", () => ({
+  ConvexHttpClient: vi.fn().mockImplementation(() => ({
+    query: vi.fn().mockImplementation((fn: string, args: Record<string, unknown>) => {
+      if (fn === "skills:list") {
+        const wsId = args?.workspaceId;
+        return Promise.resolve(
+          wsId ? skillStore.filter((s) => (s as {workspaceId?: string}).workspaceId === wsId) : [...skillStore],
+        );
+      }
+      if (fn === "skills:get") {
+        const id = args?.id as string;
+        return Promise.resolve(skillStore.find((s) => (s as {_id: string})._id === id) ?? null);
+      }
+      if (fn === "skills:getByLegacyId") {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(null);
+    }),
+    mutation: vi.fn().mockImplementation((fn: string, args: Record<string, unknown>) => {
+      if (fn === "skills:create") {
+        const id = `mock_skill_${idCounter++}`;
+        skillStore.push({ _id: id, _creationTime: Date.now(), ...args });
+        return Promise.resolve(id);
+      }
+      if (fn === "skills:update") {
+        const id = args?.id as string;
+        const idx = skillStore.findIndex((s) => (s as {_id: string})._id === id);
+        if (idx >= 0) skillStore[idx] = { ...skillStore[idx], ...args };
+        return Promise.resolve();
+      }
+      if (fn === "skills:remove") {
+        const id = args?.id as string;
+        const idx = skillStore.findIndex((s) => (s as {_id: string})._id === id);
+        if (idx >= 0) {
+          skillStore.splice(idx, 1);
+          return Promise.resolve();
+        }
+        return Promise.reject(new Error(`Skill not found: ${id}`));
+      }
+      return Promise.resolve(null);
+    }),
+  })),
+}));
+
+const TEST_WORKSPACE_ID = "test_ws_skills";
+
+describe("Skills System Contract Tests", () => {
+  beforeEach(() => {
+    skillStore = [];
+    idCounter = 1;
   });
 
   describe("Skill Creation", () => {
@@ -60,16 +102,12 @@ describeIfDatabase("Skills System Contract Tests", () => {
 
       const skillId = await createSkill(input);
       expect(skillId).toBeDefined();
-      expect(skillId).toMatch(/^skill_/);
 
       const skill = await getSkillById(skillId);
       expect(skill).toBeDefined();
       expect(skill?.name).toBe("Test Research Skill");
       expect(skill?.source).toBe("local");
       expect(skill?.trustLevel).toBe("community");
-
-      // Cleanup
-      await db.delete(skills).where(eq(skills.id, skillId));
     });
 
     it("should create a skill with input/output schema", async () => {
@@ -92,7 +130,6 @@ describeIfDatabase("Skills System Contract Tests", () => {
           type: "object",
           properties: {
             prd: { type: "string", description: "Generated PRD" },
-            sections: { type: "array", items: { type: "string" } },
           },
         },
       };
@@ -105,118 +142,57 @@ describeIfDatabase("Skills System Contract Tests", () => {
         (skill?.inputSchema as Record<string, unknown>)?.properties,
       ).toHaveProperty("research");
       expect(skill?.outputSchema).toBeDefined();
-
-      // Cleanup
-      await db.delete(skills).where(eq(skills.id, skillId));
     });
   });
 
   describe("Skill Trust Levels", () => {
     it("should identify trusted skills (vetted)", async () => {
-      const input: CreateSkillInput = {
+      const skillId = await createSkill({
         workspaceId: TEST_WORKSPACE_ID,
         source: "local",
         name: "Vetted Skill",
-        description: "A vetted skill",
-        version: "1.0.0",
         trustLevel: "vetted",
-      };
-
-      const skillId = await createSkill(input);
+      });
       const skill = await getSkillById(skillId);
-
       expect(isSkillTrusted(skill!)).toBe(true);
-
-      // Cleanup
-      await db.delete(skills).where(eq(skills.id, skillId));
     });
 
     it("should identify untrusted skills (community)", async () => {
-      const input: CreateSkillInput = {
+      const skillId = await createSkill({
         workspaceId: TEST_WORKSPACE_ID,
         source: "local",
         name: "Community Skill",
-        description: "A community skill",
-        version: "1.0.0",
         trustLevel: "community",
-      };
-
-      const skillId = await createSkill(input);
+      });
       const skill = await getSkillById(skillId);
-
       expect(isSkillTrusted(skill!)).toBe(false);
-
-      // Cleanup
-      await db.delete(skills).where(eq(skills.id, skillId));
     });
 
     it("should update trust level", async () => {
-      const input: CreateSkillInput = {
+      const skillId = await createSkill({
         workspaceId: TEST_WORKSPACE_ID,
         source: "local",
         name: "Upgradable Skill",
-        description: "Will be upgraded",
-        version: "1.0.0",
-        trustLevel: "experimental",
-      };
+        trustLevel: "community",
+      });
 
-      const skillId = await createSkill(input);
       let skill = await getSkillById(skillId);
-      expect(skill?.trustLevel).toBe("experimental");
+      expect(skill?.trustLevel).toBe("community");
 
       await updateSkillTrustLevel(skillId, "vetted");
       skill = await getSkillById(skillId);
       expect(skill?.trustLevel).toBe("vetted");
-
-      // Cleanup
-      await db.delete(skills).where(eq(skills.id, skillId));
     });
   });
 
   describe("Skill Search", () => {
-    const skillIds: string[] = [];
-
-    beforeAll(async () => {
-      // Create several skills for search testing
-      const testSkills: CreateSkillInput[] = [
-        {
-          workspaceId: TEST_WORKSPACE_ID,
-          source: "local",
-          name: "Research Analyzer",
-          description: "Analyzes user research data",
-          version: "1.0.0",
-          trustLevel: "vetted",
-          tags: ["research", "analysis"],
-        },
-        {
-          workspaceId: TEST_WORKSPACE_ID,
-          source: "local",
-          name: "PRD Writer",
-          description: "Writes product requirements",
-          version: "1.0.0",
-          trustLevel: "community",
-          tags: ["prd", "documentation"],
-        },
-        {
-          workspaceId: TEST_WORKSPACE_ID,
-          source: "local",
-          name: "Prototype Builder",
-          description: "Creates UI prototypes",
-          version: "1.0.0",
-          trustLevel: "vetted",
-          tags: ["prototype", "ui"],
-        },
-      ];
-
-      for (const skill of testSkills) {
-        const id = await createSkill(skill);
-        skillIds.push(id);
-      }
-    });
-
-    afterAll(async () => {
-      for (const id of skillIds) {
-        await db.delete(skills).where(eq(skills.id, id));
+    beforeEach(async () => {
+      for (const s of [
+        { name: "Research Analyzer", description: "Analyzes user research data", trustLevel: "vetted" as const },
+        { name: "PRD Writer", description: "Writes product requirements", trustLevel: "community" as const },
+        { name: "Prototype Builder", description: "Creates UI prototypes", trustLevel: "vetted" as const },
+      ]) {
+        await createSkill({ workspaceId: TEST_WORKSPACE_ID, source: "local", ...s });
       }
     });
 
@@ -240,16 +216,13 @@ describeIfDatabase("Skills System Contract Tests", () => {
 
   describe("Skill Deletion", () => {
     it("should delete a skill", async () => {
-      const input: CreateSkillInput = {
+      const skillId = await createSkill({
         workspaceId: TEST_WORKSPACE_ID,
         source: "local",
         name: "Deletable Skill",
-        description: "Will be deleted",
-        version: "1.0.0",
         trustLevel: "community",
-      };
+      });
 
-      const skillId = await createSkill(input);
       let skill = await getSkillById(skillId);
       expect(skill).toBeDefined();
 
@@ -261,7 +234,7 @@ describeIfDatabase("Skills System Contract Tests", () => {
     });
 
     it("should return false when deleting non-existent skill", async () => {
-      const deleted = await deleteSkill("skill_nonexistent123");
+      const deleted = await deleteSkill("nonexistent_skill_id");
       expect(deleted).toBe(false);
     });
   });

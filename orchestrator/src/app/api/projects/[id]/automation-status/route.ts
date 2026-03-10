@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { jobs, agentDefinitions } from "@/lib/db/schema";
-import { eq, and, desc, gte } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 import { requireWorkspaceAccess, handlePermissionError, PermissionError } from "@/lib/permissions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
 }
 
 export async function GET(
@@ -23,61 +29,48 @@ export async function GET(
 
     await requireWorkspaceAccess(workspaceId, "viewer");
 
-    // Get jobs from last hour triggered by column automation
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const client = getConvexClient();
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
-    const recentJobs = await db
-      .select({
-        id: jobs.id,
-        status: jobs.status,
-        createdAt: jobs.createdAt,
-        input: jobs.input,
-      })
-      .from(jobs)
-      .where(and(
-        eq(jobs.projectId, projectId),
-        eq(jobs.type, "execute_agent_definition"),
-        gte(jobs.createdAt, oneHourAgo)
-      ))
-      .orderBy(desc(jobs.createdAt))
-      .limit(5);
+    // Get jobs for this project from Convex
+    const allJobs = await client.query(api.jobs.byProject, {
+      projectId: projectId as Id<"projects">,
+    });
 
-    // Enrich with agent names
-    const enrichedJobs = await Promise.all(
-      recentJobs.map(async (job) => {
-        const input = job.input as Record<string, unknown>;
-        const agentId = input?.agentDefinitionId as string;
-        let agentName = "Unknown Agent";
+    const recentJobs = allJobs
+      .filter((job: { type: string; _creationTime: number }) =>
+        job.type === "execute_agent_definition" &&
+        job._creationTime > oneHourAgo
+      )
+      .sort((a: { _creationTime: number }, b: { _creationTime: number }) =>
+        b._creationTime - a._creationTime
+      )
+      .slice(0, 5);
 
-        if (agentId) {
-          const agent = await db.query.agentDefinitions.findFirst({
-            where: eq(agentDefinitions.id, agentId),
-            columns: { name: true }
-          });
-          agentName = agent?.name || agentName;
-        }
+    const statusMap: Record<string, "queued" | "running" | "succeeded" | "failed"> = {
+      pending: "queued",
+      running: "running",
+      completed: "succeeded",
+      failed: "failed",
+      cancelled: "failed",
+      waiting_input: "running",
+    };
 
-        // Map job status to our expected status type
-        const statusMap: Record<string, "queued" | "running" | "succeeded" | "failed"> = {
-          pending: "queued",
-          running: "running",
-          completed: "succeeded",
-          failed: "failed",
-          cancelled: "failed",
-          waiting_input: "running",
-        };
-
-        return {
-          id: job.id,
-          status: statusMap[job.status] || "queued",
-          agentName,
-          createdAt: job.createdAt?.toISOString(),
-        };
-      })
-    );
+    const enrichedJobs = recentJobs.map((job: {
+      _id: string;
+      status: string;
+      _creationTime: number;
+      input?: Record<string, unknown>;
+      agentDefinitionId?: string;
+    }) => ({
+      id: job._id,
+      status: statusMap[job.status] ?? "queued",
+      agentName: "Agent",
+      createdAt: new Date(job._creationTime).toISOString(),
+    }));
 
     const runningCount = enrichedJobs.filter(
-      j => j.status === "queued" || j.status === "running"
+      (j: { status: string }) => j.status === "queued" || j.status === "running"
     ).length;
 
     return NextResponse.json({

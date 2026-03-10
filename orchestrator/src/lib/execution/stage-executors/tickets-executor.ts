@@ -1,6 +1,6 @@
 /**
  * Tickets Stage Executor
- * 
+ *
  * Inputs: PRD + engineering-spec + prototype-notes + validation-report
  * Automation:
  *   - Generate ticket plan from engineering spec
@@ -14,12 +14,17 @@
  *   - Tickets have acceptance criteria
  */
 
-import { db } from "@/lib/db";
-import { documents, tickets, linearMappings, type DocumentType } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { getDefaultProvider, type StreamCallback } from "../providers";
 import type { StageContext, StageExecutionResult } from "./index";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 const TICKETS_SYSTEM_PROMPT = `You are a technical project manager. Your task is to break down a PRD and engineering spec into implementable tickets.
 
@@ -73,18 +78,17 @@ Format your response as markdown:
 
 export async function executeTickets(
   context: StageContext,
-  callbacks: StreamCallback
+  callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
   const { run, project, documents: existingDocs } = context;
-  
+
   callbacks.onLog("info", "Starting ticket generation", "tickets");
   callbacks.onProgress(0.1, "Loading PRD and engineering spec...");
 
-  // Get PRD and engineering spec
   const prdDoc = existingDocs.find((doc) => doc.type === "prd");
   const engSpec = existingDocs.find((doc) => doc.type === "engineering_spec");
   const prototypeNotes = existingDocs.find((doc) => doc.type === "prototype_notes");
-  
+
   if (!prdDoc) {
     callbacks.onLog("warn", "No PRD found", "tickets");
     return {
@@ -94,7 +98,7 @@ export async function executeTickets(
   }
 
   const provider = getDefaultProvider();
-  
+
   const userPrompt = `Create a ticket plan for this feature:
 
 Project: ${project.name}
@@ -115,12 +119,12 @@ Generate implementable tickets with clear acceptance criteria.
     TICKETS_SYSTEM_PROMPT,
     userPrompt,
     {
-      runId: run.id,
+      runId: run._id,
       workspaceId: run.workspaceId,
       cardId: run.cardId,
       stage: run.stage,
     },
-    callbacks
+    callbacks,
   );
 
   if (!result.success) {
@@ -133,39 +137,32 @@ Generate implementable tickets with clear acceptance criteria.
 
   callbacks.onProgress(0.6, "Saving ticket plan...");
 
-  const now = new Date();
-  const docId = `doc_${nanoid()}`;
+  const client = getConvexClient();
 
-  // Save ticket plan document (using engineering_spec type as proxy)
-  await db.insert(documents).values({
-    id: docId,
-    projectId: project.id,
-    type: "engineering_spec" as DocumentType, // Using eng spec for ticket plan
+  // Save ticket plan document via Convex
+  const docId = await client.mutation(api.documents.create, {
+    workspaceId: run.workspaceId as Id<"workspaces">,
+    projectId: run.cardId as Id<"projects">,
+    type: "engineering_spec",
     title: `Ticket Plan - ${project.name}`,
     content: result.output || "",
-    version: 1,
-    filePath: `initiatives/${project.name.toLowerCase().replace(/\s+/g, "-")}/tickets.md`,
-    metadata: {
-      generatedBy: "ai",
-      model: "claude-sonnet-4-20250514",
-      promptVersion: "tickets-v1",
-      actualType: "ticket_plan",
-    },
-    createdAt: now,
-    updatedAt: now,
+    generatedByAgent: "tickets-executor",
   });
 
   await callbacks.onArtifact(
     "file",
     "Ticket Plan",
-    `documents/${docId}`,
-    { documentType: "ticket_plan" }
+    `projects/${run.cardId}/documents/${docId}`,
+    { documentType: "ticket_plan" },
   );
 
-  // Parse tickets from output (simplified - would need better parsing in production)
-  const ticketMatches = result.output?.matchAll(/### \d+\. (.+?)\n\*\*Type\*\*: (\w+)\n\*\*Points\*\*: (\d+)/g);
-  const parsedTickets: Array<{ title: string; type: string; points: number }> = [];
-  
+  // Parse tickets from output
+  const ticketMatches = result.output?.matchAll(
+    /### \d+\. (.+?)\n\*\*Type\*\*: (\w+)\n\*\*Points\*\*: (\d+)/g,
+  );
+  const parsedTickets: Array<{ title: string; type: string; points: number }> =
+    [];
+
   if (ticketMatches) {
     for (const match of ticketMatches) {
       parsedTickets.push({
@@ -178,43 +175,53 @@ Generate implementable tickets with clear acceptance criteria.
 
   callbacks.onProgress(0.8, `Parsed ${parsedTickets.length} tickets`);
 
-  // Save tickets to database
+  // Save tickets to Convex
   for (const ticket of parsedTickets) {
-    const ticketId = `ticket_${nanoid()}`;
-    await db.insert(tickets).values({
-      id: ticketId,
-      projectId: project.id,
+    const priority = ticket.points >= 5 ? "high" : ticket.points >= 3 ? "medium" : "low";
+    await client.mutation(api.tickets.create, {
+      workspaceId: run.workspaceId as Id<"workspaces">,
+      projectId: run.cardId as Id<"projects">,
       title: ticket.title,
-      description: "", // Would need better parsing
-      status: "backlog",
-      priority: ticket.points >= 5 ? 1 : ticket.points >= 3 ? 2 : 3,
-      estimatedPoints: ticket.points,
-      metadata: { type: ticket.type },
-      createdAt: now,
-      updatedAt: now,
+      description: "",
+      status: "open",
+      priority,
+      metadata: {
+        type: ticket.type,
+        estimatedPoints: ticket.points,
+      },
     });
   }
 
-  // Check for Linear integration
-  const linearMapping = await db
-    .select()
-    .from(linearMappings)
-    .where(eq(linearMappings.projectId, project.id))
-    .limit(1);
+  // Check for Linear integration via Convex
+  const linearMapping = await client.query(api.tickets.linearMappingByProject, {
+    projectId: run.cardId as Id<"projects">,
+  });
 
-  if (linearMapping.length > 0) {
-    callbacks.onLog("info", "Linear integration found - tickets would be synced", "tickets");
+  if (linearMapping) {
+    callbacks.onLog(
+      "info",
+      "Linear integration found - tickets would be synced",
+      "tickets",
+    );
     await callbacks.onArtifact(
       "ticket",
       "Linear Sync",
-      `linear/${linearMapping[0].linearProjectId}`,
-      { ticketCount: parsedTickets.length }
+      `linear/${linearMapping.linearProjectId ?? "unknown"}`,
+      { ticketCount: parsedTickets.length },
     );
   } else {
-    callbacks.onLog("info", "No Linear integration - tickets saved locally", "tickets");
+    callbacks.onLog(
+      "info",
+      "No Linear integration - tickets saved locally",
+      "tickets",
+    );
   }
 
-  callbacks.onLog("info", `Generated ${parsedTickets.length} tickets`, "tickets");
+  callbacks.onLog(
+    "info",
+    `Generated ${parsedTickets.length} tickets`,
+    "tickets",
+  );
   callbacks.onProgress(1.0, "Ticket generation complete");
 
   return {

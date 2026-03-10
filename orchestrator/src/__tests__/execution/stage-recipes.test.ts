@@ -1,19 +1,10 @@
 /**
  * Contract Tests: Stage Recipes
  * 
- * Tests the stage recipes (skills per stage) system:
- * - Recipe CRUD
- * - Gates validation
- * - Automation levels
- * - Trust enforcement
+ * Tests the stage recipes (skills per stage) system using mocked Convex.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { db } from "@/lib/db";
-import { workspaces, skills, stageRecipes } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { nanoid } from "nanoid";
-import { describeIfDatabase } from "../helpers/database";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createSkill,
   createStageRecipe,
@@ -28,50 +19,140 @@ import {
   type CreateRecipeInput,
 } from "@/lib/skills";
 
-// Test fixtures
-const TEST_WORKSPACE_ID = `test_ws_${nanoid(8)}`;
+// In-memory stores
+let skillStore: Record<string, unknown>[] = [];
+let recipeStore: Record<string, unknown>[] = [];
+let idCounter = 1;
 
-describeIfDatabase("Stage Recipes Contract Tests", () => {
-  beforeAll(async () => {
-    // Create test workspace
-    await db.insert(workspaces).values({
-      id: TEST_WORKSPACE_ID,
-      name: "Test Workspace",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-  });
+vi.mock("../../../convex/_generated/api", () => ({
+  api: {
+    skills: {
+      list: "skills:list",
+      get: "skills:get",
+      getByLegacyId: "skills:getByLegacyId",
+      create: "skills:create",
+      update: "skills:update",
+      remove: "skills:remove",
+      upsertByEntrypoint: "skills:upsertByEntrypoint",
+    },
+    stageRuns: {
+      getRecipe: "stageRuns:getRecipe",
+      listRecipes: "stageRuns:listRecipes",
+      upsertRecipeFull: "stageRuns:upsertRecipeFull",
+      deleteRecipe: "stageRuns:deleteRecipe",
+    },
+  },
+}));
 
-  afterAll(async () => {
-    // Cleanup test data
-    await db.delete(stageRecipes).where(eq(stageRecipes.workspaceId, TEST_WORKSPACE_ID));
-    await db.delete(skills).where(eq(skills.workspaceId, TEST_WORKSPACE_ID));
-    await db.delete(workspaces).where(eq(workspaces.id, TEST_WORKSPACE_ID));
+vi.mock("convex/browser", () => ({
+  ConvexHttpClient: vi.fn().mockImplementation(() => ({
+    query: vi.fn().mockImplementation((fn: string, args: Record<string, unknown>) => {
+      // Skills
+      if (fn === "skills:list") {
+        const wsId = args?.workspaceId;
+        return Promise.resolve(
+          wsId ? skillStore.filter((s) => (s as {workspaceId?: string}).workspaceId === wsId) : [...skillStore],
+        );
+      }
+      if (fn === "skills:get") {
+        const id = args?.id as string;
+        return Promise.resolve(skillStore.find((s) => (s as {_id: string})._id === id) ?? null);
+      }
+      if (fn === "skills:getByLegacyId") {
+        return Promise.resolve(null);
+      }
+      // Recipes
+      if (fn === "stageRuns:getRecipe") {
+        const wsId = args?.workspaceId as string;
+        const stage = args?.stage as string;
+        return Promise.resolve(
+          recipeStore.find(
+            (r) => (r as {workspaceId: string}).workspaceId === wsId && (r as {stage: string}).stage === stage,
+          ) ?? null,
+        );
+      }
+      if (fn === "stageRuns:listRecipes") {
+        const wsId = args?.workspaceId as string;
+        return Promise.resolve(recipeStore.filter((r) => (r as {workspaceId: string}).workspaceId === wsId));
+      }
+      return Promise.resolve(null);
+    }),
+    mutation: vi.fn().mockImplementation((fn: string, args: Record<string, unknown>) => {
+      // Skills
+      if (fn === "skills:create") {
+        const id = `mock_skill_${idCounter++}`;
+        skillStore.push({ _id: id, _creationTime: Date.now(), ...args });
+        return Promise.resolve(id);
+      }
+      if (fn === "skills:update") {
+        const id = args?.id as string;
+        const idx = skillStore.findIndex((s) => (s as {_id: string})._id === id);
+        if (idx >= 0) skillStore[idx] = { ...skillStore[idx], ...args };
+        return Promise.resolve();
+      }
+      if (fn === "skills:remove") {
+        const id = args?.id as string;
+        const idx = skillStore.findIndex((s) => (s as {_id: string})._id === id);
+        if (idx >= 0) skillStore.splice(idx, 1);
+        return Promise.resolve();
+      }
+      // Recipes
+      if (fn === "stageRuns:upsertRecipeFull") {
+        const wsId = args?.workspaceId as string;
+        const stage = args?.stage as string;
+        const existing = recipeStore.findIndex(
+          (r) => (r as {workspaceId: string}).workspaceId === wsId && (r as {stage: string}).stage === stage,
+        );
+        const id = `mock_recipe_${idCounter++}`;
+        if (existing >= 0) {
+          recipeStore[existing] = { ...recipeStore[existing], ...args };
+          return Promise.resolve((recipeStore[existing] as {_id: string})._id);
+        }
+        recipeStore.push({ _id: id, _creationTime: Date.now(), ...args });
+        return Promise.resolve(id);
+      }
+      if (fn === "stageRuns:deleteRecipe") {
+        const wsId = args?.workspaceId as string;
+        const stage = args?.stage as string;
+        const idx = recipeStore.findIndex(
+          (r) => (r as {workspaceId: string}).workspaceId === wsId && (r as {stage: string}).stage === stage,
+        );
+        if (idx >= 0) {
+          recipeStore.splice(idx, 1);
+          return Promise.resolve(true);
+        }
+        return Promise.resolve(false);
+      }
+      return Promise.resolve(null);
+    }),
+  })),
+}));
+
+const TEST_WORKSPACE_ID = "test_ws_recipes";
+
+describe("Stage Recipes Contract Tests", () => {
+  beforeEach(() => {
+    skillStore = [];
+    recipeStore = [];
+    idCounter = 1;
   });
 
   describe("Recipe CRUD", () => {
     it("should create a stage recipe with defaults", async () => {
-      const input: CreateRecipeInput = {
-        workspaceId: TEST_WORKSPACE_ID,
-        stage: "inbox",
-      };
-
-      const recipeId = await createStageRecipe(input);
+      const recipeId = await createStageRecipe({ workspaceId: TEST_WORKSPACE_ID, stage: "inbox" });
       expect(recipeId).toBeDefined();
-      expect(recipeId).toMatch(/^recipe_/);
 
       const recipe = await getStageRecipe(TEST_WORKSPACE_ID, "inbox");
       expect(recipe).toBeDefined();
       expect(recipe?.stage).toBe("inbox");
-      expect(recipe?.automationLevel).toBe("fully_auto"); // inbox default
+      expect(recipe?.automationLevel).toBe("fully_auto");
       expect(recipe?.enabled).toBe(true);
 
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "inbox");
     });
 
     it("should create a recipe with custom configuration", async () => {
-      const input: CreateRecipeInput = {
+      await createStageRecipe({
         workspaceId: TEST_WORKSPACE_ID,
         stage: "prd",
         automationLevel: "human_approval",
@@ -89,46 +170,31 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
         onFailBehavior: "review_required",
         provider: "openai",
         enabled: true,
-      };
+      });
 
-      await createStageRecipe(input);
       const recipe = await getStageRecipe(TEST_WORKSPACE_ID, "prd");
-
       expect(recipe?.automationLevel).toBe("human_approval");
       expect(recipe?.gates.length).toBe(1);
       expect(recipe?.gates[0].id).toBe("custom_gate");
       expect(recipe?.onFailBehavior).toBe("review_required");
       expect(recipe?.provider).toBe("openai");
 
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "prd");
     });
 
     it("should update an existing recipe", async () => {
-      await createStageRecipe({
-        workspaceId: TEST_WORKSPACE_ID,
-        stage: "design",
-        automationLevel: "auto_notify",
-      });
-
-      await updateStageRecipe(TEST_WORKSPACE_ID, "design", {
-        automationLevel: "fully_auto",
-        enabled: false,
-      });
+      await createStageRecipe({ workspaceId: TEST_WORKSPACE_ID, stage: "design", automationLevel: "auto_notify" });
+      await updateStageRecipe(TEST_WORKSPACE_ID, "design", { automationLevel: "fully_auto", enabled: false });
 
       const recipe = await getStageRecipe(TEST_WORKSPACE_ID, "design");
       expect(recipe?.automationLevel).toBe("fully_auto");
       expect(recipe?.enabled).toBe(false);
 
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "design");
     });
 
     it("should delete a recipe", async () => {
-      await createStageRecipe({
-        workspaceId: TEST_WORKSPACE_ID,
-        stage: "prototype",
-      });
+      await createStageRecipe({ workspaceId: TEST_WORKSPACE_ID, stage: "prototype" });
 
       const deleted = await deleteStageRecipe(TEST_WORKSPACE_ID, "prototype");
       expect(deleted).toBe(true);
@@ -138,7 +204,6 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
     });
 
     it("should get all recipes for workspace", async () => {
-      // Create multiple recipes
       await createStageRecipe({ workspaceId: TEST_WORKSPACE_ID, stage: "inbox" });
       await createStageRecipe({ workspaceId: TEST_WORKSPACE_ID, stage: "discovery" });
       await createStageRecipe({ workspaceId: TEST_WORKSPACE_ID, stage: "prd" });
@@ -146,7 +211,6 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
       const recipes = await getAllStageRecipes(TEST_WORKSPACE_ID);
       expect(recipes.length).toBeGreaterThanOrEqual(3);
 
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "inbox");
       await deleteStageRecipe(TEST_WORKSPACE_ID, "discovery");
       await deleteStageRecipe(TEST_WORKSPACE_ID, "prd");
@@ -154,47 +218,19 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
   });
 
   describe("Recipe Validation", () => {
-    let vettedSkillId: string;
-    let communitySkillId: string;
-
-    beforeAll(async () => {
-      // Create test skills
-      vettedSkillId = await createSkill({
+    it("should validate recipe with valid skills", async () => {
+      const vettedSkillId = await createSkill({
         workspaceId: TEST_WORKSPACE_ID,
         source: "local",
         name: "Vetted Analysis",
-        description: "A vetted skill",
-        version: "1.0.0",
         trustLevel: "vetted",
       });
 
-      communitySkillId = await createSkill({
-        workspaceId: TEST_WORKSPACE_ID,
-        source: "local",
-        name: "Community Tool",
-        description: "A community skill",
-        version: "1.0.0",
-        trustLevel: "community",
-      });
-    });
-
-    afterAll(async () => {
-      await db.delete(skills).where(eq(skills.id, vettedSkillId));
-      await db.delete(skills).where(eq(skills.id, communitySkillId));
-    });
-
-    it("should validate recipe with valid skills", async () => {
       await createStageRecipe({
         workspaceId: TEST_WORKSPACE_ID,
         stage: "validate",
         automationLevel: "auto_notify",
-        recipeSteps: [
-          {
-            skillId: vettedSkillId,
-            order: 1,
-            paramsJson: {},
-          },
-        ],
+        recipeSteps: [{ skillId: vettedSkillId, order: 1 }],
       });
 
       const recipe = await getStageRecipe(TEST_WORKSPACE_ID, "validate");
@@ -205,7 +241,6 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
       expect(validation.skillsStatus[0].found).toBe(true);
       expect(validation.skillsStatus[0].trusted).toBe(true);
 
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "validate");
     });
 
@@ -213,13 +248,7 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
       await createStageRecipe({
         workspaceId: TEST_WORKSPACE_ID,
         stage: "tickets",
-        recipeSteps: [
-          {
-            skillId: "skill_nonexistent123",
-            order: 1,
-            paramsJson: {},
-          },
-        ],
+        recipeSteps: [{ skillId: "nonexistent_skill_id", order: 1 }],
       });
 
       const recipe = await getStageRecipe(TEST_WORKSPACE_ID, "tickets");
@@ -228,22 +257,22 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
       expect(validation.valid).toBe(false);
       expect(validation.errors.some((e) => e.includes("not found"))).toBe(true);
 
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "tickets");
     });
 
     it("should warn about untrusted skills in fully_auto mode", async () => {
+      const communitySkillId = await createSkill({
+        workspaceId: TEST_WORKSPACE_ID,
+        source: "local",
+        name: "Community Tool",
+        trustLevel: "community",
+      });
+
       await createStageRecipe({
         workspaceId: TEST_WORKSPACE_ID,
         stage: "build",
         automationLevel: "fully_auto",
-        recipeSteps: [
-          {
-            skillId: communitySkillId,
-            order: 1,
-            paramsJson: {},
-          },
-        ],
+        recipeSteps: [{ skillId: communitySkillId, order: 1 }],
       });
 
       const recipe = await getStageRecipe(TEST_WORKSPACE_ID, "build");
@@ -251,67 +280,54 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
 
       expect(validation.warnings.some((w) => w.includes("not vetted"))).toBe(true);
 
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "build");
     });
   });
 
   describe("Fully Auto Permission", () => {
-    let vettedSkillId: string;
-    let communitySkillId: string;
-
-    beforeAll(async () => {
-      vettedSkillId = await createSkill({
+    it("should allow fully_auto with all vetted skills", async () => {
+      const vettedSkillId = await createSkill({
         workspaceId: TEST_WORKSPACE_ID,
         source: "local",
         name: "Trusted Tool",
-        description: "A trusted skill",
-        version: "1.0.0",
         trustLevel: "vetted",
       });
 
-      communitySkillId = await createSkill({
-        workspaceId: TEST_WORKSPACE_ID,
-        source: "local",
-        name: "Untrusted Tool",
-        description: "An untrusted skill",
-        version: "1.0.0",
-        trustLevel: "community",
-      });
-    });
-
-    afterAll(async () => {
-      await db.delete(skills).where(eq(skills.id, vettedSkillId));
-      await db.delete(skills).where(eq(skills.id, communitySkillId));
-    });
-
-    it("should allow fully_auto with all vetted skills", async () => {
       await createStageRecipe({
         workspaceId: TEST_WORKSPACE_ID,
         stage: "alpha",
         automationLevel: "fully_auto",
-        recipeSteps: [
-          { skillId: vettedSkillId, order: 1, paramsJson: {} },
-        ],
+        recipeSteps: [{ skillId: vettedSkillId, order: 1 }],
       });
 
       const recipe = await getStageRecipe(TEST_WORKSPACE_ID, "alpha");
       const canAuto = await canRunFullyAuto(recipe!);
 
       expect(canAuto).toBe(true);
-
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "alpha");
     });
 
     it("should deny fully_auto with any untrusted skill", async () => {
+      const vettedId = await createSkill({
+        workspaceId: TEST_WORKSPACE_ID,
+        source: "local",
+        name: "Trusted",
+        trustLevel: "vetted",
+      });
+      const communityId = await createSkill({
+        workspaceId: TEST_WORKSPACE_ID,
+        source: "local",
+        name: "Untrusted",
+        trustLevel: "community",
+      });
+
       await createStageRecipe({
         workspaceId: TEST_WORKSPACE_ID,
         stage: "beta",
         automationLevel: "fully_auto",
         recipeSteps: [
-          { skillId: vettedSkillId, order: 1, paramsJson: {} },
-          { skillId: communitySkillId, order: 2, paramsJson: {} },
+          { skillId: vettedId, order: 1 },
+          { skillId: communityId, order: 2 },
         ],
       });
 
@@ -319,8 +335,6 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
       const canAuto = await canRunFullyAuto(recipe!);
 
       expect(canAuto).toBe(false);
-
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "beta");
     });
 
@@ -336,66 +350,38 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
       const canAuto = await canRunFullyAuto(recipe!);
 
       expect(canAuto).toBe(true);
-
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "ga");
     });
   });
 
   describe("Default Recipe Initialization", () => {
     it("should initialize default recipes for all stages", async () => {
-      // Use a separate workspace to not interfere with other tests
-      const initWorkspaceId = `test_init_${nanoid(8)}`;
-      await db.insert(workspaces).values({
-        id: initWorkspaceId,
-        name: "Init Test Workspace",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
+      const initWorkspaceId = "test_init_workspace";
       await initializeDefaultRecipes(initWorkspaceId);
 
       const recipes = await getAllStageRecipes(initWorkspaceId);
-      expect(recipes.length).toBe(11); // All 11 stages
+      expect(recipes.length).toBe(11);
 
-      // Check specific defaults
       const inboxRecipe = recipes.find((r) => r.stage === "inbox");
       expect(inboxRecipe?.automationLevel).toBe("fully_auto");
 
       const validateRecipe_ = recipes.find((r) => r.stage === "validate");
       expect(validateRecipe_?.automationLevel).toBe("human_approval");
-
-      // Cleanup
-      await db.delete(stageRecipes).where(eq(stageRecipes.workspaceId, initWorkspaceId));
-      await db.delete(workspaces).where(eq(workspaces.id, initWorkspaceId));
     });
 
     it("should not overwrite existing recipes", async () => {
-      const customWorkspaceId = `test_custom_${nanoid(8)}`;
-      await db.insert(workspaces).values({
-        id: customWorkspaceId,
-        name: "Custom Test Workspace",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      const customWorkspaceId = "test_custom_workspace";
 
-      // Create custom inbox recipe
       await createStageRecipe({
         workspaceId: customWorkspaceId,
         stage: "inbox",
-        automationLevel: "manual", // Custom override
+        automationLevel: "manual",
       });
 
-      // Initialize defaults
       await initializeDefaultRecipes(customWorkspaceId);
 
-      // Check that inbox wasn't overwritten
       const inboxRecipe = await getStageRecipe(customWorkspaceId, "inbox");
-      expect(inboxRecipe?.automationLevel).toBe("manual"); // Should be our custom value
-
-      // Cleanup
-      await db.delete(stageRecipes).where(eq(stageRecipes.workspaceId, customWorkspaceId));
-      await db.delete(workspaces).where(eq(workspaces.id, customWorkspaceId));
+      expect(inboxRecipe?.automationLevel).toBe("manual");
     });
   });
 
@@ -405,17 +391,12 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
         workspaceId: TEST_WORKSPACE_ID,
         source: "local",
         name: "Step 1",
-        description: "First step",
-        version: "1.0.0",
         trustLevel: "vetted",
       });
-
       const skill2Id = await createSkill({
         workspaceId: TEST_WORKSPACE_ID,
         source: "local",
         name: "Step 2",
-        description: "Second step",
-        version: "1.0.0",
         trustLevel: "vetted",
       });
 
@@ -434,10 +415,7 @@ describeIfDatabase("Stage Recipes Contract Tests", () => {
       expect(recipe?.recipeSteps[1].order).toBe(2);
       expect(recipe?.recipeSteps[0].paramsJson).toEqual({ mode: "fast" });
 
-      // Cleanup
       await deleteStageRecipe(TEST_WORKSPACE_ID, "discovery");
-      await db.delete(skills).where(eq(skills.id, skill1Id));
-      await db.delete(skills).where(eq(skills.id, skill2Id));
     });
   });
 });

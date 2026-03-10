@@ -207,3 +207,64 @@ export const markProcessing = internalMutation({
     await ctx.db.patch(itemId, { status: "processing" });
   },
 });
+
+/**
+ * Generic update — called from server-side API routes after auth is verified
+ * at the Next.js layer via requireWorkspaceAccess.
+ */
+export const update = mutation({
+  args: {
+    itemId: v.id("inboxItems"),
+    status: v.optional(v.string()),
+    assignedProjectId: v.optional(v.id("projects")),
+    processedContent: v.optional(v.string()),
+    aiSummary: v.optional(v.string()),
+    extractedProblems: v.optional(v.any()),
+    hypothesisMatches: v.optional(v.any()),
+  },
+  handler: async (ctx, { itemId, ...patch }) => {
+    const updates: Record<string, unknown> = {};
+    if (patch.status !== undefined) updates.status = patch.status;
+    if (patch.assignedProjectId !== undefined) updates.assignedProjectId = patch.assignedProjectId;
+    if (patch.processedContent !== undefined) updates.processedContent = patch.processedContent;
+    if (patch.aiSummary !== undefined) updates.aiSummary = patch.aiSummary;
+    if (patch.extractedProblems !== undefined) updates.extractedProblems = patch.extractedProblems;
+    if (patch.hypothesisMatches !== undefined) updates.hypothesisMatches = patch.hypothesisMatches;
+    await ctx.db.patch(itemId, updates);
+    return await ctx.db.get(itemId);
+  },
+});
+
+/** Delete an inbox item. */
+export const remove = mutation({
+  args: { itemId: v.id("inboxItems") },
+  handler: async (ctx, { itemId }) => {
+    await ctx.db.delete(itemId);
+  },
+});
+
+/**
+ * Create an inbox item from a webhook request.
+ * Auth is validated at the route layer via HMAC signature; Convex identity
+ * check is intentionally skipped here.
+ */
+export const createFromWebhook = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    type: v.string(),
+    source: v.string(),
+    sourceRef: v.optional(v.string()),
+    title: v.string(),
+    rawContent: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("inboxItems", {
+      workspaceId: args.workspaceId,
+      type: args.type,
+      source: args.source,
+      title: args.title,
+      rawContent: args.rawContent,
+      status: "pending",
+    });
+  },
+});

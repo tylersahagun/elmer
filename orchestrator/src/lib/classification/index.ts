@@ -5,5 +5,6 @@
  */
 
 export { classifySignal, generateProjectEmbedding } from "./classifier";
+export type { SignalClassificationResult } from "./classifier";
 export { findSignalClusters, generateClusterTheme } from "./clustering";
 export type { SignalCluster, ClusterSignal } from "./clustering";

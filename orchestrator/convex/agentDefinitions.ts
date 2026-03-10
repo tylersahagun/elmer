@@ -161,3 +161,11 @@ export const setEnabled = mutation({
     await ctx.db.patch(id, { enabled });
   },
 });
+
+/** Delete an agent definition. Auth verified at route layer. */
+export const remove = mutation({
+  args: { id: v.id("agentDefinitions") },
+  handler: async (ctx, { id }) => {
+    await ctx.db.delete(id);
+  },
+});

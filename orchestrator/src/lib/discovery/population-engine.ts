@@ -13,24 +13,24 @@
 
 import { Octokit } from "@octokit/rest";
 import {
-  upsertProject,
-  createColumnConfig,
-  getColumnConfigs,
-  updateWorkspace,
-  getWorkspace,
-  createDocument,
-  createPrototype,
-  updatePrototype,
-} from "@/lib/db/queries";
+  getConvexWorkspace,
+  updateConvexWorkspace,
+  listConvexColumns,
+  createConvexColumn,
+  listConvexProjects,
+  createConvexProject,
+  updateConvexProject,
+  createConvexDocument,
+  createConvexPrototypeVariant,
+  patchConvexPrototypeVariant,
+} from "@/lib/convex/server";
 import { syncAgentArchitecture } from "@/lib/agents/sync";
 import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
 import { syncSignals } from "@/lib/signals/sync";
 import { buildChromaticStorybookUrl } from "@/lib/chromatic";
-import type {
-  ProjectStage,
-  DocumentType,
-  PrototypeType,
-} from "@/lib/db/schema";
+type ProjectStage = string;
+type DocumentType = string;
+type PrototypeType = string;
 import type {
   DiscoveryResult,
   DiscoveredInitiative,
@@ -175,7 +175,7 @@ export async function runPopulationEngine(
 
   try {
     // Get existing columns
-    const existingColumns = await getColumnConfigs(workspaceId);
+    const existingColumns = await listConvexColumns(workspaceId) as Array<{ stage: string; order: number }>;
 
     // Step 1: Create dynamic columns if enabled
     if (selection.createDynamicColumns) {
@@ -189,10 +189,10 @@ export async function runPopulationEngine(
     }
 
     // Refresh columns after potential creation
-    const columns = await getColumnConfigs(workspaceId);
+    const columns = await listConvexColumns(workspaceId) as Array<{ stage: string; order: number }>;
 
     // Step 2: Upsert projects for selected initiatives
-    await upsertProjects({
+    const projectIdMap = await upsertProjects({
       workspaceId,
       initiatives: discoveryResult.initiatives,
       selectedIds: selection.initiatives,
@@ -207,14 +207,17 @@ export async function runPopulationEngine(
       initiatives: discoveryResult.initiatives,
       selectedIds: selection.initiatives,
       octokit,
+      projectIdMap,
       progress,
     });
 
     // Step 2.6: Create prototype records for discovered prototypes
     await createPrototypesForProjects({
+      workspaceId,
       discoveryResult,
       initiatives: discoveryResult.initiatives,
       selectedIds: selection.initiatives,
+      projectIdMap,
       progress,
     });
 
@@ -320,7 +323,7 @@ async function createDynamicColumns(params: {
   let nextOrder = getNextColumnOrder(existingColumns);
   for (const columnStage of missingColumns) {
     try {
-      await createColumnConfig({
+      await createConvexColumn({
         workspaceId,
         stage: columnStage as ProjectStage,
         displayName: generateDisplayName(columnStage),
@@ -340,6 +343,7 @@ async function createDynamicColumns(params: {
 
 /**
  * Upsert projects for selected initiatives.
+ * Returns a map of initiative.id → Convex project _id.
  */
 async function upsertProjects(params: {
   workspaceId: string;
@@ -348,9 +352,11 @@ async function upsertProjects(params: {
   columns: Array<{ stage: string }>;
   branch: string;
   progress: PopulationProgress;
-}): Promise<void> {
+}): Promise<Map<string, string>> {
   const { workspaceId, initiatives, selectedIds, columns, branch, progress } =
     params;
+
+  const projectIdMap = new Map<string, string>();
 
   // Get selected initiatives
   const selectedInitiatives = initiatives.filter((i) =>
@@ -383,20 +389,29 @@ async function upsertProjects(params: {
         ...(initiative.rawMeta || {}),
       };
 
-      // Upsert the project
-      const result = await upsertProject({
-        id: initiative.id,
-        workspaceId,
-        name: initiative.name,
-        description: initiative.description,
-        stage: targetStage,
-        metadata,
-      });
+      // Upsert the project via Convex (find by name and update, or create)
+      const existingProjects = await listConvexProjects(workspaceId) as Array<{ _id: string; name: string }>;
+      const existing = existingProjects.find((p) => p.name === initiative.name);
 
-      if (result.action === "created") {
-        progress.projectsCreated++;
-      } else {
+      if (existing) {
+        await updateConvexProject(existing._id, {
+          name: initiative.name,
+          description: initiative.description,
+          stage: targetStage,
+          metadata,
+        });
+        projectIdMap.set(initiative.id, existing._id);
         progress.projectsUpdated++;
+      } else {
+        const created = await createConvexProject({
+          workspaceId,
+          name: initiative.name,
+          description: initiative.description,
+          stage: targetStage,
+          metadata,
+        }) as { _id: string };
+        projectIdMap.set(initiative.id, created._id);
+        progress.projectsCreated++;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -405,6 +420,8 @@ async function upsertProjects(params: {
       );
     }
   }
+
+  return projectIdMap;
 }
 
 /**
@@ -416,9 +433,10 @@ async function importProjectDocuments(params: {
   initiatives: DiscoveredInitiative[];
   selectedIds: string[];
   octokit: Octokit;
+  projectIdMap: Map<string, string>;
   progress: PopulationProgress;
 }): Promise<void> {
-  const { discoveryResult, initiatives, selectedIds, octokit, progress } =
+  const { discoveryResult, initiatives, selectedIds, octokit, projectIdMap, progress } =
     params;
   const { repoOwner, repoName, branch } = discoveryResult;
 
@@ -469,9 +487,10 @@ async function importProjectDocuments(params: {
 
               if (!content) continue;
 
-              // Create the document
-              await createDocument({
-                projectId: initiative.id,
+              // Create the document via Convex
+              const convexProjectId = projectIdMap.get(initiative.id) ?? initiative.id;
+              await createConvexDocument({
+                projectId: convexProjectId,
                 type,
                 title,
                 content,
@@ -524,7 +543,7 @@ async function updateWorkspaceContextPaths(params: {
 
   try {
     // Get current workspace settings
-    const workspace = await getWorkspace(workspaceId);
+    const workspace = await getConvexWorkspace(workspaceId) as { settings?: Record<string, unknown> } | null;
     if (!workspace) {
       progress.errors.push("Workspace not found when updating context paths");
       return;
@@ -546,7 +565,7 @@ async function updateWorkspaceContextPaths(params: {
 
     // Update workspace settings with context paths
     const currentSettings = workspace.settings || {};
-    await updateWorkspace(workspaceId, {
+    await updateConvexWorkspace(workspaceId, {
       settings: {
         ...currentSettings,
         contextPaths:
@@ -718,12 +737,14 @@ async function importAgents(params: {
  * Links prototypes to projects with Chromatic URLs based on git branch.
  */
 async function createPrototypesForProjects(params: {
+  workspaceId: string;
   discoveryResult: DiscoveryResult;
   initiatives: DiscoveredInitiative[];
   selectedIds: string[];
+  projectIdMap: Map<string, string>;
   progress: PopulationProgress;
 }): Promise<void> {
-  const { discoveryResult, initiatives, selectedIds, progress } = params;
+  const { workspaceId, discoveryResult, initiatives, selectedIds, projectIdMap, progress } = params;
   const { branch } = discoveryResult;
 
   // Get selected initiatives that have prototypes
@@ -750,26 +771,27 @@ async function createPrototypesForProjects(params: {
           ? "context"
           : "standalone";
 
-        // Create the prototype record
-        const prototype = await createPrototype({
-          projectId: initiative.id,
-          type: prototypeType,
-          name: discoveredPrototype.name,
-          storybookPath: discoveredPrototype.storybookPath || undefined,
+        // Create the prototype record via Convex
+        const convexProjectId = projectIdMap.get(initiative.id) ?? initiative.id;
+        const prototypeBranch = discoveredPrototype.branch || branch;
+        const chromaticStorybookUrl = buildChromaticStorybookUrl(prototypeBranch);
+
+        const prototype = await createConvexPrototypeVariant({
+          workspaceId,
+          projectId: convexProjectId,
+          platform: prototypeType,
+          outputType: "storybook",
+          title: discoveredPrototype.name,
+          url: discoveredPrototype.storybookPath || undefined,
+          chromaticUrl: chromaticStorybookUrl,
         });
 
         if (prototype) {
-          // Determine the branch to use for Chromatic URL
-          const prototypeBranch = discoveredPrototype.branch || branch;
-
-          // Build Chromatic URLs
-          const chromaticStorybookUrl =
-            buildChromaticStorybookUrl(prototypeBranch);
-
-          // Update prototype with Chromatic URLs and metadata
-          await updatePrototype(prototype.id, {
+          // Update prototype with full metadata
+          await patchConvexPrototypeVariant({
+            variantId: prototype.id,
             status: "ready",
-            chromaticStorybookUrl,
+            chromaticUrl: chromaticStorybookUrl,
             metadata: {
               stories: discoveredPrototype.stories,
               version: discoveredPrototype.version,

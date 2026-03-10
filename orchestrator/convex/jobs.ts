@@ -258,6 +258,92 @@ export const cancel = mutation({
   },
 });
 
+/** Reset a single failed job back to pending so the agent runner retries it. */
+export const retry = mutation({
+  args: { jobId: v.id("jobs") },
+  handler: async (ctx, { jobId }) => {
+    const job = await ctx.db.get(jobId);
+    if (!job) throw new Error("Job not found");
+    if (job.status !== "failed") return null;
+    await ctx.db.patch(jobId, {
+      status: "pending",
+      errorMessage: undefined,
+      progress: 0,
+    });
+    return await ctx.db.get(jobId);
+  },
+});
+
+/**
+ * Reset all failed (and optionally running) jobs for a workspace back to
+ * pending so they are re-queued for execution.
+ */
+export const bulkRetry = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    includeRunning: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { workspaceId, projectId, includeRunning }) => {
+    const failed = await ctx.db
+      .query("jobs")
+      .withIndex("by_workspace_status", (q) =>
+        q.eq("workspaceId", workspaceId).eq("status", "failed"),
+      )
+      .collect();
+    const running = includeRunning
+      ? await ctx.db
+          .query("jobs")
+          .withIndex("by_workspace_status", (q) =>
+            q.eq("workspaceId", workspaceId).eq("status", "running"),
+          )
+          .collect()
+      : [];
+    const candidates = [...failed, ...running].filter(
+      (j) => !projectId || j.projectId === projectId,
+    );
+    await Promise.all(
+      candidates.map((j) =>
+        ctx.db.patch(j._id, { status: "pending", errorMessage: undefined, progress: 0 }),
+      ),
+    );
+    return { reset: candidates.length, jobs: candidates.map((j) => ({ id: j._id, type: j.type })) };
+  },
+});
+
+/**
+ * Delete terminal (failed / cancelled / both) jobs for a workspace.
+ */
+export const bulkDelete = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    status: v.string(), // "failed" | "cancelled" | "all_terminal"
+  },
+  handler: async (ctx, { workspaceId, projectId, status }) => {
+    const statuses =
+      status === "all_terminal"
+        ? ["failed", "cancelled"]
+        : status === "failed" || status === "cancelled"
+          ? [status]
+          : null;
+    if (!statuses) throw new Error("status must be 'failed', 'cancelled', or 'all_terminal'");
+
+    const candidates: Array<{ _id: string }> = [];
+    for (const s of statuses) {
+      const batch = await ctx.db
+        .query("jobs")
+        .withIndex("by_workspace_status", (q) =>
+          q.eq("workspaceId", workspaceId).eq("status", s),
+        )
+        .collect();
+      candidates.push(...batch.filter((j) => !projectId || j.projectId === projectId));
+    }
+    await Promise.all(candidates.map((j) => ctx.db.delete(j._id as Parameters<typeof ctx.db.delete>[0])));
+    return { cleared: candidates.length, status };
+  },
+});
+
 /**
  * Create a job AND immediately schedule the agent runner.
  * This is the primary entry point for triggering agents from the UI.
@@ -305,5 +391,33 @@ export const createAndSchedule = mutation({
     await ctx.scheduler.runAfter(0, internal.agents.run, { jobId });
 
     return jobId;
+  },
+});
+
+// Internal job creation — used by server-side automation without user context
+export const createInternal = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    type: v.string(),
+    input: v.any(),
+    agentDefinitionId: v.optional(v.id("agentDefinitions")),
+    initiatedBy: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("jobs", {
+      workspaceId: args.workspaceId,
+      projectId: args.projectId,
+      type: args.type,
+      status: "pending",
+      input: args.input,
+      output: null,
+      attempt: 0,
+      agentDefinitionId: args.agentDefinitionId,
+      initiatedBy: args.initiatedBy ?? "automation",
+      initiatedByName: args.initiatedBy ?? "automation",
+      rootInitiator: args.initiatedBy ?? "automation",
+      rootInitiatorName: args.initiatedBy ?? "automation",
+    });
   },
 });

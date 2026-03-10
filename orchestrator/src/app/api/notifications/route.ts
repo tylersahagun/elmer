@@ -1,18 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getNotifications,
-  getUnreadNotificationCount,
-  createNotification,
-  markAllNotificationsRead,
-} from "@/lib/db/queries";
-import type { NotificationType, NotificationPriority } from "@/lib/db/schema";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
+
+type NotificationType =
+  | "job_failed"
+  | "job_completed"
+  | "missing_transcript"
+  | "missing_document"
+  | "approval_required"
+  | "jury_failed"
+  | "integration_error"
+  | "stage_blocked"
+  | "action_required";
+
+const VALID_TYPES: NotificationType[] = [
+  "job_failed",
+  "job_completed",
+  "missing_transcript",
+  "missing_document",
+  "approval_required",
+  "jury_failed",
+  "integration_error",
+  "stage_blocked",
+  "action_required",
+];
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspaceId");
-    const status = searchParams.get("status");
-    const type = searchParams.get("type");
+    const status = searchParams.get("status") ?? undefined;
+    const type = searchParams.get("type") ?? undefined;
     const countOnly = searchParams.get("countOnly") === "true";
     const limit = searchParams.get("limit");
 
@@ -23,15 +46,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Return just the count if requested
+    const client = getConvexClient();
+    const wsId = workspaceId as Id<"workspaces">;
+
     if (countOnly) {
-      const count = await getUnreadNotificationCount(workspaceId);
+      const count = await client.query(api.notifications.countUnread, { workspaceId: wsId });
       return NextResponse.json({ count });
     }
 
-    const notifications = await getNotifications(workspaceId, {
-      status: status as "unread" | "read" | "actioned" | "dismissed" | undefined,
-      type: type as NotificationType | undefined,
+    const notifications = await client.query(api.notifications.listFiltered, {
+      workspaceId: wsId,
+      status,
+      type,
       limit: limit ? parseInt(limit, 10) : 50,
     });
 
@@ -61,7 +87,6 @@ export async function POST(request: NextRequest) {
       actionUrl,
       actionData,
       metadata,
-      expiresAt,
     } = body;
 
     if (!workspaceId || !type || !title || !message) {
@@ -71,45 +96,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate notification type
-    const validTypes: NotificationType[] = [
-      "job_failed",
-      "job_completed",
-      "missing_transcript",
-      "missing_document",
-      "approval_required",
-      "jury_failed",
-      "integration_error",
-      "stage_blocked",
-      "action_required",
-    ];
-
-    if (!validTypes.includes(type)) {
+    if (!VALID_TYPES.includes(type)) {
       return NextResponse.json(
         { error: `Invalid notification type: ${type}` },
         { status: 400 }
       );
     }
 
-    const notification = await createNotification({
-      workspaceId,
-      projectId,
-      jobId,
-      type: type as NotificationType,
-      priority: priority as NotificationPriority | undefined,
+    const client = getConvexClient();
+    const id = await client.mutation(api.notifications.createPublic, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      type,
+      priority: priority ?? "medium",
       title,
       message,
+      projectId: projectId as Id<"projects"> | undefined,
+      jobId: jobId as Id<"jobs"> | undefined,
       actionType,
       actionLabel,
       actionUrl,
       actionData,
       metadata,
-      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
     });
 
     console.log(`🔔 Notification created: ${type} - ${title}`);
-
-    return NextResponse.json(notification, { status: 201 });
+    return NextResponse.json({ id }, { status: 201 });
   } catch (error) {
     console.error("Failed to create notification:", error);
     return NextResponse.json(
@@ -119,7 +130,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Mark all as read
 export async function PATCH(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -134,7 +144,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === "markAllRead") {
-      await markAllNotificationsRead(workspaceId);
+      const client = getConvexClient();
+      await client.mutation(api.notifications.markAllReadForWorkspace, {
+        workspaceId: workspaceId as Id<"workspaces">,
+      });
       return NextResponse.json({ success: true });
     }
 

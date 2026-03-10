@@ -14,22 +14,21 @@
  *   - Measurable metrics defined
  */
 
-import { db } from "@/lib/db";
-import {
-  documents,
-  signalProjects,
-  signals as signalsTable,
-  type DocumentType,
-} from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { getDefaultProvider, type StreamCallback } from "../providers";
-import type { StageContext, StageExecutionResult } from "./index";
+import type { StageContext, StageExecutionResult, ConvexDocument } from "./index";
 import { getWorkspaceContext } from "@/lib/context/resolve";
 import { commitToGitHub, getWritebackConfig, getWorkspaceUserId } from "@/lib/github/writeback-service";
 import { resolveDocumentPath } from "@/lib/github/path-resolver";
-import { recordProjectCommit } from "@/lib/db/queries";
 import type { WritebackFile, CommitMetadata } from "@/lib/github/types";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 const PRD_SYSTEM_PROMPT = `You are a senior product manager creating a PRD (Product Requirements Document) for a specific company/product.
 
@@ -154,7 +153,6 @@ export async function executePRD(
   callbacks.onLog("info", "Starting PRD generation", "prd");
   callbacks.onProgress(0.05, "Loading company context...");
 
-  // Load company context (product vision, personas, guardrails)
   const companyContext = await getWorkspaceContext(run.workspaceId);
   if (!companyContext) {
     callbacks.onLog(
@@ -166,7 +164,6 @@ export async function executePRD(
 
   callbacks.onProgress(0.1, "Loading research context...");
 
-  // Get research document
   const researchDoc = existingDocs.find((doc) => doc.type === "research");
 
   if (!researchDoc) {
@@ -177,21 +174,21 @@ export async function executePRD(
     };
   }
 
-  // Fetch linked signals for evidence section
+  // Fetch linked signals for evidence section via Convex
   callbacks.onProgress(0.15, "Loading signal evidence...");
-  const linkedSignals = await db
-    .select({
-      verbatim: signalsTable.verbatim,
-      source: signalsTable.source,
-      severity: signalsTable.severity,
-      frequency: signalsTable.frequency,
-      interpretation: signalsTable.interpretation,
-    })
-    .from(signalProjects)
-    .innerJoin(signalsTable, eq(signalProjects.signalId, signalsTable.id))
-    .where(eq(signalProjects.projectId, project.id))
-    .orderBy(desc(signalProjects.linkedAt))
-    .limit(10); // Top 10 signals to prevent context bloat
+  const client = getConvexClient();
+  const rawSignals = await client.query(api.signals.byProject, {
+    projectId: run.cardId as Id<"projects">,
+  });
+
+  const linkedSignals = ((rawSignals ?? []) as Array<{
+    _id: string;
+    verbatim: string;
+    source: string;
+    severity?: string;
+    frequency?: string;
+    interpretation?: string;
+  }>).slice(0, 10); // Top 10 signals to prevent context bloat
 
   if (linkedSignals.length > 0) {
     callbacks.onLog(
@@ -208,13 +205,12 @@ export async function executePRD(
   }
 
   const provider = getDefaultProvider();
-  const now = new Date();
   const createdDocs: string[] = [];
   const totalTokens = { input: 0, output: 0 };
 
-  // Helper to create/update document
+  // Helper to create/update document via Convex
   async function createDoc(
-    type: DocumentType,
+    type: string,
     title: string,
     systemPrompt: string,
     userPrompt: string,
@@ -226,7 +222,7 @@ export async function executePRD(
       systemPrompt,
       userPrompt,
       {
-        runId: run.id,
+        runId: run._id,
         workspaceId: run.workspaceId,
         cardId: run.cardId,
         stage: run.stage,
@@ -248,40 +244,27 @@ export async function executePRD(
       totalTokens.output += result.tokensUsed.output;
     }
 
-    // Check for existing doc
     const existing = existingDocs.find((doc) => doc.type === type);
-    const docId = existing?.id || `doc_${nanoid()}`;
 
     if (existing) {
-      await db
-        .update(documents)
-        .set({
-          content: result.output || "",
-          version: existing.version + 1,
-          updatedAt: now,
-        })
-        .where(eq(documents.id, existing.id));
+      await client.mutation(api.documents.update, {
+        documentId: existing._id as Id<"documents">,
+        content: result.output || "",
+        title,
+      });
     } else {
-      await db.insert(documents).values({
-        id: docId,
-        projectId: project.id,
+      await client.mutation(api.documents.create, {
+        workspaceId: run.workspaceId as Id<"workspaces">,
+        projectId: run.cardId as Id<"projects">,
         type,
         title,
         content: result.output || "",
-        version: 1,
-        filePath: `initiatives/${project.name.toLowerCase().replace(/\s+/g, "-")}/${type.replace("_", "-")}.md`,
-        metadata: {
-          generatedBy: "ai",
-          model: "claude-sonnet-4-20250514",
-          promptVersion: "prd-v1",
-        },
-        createdAt: now,
-        updatedAt: now,
+        generatedByAgent: "prd-executor",
       });
     }
 
-    // Commit to GitHub (WRITE-01, WRITE-03, WRITE-05)
-    const writebackConfig = await getWritebackConfig(run.workspaceId, project.id);
+    // Commit to GitHub
+    const writebackConfig = await getWritebackConfig(run.workspaceId, run.cardId);
     const userId = await getWorkspaceUserId(run.workspaceId);
 
     if (writebackConfig && userId) {
@@ -297,11 +280,11 @@ export async function executePRD(
       };
 
       const commitMetadata: CommitMetadata = {
-        projectId: project.id,
+        projectId: run.cardId,
         projectName: project.name,
         documentType: type,
         triggeredBy: "automation",
-        stageRunId: run.id,
+        stageRunId: run._id,
       };
 
       callbacks.onLog("info", `Committing ${type} to GitHub: ${filePath}`, "prd");
@@ -311,48 +294,48 @@ export async function executePRD(
         [writebackFile],
         commitMetadata,
         userId,
-        existing ? "update" : "add"
+        existing ? "update" : "add",
       );
 
       if (writebackResult.success) {
         callbacks.onLog("info", `Committed to GitHub: ${writebackResult.commitSha}`, "prd");
 
-        // Record in project commit history (WRITE-06)
-        await recordProjectCommit({
-          projectId: project.id,
-          workspaceId: run.workspaceId,
-          commitSha: writebackResult.commitSha!,
-          commitUrl: writebackResult.commitUrl!,
+        // Record in project commit history via Convex
+        await client.mutation(api.projectCommits.create, {
+          projectId: run.cardId as Id<"projects">,
+          workspaceId: run.workspaceId as Id<"workspaces">,
+          sha: writebackResult.commitSha!,
+          url: writebackResult.commitUrl,
           message: `docs(${project.name.toLowerCase().replace(/\s+/g, "-")}): ${existing ? "update" : "add"} ${type.replace(/_/g, "-")}`,
-          documentType: type,
-          filesChanged: writebackResult.filesWritten,
-          triggeredBy: "automation",
-          stageRunId: run.id,
+          author: "automation",
+          committedAt: Date.now(),
         });
       } else {
         callbacks.onLog("warn", `GitHub writeback failed: ${writebackResult.error}`, "prd");
-        // Don't fail the entire operation - document is saved locally
       }
     } else {
       callbacks.onLog("info", "GitHub writeback not configured or no user context", "prd");
     }
 
     createdDocs.push(type);
-    await callbacks.onArtifact("file", title, `documents/${docId}`, {
+    await callbacks.onArtifact("file", title, `projects/${run.cardId}/documents`, {
       documentType: type,
     });
     return true;
   }
 
-  // Format signals for PRD evidence section
-  function formatSignalsForPRD(signals: typeof linkedSignals): string {
+  function formatSignalsForPRD(
+    signals: typeof linkedSignals,
+  ): string {
     if (signals.length === 0) return "";
 
     const citations = signals.map((s, i) => {
       const source = s.source.charAt(0).toUpperCase() + s.source.slice(1);
       const severity = s.severity ? ` (${s.severity})` : "";
       const quote =
-        s.verbatim.length > 200 ? s.verbatim.slice(0, 197) + "..." : s.verbatim;
+        s.verbatim.length > 200
+          ? s.verbatim.slice(0, 197) + "..."
+          : s.verbatim;
 
       return `[Signal ${i + 1}] **${source}${severity}**: "${quote}"`;
     });
@@ -368,7 +351,6 @@ ${citations.join("\n\n")}
 `;
   }
 
-  // Build evidence section
   const evidenceSection = formatSignalsForPRD(linkedSignals);
 
   if (linkedSignals.length > 0) {
@@ -379,7 +361,6 @@ ${citations.join("\n\n")}
     );
   }
 
-  // Generate all documents
   const basePrompt = `Project: ${project.name}
 ${project.description ? `Description: ${project.description}` : ""}
 
@@ -390,7 +371,6 @@ ${evidenceSection}
 ## Research
 ${researchDoc.content}`;
 
-  // 1. Generate PRD
   const prdSuccess = await createDoc(
     "prd",
     `PRD - ${project.name}`,
@@ -407,7 +387,6 @@ ${researchDoc.content}`;
     };
   }
 
-  // 2. Generate Design Brief
   await createDoc(
     "design_brief",
     `Design Brief - ${project.name}`,
@@ -416,7 +395,6 @@ ${researchDoc.content}`;
     0.5,
   );
 
-  // 3. Generate Engineering Spec
   await createDoc(
     "engineering_spec",
     `Engineering Spec - ${project.name}`,
@@ -425,7 +403,6 @@ ${researchDoc.content}`;
     0.75,
   );
 
-  // 4. Generate GTM Brief
   await createDoc(
     "gtm_brief",
     `GTM Brief - ${project.name}`,
@@ -455,9 +432,7 @@ ${researchDoc.content}`;
     gateResults: {
       prd_exists: {
         passed: createdDocs.includes("prd"),
-        message: createdDocs.includes("prd")
-          ? "PRD created"
-          : "PRD not created",
+        message: createdDocs.includes("prd") ? "PRD created" : "PRD not created",
       },
       design_brief_exists: {
         passed: createdDocs.includes("design_brief"),

@@ -1,8 +1,7 @@
 import { create } from "zustand";
-import type {
-  ProjectStage as ProjectStageType,
-  SignalAutomationSettings,
-} from "./db/schema";
+import type { SignalAutomationSettings } from "./automation/rate-limiter";
+
+type ProjectStageType = string;
 
 // ============================================
 // TYPES

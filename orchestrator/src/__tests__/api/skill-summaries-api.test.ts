@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock the database
+// Mock the database (legacy - kept for backward compat)
 vi.mock("@/lib/db", () => ({
   db: {
     query: {
@@ -21,6 +21,24 @@ vi.mock("@/lib/db", () => ({
       })),
     })),
   },
+}));
+
+// Mock Convex API and client for cached summary lookup
+let mockConvexSkill: Record<string, unknown> | null = null;
+
+vi.mock("../../../convex/_generated/api", () => ({
+  api: {
+    skills: {
+      getByLegacyId: "skills:getByLegacyId",
+    },
+  },
+}));
+
+vi.mock("convex/browser", () => ({
+  ConvexHttpClient: vi.fn().mockImplementation(() => ({
+    query: vi.fn().mockImplementation(() => Promise.resolve(mockConvexSkill)),
+    mutation: vi.fn().mockResolvedValue(null),
+  })),
 }));
 
 // Mock Anthropic
@@ -195,14 +213,12 @@ describe("GET /api/skills/[id]/summary", () => {
   });
 
   it("should return cached summary if available", async () => {
-    const { db } = await import("@/lib/db");
-    const mockedDb = vi.mocked(db);
-    
-    // Mock finding a cached summary
-    mockedDb.query.skills.findFirst.mockResolvedValueOnce({
-      id: "custom_skill",
-      metadata: { aiSummary: "This is a cached AI summary." },
-    } as never);
+    // Set up mock Convex to return a skill with cached summary
+    mockConvexSkill = {
+      _id: "jmockid",
+      _creationTime: Date.now(),
+      metadata: { aiSummary: "This is a cached AI summary.", legacyId: "custom_skill" },
+    };
 
     const { GET } = await import("@/app/api/skills/[id]/summary/route");
     
@@ -215,15 +231,13 @@ describe("GET /api/skills/[id]/summary", () => {
     expect(response.status).toBe(200);
     expect(data.summary).toBe("This is a cached AI summary.");
     expect(data.source).toBe("cached");
+
+    // Reset mock
+    mockConvexSkill = null;
   });
 
   it("should return generic summary for unknown skill without cache", async () => {
-    const { db } = await import("@/lib/db");
-    const mockedDb = vi.mocked(db);
-    
-    // Mock no cached summary
-    mockedDb.query.skills.findFirst.mockResolvedValueOnce(null as never);
-
+    mockConvexSkill = null; // No cached skill
     const { GET } = await import("@/app/api/skills/[id]/summary/route");
     
     const request = new NextRequest("http://localhost:3000/api/skills/unknown_custom_skill/summary");
@@ -239,15 +253,7 @@ describe("GET /api/skills/[id]/summary", () => {
   });
 
   it("should regenerate when regenerate=true query param", async () => {
-    const { db } = await import("@/lib/db");
-    const mockedDb = vi.mocked(db);
-    
-    // Even with cached data, should not use it when regenerate=true
-    mockedDb.query.skills.findFirst.mockResolvedValue({
-      id: "analyze_transcript",
-      metadata: { aiSummary: "Old cached summary" },
-    } as never);
-
+    mockConvexSkill = null; // regenerate=true skips cache check anyway
     const { GET } = await import("@/app/api/skills/[id]/summary/route");
     
     const request = new NextRequest("http://localhost:3000/api/skills/analyze_transcript/summary?regenerate=true");

@@ -157,3 +157,28 @@ export const markTimedOut = internalMutation({
     });
   },
 });
+
+/**
+ * Skip (cancel) a pending question and reset the parent job to pending
+ * so the agent runner can continue without waiting for the answer.
+ * Auth is verified at the Next.js route layer.
+ */
+export const skip = mutation({
+  args: {
+    questionId: v.id("pendingQuestions"),
+    respondedBy: v.optional(v.string()),
+  },
+  handler: async (ctx, { questionId, respondedBy }) => {
+    const question = await ctx.db.get(questionId);
+    if (!question) throw new Error("Question not found");
+    if (question.status !== "pending") return questionId;
+
+    await ctx.db.patch(questionId, {
+      status: "cancelled",
+      respondedBy,
+    });
+
+    await ctx.db.patch(question.jobId, { status: "pending", progress: 0 });
+    return questionId;
+  },
+});

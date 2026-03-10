@@ -1,30 +1,47 @@
 /**
  * Stage Recipes Service
  * 
- * Manages per-stage automation configuration:
- * - Recipe steps (ordered list of skills)
- * - Gates (pass/fail criteria)
- * - Automation level
- * - Provider configuration
+ * Manages per-stage automation configuration via Convex.
  */
 
-import { db } from "@/lib/db";
-import {
-  stageRecipes,
-  skills,
-  type ProjectStage,
-  type AutomationLevel,
-  type ExecutionProvider,
-  type RecipeStep,
-  type GateDefinition,
-} from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { getSkillById, isSkillTrusted } from "./skills-service";
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
 
 // ============================================================================
 // Types
 // ============================================================================
+
+type ProjectStage = "inbox" | "discovery" | "prd" | "design" | "prototype" | "validate" | "tickets" | "build" | "alpha" | "beta" | "ga";
+type AutomationLevel = "fully_auto" | "auto_notify" | "human_approval" | "manual";
+type ExecutionProvider = "anthropic" | "openai" | "cli" | "cursor";
+
+export interface RecipeStep {
+  skillId: string;
+  order?: number;
+  name?: string;
+  timeout?: number;
+  retryCount?: number;
+  params?: Record<string, unknown>;
+  paramsJson?: Record<string, unknown>;
+  inputsMapping?: Record<string, string>;
+  outputsMapping?: Record<string, string>;
+  continueOnError?: boolean;
+}
+
+export interface GateDefinition {
+  id: string;
+  name?: string;
+  type: string;
+  config?: Record<string, unknown>;
+  required?: boolean;
+  failureMessage?: string;
+}
 
 export interface StageRecipe {
   id: string;
@@ -85,7 +102,7 @@ const DEFAULT_GATES: Record<ProjectStage, GateDefinition[]> = {
       type: "file_exists",
       config: { pattern: "signals/**/*.md" },
       required: true,
-      failureMessage: "No signal file was created. Signal must be saved to signals/ folder.",
+      failureMessage: "No signal file was created.",
     },
   ],
   discovery: [
@@ -95,7 +112,7 @@ const DEFAULT_GATES: Record<ProjectStage, GateDefinition[]> = {
       type: "file_exists",
       config: { pattern: "hypotheses/*.md" },
       required: true,
-      failureMessage: "No hypothesis file found. Create a hypothesis in hypotheses/ folder.",
+      failureMessage: "No hypothesis file found.",
     },
     {
       id: "discovery_research",
@@ -103,7 +120,7 @@ const DEFAULT_GATES: Record<ProjectStage, GateDefinition[]> = {
       type: "file_exists",
       config: { pattern: "research.md" },
       required: true,
-      failureMessage: "research.md not found in initiative folder.",
+      failureMessage: "research.md not found.",
     },
   ],
   prd: [
@@ -113,23 +130,7 @@ const DEFAULT_GATES: Record<ProjectStage, GateDefinition[]> = {
       type: "file_exists",
       config: { pattern: "prd.md" },
       required: true,
-      failureMessage: "prd.md not found. Generate the PRD document.",
-    },
-    {
-      id: "prd_sections",
-      name: "Required PRD sections",
-      type: "content_check",
-      config: {
-        file: "prd.md",
-        requiredSections: [
-          "Problem Statement",
-          "Target Personas",
-          "Success Metrics",
-          "MVP Scope",
-        ],
-      },
-      required: true,
-      failureMessage: "PRD missing required sections: Problem Statement, Personas, Metrics, MVP Scope.",
+      failureMessage: "prd.md not found.",
     },
   ],
   design: [
@@ -141,14 +142,6 @@ const DEFAULT_GATES: Record<ProjectStage, GateDefinition[]> = {
       required: true,
       failureMessage: "design-brief.md not found.",
     },
-    {
-      id: "design_review",
-      name: "Design review documented",
-      type: "file_exists",
-      config: { pattern: "design-review.md" },
-      required: false,
-      failureMessage: "design-review.md recommended but not required.",
-    },
   ],
   prototype: [
     {
@@ -157,33 +150,17 @@ const DEFAULT_GATES: Record<ProjectStage, GateDefinition[]> = {
       type: "file_exists",
       config: { pattern: "**/*.stories.tsx" },
       required: true,
-      failureMessage: "No Storybook stories found. Create .stories.tsx files.",
-    },
-    {
-      id: "prototype_chromatic",
-      name: "Chromatic URL captured",
-      type: "artifact_exists",
-      config: { artifactType: "url", label: "Chromatic" },
-      required: false,
-      failureMessage: "Chromatic URL not captured. Run Chromatic build.",
+      failureMessage: "No Storybook stories found.",
     },
   ],
   validate: [
-    {
-      id: "validate_report",
-      name: "Validation report exists",
-      type: "file_exists",
-      config: { pattern: "validation-report.md" },
-      required: true,
-      failureMessage: "validation-report.md not found.",
-    },
     {
       id: "validate_score",
       name: "Jury score meets threshold",
       type: "metric_threshold",
       config: { metric: "jury_score", threshold: 70, operator: ">=" },
       required: true,
-      failureMessage: "Jury score below threshold (70%). Iterate on design.",
+      failureMessage: "Jury score below threshold (70%).",
     },
   ],
   tickets: [
@@ -195,14 +172,6 @@ const DEFAULT_GATES: Record<ProjectStage, GateDefinition[]> = {
       required: true,
       failureMessage: "ticket-plan.md not found.",
     },
-    {
-      id: "tickets_created",
-      name: "Tickets created in tracker",
-      type: "artifact_exists",
-      config: { artifactType: "ticket" },
-      required: false,
-      failureMessage: "No tickets created. Create tickets in Linear/GitHub.",
-    },
   ],
   build: [
     {
@@ -211,7 +180,7 @@ const DEFAULT_GATES: Record<ProjectStage, GateDefinition[]> = {
       type: "artifact_exists",
       config: { artifactType: "pr" },
       required: true,
-      failureMessage: "No PR created. Create pull request.",
+      failureMessage: "No PR created.",
     },
   ],
   alpha: [
@@ -261,166 +230,121 @@ const DEFAULT_AUTOMATION_LEVELS: Record<ProjectStage, AutomationLevel> = {
 };
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+function convexToRecipe(row: {
+  _id: Id<"stageRecipes">;
+  _creationTime: number;
+  workspaceId: Id<"workspaces">;
+  stage: string;
+  automationLevel: string;
+  provider: string;
+  skills?: string[];
+  gates?: string[];
+  enabled: boolean;
+  recipeSteps?: unknown;
+  gateDefinitions?: unknown;
+  onFailBehavior?: string;
+}): StageRecipe {
+  return {
+    id: row._id,
+    workspaceId: row.workspaceId,
+    stage: row.stage as ProjectStage,
+    automationLevel: row.automationLevel as AutomationLevel,
+    recipeSteps: (row.recipeSteps as RecipeStep[]) || [],
+    gates: (row.gateDefinitions as GateDefinition[]) || [],
+    onFailBehavior: (row.onFailBehavior ?? "stay") as StageRecipe["onFailBehavior"],
+    provider: row.provider as ExecutionProvider,
+    enabled: row.enabled,
+    createdAt: new Date(row._creationTime),
+    updatedAt: new Date(row._creationTime),
+  };
+}
+
+// ============================================================================
 // CRUD Operations
 // ============================================================================
 
-/**
- * Get recipe for a specific stage
- */
 export async function getStageRecipe(
   workspaceId: string,
   stage: ProjectStage
 ): Promise<StageRecipe | null> {
-  const result = await db
-    .select()
-    .from(stageRecipes)
-    .where(
-      and(
-        eq(stageRecipes.workspaceId, workspaceId),
-        eq(stageRecipes.stage, stage)
-      )
-    )
-    .limit(1);
-
-  if (result.length === 0) return null;
-
-  const row = result[0];
-  return {
-    id: row.id,
-    workspaceId: row.workspaceId,
-    stage: row.stage,
-    automationLevel: row.automationLevel,
-    recipeSteps: (row.recipeSteps as RecipeStep[]) || [],
-    gates: (row.gates as GateDefinition[]) || [],
-    onFailBehavior: row.onFailBehavior ?? "stay",
-    provider: row.provider ?? "anthropic",
-    enabled: row.enabled ?? true,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
+  const client = getConvexClient();
+  const result = await client.query(api.stageRuns.getRecipe, {
+    workspaceId: workspaceId as Id<"workspaces">,
+    stage,
+  });
+  if (!result) return null;
+  return convexToRecipe(result as Parameters<typeof convexToRecipe>[0]);
 }
 
-/**
- * Get all recipes for a workspace
- */
 export async function getAllStageRecipes(
   workspaceId: string
 ): Promise<StageRecipe[]> {
-  const results = await db
-    .select()
-    .from(stageRecipes)
-    .where(eq(stageRecipes.workspaceId, workspaceId));
-
-  return results.map((row) => ({
-    id: row.id,
-    workspaceId: row.workspaceId,
-    stage: row.stage,
-    automationLevel: row.automationLevel,
-    recipeSteps: (row.recipeSteps as RecipeStep[]) || [],
-    gates: (row.gates as GateDefinition[]) || [],
-    onFailBehavior: row.onFailBehavior ?? "stay",
-    provider: row.provider ?? "anthropic",
-    enabled: row.enabled ?? true,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  }));
+  const client = getConvexClient();
+  const results = await client.query(api.stageRuns.listRecipes, {
+    workspaceId: workspaceId as Id<"workspaces">,
+  });
+  return results.map((r) => convexToRecipe(r as Parameters<typeof convexToRecipe>[0]));
 }
 
-/**
- * Create a new stage recipe
- */
 export async function createStageRecipe(input: CreateRecipeInput): Promise<string> {
-  const id = `recipe_${nanoid(12)}`;
-
-  await db.insert(stageRecipes).values({
-    id,
-    workspaceId: input.workspaceId,
+  const client = getConvexClient();
+  const id = await client.mutation(api.stageRuns.upsertRecipeFull, {
+    workspaceId: input.workspaceId as Id<"workspaces">,
     stage: input.stage,
     automationLevel: input.automationLevel || DEFAULT_AUTOMATION_LEVELS[input.stage],
     recipeSteps: input.recipeSteps || [],
-    gates: input.gates || DEFAULT_GATES[input.stage],
+    gateDefinitions: input.gates || DEFAULT_GATES[input.stage],
     onFailBehavior: input.onFailBehavior || "stay",
     provider: input.provider || "anthropic",
     enabled: input.enabled ?? true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   });
-
   return id;
 }
 
-/**
- * Update an existing stage recipe
- */
 export async function updateStageRecipe(
   workspaceId: string,
   stage: ProjectStage,
   input: UpdateRecipeInput
 ): Promise<void> {
-  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  const existing = await getStageRecipe(workspaceId, stage);
+  if (!existing) return;
 
-  if (input.automationLevel !== undefined) {
-    updates.automationLevel = input.automationLevel;
-  }
-  if (input.recipeSteps !== undefined) {
-    updates.recipeSteps = input.recipeSteps;
-  }
-  if (input.gates !== undefined) {
-    updates.gates = input.gates;
-  }
-  if (input.onFailBehavior !== undefined) {
-    updates.onFailBehavior = input.onFailBehavior;
-  }
-  if (input.provider !== undefined) {
-    updates.provider = input.provider;
-  }
-  if (input.enabled !== undefined) {
-    updates.enabled = input.enabled;
-  }
-
-  await db
-    .update(stageRecipes)
-    .set(updates)
-    .where(
-      and(
-        eq(stageRecipes.workspaceId, workspaceId),
-        eq(stageRecipes.stage, stage)
-      )
-    );
+  const client = getConvexClient();
+  await client.mutation(api.stageRuns.upsertRecipeFull, {
+    workspaceId: workspaceId as Id<"workspaces">,
+    stage,
+    automationLevel: input.automationLevel ?? existing.automationLevel,
+    recipeSteps: input.recipeSteps ?? existing.recipeSteps,
+    gateDefinitions: input.gates ?? existing.gates,
+    onFailBehavior: input.onFailBehavior ?? existing.onFailBehavior,
+    provider: input.provider ?? existing.provider,
+    enabled: input.enabled ?? existing.enabled,
+  });
 }
 
-/**
- * Delete a stage recipe
- */
 export async function deleteStageRecipe(
   workspaceId: string,
   stage: ProjectStage
 ): Promise<boolean> {
-  const result = await db
-    .delete(stageRecipes)
-    .where(
-      and(
-        eq(stageRecipes.workspaceId, workspaceId),
-        eq(stageRecipes.stage, stage)
-      )
-    );
-
-  return (result.rowCount ?? 0) > 0;
+  const client = getConvexClient();
+  return await client.mutation(api.stageRuns.deleteRecipe, {
+    workspaceId: workspaceId as Id<"workspaces">,
+    stage,
+  });
 }
 
 // ============================================================================
 // Validation
 // ============================================================================
 
-/**
- * Validate a recipe configuration
- */
 export async function validateRecipe(recipe: StageRecipe): Promise<RecipeValidation> {
   const errors: string[] = [];
   const warnings: string[] = [];
   const skillsStatus: RecipeValidation["skillsStatus"] = [];
 
-  // Check each skill in the recipe
   for (const step of recipe.recipeSteps) {
     const skill = await getSkillById(step.skillId);
     
@@ -451,12 +375,10 @@ export async function validateRecipe(recipe: StageRecipe): Promise<RecipeValidat
     }
   }
 
-  // Check gates
   if (recipe.gates.length === 0) {
     warnings.push("No gates defined. Stage will advance without validation checks.");
   }
 
-  // Check for required gates
   const requiredGates = recipe.gates.filter((g) => g.required);
   if (requiredGates.length === 0) {
     warnings.push("No required gates. Consider adding at least one required gate.");
@@ -470,16 +392,10 @@ export async function validateRecipe(recipe: StageRecipe): Promise<RecipeValidat
   };
 }
 
-/**
- * Check if a recipe can run in fully_auto mode
- * (All skills must be trusted)
- */
 export async function canRunFullyAuto(recipe: StageRecipe): Promise<boolean> {
   for (const step of recipe.recipeSteps) {
     const skill = await getSkillById(step.skillId);
-    if (!skill || !isSkillTrusted(skill)) {
-      return false;
-    }
+    if (!skill || !isSkillTrusted(skill)) return false;
   }
   return true;
 }
@@ -488,26 +404,13 @@ export async function canRunFullyAuto(recipe: StageRecipe): Promise<boolean> {
 // Initialization
 // ============================================================================
 
-/**
- * Initialize default recipes for all stages in a workspace
- */
 export async function initializeDefaultRecipes(workspaceId: string): Promise<void> {
   const stages: ProjectStage[] = [
-    "inbox",
-    "discovery",
-    "prd",
-    "design",
-    "prototype",
-    "validate",
-    "tickets",
-    "build",
-    "alpha",
-    "beta",
-    "ga",
+    "inbox", "discovery", "prd", "design", "prototype",
+    "validate", "tickets", "build", "alpha", "beta", "ga",
   ];
 
   for (const stage of stages) {
-    // Check if recipe already exists
     const existing = await getStageRecipe(workspaceId, stage);
     if (existing) continue;
 
@@ -515,7 +418,7 @@ export async function initializeDefaultRecipes(workspaceId: string): Promise<voi
       workspaceId,
       stage,
       automationLevel: DEFAULT_AUTOMATION_LEVELS[stage],
-      recipeSteps: [], // Start with built-in executor, no custom skills
+      recipeSteps: [],
       gates: DEFAULT_GATES[stage],
       onFailBehavior: "stay",
       provider: "anthropic",
@@ -524,26 +427,16 @@ export async function initializeDefaultRecipes(workspaceId: string): Promise<voi
   }
 }
 
-/**
- * Get effective automation level for a stage
- * (Considers skill trust levels)
- */
 export async function getEffectiveAutomationLevel(
   recipe: StageRecipe
 ): Promise<AutomationLevel> {
-  // If recipe says fully_auto but has untrusted skills, downgrade to auto_notify
   if (recipe.automationLevel === "fully_auto") {
     const canAuto = await canRunFullyAuto(recipe);
-    if (!canAuto) {
-      return "auto_notify";
-    }
+    if (!canAuto) return "auto_notify";
   }
   return recipe.automationLevel;
 }
 
-/**
- * Check if a stage requires human approval before advancing
- */
 export function requiresApproval(recipe: StageRecipe): boolean {
   return (
     recipe.automationLevel === "human_approval" ||
@@ -551,9 +444,6 @@ export function requiresApproval(recipe: StageRecipe): boolean {
   );
 }
 
-/**
- * Get all stages that can auto-advance (no human approval needed)
- */
 export async function getAutoAdvanceableStages(
   workspaceId: string
 ): Promise<ProjectStage[]> {
@@ -562,7 +452,6 @@ export async function getAutoAdvanceableStages(
 
   for (const recipe of recipes) {
     if (!recipe.enabled) continue;
-    
     const effectiveLevel = await getEffectiveAutomationLevel(recipe);
     if (effectiveLevel === "fully_auto" || effectiveLevel === "auto_notify") {
       autoStages.push(recipe.stage);

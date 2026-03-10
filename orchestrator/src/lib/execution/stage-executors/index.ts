@@ -10,22 +10,12 @@
  * - State tracking and structured context
  */
 
-import { db } from "@/lib/db";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
+import { addRunLog } from "../run-manager-convex";
+import type { StageRun } from "../run-manager-convex";
 import {
-  stageRuns,
-  stageRecipes,
-  projects,
-  documents,
-  workspaces,
-  type ProjectStage,
-  type RecipeStep,
-  type GateDefinition,
-  type TaskVerificationResult,
-} from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { addRunLog, createArtifact } from "../run-manager";
-import {
-  getProvider,
   getDefaultProvider,
   type StreamCallback,
   type ExecutionResult,
@@ -44,14 +34,70 @@ import { executeValidate } from "./validate-executor";
 import { executeTickets } from "./tickets-executor";
 
 // ============================================
+// SHARED PLAIN-TS TYPES (replace Drizzle-inferred types)
+// ============================================
+
+export interface ConvexProject {
+  _id: string;
+  workspaceId: string;
+  name: string;
+  description?: string;
+  stage: string;
+  status: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ConvexDocument {
+  _id: string;
+  workspaceId: string;
+  projectId: string;
+  type: string;
+  title: string;
+  content: string;
+  version: number;
+  reviewStatus: string;
+  _creationTime: number;
+}
+
+export interface RecipeStepDef {
+  skillId: string;
+  order?: number;
+  name?: string;
+  targetFiles?: string[];
+  verificationCriteria?: string[];
+  acceptanceCriteria?: string[];
+  atomicCommit?: boolean;
+}
+
+export interface GateDefinitionDef {
+  id: string;
+  name: string;
+  type: string;
+  config: Record<string, unknown>;
+  required?: boolean;
+  message?: string;
+  failureMessage?: string;
+}
+
+export interface ConvexRecipe {
+  _id: string;
+  workspaceId: string;
+  stage: string;
+  automationLevel?: string;
+  recipeSteps?: RecipeStepDef[];
+  gates?: GateDefinitionDef[];
+  onFailBehavior?: string;
+}
+
+// ============================================
 // TYPES
 // ============================================
 
 export interface StageContext {
-  run: typeof stageRuns.$inferSelect;
-  project: typeof projects.$inferSelect;
-  recipe: typeof stageRecipes.$inferSelect | null;
-  documents: Array<typeof documents.$inferSelect>;
+  run: StageRun;
+  project: ConvexProject;
+  recipe: ConvexRecipe | null;
+  documents: ConvexDocument[];
   workspacePath: string;
 }
 
@@ -61,10 +107,27 @@ export interface StageExecutionResult {
   tokensUsed?: { input: number; output: number };
   skillsExecuted?: string[];
   gateResults?: Record<string, { passed: boolean; message?: string }>;
-  autoAdvance?: boolean; // Should automatically move to next stage
-  nextStage?: ProjectStage;
-  // GSD-inspired task tracking
+  autoAdvance?: boolean;
+  nextStage?: string;
   taskResults?: TaskVerificationResult[];
+}
+
+export interface TaskVerificationResult {
+  taskName: string;
+  passed: boolean;
+  criteriaResults: Array<{
+    criterion: string;
+    passed: boolean;
+    evidence?: string;
+  }>;
+  verifiedAt: string;
+  commitHash?: string;
+}
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
 }
 
 // ============================================
@@ -72,13 +135,10 @@ export interface StageExecutionResult {
 // ============================================
 
 export async function executeStage(
-  run: typeof stageRuns.$inferSelect,
+  run: StageRun,
   callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
-  const startTime = Date.now();
-
   try {
-    // Load context
     callbacks.onLog(
       "info",
       `Loading context for stage ${run.stage}`,
@@ -102,7 +162,6 @@ export async function executeStage(
     );
     callbacks.onProgress(0.1, "Context loaded");
 
-    // Get recipe for this stage
     const recipe = context.recipe;
     if (recipe && recipe.recipeSteps && recipe.recipeSteps.length > 0) {
       callbacks.onLog(
@@ -112,7 +171,6 @@ export async function executeStage(
       );
     }
 
-    // Dispatch to stage-specific executor
     let result: StageExecutionResult;
 
     switch (run.stage) {
@@ -146,7 +204,6 @@ export async function executeStage(
         result = await executeDefault(context, callbacks);
     }
 
-    // Run gates if recipe exists
     if (recipe && recipe.gates && recipe.gates.length > 0) {
       callbacks.onLog(
         "info",
@@ -156,9 +213,8 @@ export async function executeStage(
       const gateResults = await runGates(context, recipe.gates, callbacks);
       result.gateResults = gateResults;
 
-      // Check if all required gates passed
       const failedGates = Object.entries(gateResults).filter(
-        ([_, res]) => !res.passed,
+        ([, res]) => !res.passed,
       );
 
       if (failedGates.length > 0) {
@@ -169,7 +225,6 @@ export async function executeStage(
         );
         result.autoAdvance = false;
 
-        // If gates are blocking and we had success, convert to failure
         if (result.success && recipe.onFailBehavior === "stay") {
           result.success = false;
           result.error = `Gates failed: ${failedGates.map(([name]) => name).join(", ")}`;
@@ -195,49 +250,37 @@ export async function executeStage(
 }
 
 // ============================================
-// CONTEXT LOADING
+// CONTEXT LOADING (Convex-backed)
 // ============================================
 
-async function loadStageContext(
-  run: typeof stageRuns.$inferSelect,
+export async function loadStageContext(
+  run: StageRun,
 ): Promise<StageContext> {
+  const client = getConvexClient();
+
   // Load project
-  const projectResults = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.id, run.cardId))
-    .limit(1);
+  const project = await client.query(api.projects.get, {
+    projectId: run.cardId as Id<"projects">,
+  });
 
-  const project = projectResults[0];
-
-  // Load recipe
-  const recipeResults = await db
-    .select()
-    .from(stageRecipes)
-    .where(
-      and(
-        eq(stageRecipes.workspaceId, run.workspaceId),
-        eq(stageRecipes.stage, run.stage),
-      ),
-    )
-    .limit(1);
-
-  const recipe = recipeResults[0] ?? null;
+  // Load recipe for this stage
+  const recipe = await client.query(api.stageRuns.getRecipe, {
+    workspaceId: run.workspaceId as Id<"workspaces">,
+    stage: run.stage,
+  });
 
   // Load documents for this project
-  const docs = await db
-    .select()
-    .from(documents)
-    .where(eq(documents.projectId, run.cardId));
+  const docs = await client.query(api.documents.byProject, {
+    projectId: run.cardId as Id<"projects">,
+  });
 
-  // Determine workspace path (from environment or default)
   const workspacePath = process.env.WORKSPACE_PATH || process.cwd();
 
   return {
     run,
-    project,
-    recipe,
-    documents: docs,
+    project: project as ConvexProject,
+    recipe: (recipe as ConvexRecipe | null) ?? null,
+    documents: (docs ?? []) as ConvexDocument[],
     workspacePath,
   };
 }
@@ -248,7 +291,7 @@ async function loadStageContext(
 
 async function runGates(
   context: StageContext,
-  gates: GateDefinition[],
+  gates: GateDefinitionDef[],
   callbacks: StreamCallback,
 ): Promise<Record<string, { passed: boolean; message?: string }>> {
   const results: Record<string, { passed: boolean; message?: string }> = {};
@@ -270,7 +313,6 @@ async function runGates(
         passed = await checkJuryScore(context, gate.config);
         break;
       case "custom":
-        // Custom gates can be implemented per-stage
         passed = true;
         message = "Custom gate auto-passed";
         break;
@@ -317,12 +359,11 @@ async function checkSectionsExist(
 }
 
 async function checkJuryScore(
-  context: StageContext,
+  _context: StageContext,
   config: Record<string, unknown>,
 ): Promise<boolean> {
-  // TODO: Implement jury score check
-  const minScore = (config.minScore as number) ?? 0.7;
-  // For now, auto-pass
+  // TODO: Query Convex juryEvaluations for score check
+  const _minScore = (config.minScore as number) ?? 0.7;
   return true;
 }
 
@@ -330,18 +371,13 @@ async function checkJuryScore(
 // GSD-INSPIRED TASK LOOP EXECUTION
 // ============================================
 
-/**
- * Execute a stage with task-based verification.
- * Falls back to standard stage execution if no verification criteria defined.
- */
 export async function executeStageWithTasks(
-  run: typeof stageRuns.$inferSelect,
+  run: StageRun,
   callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
   const context = await loadStageContext(run);
   const recipe = context.recipe;
 
-  // Check if recipe has structured tasks with verification criteria
   const hasVerificationCriteria = recipe?.recipeSteps?.some(
     (step) => step.verificationCriteria && step.verificationCriteria.length > 0,
   );
@@ -355,7 +391,6 @@ export async function executeStageWithTasks(
     return executeTaskLoop(context, recipe.recipeSteps, callbacks);
   }
 
-  // Fall back to existing stage executor
   callbacks.onLog(
     "info",
     "No verification criteria defined, using standard execution",
@@ -364,35 +399,29 @@ export async function executeStageWithTasks(
   return executeStage(run, callbacks);
 }
 
-/**
- * Execute tasks sequentially with verification and atomic commits.
- */
 async function executeTaskLoop(
   context: StageContext,
-  tasks: RecipeStep[],
+  tasks: RecipeStepDef[],
   callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
   const results: TaskVerificationResult[] = [];
   const totalTokensUsed = { input: 0, output: 0 };
   const skillsExecuted: string[] = [];
 
-  // Load verification context (personas, guardrails, company context)
   callbacks.onLog("info", "Loading verification context...", "task-loop");
   const verificationCtx = await getAllVerificationContext(
     context.run.workspaceId,
   );
 
-  // Get workspace settings for atomic commits
-  const wsResults = await db
-    .select()
-    .from(workspaces)
-    .where(eq(workspaces.id, context.run.workspaceId))
-    .limit(1);
-  const workspace = wsResults[0];
-  const atomicCommitsEnabled =
-    workspace?.settings?.atomicCommitsEnabled ?? false;
+  // Load workspace settings for atomic commits via Convex
+  const client = getConvexClient();
+  const workspace = await client.query(api.workspaces.get, {
+    workspaceId: context.run.workspaceId as Id<"workspaces">,
+  });
+  const wsSettings = (workspace?.settings ?? {}) as Record<string, unknown>;
+  const atomicCommitsEnabled = (wsSettings.atomicCommitsEnabled as boolean | undefined) ?? false;
   const verificationStrictness =
-    workspace?.settings?.verificationStrictness ?? "lenient";
+    (wsSettings.verificationStrictness as string | undefined) ?? "lenient";
 
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i];
@@ -405,7 +434,6 @@ async function executeTaskLoop(
     );
     callbacks.onProgress((i / tasks.length) * 0.8, `Executing: ${taskName}`);
 
-    // 1. Execute task (dispatch to appropriate executor based on skillId)
     const execResult = await executeTaskSkill(context, task, callbacks);
 
     if (!execResult.success) {
@@ -429,14 +457,12 @@ async function executeTaskLoop(
     }
     skillsExecuted.push(task.skillId);
 
-    // Reload documents after task execution (they may have been created/updated)
-    const updatedDocs = await db
-      .select()
-      .from(documents)
-      .where(eq(documents.projectId, context.run.cardId));
-    context.documents = updatedDocs;
+    // Reload documents after task execution
+    const updatedDocs = await client.query(api.documents.byProject, {
+      projectId: context.run.cardId as Id<"projects">,
+    });
+    context.documents = (updatedDocs ?? []) as ConvexDocument[];
 
-    // 2. Verify task if verification criteria defined
     let verificationPassed = true;
     let criteriaResults: TaskVerificationResult["criteriaResults"] = [];
 
@@ -460,7 +486,6 @@ async function executeTaskLoop(
           "task-loop",
         );
 
-        // Handle based on strictness
         if (verificationStrictness === "strict") {
           results.push({
             taskName,
@@ -486,7 +511,6 @@ async function executeTaskLoop(
             skillsExecuted,
           };
         }
-        // In lenient mode, log warning but continue
         callbacks.onLog(
           "warn",
           `Continuing despite verification failure (lenient mode)`,
@@ -495,7 +519,6 @@ async function executeTaskLoop(
       }
     }
 
-    // 3. Atomic commit if enabled and on a feature branch
     let commitHash: string | undefined;
     if (
       atomicCommitsEnabled &&
@@ -510,7 +533,7 @@ async function executeTaskLoop(
 
       const commitResult = await commitTask({
         repoRoot: context.workspacePath,
-        branch: context.project.metadata.gitBranch,
+        branch: context.project.metadata.gitBranch as string,
         taskName,
         stage: context.run.stage,
         projectName: context.project.name,
@@ -527,7 +550,6 @@ async function executeTaskLoop(
       }
     }
 
-    // Record task result
     results.push({
       taskName,
       passed: verificationPassed,
@@ -558,22 +580,15 @@ async function executeTaskLoop(
   };
 }
 
-/**
- * Execute a single task/skill within the task loop.
- * Maps skill IDs to existing stage executors or AI generation.
- */
 async function executeTaskSkill(
   context: StageContext,
-  task: RecipeStep,
+  task: RecipeStepDef,
   callbacks: StreamCallback,
 ): Promise<ExecutionResult> {
   callbacks.onLog("debug", `Executing skill: ${task.skillId}`, "task-skill");
 
-  // Map common skill IDs to their execution logic
-  // For now, use the default AI provider for generation tasks
   const provider = getDefaultProvider();
 
-  // Build a prompt based on skill type
   let systemPrompt = "";
   let userPrompt = "";
 
@@ -603,17 +618,15 @@ async function executeTaskSkill(
       break;
 
     default:
-      // Generic skill execution
       systemPrompt = `Execute the skill: ${task.skillId}`;
       userPrompt = `Project: ${context.project.name}\n\nTask: ${task.name || task.skillId}`;
   }
 
-  // Execute with AI provider
   const result = await provider.execute(
     systemPrompt,
     userPrompt,
     {
-      runId: context.run.id,
+      runId: context.run._id,
       workspaceId: context.run.workspaceId,
       cardId: context.run.cardId,
       stage: context.run.stage,
@@ -657,6 +670,3 @@ export { executeDesign } from "./design-executor";
 export { executePrototype } from "./prototype-executor";
 export { executeValidate } from "./validate-executor";
 export { executeTickets } from "./tickets-executor";
-
-// Re-export loadStageContext for use by task loop
-export { loadStageContext };

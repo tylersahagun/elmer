@@ -2,7 +2,7 @@
  * Signal Sync Utility
  *
  * Scans markdown files in workspace's signals folder(s) and creates signal
- * records in the database. Supports both filesystem and GitHub sources.
+ * records in Convex. Supports both filesystem and GitHub sources.
  *
  * Key features:
  * - Idempotency via sourceRef (file path) - existing signals are skipped
@@ -13,11 +13,27 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { Octokit } from "@octokit/rest";
-import { db } from "@/lib/db";
-import { signals } from "@/lib/db/schema";
-import type { SignalSource } from "@/lib/db/schema";
-import { getWorkspace, createSignal } from "@/lib/db/queries";
-import { eq, and } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { getConvexWorkspace } from "@/lib/convex/server";
+
+type SignalSource =
+  | "interview"
+  | "slack"
+  | "email"
+  | "hubspot"
+  | "pylon"
+  | "upload"
+  | "video"
+  | "paste"
+  | "other";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 // Folder name to signal source mapping
 const FOLDER_SOURCE_MAP: Record<string, SignalSource> = {
@@ -33,7 +49,6 @@ const FOLDER_SOURCE_MAP: Record<string, SignalSource> = {
   pylon: "pylon",
 };
 
-// Default source for unmapped folders
 const DEFAULT_SOURCE: SignalSource = "other";
 
 /**
@@ -114,7 +129,6 @@ async function findMarkdownFiles(
       const fullPath = path.join(dirPath, entry.name);
 
       if (entry.isDirectory()) {
-        // Recurse into subdirectories
         const subResults = await findMarkdownFiles(fullPath, baseDir);
         results.push(...subResults);
       } else if (
@@ -123,9 +137,7 @@ async function findMarkdownFiles(
         entry.name !== "README.md" &&
         entry.name !== ".gitkeep"
       ) {
-        // Get the relative path from base directory
         const relativePath = path.relative(baseDir, fullPath);
-        // Get the immediate parent folder name (e.g., "voice-memos" from "signals/voice-memos/memo-1.md")
         const pathParts = relativePath.split(path.sep);
         const folder = pathParts.length > 1 ? pathParts[0] : "";
 
@@ -154,32 +166,29 @@ function getSourceFromFolder(folder: string): SignalSource {
 }
 
 /**
- * Check if a signal with the given sourceRef already exists for a workspace
+ * Check if a signal with the given sourceRef already exists for a workspace.
+ * Uses Convex query.
  */
 async function signalExistsBySourceRef(
   workspaceId: string,
   sourceRef: string,
 ): Promise<boolean> {
-  const existing = await db.query.signals.findFirst({
-    where: and(
-      eq(signals.workspaceId, workspaceId),
-      eq(signals.sourceRef, sourceRef),
-    ),
-    columns: { id: true },
+  const client = getConvexClient();
+  const existing = await client.query(api.signals.getBySourceRef, {
+    workspaceId: workspaceId as Id<"workspaces">,
+    sourceRef,
   });
-  return !!existing;
+  return existing !== null;
 }
 
 /**
  * Parse a markdown file to extract a title (if present)
  */
 function extractTitle(content: string): string | undefined {
-  // Look for a markdown H1 header
   const h1Match = content.match(/^#\s+(.+)$/m);
   if (h1Match) {
     return h1Match[1].trim();
   }
-  // Look for a title in YAML frontmatter
   const frontmatterMatch = content.match(
     /^---\n[\s\S]*?title:\s*(.+)\n[\s\S]*?---/,
   );
@@ -212,7 +221,7 @@ export interface SyncSignalsOptions {
 }
 
 /**
- * Sync signals from filesystem to database for a workspace
+ * Sync signals from filesystem to Convex for a workspace.
  *
  * Scans configured signal paths (default: signals/ folder in contextPaths)
  * and creates signal records for each markdown file found.
@@ -230,21 +239,14 @@ export async function syncSignals(
     details: [],
   };
 
-  // Get workspace configuration
-  const workspace = await getWorkspace(workspaceId);
+  const workspace = await getConvexWorkspace(workspaceId);
   if (!workspace) {
     result.errors.push("Workspace not found");
     return result;
   }
 
-  // Resolve repo root
   const repoRoot = resolveRepoPath(workspace.githubRepo ?? undefined);
-  const repoRootExists = repoRoot ? await pathExists(repoRoot) : false;
 
-  // GitHub support would go here (similar to knowledgebase sync)
-  // For now, we focus on filesystem sync
-
-  // Get context paths (use array or legacy single path)
   const contextPaths = workspace.settings?.contextPaths?.length
     ? workspace.settings.contextPaths
     : workspace.contextPath
@@ -254,10 +256,8 @@ export async function syncSignals(
         : [workspace.contextPath]
       : ["pm-workspace-docs/", "elmer-docs/"];
 
-  // Get signal-specific paths if provided, otherwise use "signals/" under each context path
   const signalSubfolders = options?.signalsPaths || ["signals/"];
 
-  // Collect all signal files across all context paths
   const allFiles: Array<{
     filePath: string;
     relativePath: string;
@@ -287,22 +287,21 @@ export async function syncSignals(
     result.errors.push(
       "No signal files found in configured paths. Looked in: " +
         contextPaths
-          .map((cp) => signalSubfolders.map((sf) => `${cp}${sf}`))
+          .map((cp: string) => signalSubfolders.map((sf) => `${cp}${sf}`))
           .flat()
           .join(", "),
     );
     return result;
   }
 
-  // Process each file
+  const client = getConvexClient();
   const signalIds: string[] = [];
 
   for (const file of allFiles) {
-    // Create a consistent sourceRef using the context-relative path
     const sourceRef = `${file.contextPath}signals/${file.relativePath}`;
 
     try {
-      // Check if signal already exists
+      // Check idempotency via Convex
       const exists = await signalExistsBySourceRef(workspaceId, sourceRef);
 
       if (exists) {
@@ -314,7 +313,6 @@ export async function syncSignals(
         continue;
       }
 
-      // Read file content
       const content = await readFileContent(file.filePath);
 
       if (!content || content.trim().length === 0) {
@@ -327,33 +325,26 @@ export async function syncSignals(
         continue;
       }
 
-      // Determine source from folder
       const source = getSourceFromFolder(file.folder);
-
-      // Extract title if present (for interpretation hint)
       const title = extractTitle(content);
 
-      // Create signal
-      const signal = await createSignal({
-        workspaceId,
+      // Create signal in Convex
+      const signalId = await client.mutation(api.signals.create, {
+        workspaceId: workspaceId as Id<"workspaces">,
         verbatim: content.trim(),
         interpretation: title,
         source,
         sourceRef,
-        sourceMetadata: {
-          sourceName: path.basename(file.filePath),
-          sourceUrl: file.filePath,
-        },
         status: "new",
       });
 
-      if (signal) {
-        signalIds.push(signal.id);
+      if (signalId) {
+        signalIds.push(signalId as string);
         result.synced++;
         result.details.push({
           filePath: file.relativePath,
           status: "synced",
-          signalId: signal.id,
+          signalId: signalId as string,
         });
       } else {
         result.errors.push(`Failed to create signal for ${file.relativePath}`);
@@ -377,13 +368,11 @@ export async function syncSignals(
 
   // Optionally process signals (AI extraction, embeddings)
   if (!options?.skipProcessing && signalIds.length > 0) {
-    // Import dynamically to avoid circular dependencies
     const { batchProcessSignals } = await import("./processor");
     try {
       await batchProcessSignals(signalIds);
     } catch (error) {
       console.error("Failed to batch process synced signals:", error);
-      // Don't fail the sync - signals are created, processing can be retried
     }
   }
 
@@ -400,7 +389,6 @@ export function getDefaultSignalsPath(workspace: {
     contextPaths?: string[];
   } | null;
 }): string | null {
-  const workspaceRoot = getWorkspaceRoot();
   const repoRoot = resolveRepoPath(workspace.githubRepo ?? undefined);
 
   const contextPath =

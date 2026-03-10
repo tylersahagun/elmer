@@ -30,7 +30,7 @@ import {
   Check,
   Sparkles,
 } from "lucide-react";
-import type { WorkspaceRole } from "@/lib/db/schema";
+type WorkspaceRole = "admin" | "member" | "viewer";
 
 interface WorkspaceWithRole {
   id: string;

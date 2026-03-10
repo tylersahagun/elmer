@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getSignal,
-  bulkLinkSignalsToProject,
-  bulkUnlinkSignalsFromProject,
-} from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
@@ -11,6 +9,12 @@ import {
 } from "@/lib/permissions";
 
 const MAX_BULK_SIZE = 50;
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 interface BulkLinkRequest {
   action: "link";
@@ -39,7 +43,6 @@ export async function POST(request: NextRequest) {
     const body: BulkRequest = await request.json();
     const { action, signalIds, projectId } = body;
 
-    // Validate request
     if (!action || !["link", "unlink"].includes(action)) {
       return NextResponse.json(
         { error: "action must be 'link' or 'unlink'" },
@@ -68,47 +71,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get first signal to determine workspace (all signals must be in same workspace)
-    const firstSignal = await getSignal(signalIds[0]);
+    const client = getConvexClient();
+
+    // Get first signal to determine workspace
+    const firstSignal = await client.query(api.signals.get, {
+      signalId: signalIds[0] as Id<"signals">,
+    });
     if (!firstSignal) {
-      return NextResponse.json(
-        { error: "Signal not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
     // Verify membership (member can perform bulk operations)
-    const membership = await requireWorkspaceAccess(firstSignal.workspaceId, "member");
+    await requireWorkspaceAccess(firstSignal.workspaceId as string, "member");
 
-    // Perform the bulk operation
     if (action === "link") {
-      const linkReason = (body as BulkLinkRequest).linkReason;
-      const result = await bulkLinkSignalsToProject(
-        signalIds,
-        projectId,
-        membership.userId,
-        linkReason
-      );
+      let linked = 0;
+      let skipped = 0;
+
+      for (const signalId of signalIds) {
+        try {
+          await client.mutation(api.signals.linkToProject, {
+            signalId: signalId as Id<"signals">,
+            projectId: projectId as Id<"projects">,
+          });
+          linked++;
+        } catch {
+          skipped++;
+        }
+      }
 
       return NextResponse.json({
         success: true,
         action: "link",
-        linked: result.linked,
-        skipped: result.skipped,
-        message: `Linked ${result.linked} signal${result.linked !== 1 ? "s" : ""}${
-          result.skipped > 0 ? `, skipped ${result.skipped} already linked` : ""
+        linked,
+        skipped,
+        message: `Linked ${linked} signal${linked !== 1 ? "s" : ""}${
+          skipped > 0 ? `, skipped ${skipped} already linked` : ""
         }`,
       });
     } else {
-      const result = await bulkUnlinkSignalsFromProject(signalIds, projectId);
+      let unlinked = 0;
+      let skipped = 0;
+
+      for (const signalId of signalIds) {
+        try {
+          await client.mutation(api.signals.unlinkFromProject, {
+            signalId: signalId as Id<"signals">,
+            projectId: projectId as Id<"projects">,
+          });
+          unlinked++;
+        } catch {
+          skipped++;
+        }
+      }
 
       return NextResponse.json({
         success: true,
         action: "unlink",
-        unlinked: result.unlinked,
-        skipped: result.skipped,
-        message: `Unlinked ${result.unlinked} signal${result.unlinked !== 1 ? "s" : ""}${
-          result.skipped > 0 ? `, skipped ${result.skipped} not linked` : ""
+        unlinked,
+        skipped,
+        message: `Unlinked ${unlinked} signal${unlinked !== 1 ? "s" : ""}${
+          skipped > 0 ? `, skipped ${skipped} not linked` : ""
         }`,
       });
     }

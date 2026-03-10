@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { KnowledgebaseType } from "@/lib/db/schema";
+type KnowledgebaseType = string;
 
 const DEFAULT_TYPE_FILES: Record<KnowledgebaseType, string> = {
   company_context: "company-context/product-vision.md",

@@ -6,8 +6,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { GET } from "../route";
 
-// Mock auth
-vi.mock("@/lib/auth/legacy-next-auth", () => ({
+// Mock Clerk auth
+vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(),
 }));
 
@@ -16,9 +16,9 @@ vi.mock("@/lib/github/auth", () => ({
   getGitHubClient: vi.fn(),
 }));
 
-// Mock database queries
-vi.mock("@/lib/db/queries", () => ({
-  getWorkspace: vi.fn(),
+// Mock Convex server helper
+vi.mock("@/lib/convex/server", () => ({
+  getConvexWorkspace: vi.fn(),
 }));
 
 // Mock scanner
@@ -26,15 +26,15 @@ vi.mock("@/lib/discovery", () => ({
   scanRepository: vi.fn(),
 }));
 
-import { auth } from "@/lib/auth/legacy-next-auth";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
-import { getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { scanRepository } from "@/lib/discovery";
 
-const mockAuth = auth as ReturnType<typeof vi.fn>;
+const mockClerkAuth = clerkAuth as unknown as ReturnType<typeof vi.fn>;
 const mockGetGitHubClient = getGitHubClient as ReturnType<typeof vi.fn>;
-const mockGetWorkspace = getWorkspace as ReturnType<typeof vi.fn>;
+const mockGetWorkspace = getConvexWorkspace as ReturnType<typeof vi.fn>;
 const mockScanRepository = scanRepository as ReturnType<typeof vi.fn>;
 
 function createRequest(params: Record<string, string> = {}): NextRequest {
@@ -52,7 +52,7 @@ describe("GET /api/discovery", () => {
 
   describe("authentication", () => {
     it("returns 401 without auth", async () => {
-      mockAuth.mockResolvedValue(null);
+      mockClerkAuth.mockResolvedValue({ userId: null });
 
       const response = await GET(createRequest({ workspaceId: "ws_123" }));
       const data = await response.json();
@@ -62,7 +62,7 @@ describe("GET /api/discovery", () => {
     });
 
     it("returns 401 without user ID", async () => {
-      mockAuth.mockResolvedValue({ user: {} });
+      mockClerkAuth.mockResolvedValue({ userId: undefined });
 
       const response = await GET(createRequest({ workspaceId: "ws_123" }));
       const data = await response.json();
@@ -74,7 +74,7 @@ describe("GET /api/discovery", () => {
 
   describe("parameter validation", () => {
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: "user_123" } });
+      mockClerkAuth.mockResolvedValue({ userId: "user_123" });
     });
 
     it("returns 400 without workspaceId", async () => {
@@ -126,7 +126,7 @@ describe("GET /api/discovery", () => {
 
   describe("GitHub authentication", () => {
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: "user_123" } });
+      mockClerkAuth.mockResolvedValue({ userId: "user_123" });
       mockGetWorkspace.mockResolvedValue({
         id: "ws_123",
         name: "Test Workspace",
@@ -150,7 +150,7 @@ describe("GET /api/discovery", () => {
     const mockOctokit = { git: { getTree: vi.fn() } };
 
     beforeEach(() => {
-      mockAuth.mockResolvedValue({ user: { id: "user_123" } });
+      mockClerkAuth.mockResolvedValue({ userId: "user_123" });
       mockGetWorkspace.mockResolvedValue({
         id: "ws_123",
         name: "Test Workspace",

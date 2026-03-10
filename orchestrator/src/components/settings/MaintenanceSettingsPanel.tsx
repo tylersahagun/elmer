@@ -15,7 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import type { MaintenanceSettings } from "@/lib/db/schema";
+interface MaintenanceSettings {
+  orphanThresholdDays: number;
+  flagOrphansEnabled: boolean;
+  duplicateDetectionEnabled: boolean;
+  duplicateSimilarityThreshold: number;
+  autoArchiveEnabled: boolean;
+  autoArchiveLinkedAfterDays: number;
+  autoArchiveReviewedAfterDays: number;
+  suggestAssociationsEnabled: boolean;
+  minSuggestionConfidence: number;
+  notifyOnOrphanThreshold: number | null;
+  notifyOnDuplicates: boolean;
+}
 
 const DEFAULT_SETTINGS: MaintenanceSettings = {
   orphanThresholdDays: 14,

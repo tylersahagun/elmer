@@ -952,6 +952,25 @@ export const updateWorkspace = internalMutation({
   },
 });
 
+export const updateWorkspaceOnboarding = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    onboardingData: v.optional(v.any()),
+    onboardingCompletedAt: v.optional(v.number()),
+    githubRepo: v.optional(v.union(v.string(), v.null())),
+    settings: v.optional(v.any()),
+    contextPath: v.optional(v.string()),
+  },
+  handler: async (ctx, { workspaceId, ...patch }) => {
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) updates[key] = value;
+    }
+    await ctx.db.patch(workspaceId, updates);
+    return await ctx.db.get(workspaceId);
+  },
+});
+
 export const getWorkspaceAccess = internalQuery({
   args: {
     workspaceId: v.id("workspaces"),
@@ -1565,6 +1584,114 @@ export const getPrototypeFeedback = internalQuery({
   },
 });
 
+// ── Agent definition bulk sync ───────────────────────────────────────────────
+
+export const syncAgentDefinitions = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    sourceRepo: v.string(),
+    sourceRef: v.string(),
+    definitions: v.array(v.object({
+      name: v.string(),
+      type: v.string(),
+      content: v.string(),
+      sourcePath: v.string(),
+      description: v.optional(v.string()),
+      triggers: v.optional(v.array(v.string())),
+      metadata: v.optional(v.any()),
+      syncedAt: v.number(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("agentDefinitions")
+      .withIndex("by_source_repo", (q) =>
+        q.eq("workspaceId", args.workspaceId)
+          .eq("sourceRepo", args.sourceRepo)
+          .eq("sourceRef", args.sourceRef),
+      )
+      .collect();
+    for (const row of existing) {
+      await ctx.db.delete(row._id);
+    }
+
+    for (const def of args.definitions) {
+      await ctx.db.insert("agentDefinitions", {
+        workspaceId: args.workspaceId,
+        sourceRepo: args.sourceRepo,
+        sourceRef: args.sourceRef,
+        sourcePath: def.sourcePath,
+        name: def.name,
+        type: def.type,
+        content: def.content,
+        description: def.description,
+        triggers: def.triggers,
+        metadata: def.metadata,
+        enabled: true,
+        executionMode: "cursor",
+        syncedAt: def.syncedAt,
+      });
+    }
+
+    return { count: args.definitions.length };
+  },
+});
+
+export const syncAgentKnowledgeSources = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    sourceRepo: v.string(),
+    sourceRef: v.string(),
+    typeFilter: v.optional(v.string()),
+    entries: v.array(v.object({
+      sourcePath: v.string(),
+      type: v.string(),
+      name: v.string(),
+      syncedAt: v.number(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    let existingRows;
+    if (args.typeFilter) {
+      existingRows = await ctx.db
+        .query("agentKnowledgeSources")
+        .withIndex("by_workspace_repo_type", (q) =>
+          q.eq("workspaceId", args.workspaceId)
+            .eq("sourceRepo", args.sourceRepo)
+            .eq("sourceRef", args.sourceRef)
+            .eq("type", args.typeFilter!),
+        )
+        .collect();
+    } else {
+      existingRows = await ctx.db
+        .query("agentKnowledgeSources")
+        .withIndex("by_workspace_repo", (q) =>
+          q.eq("workspaceId", args.workspaceId)
+            .eq("sourceRepo", args.sourceRepo)
+            .eq("sourceRef", args.sourceRef),
+        )
+        .collect();
+    }
+    for (const row of existingRows) {
+      await ctx.db.delete(row._id);
+    }
+
+    for (const entry of args.entries) {
+      await ctx.db.insert("agentKnowledgeSources", {
+        workspaceId: args.workspaceId,
+        sourceRepo: args.sourceRepo,
+        sourceRef: args.sourceRef,
+        sourcePath: entry.sourcePath,
+        type: entry.type,
+        name: entry.name,
+        syncedAt: entry.syncedAt,
+      });
+    }
+
+    return { count: args.entries.length };
+  },
+});
+
 export const updateProjectSlackChannel = internalMutation({
   args: {
     projectId: v.id("projects"),
@@ -1573,5 +1700,57 @@ export const updateProjectSlackChannel = internalMutation({
   },
   handler: async (ctx, { projectId, slackChannelId, slackChannelName }) => {
     await ctx.db.patch(projectId, { slackChannelId, slackChannelName });
+  },
+});
+
+// ── Document helpers (server-side context resolution) ────────────────────────
+
+export const getDocumentByProjectAndType = internalQuery({
+  args: {
+    projectId: v.id("projects"),
+    type: v.string(),
+  },
+  handler: async (ctx, { projectId, type }) => {
+    return await ctx.db
+      .query("documents")
+      .withIndex("by_type", (q) => q.eq("projectId", projectId).eq("type", type))
+      .first();
+  },
+});
+
+export const upsertDocumentByType = internalMutation({
+  args: {
+    projectId: v.id("projects"),
+    workspaceId: v.id("workspaces"),
+    type: v.string(),
+    title: v.string(),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("documents")
+      .withIndex("by_type", (q) =>
+        q.eq("projectId", args.projectId).eq("type", args.type),
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        content: args.content,
+        version: existing.version + 1,
+      });
+      return { documentId: existing._id };
+    }
+
+    const documentId = await ctx.db.insert("documents", {
+      workspaceId: args.workspaceId,
+      projectId: args.projectId,
+      type: args.type,
+      title: args.title,
+      content: args.content,
+      version: 1,
+      reviewStatus: "draft",
+    });
+    return { documentId };
   },
 });
