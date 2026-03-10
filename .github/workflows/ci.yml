@@ -102,12 +102,23 @@ jobs:
     name: Build (prototypes)
     runs-on: ubuntu-latest
     needs: lint-and-typecheck
-    
+    # prototypes/ is an optional Storybook workspace — skip if directory doesn't exist
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if prototypes exist
+        id: check-prototypes
+        run: |
+          if [ -d "prototypes" ] && [ -f "prototypes/package-lock.json" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "prototypes/ directory not found — skipping Storybook build"
+          fi
+
       - name: Setup Node.js
+        if: steps.check-prototypes.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -115,14 +126,17 @@ jobs:
           cache-dependency-path: prototypes/package-lock.json
 
       - name: Install dependencies
+        if: steps.check-prototypes.outputs.exists == 'true'
         working-directory: prototypes
         run: npm ci
 
       - name: Build Storybook
+        if: steps.check-prototypes.outputs.exists == 'true'
         working-directory: prototypes
         run: npm run build-storybook
 
       - name: Upload build artifact
+        if: steps.check-prototypes.outputs.exists == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: prototypes-storybook
@@ -174,7 +188,9 @@ jobs:
             const lintResult = '${{ needs.lint-and-typecheck.result }}';
             const buildOrchestratorResult = '${{ needs.build-orchestrator.result }}';
             const buildPrototypesResult = '${{ needs.build-prototypes.result }}';
-            const buildResult = (buildOrchestratorResult === 'success' && buildPrototypesResult === 'success') ? 'success' : 'failure';
+            // prototypes build is optional — success or skipped both count as OK
+            const prototypesOk = buildPrototypesResult === 'success' || buildPrototypesResult === 'skipped';
+            const buildResult = (buildOrchestratorResult === 'success' && prototypesOk) ? 'success' : 'failure';
             const securityResult = '${{ needs.security.result }}';
             
             const getEmoji = (result) => {
