@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
-import { getWorkspace } from "@/lib/db/queries";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { getGitHubClient } from "@/lib/github/auth";
 import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
 import { syncSignals } from "@/lib/signals/sync";
@@ -24,12 +24,16 @@ export async function POST(request: NextRequest) {
 
     await requireWorkspaceAccess(workspaceId, "member");
 
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await clerkAuth();
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const workspace = await getWorkspace(workspaceId);
+    const workspace = await getConvexWorkspace(workspaceId) as {
+      _id: string;
+      githubRepo?: string;
+      settings?: { baseBranch?: string; contextPaths?: string[] };
+    } | null;
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
@@ -47,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (sourceType === "knowledgebase") {
-      const octokit = await getGitHubClient(session.user.id);
+      const octokit = await getGitHubClient(userId);
       const repoSlug = workspace.githubRepo;
       const [owner, repo] = repoSlug ? repoSlug.split("/") : [];
       const repoRef = workspace.settings?.baseBranch || "main";

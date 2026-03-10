@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getNotification,
-  updateNotificationStatus,
-  dismissNotification,
-  deleteNotification,
-} from "@/lib/db/queries";
-import type { NotificationStatus } from "@/lib/db/schema";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
+
+type NotificationStatus = "unread" | "read" | "actioned" | "dismissed";
+const VALID_STATUSES: NotificationStatus[] = ["unread", "read", "actioned", "dismissed"];
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +16,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const notification = await getNotification(id);
+    const client = getConvexClient();
+    const notification = await client.query(api.notifications.getById, {
+      id: id as Id<"notifications">,
+    });
 
     if (!notification) {
       return NextResponse.json(
@@ -41,7 +47,10 @@ export async function PATCH(
     const body = await request.json();
     const { status, action } = body;
 
-    const notification = await getNotification(id);
+    const client = getConvexClient();
+    const notifId = id as Id<"notifications">;
+
+    const notification = await client.query(api.notifications.getById, { id: notifId });
     if (!notification) {
       return NextResponse.json(
         { error: "Notification not found" },
@@ -49,23 +58,25 @@ export async function PATCH(
       );
     }
 
-    // Handle dismiss action
     if (action === "dismiss") {
-      await dismissNotification(id);
+      await client.mutation(api.notifications.updateStatus, {
+        id: notifId,
+        status: "dismissed",
+      });
       return NextResponse.json({ success: true });
     }
 
-    // Handle status update
     if (status) {
-      const validStatuses: NotificationStatus[] = ["unread", "read", "actioned", "dismissed"];
-      if (!validStatuses.includes(status)) {
+      if (!VALID_STATUSES.includes(status)) {
         return NextResponse.json(
           { error: `Invalid status: ${status}` },
           { status: 400 }
         );
       }
-
-      const updated = await updateNotificationStatus(id, status as NotificationStatus);
+      const updated = await client.mutation(api.notifications.updateStatus, {
+        id: notifId,
+        status,
+      });
       return NextResponse.json(updated);
     }
 
@@ -88,8 +99,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    
-    const notification = await getNotification(id);
+    const client = getConvexClient();
+    const notifId = id as Id<"notifications">;
+
+    const notification = await client.query(api.notifications.getById, { id: notifId });
     if (!notification) {
       return NextResponse.json(
         { error: "Notification not found" },
@@ -97,7 +110,7 @@ export async function DELETE(
       );
     }
 
-    await deleteNotification(id);
+    await client.mutation(api.notifications.deleteNotification, { id: notifId });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete notification:", error);

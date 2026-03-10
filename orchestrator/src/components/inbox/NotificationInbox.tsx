@@ -33,7 +33,9 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import type { NotificationType, NotificationPriority, NotificationStatus } from "@/lib/db/schema";
+type NotificationType = "job_failed" | "job_completed" | "missing_transcript" | "missing_document" | "approval_required" | "jury_failed" | "integration_error" | "stage_blocked" | "action_required";
+type NotificationPriority = "low" | "medium" | "high" | "urgent";
+type NotificationStatus = "unread" | "read" | "actioned" | "dismissed";
 import { AnimatedNotificationList, type NotificationItem as AnimatedNotificationItem } from "./AnimatedNotificationList";
 import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
 

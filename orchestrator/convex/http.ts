@@ -1305,4 +1305,257 @@ http.route({
   }),
 });
 
+// PATCH /mcp/workspace/onboarding — updates onboardingData, onboardingCompletedAt, settings, githubRepo, contextPath
+http.route({
+  path: "/mcp/workspace/onboarding",
+  method: "PATCH",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    if (!body.workspaceId) return jsonError("Missing workspaceId");
+    const workspace = await ctx.runMutation(internal.mcp.updateWorkspaceOnboarding, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      onboardingData: body.onboardingData,
+      onboardingCompletedAt: body.onboardingCompletedAt as number | undefined,
+      githubRepo: body.githubRepo as string | null | undefined,
+      settings: body.settings,
+      contextPath: body.contextPath as string | undefined,
+    });
+    return jsonOk(workspace);
+  }),
+});
+
+// ── Maintenance-support endpoints (multi-workspace, MCP-auth) ─────────────────
+
+// PATCH /mcp/signals/status — bulk update signal status
+http.route({
+  path: "/mcp/signals/status",
+  method: "PATCH",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const signalIds = body.signalIds as string[];
+    const status = body.status as string;
+    if (!signalIds || !status) return jsonError("Missing signalIds or status", 400);
+    const count = await ctx.runMutation(internal.signals.bulkUpdateStatusInternal, {
+      signalIds: signalIds as Id<"signals">[],
+      status,
+    });
+    return jsonOk({ updated: count });
+  }),
+});
+
+// POST /mcp/signal-project-link — link a signal to a project (internal, no user auth)
+http.route({
+  path: "/mcp/signal-project-link",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const signalId = body.signalId as string;
+    const projectId = body.projectId as string;
+    if (!signalId || !projectId) return jsonError("Missing signalId or projectId", 400);
+    const linkId = await ctx.runMutation(internal.signals.linkToProjectInternal, {
+      signalId: signalId as Id<"signals">,
+      projectId: projectId as Id<"projects">,
+      confidence: body.confidence as number | undefined,
+      linkedBy: body.linkedBy as string | undefined,
+    });
+    return jsonOk({ linkId });
+  }),
+});
+
+// POST /mcp/jobs/internal — create a job without user auth (automation)
+http.route({
+  path: "/mcp/jobs/internal",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    const workspaceId = resolveWorkspaceId({ request, body, defaultWorkspaceId: WORKSPACE_ID });
+    if (!body.type) return jsonError("Missing type", 400);
+    const jobId = await ctx.runMutation(internal.jobs.createInternal, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      projectId: body.projectId as Id<"projects"> | undefined,
+      type: body.type as string,
+      input: body.input as Record<string, unknown>,
+      agentDefinitionId: body.agentDefinitionId as Id<"agentDefinitions"> | undefined,
+      initiatedBy: body.initiatedBy as string | undefined,
+    });
+    return jsonOk({ id: jobId });
+  }),
+});
+
+// GET /mcp/workspace/signals — list signals for any workspace (multi-workspace)
+http.route({
+  path: "/mcp/workspace/signals",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get("workspaceId") ?? WORKSPACE_ID;
+    const status = url.searchParams.get("status") ?? undefined;
+    const signals = await ctx.runQuery(internal.mcp.listSignals, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      status,
+    });
+    return jsonOk(signals);
+  }),
+});
+
+// GET /mcp/workspace/signal-projects — list signal-project links for a signal
+http.route({
+  path: "/mcp/workspace/signal-projects",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const signalId = url.searchParams.get("signalId");
+    if (!signalId) return jsonError("Missing signalId", 400);
+    const links = await ctx.runQuery(internal.signals.getProjectLinksInternal, {
+      signalId: signalId as Id<"signals">,
+    });
+    return jsonOk(links);
+  }),
+});
+
+// POST /mcp/agent-sync-definitions
+http.route({
+  path: "/mcp/agent-sync-definitions",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    if (!body.workspaceId || !body.sourceRepo || !body.sourceRef) {
+      return jsonError("Missing required fields");
+    }
+    const result = await ctx.runMutation(internal.mcp.syncAgentDefinitions, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      sourceRepo: body.sourceRepo as string,
+      sourceRef: body.sourceRef as string,
+      definitions: (body.definitions as Array<Record<string, unknown>>).map((d) => ({
+        name: d.name as string,
+        type: d.type as string,
+        content: d.content as string,
+        sourcePath: d.sourcePath as string,
+        description: d.description as string | undefined,
+        triggers: d.triggers as string[] | undefined,
+        metadata: d.metadata,
+        syncedAt: d.syncedAt as number,
+      })),
+    });
+    return jsonOk(result);
+  }),
+});
+
+// POST /mcp/agent-sync-knowledge
+http.route({
+  path: "/mcp/agent-sync-knowledge",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    if (!body.workspaceId || !body.sourceRepo || !body.sourceRef) {
+      return jsonError("Missing required fields");
+    }
+    const result = await ctx.runMutation(internal.mcp.syncAgentKnowledgeSources, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      sourceRepo: body.sourceRepo as string,
+      sourceRef: body.sourceRef as string,
+      typeFilter: body.typeFilter as string | undefined,
+      entries: (body.entries as Array<Record<string, unknown>>).map((e) => ({
+        sourcePath: e.sourcePath as string,
+        type: e.type as string,
+        name: e.name as string,
+        syncedAt: e.syncedAt as number,
+      })),
+    });
+    return jsonOk(result);
+  }),
+});
+
+// GET /mcp/project-document-by-type?projectId=<id>&type=<type>
+http.route({
+  path: "/mcp/project-document-by-type",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const url = new URL(request.url);
+    const projectId = url.searchParams.get("projectId");
+    const type = url.searchParams.get("type");
+    if (!projectId || !type) return jsonError("Missing projectId or type param");
+    const doc = await ctx.runQuery(internal.mcp.getDocumentByProjectAndType, {
+      projectId: projectId as Id<"projects">,
+      type,
+    });
+    return jsonOk(doc ?? null);
+  }),
+});
+
+// POST /mcp/project-document-upsert
+http.route({
+  path: "/mcp/project-document-upsert",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    if (!body.projectId || !body.workspaceId || !body.type || !body.title || !body.content) {
+      return jsonError("Missing required fields");
+    }
+    const result = await ctx.runMutation(internal.mcp.upsertDocumentByType, {
+      projectId: body.projectId as Id<"projects">,
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      type: body.type as string,
+      title: body.title as string,
+      content: body.content as string,
+    });
+    return jsonOk(result);
+  }),
+});
+
+// POST /mcp/prototypes/create
+http.route({
+  path: "/mcp/prototypes/create",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    if (!body.workspaceId || !body.projectId || !body.platform || !body.outputType || !body.title) {
+      return jsonError("Missing required fields");
+    }
+    const variantId = await ctx.runMutation(internal.prototypes.create, {
+      workspaceId: body.workspaceId as Id<"workspaces">,
+      projectId: body.projectId as Id<"projects">,
+      platform: body.platform as string,
+      outputType: body.outputType as string,
+      title: body.title as string,
+      url: body.url as string | undefined,
+      chromaticUrl: body.chromaticUrl as string | undefined,
+      iterationCount: body.iterationCount as number | undefined,
+    });
+    return jsonOk({ id: variantId });
+  }),
+});
+
+// PATCH /mcp/prototypes/variant
+http.route({
+  path: "/mcp/prototypes/variant",
+  method: "PATCH",
+  handler: httpAction(async (ctx, request) => {
+    if (!checkMcpAuth(request)) return jsonError("Unauthorized", 401);
+    const body = await request.json() as Record<string, unknown>;
+    if (!body.variantId) return jsonError("Missing variantId");
+    const { variantId, ...patch } = body;
+    const updates: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(patch)) {
+      if (v !== undefined) updates[k] = v;
+    }
+    await ctx.runMutation(internal.prototypes.patchVariant, {
+      variantId: variantId as Id<"prototypeVariants">,
+      ...updates,
+    });
+    return jsonOk({ updated: true });
+  }),
+});
+
 export default http;

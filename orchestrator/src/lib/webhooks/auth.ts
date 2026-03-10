@@ -1,13 +1,23 @@
 /**
  * Webhook authentication utilities
- * Supports both API key and HMAC signature verification
+ * Supports API key verification via Convex webhookKeys table.
+ *
+ * Keys are stored as SHA-256 hashes in Convex. To verify:
+ *   SHA-256(incomingApiKey) → lookup by keyHash
+ *
+ * HMAC signature auth is not supported in the Convex model (no secret stored).
  */
 import crypto from "crypto";
 import { nanoid } from "nanoid";
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { webhookKeys } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 export interface AuthResult {
   valid: boolean;
@@ -17,7 +27,8 @@ export interface AuthResult {
 }
 
 /**
- * Verify HMAC-SHA256 signature using timing-safe comparison
+ * Verify HMAC-SHA256 signature using timing-safe comparison.
+ * Kept for compatibility; HMAC auth via Convex model is not supported.
  */
 export function verifyHmacSignature(
   rawBody: string,
@@ -29,7 +40,6 @@ export function verifyHmacSignature(
     .update(rawBody)
     .digest("hex");
 
-  // Handle both 'sha256=xxx' and plain 'xxx' formats
   const normalizedSignature = signature.startsWith("sha256=")
     ? signature.slice(7)
     : signature;
@@ -40,59 +50,26 @@ export function verifyHmacSignature(
       Buffer.from(expectedSignature, "hex"),
     );
   } catch {
-    // Buffer lengths don't match - invalid signature format
     return false;
   }
 }
 
 /**
- * Verify webhook authentication via API key or HMAC signature
+ * Verify webhook authentication via API key (X-API-Key header).
+ * Hashes the incoming key with SHA-256 and looks up in Convex webhookKeys.
  *
- * Supports two authentication methods:
- * 1. API Key: X-API-Key header contains the apiKey from webhookKeys table
- * 2. HMAC Signature: X-Webhook-Signature + X-Workspace-ID headers
+ * HMAC signature (X-Webhook-Signature) auth is deprecated in the Convex
+ * model because the secret is not stored. Use X-API-Key instead.
  */
 export async function verifyWebhookAuth(
   request: NextRequest,
-  rawBody: string,
+  _rawBody: string,
 ): Promise<AuthResult> {
-  // Option 1: HMAC Signature (preferred for security)
-  const signature = request.headers.get("x-webhook-signature");
-  const workspaceIdHeader = request.headers.get("x-workspace-id");
-
-  if (signature && workspaceIdHeader) {
-    const webhookKey = await db.query.webhookKeys.findFirst({
-      where: and(
-        eq(webhookKeys.workspaceId, workspaceIdHeader),
-        eq(webhookKeys.isActive, true),
-      ),
-    });
-
-    if (!webhookKey) {
-      return { valid: false, error: "Invalid workspace or inactive key" };
-    }
-
-    const isValid = verifyHmacSignature(rawBody, signature, webhookKey.secret);
-    if (!isValid) {
-      return { valid: false, error: "Invalid signature" };
-    }
-
-    return {
-      valid: true,
-      workspaceId: webhookKey.workspaceId,
-      webhookKeyId: webhookKey.id,
-    };
-  }
-
-  // Option 2: API Key (simpler integration)
   const apiKey = request.headers.get("x-api-key");
   if (apiKey) {
-    const webhookKey = await db.query.webhookKeys.findFirst({
-      where: and(
-        eq(webhookKeys.apiKey, apiKey),
-        eq(webhookKeys.isActive, true),
-      ),
-    });
+    const keyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
+    const client = getConvexClient();
+    const webhookKey = await client.query(api.webhookKeys.findByKeyHash, { keyHash });
 
     if (!webhookKey) {
       return { valid: false, error: "Invalid API key" };
@@ -100,8 +77,16 @@ export async function verifyWebhookAuth(
 
     return {
       valid: true,
-      workspaceId: webhookKey.workspaceId,
-      webhookKeyId: webhookKey.id,
+      workspaceId: webhookKey.workspaceId as string,
+      webhookKeyId: webhookKey._id as string,
+    };
+  }
+
+  const signature = request.headers.get("x-webhook-signature");
+  if (signature) {
+    return {
+      valid: false,
+      error: "HMAC signature auth is not supported in this version. Use X-API-Key.",
     };
   }
 
@@ -109,15 +94,14 @@ export async function verifyWebhookAuth(
 }
 
 /**
- * Generate new webhook credentials
- * Returns prefixed API key and hex-encoded HMAC secret
+ * Generate new webhook credentials.
+ * The API key is returned as-is to the caller; only its SHA-256 hash is stored.
  */
 export function generateWebhookCredentials(): {
   apiKey: string;
-  secret: string;
+  keyHash: string;
 } {
-  return {
-    apiKey: `wk_${nanoid(32)}`,
-    secret: crypto.randomBytes(32).toString("hex"),
-  };
+  const apiKey = `wk_${nanoid(32)}`;
+  const keyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
+  return { apiKey, keyHash };
 }

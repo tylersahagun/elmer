@@ -91,3 +91,24 @@ export const listByProject = query({
       .take(20);
   },
 });
+
+/**
+ * List executions for a specific agent definition.
+ * Used by GET /api/agents/[id]/executions.
+ */
+export const listByAgentDefinition = query({
+  args: {
+    agentDefinitionId: v.id("agentDefinitions"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { agentDefinitionId, limit = 20 }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const all = await ctx.db.query("agentExecutions").collect();
+    const filtered = all
+      .filter((e) => e.agentDefinitionId === agentDefinitionId)
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, Math.min(limit, 100));
+    return filtered;
+  },
+});

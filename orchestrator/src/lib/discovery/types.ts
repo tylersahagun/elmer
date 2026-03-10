@@ -1,4 +1,4 @@
-import type { ProjectStage } from "@/lib/db/schema";
+type ProjectStage = string;
 
 /**
  * Discovery result from scanning a GitHub repository

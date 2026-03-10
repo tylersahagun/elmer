@@ -1,17 +1,40 @@
+/**
+ * POST /api/jobs/[id]/questions/[questionId]/respond
+ * Answer a pending question and resume the job.
+ * Migrated to Convex (replaces Drizzle).
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { updatePendingQuestion, updateJobStatus } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../../../convex/_generated/dataModel";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
 
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
+async function getAuthenticatedClient() {
+  const auth = await clerkAuth();
+  const token = await auth.getToken({ template: "convex" });
+  const client = getConvexClient();
+  if (token) client.setAuth(token);
+  return client;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; questionId: string }> },
 ) {
   try {
-    const { id, questionId } = await params;
+    const { questionId } = await params;
     const body = await request.json();
     const { workspaceId, response } = body;
 
@@ -22,16 +45,13 @@ export async function POST(
       );
     }
 
-    const membership = await requireWorkspaceAccess(workspaceId, "member");
+    await requireWorkspaceAccess(workspaceId, "member");
 
-    await updatePendingQuestion(questionId, {
-      status: "answered",
+    const client = await getAuthenticatedClient();
+    await client.mutation(api.pendingQuestions.answer, {
+      questionId: questionId as Id<"pendingQuestions">,
       response: { value: response },
-      respondedBy: membership.userId,
-      respondedAt: new Date(),
     });
-
-    await updateJobStatus(id, "pending", { progress: 0 });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

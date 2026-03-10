@@ -4,13 +4,34 @@
  * Prevents runaway automation by enforcing:
  * 1. Cooldown period per cluster (don't re-action same cluster too quickly)
  * 2. Daily rate limit per workspace (cap total auto-actions)
+ *
+ * Uses in-memory storage — resets on server restart, which is acceptable
+ * since this is a best-effort cooldown (not an audit trail). For persistent
+ * rate limiting with full audit trail, see convex/automationActions.ts.
  */
 
-import { db } from "@/lib/db";
-import { automationActions } from "@/lib/db/schema";
-import { eq, and, gt, count } from "drizzle-orm";
-import { nanoid } from "nanoid";
-import type { SignalAutomationSettings, AutomationActionType } from "@/lib/db/schema";
+export type SignalSeverity = "critical" | "high" | "medium" | "low";
+
+export type AutomationActionType =
+  | "initiative_created"
+  | "prd_triggered"
+  | "notification_sent";
+
+export interface SignalAutomationSettings {
+  automationDepth: "manual" | "suggest" | "auto_create" | "full_auto";
+  autoPrdThreshold: number;
+  autoInitiativeThreshold: number;
+  minClusterConfidence: number;
+  minSeverityForAuto: SignalSeverity | null;
+  notifyOnClusterSize: number | null;
+  notifyOnSeverity: SignalSeverity | null;
+  suppressDuplicateNotifications: boolean;
+  maxAutoActionsPerDay: number;
+  cooldownMinutes: number;
+}
+
+// key: "workspaceId:clusterId" → list of action timestamps (ms)
+const recentActions = new Map<string, number[]>();
 
 /**
  * Check if an automation action can be performed (rate limits, cooldown).
@@ -20,43 +41,36 @@ export async function canPerformAutoAction(
   clusterId: string,
   settings: SignalAutomationSettings
 ): Promise<{ allowed: boolean; reason?: string }> {
-  const now = new Date();
+  const now = Date.now();
+  const cooldownMs = settings.cooldownMinutes * 60 * 1000;
+  const clusterKey = `${workspaceId}:${clusterId}`;
 
   // Check cooldown for this specific cluster
-  const cooldownThreshold = new Date(now.getTime() - settings.cooldownMinutes * 60 * 1000);
-  const recentClusterAction = await db
-    .select()
-    .from(automationActions)
-    .where(and(
-      eq(automationActions.workspaceId, workspaceId),
-      eq(automationActions.clusterId, clusterId),
-      gt(automationActions.triggeredAt, cooldownThreshold)
-    ))
-    .limit(1);
-
-  if (recentClusterAction.length > 0) {
+  const clusterTimestamps = recentActions.get(clusterKey) ?? [];
+  const inCooldown = clusterTimestamps.some((t) => now - t < cooldownMs);
+  if (inCooldown) {
     return {
       allowed: false,
-      reason: `Cluster in cooldown (${settings.cooldownMinutes}m)`
+      reason: `Cluster in cooldown (${settings.cooldownMinutes}m)`,
     };
   }
 
-  // Check daily rate limit
-  const dayStart = new Date(now);
+  // Check daily rate limit (workspace-level, all clusters combined)
+  const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
+  const dayStartMs = dayStart.getTime();
 
-  const dailyCount = await db
-    .select({ count: count() })
-    .from(automationActions)
-    .where(and(
-      eq(automationActions.workspaceId, workspaceId),
-      gt(automationActions.triggeredAt, dayStart)
-    ));
+  let dailyCount = 0;
+  for (const [key, timestamps] of recentActions.entries()) {
+    if (key.startsWith(`${workspaceId}:`)) {
+      dailyCount += timestamps.filter((t) => t >= dayStartMs).length;
+    }
+  }
 
-  if (dailyCount[0].count >= settings.maxAutoActionsPerDay) {
+  if (dailyCount >= settings.maxAutoActionsPerDay) {
     return {
       allowed: false,
-      reason: `Daily limit reached (${settings.maxAutoActionsPerDay}/day)`
+      reason: `Daily limit reached (${settings.maxAutoActionsPerDay}/day)`,
     };
   }
 
@@ -69,23 +83,16 @@ export async function canPerformAutoAction(
 export async function recordAutomationAction(
   workspaceId: string,
   clusterId: string,
-  actionType: AutomationActionType,
-  projectId?: string,
-  metadata?: Record<string, unknown>
+  _actionType: AutomationActionType,
+  _projectId?: string,
+  _metadata?: Record<string, unknown>
 ): Promise<string> {
-  const actionId = nanoid();
-
-  await db.insert(automationActions).values({
-    id: actionId,
-    workspaceId,
-    clusterId,
-    actionType,
-    projectId: projectId ?? null,
-    triggeredAt: new Date(),
-    metadata: metadata ?? null,
-  });
-
-  return actionId;
+  const clusterKey = `${workspaceId}:${clusterId}`;
+  const timestamps = recentActions.get(clusterKey) ?? [];
+  timestamps.push(Date.now());
+  // Keep last 100 timestamps per cluster to prevent unbounded growth
+  recentActions.set(clusterKey, timestamps.slice(-100));
+  return `action_${Date.now()}`;
 }
 
 /**
@@ -95,14 +102,6 @@ export async function hasClusterBeenActioned(
   workspaceId: string,
   clusterId: string
 ): Promise<boolean> {
-  const existing = await db
-    .select({ id: automationActions.id })
-    .from(automationActions)
-    .where(and(
-      eq(automationActions.workspaceId, workspaceId),
-      eq(automationActions.clusterId, clusterId)
-    ))
-    .limit(1);
-
-  return existing.length > 0;
+  const clusterKey = `${workspaceId}:${clusterId}`;
+  return (recentActions.get(clusterKey) ?? []).length > 0;
 }

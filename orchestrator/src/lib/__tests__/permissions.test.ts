@@ -2,16 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(),
-}));
-
-vi.mock("@/lib/auth/server", () => ({
-  AppAuthenticationError: class MockAppAuthenticationError extends Error {},
-  getCurrentAppUser: vi.fn(),
-  requireCurrentAppUser: vi.fn(),
-}));
-
-vi.mock("@/lib/db/queries", () => ({
-  getWorkspaceMembership: vi.fn(),
+  currentUser: vi.fn(),
 }));
 
 vi.mock("@/lib/convex/server", () => ({
@@ -19,13 +10,7 @@ vi.mock("@/lib/convex/server", () => ({
   listConvexWorkspaceMembers: vi.fn(),
 }));
 
-import { auth as clerkAuth } from "@clerk/nextjs/server";
-import {
-  AppAuthenticationError,
-  getCurrentAppUser,
-  requireCurrentAppUser,
-} from "@/lib/auth/server";
-import { getWorkspaceMembership } from "@/lib/db/queries";
+import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
 import { getConvexWorkspaceAccess, listConvexWorkspaceMembers } from "@/lib/convex/server";
 import {
   InsufficientRoleError,
@@ -35,11 +20,15 @@ import {
 } from "../permissions";
 
 const mockClerkAuth = vi.mocked(clerkAuth);
-const mockGetCurrentAppUser = vi.mocked(getCurrentAppUser);
-const mockRequireCurrentAppUser = vi.mocked(requireCurrentAppUser);
-const mockGetWorkspaceMembership = vi.mocked(getWorkspaceMembership);
+const mockCurrentUser = vi.mocked(currentUser);
 const mockGetConvexWorkspaceAccess = vi.mocked(getConvexWorkspaceAccess);
 const mockListConvexWorkspaceMembers = vi.mocked(listConvexWorkspaceMembers);
+
+const noEmailClerkUser = {
+  id: "clerk_user_123",
+  primaryEmailAddress: null,
+  emailAddresses: [],
+} as unknown as Awaited<ReturnType<typeof currentUser>>;
 
 describe("requireWorkspaceAccess", () => {
   beforeEach(() => {
@@ -47,9 +36,10 @@ describe("requireWorkspaceAccess", () => {
     mockListConvexWorkspaceMembers.mockResolvedValue([] as Awaited<
       ReturnType<typeof listConvexWorkspaceMembers>
     >);
+    mockCurrentUser.mockResolvedValue(noEmailClerkUser);
   });
 
-  it("returns convex membership even when local app-user resolution fails", async () => {
+  it("returns Convex membership by Clerk user ID — primary path", async () => {
     mockClerkAuth.mockResolvedValue({ userId: "clerk_user_123" } as Awaited<
       ReturnType<typeof clerkAuth>
     >);
@@ -59,7 +49,6 @@ describe("requireWorkspaceAccess", () => {
         role: "admin",
       },
     });
-    mockGetCurrentAppUser.mockRejectedValue(new Error("users table missing"));
 
     const membership = await requireWorkspaceAccess("ws_123", "viewer");
 
@@ -74,57 +63,31 @@ describe("requireWorkspaceAccess", () => {
       role: "admin",
       joinedAt: expect.any(Date),
     });
-    expect(mockRequireCurrentAppUser).not.toHaveBeenCalled();
   });
 
-  it("falls back to legacy membership when convex membership is absent", async () => {
+  it("throws not-member when Convex membership is absent and no email bridge matches", async () => {
     mockClerkAuth.mockResolvedValue({ userId: "clerk_user_123" } as Awaited<
       ReturnType<typeof clerkAuth>
     >);
     mockGetConvexWorkspaceAccess.mockResolvedValue(null);
-    mockRequireCurrentAppUser.mockResolvedValue({
-      id: "app_user_123",
-      clerkUserId: "clerk_user_123",
-      email: "user@example.com",
-      name: "User Example",
-      image: null,
-    });
-    mockGetWorkspaceMembership.mockResolvedValue({
-      id: "membership_123",
-      workspaceId: "ws_123",
-      userId: "app_user_123",
-      role: "member",
-      joinedAt: new Date("2026-03-07T00:00:00.000Z"),
-    });
+    // No matching member by email
+    mockListConvexWorkspaceMembers.mockResolvedValue([]);
 
-    const membership = await requireWorkspaceAccess("ws_123", "viewer");
-
-    expect(mockRequireCurrentAppUser).toHaveBeenCalled();
-    expect(mockGetWorkspaceMembership).toHaveBeenCalledWith(
-      "ws_123",
-      "app_user_123",
+    await expect(requireWorkspaceAccess("ws_123")).rejects.toBeInstanceOf(
+      NotMemberError,
     );
-    expect(membership).toEqual({
-      id: "membership_123",
-      userId: "app_user_123",
-      workspaceId: "ws_123",
-      role: "member",
-      joinedAt: new Date("2026-03-07T00:00:00.000Z"),
-    });
   });
 
-  it("bridges Convex membership by email when the clerk id mirror is stale", async () => {
+  it("bridges Convex membership by Clerk email when the Clerk ID mirror is stale", async () => {
     mockClerkAuth.mockResolvedValue({ userId: "clerk_user_new" } as Awaited<
       ReturnType<typeof clerkAuth>
     >);
     mockGetConvexWorkspaceAccess.mockResolvedValue(null);
-    mockGetCurrentAppUser.mockResolvedValue({
-      id: "app_user_123",
-      clerkUserId: "clerk_user_new",
-      email: "user@example.com",
-      name: "User Example",
-      image: null,
-    });
+    mockCurrentUser.mockResolvedValue({
+      id: "clerk_user_new",
+      primaryEmailAddress: { emailAddress: "user@example.com" },
+      emailAddresses: [],
+    } as unknown as Awaited<ReturnType<typeof currentUser>>);
     mockListConvexWorkspaceMembers.mockResolvedValue([
       {
         _id: "member_123",
@@ -139,41 +102,35 @@ describe("requireWorkspaceAccess", () => {
     const membership = await requireWorkspaceAccess("ws_123", "viewer");
 
     expect(mockListConvexWorkspaceMembers).toHaveBeenCalledWith("ws_123");
-    expect(mockRequireCurrentAppUser).not.toHaveBeenCalled();
     expect(membership).toEqual({
       id: "member_123",
-      userId: "app_user_123",
+      userId: "legacy_user_123",
       workspaceId: "ws_123",
       role: "member",
       joinedAt: new Date("2026-03-07T00:00:00.000Z"),
     });
   });
 
-  it("allows viewer access to the coordinator workspace when the Convex member mirror is empty", async () => {
-    mockClerkAuth.mockResolvedValue({ userId: "clerk_user_internal" } as Awaited<
+  it("allows coordinator viewer access when the Convex member mirror is empty", async () => {
+    mockClerkAuth.mockResolvedValue({ userId: "user_3AYHC3SLAA3cY6m7Nz7npZqIrF4" } as Awaited<
       ReturnType<typeof clerkAuth>
     >);
     mockGetConvexWorkspaceAccess.mockResolvedValue(null);
-    mockGetCurrentAppUser.mockResolvedValue({
-      id: "app_user_internal",
-      clerkUserId: "clerk_user_internal",
-      email: "tylersahagun@gmail.com",
-      name: "Tyler Sahagun",
-      image: null,
-    });
+    mockCurrentUser.mockResolvedValue({
+      id: "user_3AYHC3SLAA3cY6m7Nz7npZqIrF4",
+      primaryEmailAddress: { emailAddress: "tylersahagun@gmail.com" },
+      emailAddresses: [],
+    } as unknown as Awaited<ReturnType<typeof currentUser>>);
+    mockListConvexWorkspaceMembers.mockResolvedValue([]);
 
     const membership = await requireWorkspaceAccess(
       "mn7e43jc0m7bc5jn708d3ye4e182a7me",
       "viewer",
     );
 
-    expect(mockListConvexWorkspaceMembers).toHaveBeenCalledWith(
-      "mn7e43jc0m7bc5jn708d3ye4e182a7me",
-    );
-    expect(mockRequireCurrentAppUser).not.toHaveBeenCalled();
     expect(membership).toEqual({
-      id: "mn7e43jc0m7bc5jn708d3ye4e182a7me:clerk_user_internal:internal-viewer",
-      userId: "app_user_internal",
+      id: "mn7e43jc0m7bc5jn708d3ye4e182a7me:user_3AYHC3SLAA3cY6m7Nz7npZqIrF4:internal-viewer",
+      userId: "user_3AYHC3SLAA3cY6m7Nz7npZqIrF4",
       workspaceId: "mn7e43jc0m7bc5jn708d3ye4e182a7me",
       role: "viewer",
       joinedAt: expect.any(Date),
@@ -190,26 +147,19 @@ describe("requireWorkspaceAccess", () => {
     );
   });
 
-  it("throws not-member when neither convex nor legacy membership exists", async () => {
+  it("throws not-member when Convex returns null and no email matches", async () => {
     mockClerkAuth.mockResolvedValue({ userId: "clerk_user_123" } as Awaited<
       ReturnType<typeof clerkAuth>
     >);
     mockGetConvexWorkspaceAccess.mockResolvedValue(null);
-    mockRequireCurrentAppUser.mockResolvedValue({
-      id: "app_user_123",
-      clerkUserId: "clerk_user_123",
-      email: "user@example.com",
-      name: "User Example",
-      image: null,
-    });
-    mockGetWorkspaceMembership.mockResolvedValue(undefined);
+    mockListConvexWorkspaceMembers.mockResolvedValue([]);
 
     await expect(requireWorkspaceAccess("ws_123")).rejects.toBeInstanceOf(
       NotMemberError,
     );
   });
 
-  it("throws insufficient-role when convex membership is too weak", async () => {
+  it("throws insufficient-role when Convex membership role is too weak", async () => {
     mockClerkAuth.mockResolvedValue({ userId: "clerk_user_123" } as Awaited<
       ReturnType<typeof clerkAuth>
     >);
@@ -223,17 +173,5 @@ describe("requireWorkspaceAccess", () => {
     await expect(
       requireWorkspaceAccess("ws_123", "admin"),
     ).rejects.toBeInstanceOf(InsufficientRoleError);
-  });
-
-  it("maps legacy app auth failure to unauthenticated", async () => {
-    mockClerkAuth.mockResolvedValue({ userId: "clerk_user_123" } as Awaited<
-      ReturnType<typeof clerkAuth>
-    >);
-    mockGetConvexWorkspaceAccess.mockResolvedValue(null);
-    mockRequireCurrentAppUser.mockRejectedValue(new AppAuthenticationError());
-
-    await expect(requireWorkspaceAccess("ws_123")).rejects.toBeInstanceOf(
-      UnauthenticatedError,
-    );
   });
 });

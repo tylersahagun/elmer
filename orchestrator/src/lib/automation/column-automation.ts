@@ -2,17 +2,23 @@
  * Column Automation Service
  *
  * Triggers configured agent executions when projects move to new columns.
- * Includes loop prevention to avoid infinite automation cycles.
+ * Uses Convex for column configs, agent definitions, and job creation (replaces Drizzle).
  */
 
-import { getColumnConfigs, createJob, getAgentDefinitionById } from "@/lib/db/queries";
-import { db } from "@/lib/db";
-import { stageTransitionEvents } from "@/lib/db/schema";
-import { eq, and, gte, sql } from "drizzle-orm";
-import { nanoid } from "nanoid";
-import type { ProjectStage } from "@/lib/db/schema";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { createConvexJobInternal } from "@/lib/convex/server";
 
-const LOOP_PREVENTION_WINDOW_MS = 60000; // 1 minute
+type ProjectStage = string;
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
+const LOOP_PREVENTION_WINDOW_MS = 60000;
 const MAX_TRIGGERS_IN_WINDOW = 3;
 
 export interface AutomationTriggerResult {
@@ -22,37 +28,36 @@ export interface AutomationTriggerResult {
   blocked?: "loop_prevention" | "no_triggers" | "disabled";
 }
 
+// In-memory loop prevention (per process, resets on restart)
+const recentTriggers = new Map<string, number[]>();
+
 /**
  * Check if triggering automation would create a loop.
- * Prevents infinite cycles when automation moves projects between stages.
+ * Uses in-memory tracking (replaces stageTransitionEvents Drizzle query).
  */
-export async function isAutomationLoop(
+export function isAutomationLoop(
   projectId: string,
   toStage: ProjectStage
-): Promise<boolean> {
-  const windowStart = new Date(Date.now() - LOOP_PREVENTION_WINDOW_MS);
+): boolean {
+  const key = `${projectId}:${toStage}`;
+  const now = Date.now();
+  const window = now - LOOP_PREVENTION_WINDOW_MS;
+  const recent = (recentTriggers.get(key) ?? []).filter((t) => t > window);
+  return recent.length >= MAX_TRIGGERS_IN_WINDOW;
+}
 
-  const recentTransitions = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(stageTransitionEvents)
-    .where(and(
-      eq(stageTransitionEvents.cardId, projectId),
-      eq(stageTransitionEvents.toStage, toStage),
-      eq(stageTransitionEvents.actor, "automation"),
-      gte(stageTransitionEvents.timestamp, windowStart)
-    ));
-
-  return Number(recentTransitions[0]?.count || 0) >= MAX_TRIGGERS_IN_WINDOW;
+function recordTrigger(projectId: string, toStage: ProjectStage) {
+  const key = `${projectId}:${toStage}`;
+  const now = Date.now();
+  const window = now - LOOP_PREVENTION_WINDOW_MS;
+  const recent = (recentTriggers.get(key) ?? []).filter((t) => t > window);
+  recent.push(now);
+  recentTriggers.set(key, recent);
 }
 
 /**
  * Trigger column automation for a project stage change.
  * Creates jobs for configured agents when a project moves to a new stage.
- *
- * @param workspaceId - Workspace ID
- * @param projectId - Project being moved
- * @param toStage - Target stage (column)
- * @param triggeredBy - Who initiated: "user:{id}" | "automation"
  */
 export async function triggerColumnAutomation(
   workspaceId: string,
@@ -60,15 +65,21 @@ export async function triggerColumnAutomation(
   toStage: ProjectStage,
   triggeredBy: string
 ): Promise<AutomationTriggerResult> {
-  // Check for automation loops (only when triggered by automation)
-  if (triggeredBy === "automation" && await isAutomationLoop(projectId, toStage)) {
+  if (triggeredBy === "automation" && isAutomationLoop(projectId, toStage)) {
     console.log(`[ColumnAutomation] Loop prevention: skipping automation for project ${projectId} -> ${toStage}`);
     return { triggered: false, jobIds: [], skipped: [], blocked: "loop_prevention" };
   }
 
-  // Get column config for target stage
-  const columns = await getColumnConfigs(workspaceId);
-  const targetColumn = columns.find(c => c.stage === toStage);
+  const client = getConvexClient();
+  const columns = await client.query(api.columns.listByWorkspace, {
+    workspaceId: workspaceId as Id<"workspaces">,
+  });
+
+  const targetColumn = (columns as Array<{
+    stage: string;
+    agentTriggers?: Array<{ agentDefinitionId: string; priority: number; conditions?: Record<string, unknown> }>;
+    enabled?: boolean;
+  }>).find((c) => c.stage === toStage);
 
   if (!targetColumn?.agentTriggers?.length) {
     return { triggered: false, jobIds: [], skipped: [], blocked: "no_triggers" };
@@ -77,19 +88,19 @@ export async function triggerColumnAutomation(
   const jobIds: string[] = [];
   const skipped: string[] = [];
 
-  // Sort triggers by priority (lower number = higher priority)
   const sortedTriggers = [...targetColumn.agentTriggers].sort((a, b) => a.priority - b.priority);
 
   for (const trigger of sortedTriggers) {
-    // Verify agent exists and is enabled
-    const agent = await getAgentDefinitionById(trigger.agentDefinitionId);
-    if (!agent || agent.enabled === false) {
+    const agent = await client.query(api.agentDefinitions.get, {
+      id: trigger.agentDefinitionId as Id<"agentDefinitions">,
+    });
+
+    if (!agent || (agent as { enabled?: boolean }).enabled === false) {
       skipped.push(trigger.agentDefinitionId);
       continue;
     }
 
-    // Create job for agent execution
-    const job = await createJob({
+    const result = await createConvexJobInternal({
       workspaceId,
       projectId,
       type: "execute_agent_definition",
@@ -98,28 +109,18 @@ export async function triggerColumnAutomation(
         triggeredBy: "column_automation",
         toStage,
       },
+      agentDefinitionId: trigger.agentDefinitionId,
+      initiatedBy: triggeredBy,
     });
 
-    if (job?.id) {
-      jobIds.push(job.id);
+    if (result?.id) {
+      jobIds.push(result.id as string);
     }
   }
 
-  // Record transition event for audit trail with automation job IDs
-  await db.insert(stageTransitionEvents).values({
-    id: nanoid(),
-    cardId: projectId,
-    workspaceId,
-    toStage,
-    actor: triggeredBy.startsWith("user:") ? triggeredBy : "automation",
-    reason: jobIds.length > 0 ? `Triggered ${jobIds.length} automation(s)` : "No automations triggered",
-    automationJobIds: jobIds.length > 0 ? jobIds : null,
-    timestamp: new Date(),
-  });
+  recordTrigger(projectId, toStage);
 
-  return {
-    triggered: jobIds.length > 0,
-    jobIds,
-    skipped,
-  };
+  console.log(`[ColumnAutomation] project=${projectId} stage=${toStage} triggeredBy=${triggeredBy} jobs=${jobIds.length}`);
+
+  return { triggered: jobIds.length > 0, jobIds, skipped };
 }

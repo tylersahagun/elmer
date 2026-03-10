@@ -8,7 +8,8 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { SignalSeverity, SignalFrequency } from "@/lib/db/schema";
+type SignalSeverity = "critical" | "high" | "medium" | "low";
+type SignalFrequency = "common" | "occasional" | "rare";
 
 export interface ExtractionResult {
   severity: SignalSeverity | null;

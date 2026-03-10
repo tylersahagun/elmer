@@ -9,11 +9,11 @@
  * - Created more than N days ago (configurable)
  * - Not linked to any project
  * - Not linked to any persona
+ *
+ * Migrated to Convex (replaces Drizzle/pgvector).
  */
 
-import { db } from "@/lib/db";
-import { signals, signalProjects, signalPersonas } from "@/lib/db/schema";
-import { eq, and, lt, notExists, sql } from "drizzle-orm";
+import { listConvexWorkspaceSignals, listConvexSignalProjectLinks } from "@/lib/convex/server";
 
 export interface OrphanSignal {
   id: string;
@@ -32,71 +32,54 @@ export interface OrphanDetectionResult {
 
 /**
  * Find orphan signals - unlinked signals older than threshold.
- *
- * @param workspaceId - Workspace to check
- * @param thresholdDays - Days after which unlinked signal is orphaned (default: 14)
- * @param limit - Max signals to return (default: 50)
  */
 export async function findOrphanSignals(
   workspaceId: string,
   thresholdDays = 14,
   limit = 50
 ): Promise<OrphanDetectionResult> {
-  const thresholdDate = new Date();
-  thresholdDate.setDate(thresholdDate.getDate() - thresholdDays);
+  const thresholdMs = thresholdDays * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const thresholdTime = now - thresholdMs;
 
-  // Find signals that are:
-  // 1. In "new" status
-  // 2. Created before threshold date
-  // 3. Not linked to any project
-  // 4. Not linked to any persona
-  const orphans = await db
-    .select({
-      id: signals.id,
-      verbatim: signals.verbatim,
-      source: signals.source,
-      severity: signals.severity,
-      createdAt: signals.createdAt,
+  // Get all "new" signals for this workspace
+  const newSignals = await listConvexWorkspaceSignals(workspaceId, "new") as Array<{
+    _id: string;
+    verbatim: string;
+    source: string;
+    severity?: string | null;
+    _creationTime: number;
+  }>;
+
+  // Filter to signals older than threshold
+  const old = newSignals.filter((s) => s._creationTime < thresholdTime);
+
+  // Check each signal for project links (in parallel, up to limit candidates)
+  const candidates = old.slice(0, limit * 2);
+  const linkedChecks = await Promise.all(
+    candidates.map(async (s) => {
+      const links = await listConvexSignalProjectLinks(s._id);
+      return { signal: s, hasLinks: Array.isArray(links) && links.length > 0 };
     })
-    .from(signals)
-    .where(
-      and(
-        eq(signals.workspaceId, workspaceId),
-        eq(signals.status, "new"),
-        lt(signals.createdAt, thresholdDate),
-        notExists(
-          db
-            .select({ id: signalProjects.id })
-            .from(signalProjects)
-            .where(eq(signalProjects.signalId, signals.id))
-        ),
-        notExists(
-          db
-            .select({ id: signalPersonas.id })
-            .from(signalPersonas)
-            .where(eq(signalPersonas.signalId, signals.id))
-        )
-      )
-    )
-    .orderBy(signals.createdAt)
-    .limit(limit);
+  );
 
-  const now = new Date();
-  const results = orphans.map((s) => ({
-    id: s.id,
-    verbatim: s.verbatim,
-    source: s.source || "unknown",
-    severity: s.severity,
-    createdAt: s.createdAt,
-    daysOrphaned: Math.floor(
-      (now.getTime() - s.createdAt.getTime()) / (1000 * 60 * 60 * 24)
-    ),
-  }));
+  // Only return orphans (no project links)
+  const orphans = linkedChecks
+    .filter((c) => !c.hasLinks)
+    .slice(0, limit)
+    .map(({ signal }) => ({
+      id: signal._id,
+      verbatim: signal.verbatim,
+      source: signal.source || "unknown",
+      severity: signal.severity ?? null,
+      createdAt: new Date(signal._creationTime),
+      daysOrphaned: Math.floor((now - signal._creationTime) / (1000 * 60 * 60 * 24)),
+    }));
 
   return {
-    signals: results,
-    total: results.length,
-    oldestDays: results.length > 0 ? results[0].daysOrphaned : 0,
+    signals: orphans,
+    total: orphans.length,
+    oldestDays: orphans.length > 0 ? orphans[0].daysOrphaned : 0,
   };
 }
 
@@ -107,31 +90,6 @@ export async function getOrphanCount(
   workspaceId: string,
   thresholdDays = 14
 ): Promise<number> {
-  const thresholdDate = new Date();
-  thresholdDate.setDate(thresholdDate.getDate() - thresholdDays);
-
-  const result = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(signals)
-    .where(
-      and(
-        eq(signals.workspaceId, workspaceId),
-        eq(signals.status, "new"),
-        lt(signals.createdAt, thresholdDate),
-        notExists(
-          db
-            .select({ id: signalProjects.id })
-            .from(signalProjects)
-            .where(eq(signalProjects.signalId, signals.id))
-        ),
-        notExists(
-          db
-            .select({ id: signalPersonas.id })
-            .from(signalPersonas)
-            .where(eq(signalPersonas.signalId, signals.id))
-        )
-      )
-    );
-
-  return result[0]?.count ?? 0;
+  const result = await findOrphanSignals(workspaceId, thresholdDays, 200);
+  return result.total;
 }

@@ -1,14 +1,14 @@
 /**
  * Execution System - Main Entry Point
- * 
+ *
  * This module provides the durable execution system for stage automation:
- * - Run Manager: Creates and tracks runs
+ * - Run Manager: Creates and tracks runs (Convex-backed)
  * - Worker: Polls and executes runs
  * - Providers: AI execution backends
  * - Stage Executors: Stage-specific automation
  */
 
-// Run management
+// Run management — Convex-backed (replaces Drizzle run-manager)
 export {
   createRun,
   retryRun,
@@ -22,12 +22,8 @@ export {
   getActiveRunForCard,
   addRunLog,
   getRunLogs,
-  streamRunLogs,
   createArtifact,
   getArtifactsForRun,
-  getArtifactsForCard,
-  recordStageTransition,
-  getTransitionHistory,
   registerWorker,
   updateWorkerHeartbeat,
   incrementWorkerStats,
@@ -38,8 +34,9 @@ export {
   unlockStuckCards,
   type CreateRunInput,
   type CreateArtifactInput,
-  type RecordTransitionInput,
-} from "./run-manager";
+  type StageRun,
+  type StageRunStatus,
+} from "./run-manager-convex";
 
 // Execution worker
 export {

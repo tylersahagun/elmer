@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getColumnConfigById, updateColumnConfig } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
-import type { JobType } from "@/lib/db/schema";
+
+type JobType = string;
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
 
 /**
  * GET /api/columns/[id]/automation
@@ -18,9 +25,18 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const client = getConvexClient();
 
-    // Get column to check workspace
-    const column = await getColumnConfigById(id);
+    const column = await client.query(api.columns.getById, {
+      columnId: id as Id<"columnConfigs">,
+    }) as {
+      _id: string;
+      workspaceId: string;
+      stage: string;
+      agentTriggers?: unknown[];
+      autoTriggerJobs?: string[];
+    } | null;
+
     if (!column) {
       return NextResponse.json({ error: "Column not found" }, { status: 404 });
     }
@@ -56,9 +72,18 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const client = getConvexClient();
 
-    // Get column to check workspace
-    const column = await getColumnConfigById(id);
+    const column = await client.query(api.columns.getById, {
+      columnId: id as Id<"columnConfigs">,
+    }) as {
+      _id: string;
+      workspaceId: string;
+      stage: string;
+      agentTriggers?: unknown[];
+      autoTriggerJobs?: string[];
+    } | null;
+
     if (!column) {
       return NextResponse.json({ error: "Column not found" }, { status: 404 });
     }
@@ -84,7 +109,6 @@ export async function PUT(
     } = {};
 
     if (agentTriggers !== undefined) {
-      // Validate agentTriggers format
       if (!Array.isArray(agentTriggers)) {
         return NextResponse.json(
           { error: "agentTriggers must be an array" },
@@ -92,8 +116,6 @@ export async function PUT(
         );
       }
 
-      // Ensure each trigger has required fields
-      // Note: The schema stores enabled state elsewhere, conditions can be added
       const validatedTriggers = agentTriggers.map((trigger, index) => {
         if (
           !trigger.agentDefinitionId ||
@@ -119,12 +141,15 @@ export async function PUT(
           { status: 400 },
         );
       }
-      // Cast to JobType[] - API caller is responsible for valid job types
       updates.autoTriggerJobs = autoTriggerJobs as JobType[];
     }
 
     // Update the column
-    const updated = await updateColumnConfig(id, updates);
+    await client.mutation(api.columns.update, {
+      columnId: id as Id<"columnConfigs">,
+      agentTriggers: updates.agentTriggers,
+      autoTriggerJobs: updates.autoTriggerJobs,
+    });
 
     await logActivity(
       column.workspaceId,
@@ -134,7 +159,7 @@ export async function PUT(
         targetType: "workspace",
         targetId: column.workspaceId,
         metadata: {
-          columnId: column.id,
+          columnId: column._id,
           stage: column.stage,
           agentTriggers: updates.agentTriggers?.map((trigger) => ({
             agentDefinitionId: trigger.agentDefinitionId,
@@ -147,8 +172,8 @@ export async function PUT(
 
     return NextResponse.json({
       ok: true,
-      agentTriggers: updated?.agentTriggers || [],
-      autoTriggerJobs: updated?.autoTriggerJobs || [],
+      agentTriggers: updates.agentTriggers ?? column.agentTriggers ?? [],
+      autoTriggerJobs: updates.autoTriggerJobs ?? column.autoTriggerJobs ?? [],
     });
   } catch (error) {
     if (error instanceof PermissionError) {

@@ -3,21 +3,29 @@
  *
  * Checks if projects meet the requirements to move between stages.
  * Enforces quality gates based on column configuration.
+ * Uses Convex for all data operations.
  */
 
-import { db } from "@/lib/db";
-import {
-  columnConfigs,
-  projects,
-  documents,
-  juryEvaluations,
-  prototypes,
-  signalProjects,
-  type GraduationCriteria,
-  type DocumentType,
-  type ProjectStage,
-} from "@/lib/db/schema";
-import { eq, and, count as sqlCount } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
+
+type ProjectStage = "inbox" | "discovery" | "prd" | "design" | "prototype" | "validate" | "tickets" | "build" | "alpha" | "beta" | "ga";
+type DocumentType = string;
+
+export interface GraduationCriteria {
+  requiredDocuments?: DocumentType[];
+  minApprovalRate?: number;
+  minJuryEvaluations?: number;
+  requirePrototype?: boolean;
+  minSignalsProcessed?: number;
+  requireMetricsGate?: boolean;
+  allowManualOverride?: boolean;
+}
 
 export interface GraduationCheckResult {
   canGraduate: boolean;
@@ -33,35 +41,32 @@ export interface GraduationCheckResult {
   overrideAllowed: boolean;
 }
 
-/**
- * Get the graduation criteria for a stage
- */
 export async function getGraduationCriteria(
   workspaceId: string,
   stage: ProjectStage,
 ): Promise<{ criteria: GraduationCriteria | null; enforced: boolean }> {
-  const column = await db.query.columnConfigs.findFirst({
-    where: and(
-      eq(columnConfigs.workspaceId, workspaceId),
-      eq(columnConfigs.stage, stage),
-    ),
+  const client = getConvexClient();
+  const columns = await client.query(api.columns.listByWorkspace, {
+    workspaceId: workspaceId as Id<"workspaces">,
   });
+  const column = columns.find((c: { stage: string }) => c.stage === stage) as {
+    graduationCriteria?: GraduationCriteria;
+    enforceGraduation?: boolean;
+  } | undefined;
 
   return {
-    criteria: column?.graduationCriteria || null,
-    enforced: column?.enforceGraduation || false,
+    criteria: column?.graduationCriteria ?? null,
+    enforced: column?.enforceGraduation ?? false,
   };
 }
 
-/**
- * Check if a project meets graduation criteria for its current stage
- */
 export async function checkGraduationCriteria(
   projectId: string,
 ): Promise<GraduationCheckResult> {
-  // Get project with workspace
-  const project = await db.query.projects.findFirst({
-    where: eq(projects.id, projectId),
+  const client = getConvexClient();
+
+  const project = await client.query(api.projects.get, {
+    projectId: projectId as Id<"projects">,
   });
 
   if (!project) {
@@ -69,49 +74,30 @@ export async function checkGraduationCriteria(
       canGraduate: false,
       criteria: null,
       enforced: false,
-      checks: [
-        {
-          name: "project",
-          required: true,
-          passed: false,
-          message: "Project not found",
-        },
-      ],
+      checks: [{ name: "project", required: true, passed: false, message: "Project not found" }],
       overrideAllowed: false,
     };
   }
 
-  // Get column config for current stage
   const { criteria, enforced } = await getGraduationCriteria(
     project.workspaceId,
     project.stage as ProjectStage,
   );
 
-  // If no criteria defined, allow graduation
   if (!criteria) {
-    return {
-      canGraduate: true,
-      criteria: null,
-      enforced: false,
-      checks: [],
-      overrideAllowed: true,
-    };
+    return { canGraduate: true, criteria: null, enforced: false, checks: [], overrideAllowed: true };
   }
 
   const checks: GraduationCheckResult["checks"] = [];
 
   // Check required documents
   if (criteria.requiredDocuments && criteria.requiredDocuments.length > 0) {
-    const projectDocs = await db.query.documents.findMany({
-      where: eq(documents.projectId, projectId),
+    const projectDocs = await client.query(api.documents.byProject, {
+      projectId: projectId as Id<"projects">,
     });
-    const docTypes = new Set(projectDocs.map((d) => d.type));
-
-    const missingDocs = criteria.requiredDocuments.filter(
-      (t) => !docTypes.has(t),
-    );
+    const docTypes = new Set(projectDocs.map((d: { type: string }) => d.type));
+    const missingDocs = criteria.requiredDocuments.filter((t) => !docTypes.has(t));
     const passed = missingDocs.length === 0;
-
     checks.push({
       name: "requiredDocuments",
       required: true,
@@ -119,26 +105,18 @@ export async function checkGraduationCriteria(
       message: passed
         ? `All required documents present (${criteria.requiredDocuments.join(", ")})`
         : `Missing documents: ${missingDocs.join(", ")}`,
-      details: {
-        required: criteria.requiredDocuments,
-        present: Array.from(docTypes),
-        missing: missingDocs,
-      },
+      details: { required: criteria.requiredDocuments, present: Array.from(docTypes), missing: missingDocs },
     });
   }
 
   // Check minimum approval rate
   if (criteria.minApprovalRate !== undefined) {
-    const evaluations = await db.query.juryEvaluations.findMany({
-      where: eq(juryEvaluations.projectId, projectId),
-      orderBy: (je, { desc }) => [desc(je.createdAt)],
-      limit: 1,
+    const evaluations = await client.query(api.juryEvaluations.listByProject, {
+      projectId: projectId as Id<"projects">,
     });
-
-    const latestEval = evaluations[0];
+    const latestEval = evaluations[evaluations.length - 1] as { approvalRate?: number } | undefined;
     const approvalRate = latestEval?.approvalRate ?? 0;
     const passed = approvalRate >= criteria.minApprovalRate;
-
     checks.push({
       name: "minApprovalRate",
       required: true,
@@ -152,14 +130,11 @@ export async function checkGraduationCriteria(
 
   // Check minimum jury evaluations
   if (criteria.minJuryEvaluations !== undefined) {
-    const evalCount = await db
-      .select({ count: sqlCount() })
-      .from(juryEvaluations)
-      .where(eq(juryEvaluations.projectId, projectId));
-
-    const count = evalCount[0]?.count ?? 0;
+    const evaluations = await client.query(api.juryEvaluations.listByProject, {
+      projectId: projectId as Id<"projects">,
+    });
+    const count = evaluations.length;
     const passed = count >= criteria.minJuryEvaluations;
-
     checks.push({
       name: "minJuryEvaluations",
       required: true,
@@ -173,35 +148,27 @@ export async function checkGraduationCriteria(
 
   // Check prototype requirement
   if (criteria.requirePrototype) {
-    const prototypeCount = await db
-      .select({ count: sqlCount() })
-      .from(prototypes)
-      .where(eq(prototypes.projectId, projectId));
-
-    const count = prototypeCount[0]?.count ?? 0;
+    const prototypes = await client.query(api.prototypes.listByProject, {
+      projectId: projectId as Id<"projects">,
+    });
+    const count = prototypes.length;
     const passed = count > 0;
-
     checks.push({
       name: "requirePrototype",
       required: true,
       passed,
-      message: passed
-        ? `${count} prototype(s) linked`
-        : "No prototypes linked to project",
+      message: passed ? `${count} prototype(s) linked` : "No prototypes linked to project",
       details: { count },
     });
   }
 
   // Check minimum signals processed
   if (criteria.minSignalsProcessed !== undefined) {
-    const signalCount = await db
-      .select({ count: sqlCount() })
-      .from(signalProjects)
-      .where(eq(signalProjects.projectId, projectId));
-
-    const count = signalCount[0]?.count ?? 0;
+    const linkedSignals = await client.query(api.signals.byProject, {
+      projectId: projectId as Id<"projects">,
+    });
+    const count = linkedSignals.length;
     const passed = count >= criteria.minSignalsProcessed;
-
     checks.push({
       name: "minSignalsProcessed",
       required: true,
@@ -222,10 +189,7 @@ export async function checkGraduationCriteria(
       };
     } | null;
     const metrics = projectMeta?.releaseMetrics;
-    const currentStage = project.stage?.toLowerCase() as
-      | "alpha"
-      | "beta"
-      | "ga";
+    const currentStage = project.stage?.toLowerCase() as "alpha" | "beta" | "ga";
 
     let passed = false;
     let message = "No metrics configured";
@@ -233,75 +197,34 @@ export async function checkGraduationCriteria(
     if (metrics?.current && metrics?.thresholds?.[currentStage]) {
       const threshold = metrics.thresholds[currentStage];
       const current = metrics.current;
-
-      // Check if all threshold conditions are met
       passed = Object.entries(threshold).every(([key, reqValue]) => {
         const actualValue = current[key] ?? 0;
-        // For "errors", lower is better; for others, higher is better
-        if (key === "errors") {
-          return actualValue <= reqValue;
-        }
+        if (key === "errors") return actualValue <= reqValue;
         return actualValue >= reqValue;
       });
-
-      message = passed
-        ? "Metrics meet release thresholds"
-        : "Metrics do not meet release thresholds";
+      message = passed ? "Metrics meet release thresholds" : "Metrics do not meet release thresholds";
     }
 
-    checks.push({
-      name: "requireMetricsGate",
-      required: true,
-      passed,
-      message,
-      details: { metrics },
-    });
+    checks.push({ name: "requireMetricsGate", required: true, passed, message, details: { metrics } });
   }
 
-  // Determine overall result
   const allPassed = checks.every((c) => c.passed);
   const overrideAllowed = criteria.allowManualOverride ?? true;
 
-  return {
-    canGraduate: allPassed,
-    criteria,
-    enforced,
-    checks,
-    overrideAllowed,
-  };
+  return { canGraduate: allPassed, criteria, enforced, checks, overrideAllowed };
 }
 
-/**
- * Validate if a project can move to a new stage
- * Returns { allowed: true } or { allowed: false, reason: string, checks: [...] }
- */
 export async function validateStageTransition(
   projectId: string,
   targetStage: ProjectStage,
   options?: { forceOverride?: boolean },
-): Promise<{
-  allowed: boolean;
-  reason?: string;
-  checkResult?: GraduationCheckResult;
-}> {
+): Promise<{ allowed: boolean; reason?: string; checkResult?: GraduationCheckResult }> {
   const result = await checkGraduationCriteria(projectId);
 
-  // If no criteria or already passes, allow
-  if (result.canGraduate) {
-    return { allowed: true, checkResult: result };
-  }
+  if (result.canGraduate) return { allowed: true, checkResult: result };
+  if (!result.enforced) return { allowed: true, checkResult: result };
+  if (options?.forceOverride && result.overrideAllowed) return { allowed: true, checkResult: result };
 
-  // If not enforced, allow with warning
-  if (!result.enforced) {
-    return { allowed: true, checkResult: result };
-  }
-
-  // If force override and allowed
-  if (options?.forceOverride && result.overrideAllowed) {
-    return { allowed: true, checkResult: result };
-  }
-
-  // Block the transition
   const failedChecks = result.checks.filter((c) => !c.passed);
   const reason = failedChecks.map((c) => c.message).join("; ");
 
@@ -322,48 +245,30 @@ export interface StageQualityScore {
 }
 
 const STAGE_ORDER: ProjectStage[] = [
-  "inbox",
-  "discovery",
-  "prd",
-  "design",
-  "prototype",
-  "validate",
-  "tickets",
-  "build",
-  "alpha",
-  "beta",
-  "ga",
+  "inbox", "discovery", "prd", "design", "prototype",
+  "validate", "tickets", "build", "alpha", "beta", "ga",
 ];
 
 const STAGE_INDEX = new Map(STAGE_ORDER.map((stage, index) => [stage, index]));
-
 const getStageIndex = (stage: ProjectStage) => STAGE_INDEX.get(stage) ?? 0;
 
-const buildStageQualityFromChecks = (
+function buildStageQualityFromChecks(
   checks: GraduationCheckResult["checks"],
   source: StageQualityScore["source"],
-): StageQualityScore => {
-  const passedCount = checks.filter((check) => check.passed).length;
+): StageQualityScore {
+  const passedCount = checks.filter((c) => c.passed).length;
   const totalCount = checks.length;
   return {
     score: totalCount > 0 ? passedCount / totalCount : 0,
-    summary:
-      totalCount > 0
-        ? `Quality ${passedCount}/${totalCount}`
-        : "Quality pending",
-    strengths: checks
-      .filter((check) => check.passed)
-      .map((check) => check.message),
-    gaps: checks.filter((check) => !check.passed).map((check) => check.message),
+    summary: totalCount > 0 ? `Quality ${passedCount}/${totalCount}` : "Quality pending",
+    strengths: checks.filter((c) => c.passed).map((c) => c.message),
+    gaps: checks.filter((c) => !c.passed).map((c) => c.message),
     updatedAt: new Date().toISOString(),
     source,
   };
-};
+}
 
-const getMetricsGateStatus = (
-  stage: ProjectStage,
-  metadata?: Record<string, unknown> | null,
-) => {
+function getMetricsGateStatus(stage: ProjectStage, metadata?: Record<string, unknown> | null) {
   const projectMeta = metadata as {
     releaseMetrics?: {
       current?: Record<string, number>;
@@ -381,96 +286,51 @@ const getMetricsGateStatus = (
   const current = metrics.current;
   const passed = Object.entries(threshold).every(([key, reqValue]) => {
     const actualValue = current[key] ?? 0;
-    if (key === "errors") {
-      return actualValue <= reqValue;
-    }
+    if (key === "errors") return actualValue <= reqValue;
     return actualValue >= reqValue;
   });
 
-  return {
-    passed,
-    message: passed
-      ? "Metrics meet release thresholds"
-      : "Metrics below release thresholds",
-  };
-};
+  return { passed, message: passed ? "Metrics meet release thresholds" : "Metrics below release thresholds" };
+}
 
-const buildStageQualityHeuristic = (params: {
+function buildStageQualityHeuristic(params: {
   stage: ProjectStage;
   documentCount: number;
   prototypeCount: number;
   signalCount: number;
   juryPassCount: number;
   metadata?: Record<string, unknown> | null;
-}): StageQualityScore => {
+}): StageQualityScore {
   const stageIndex = getStageIndex(params.stage);
   const checks: GraduationCheckResult["checks"] = [];
 
   if (stageIndex >= 1) {
     const passed = params.documentCount > 0;
-    checks.push({
-      name: "documents",
-      required: true,
-      passed,
-      message: passed ? "Documents present" : "Add at least one document",
-    });
+    checks.push({ name: "documents", required: true, passed, message: passed ? "Documents present" : "Add at least one document" });
   }
-
   if (stageIndex >= 1 && stageIndex <= 5) {
     const passed = params.signalCount > 0;
-    checks.push({
-      name: "signals",
-      required: false,
-      passed,
-      message: passed ? "Signals linked" : "No signals linked yet",
-    });
+    checks.push({ name: "signals", required: false, passed, message: passed ? "Signals linked" : "No signals linked yet" });
   }
-
   if (stageIndex >= 4) {
     const passed = params.prototypeCount > 0;
-    checks.push({
-      name: "prototype",
-      required: true,
-      passed,
-      message: passed ? "Prototype linked" : "Prototype not linked",
-    });
+    checks.push({ name: "prototype", required: true, passed, message: passed ? "Prototype linked" : "Prototype not linked" });
   }
-
   if (stageIndex >= 5) {
     const passed = params.juryPassCount > 0;
-    checks.push({
-      name: "jury",
-      required: true,
-      passed,
-      message: passed
-        ? "Jury evaluation passed"
-        : "No passing jury evaluations",
-    });
+    checks.push({ name: "jury", required: true, passed, message: passed ? "Jury evaluation passed" : "No passing jury evaluations" });
   }
-
   if (stageIndex >= 8) {
     const metricsGate = getMetricsGateStatus(params.stage, params.metadata);
-    checks.push({
-      name: "metrics",
-      required: true,
-      passed: metricsGate.passed,
-      message: metricsGate.message,
-    });
+    checks.push({ name: "metrics", required: true, passed: metricsGate.passed, message: metricsGate.message });
   }
 
   if (checks.length === 0) {
-    return {
-      score: 0.2,
-      summary: "Quality pending",
-      strengths: [],
-      gaps: [],
-      updatedAt: new Date().toISOString(),
-      source: "heuristic",
-    };
+    return { score: 0.2, summary: "Quality pending", strengths: [], gaps: [], updatedAt: new Date().toISOString(), source: "heuristic" };
   }
 
   return buildStageQualityFromChecks(checks, "heuristic");
-};
+}
 
 export async function calculateStageQuality(params: {
   projectId: string;
@@ -482,57 +342,38 @@ export async function calculateStageQuality(params: {
   juryPassCount?: number;
   criteriaResult?: GraduationCheckResult;
 }): Promise<StageQualityScore> {
-  const criteriaResult =
-    params.criteriaResult ?? (await checkGraduationCriteria(params.projectId));
+  const criteriaResult = params.criteriaResult ?? (await checkGraduationCriteria(params.projectId));
   if (criteriaResult.checks.length > 0) {
     return buildStageQualityFromChecks(criteriaResult.checks, "criteria");
   }
 
+  const client = getConvexClient();
+  const pid = params.projectId as Id<"projects">;
+
   const documentCount =
-    params.documentCount ??
-    (
-      await db
-        .select({ count: sqlCount() })
-        .from(documents)
-        .where(eq(documents.projectId, params.projectId))
-    )[0]?.count ??
-    0;
+    params.documentCount !== undefined
+      ? params.documentCount
+      : (await client.query(api.documents.byProject, { projectId: pid })).length;
+
   const prototypeCount =
-    params.prototypeCount ??
-    (
-      await db
-        .select({ count: sqlCount() })
-        .from(prototypes)
-        .where(eq(prototypes.projectId, params.projectId))
-    )[0]?.count ??
-    0;
-  const signalCount =
-    params.signalCount ??
-    (
-      await db
-        .select({ count: sqlCount() })
-        .from(signalProjects)
-        .where(eq(signalProjects.projectId, params.projectId))
-    )[0]?.count ??
-    0;
+    params.prototypeCount !== undefined
+      ? params.prototypeCount
+      : (await client.query(api.prototypes.listByProject, { projectId: pid })).length;
+
   const juryPassCount =
-    params.juryPassCount ??
-    (
-      await db
-        .select({ count: sqlCount() })
-        .from(juryEvaluations)
-        .where(
-          and(
-            eq(juryEvaluations.projectId, params.projectId),
-            eq(juryEvaluations.verdict, "pass"),
-          ),
-        )
-    )[0]?.count ??
-    0;
+    params.juryPassCount !== undefined
+      ? params.juryPassCount
+      : (await client.query(api.juryEvaluations.listByProject, { projectId: pid }))
+          .filter((e: { verdict: string }) => e.verdict === "pass").length;
+
+  const signalCount =
+    params.signalCount !== undefined
+      ? params.signalCount
+      : (await client.query(api.signals.byProject, { projectId: pid })).length;
 
   return buildStageQualityHeuristic({
     stage: params.stage,
-    metadata: params.metadata,
+    metadata: params.metadata ?? null,
     documentCount,
     prototypeCount,
     signalCount,

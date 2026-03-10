@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateWorkspace, getWorkspace } from "@/lib/db/queries";
+import { getConvexWorkspace, updateConvexWorkspaceOnboarding } from "@/lib/convex/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
-import type { OnboardingData } from "@/lib/db/schema";
+
+interface OnboardingData {
+  completedAt?: string;
+  selectedBranch?: string;
+  importedProjects?: number;
+  importedPersonas?: number;
+  importedKnowledge?: number;
+  [key: string]: unknown;
+}
 
 /**
  * Request body for completing onboarding
@@ -64,7 +72,19 @@ export async function POST(
     }
 
     // Get current workspace to merge settings
-    const workspace = await getWorkspace(id);
+    const workspace = await getConvexWorkspace(id) as {
+      _id: string;
+      onboardingData?: Partial<OnboardingData>;
+      settings?: {
+        baseBranch?: string;
+        contextPaths?: string[];
+        prototypesPath?: string;
+        automationMode?: string;
+        automationStopStage?: string | null;
+      };
+      contextPath?: string;
+    } | null;
+
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
@@ -73,14 +93,11 @@ export async function POST(
     }
 
     // Build onboarding data - preserve any import counts from discovery step
-    // The discovery import endpoint may have already populated these values
-    const existingOnboardingData = (workspace.onboardingData ??
-      {}) as Partial<OnboardingData>;
+    const existingOnboardingData = (workspace.onboardingData ?? {}) as Partial<OnboardingData>;
     const onboardingData: OnboardingData = {
       ...existingOnboardingData,
       completedAt: new Date().toISOString(),
       selectedBranch: body.branch ?? workspace.settings?.baseBranch ?? "main",
-      // Preserve import counts if already set, otherwise default to 0
       importedProjects: existingOnboardingData.importedProjects ?? 0,
       importedPersonas: existingOnboardingData.importedPersonas ?? 0,
       importedKnowledge: existingOnboardingData.importedKnowledge ?? 0,
@@ -96,7 +113,7 @@ export async function POST(
           : workspace.settings?.contextPaths;
 
     // Update workspace with repository and onboarding completion
-    const updatedWorkspace = await updateWorkspace(id, {
+    const updatedWorkspace = await updateConvexWorkspaceOnboarding(id, {
       githubRepo: body.template ? null : body.repo,
       settings: {
         ...workspace.settings,
@@ -117,7 +134,7 @@ export async function POST(
         normalizedContextPaths?.[0] ||
         workspace.contextPath ||
         "elmer-docs/",
-      onboardingCompletedAt: new Date(),
+      onboardingCompletedAt: Date.now(),
       onboardingData,
     });
 

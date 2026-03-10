@@ -14,12 +14,17 @@
  *   - Stakeholder approval (if human_approval mode)
  */
 
-import { db } from "@/lib/db";
-import { documents, juryEvaluations, type DocumentType } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { getDefaultProvider, type StreamCallback } from "../providers";
 import type { StageContext, StageExecutionResult } from "./index";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 const JURY_EVALUATION_SYSTEM_PROMPT = `You are simulating a panel of synthetic users evaluating a product feature. Your task is to evaluate the prototype and PRD from multiple persona perspectives.
 
@@ -94,7 +99,6 @@ export async function executeValidate(
   callbacks.onLog("info", "Starting validation jury evaluation", "validate");
   callbacks.onProgress(0.1, "Loading prototype and PRD...");
 
-  // Get PRD and prototype notes
   const prdDoc = existingDocs.find((doc) => doc.type === "prd");
   const prototypeNotes = existingDocs.find(
     (doc) => doc.type === "prototype_notes",
@@ -128,7 +132,7 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
     JURY_EVALUATION_SYSTEM_PROMPT,
     userPrompt,
     {
-      runId: run.id,
+      runId: run._id,
       workspaceId: run.workspaceId,
       cardId: run.cardId,
       stage: run.stage,
@@ -146,20 +150,17 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
 
   callbacks.onProgress(0.7, "Parsing jury results...");
 
-  // Parse the output to extract scores (simplified parsing)
   const output = result.output || "";
   const passMatch = output.match(
     /Overall Verdict\s*\n\*\*\[(PASS|CONDITIONAL|FAIL)\]/i,
   );
   const verdict = passMatch ? passMatch[1].toLowerCase() : "conditional";
 
-  // Extract approval rate (fallback)
   const approvalMatch = output.match(/(\d+)%\s*would approve/i);
   const fallbackApprovalRate = approvalMatch
     ? parseInt(approvalMatch[1], 10) / 100
     : 0.5;
 
-  // Weighted Condorcet-style approximation (persona weights)
   const personaWeights: Record<string, number> = {
     "sales rep": 0.35,
     "sales leader": 0.25,
@@ -193,43 +194,29 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
       ? Math.min(weightedTotal / weightSum, 1)
       : fallbackApprovalRate;
 
-  const now = new Date();
-  const docId = `doc_${nanoid()}`;
-  const juryId = `jury_${nanoid()}`;
+  const client = getConvexClient();
 
-  // Save jury report document
-  await db.insert(documents).values({
-    id: docId,
-    projectId: project.id,
-    type: "jury_report" as DocumentType,
+  // Save jury report document via Convex
+  const docId = await client.mutation(api.documents.create, {
+    workspaceId: run.workspaceId as Id<"workspaces">,
+    projectId: run.cardId as Id<"projects">,
+    type: "jury_report",
     title: `Validation Report - ${project.name}`,
     content: output,
-    version: 1,
-    filePath: `initiatives/${project.name.toLowerCase().replace(/\s+/g, "-")}/validation-report.md`,
-    metadata: {
-      generatedBy: "ai",
-      model: "claude-sonnet-4-20250514",
-      promptVersion: "validate-v1",
-      verdict,
-      approvalRate,
-      weightedScores,
-      fallbackApprovalRate,
-    },
-    createdAt: now,
-    updatedAt: now,
+    generatedByAgent: "validate-executor",
   });
 
-  // Save jury evaluation record
-  await db.insert(juryEvaluations).values({
-    id: juryId,
-    projectId: project.id,
+  // Save jury evaluation record via Convex
+  await client.mutation(api.juryEvaluations.create, {
+    projectId: run.cardId as Id<"projects">,
+    workspaceId: run.workspaceId as Id<"workspaces">,
     phase: "prototype",
     jurySize: 4,
     approvalRate,
     conditionalRate: verdict === "conditional" ? 1 - approvalRate : 0,
     rejectionRate: verdict === "fail" ? 1 - approvalRate : 0,
-    verdict: verdict as "pass" | "fail" | "conditional",
-    topConcerns: [], // Would need more sophisticated parsing
+    verdict,
+    topConcerns: [],
     topSuggestions: [],
     rawResults: {
       output,
@@ -239,13 +226,12 @@ Run a synthetic jury evaluation with 4 personas: Sales Rep, Sales Leader, CSM, O
       weights: personaWeights,
     },
     reportPath: `initiatives/${project.name.toLowerCase().replace(/\s+/g, "-")}/validation-report.md`,
-    createdAt: now,
   });
 
   await callbacks.onArtifact(
     "file",
     "Validation Report",
-    `documents/${docId}`,
+    `projects/${run.cardId}/documents/${docId}`,
     {
       documentType: "jury_report",
       verdict,

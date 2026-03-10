@@ -345,3 +345,168 @@ export async function upsertConvexKnowledge(data: Record<string, unknown>) {
   if (!res.ok) throw new Error("Failed to update knowledge entry");
   return await res.json();
 }
+
+export async function updateConvexWorkspaceOnboarding(workspaceId: string, data: Record<string, unknown>) {
+  const res = await convexFetch(`/mcp/workspace/onboarding`, {
+    method: "PATCH",
+    body: JSON.stringify({ workspaceId, ...data }),
+  });
+  if (!res.ok) throw new Error("Failed to update workspace onboarding");
+  return await res.json();
+}
+
+// ── Maintenance support helpers ──────────────────────────────────────────────
+
+export async function bulkUpdateConvexSignalStatus(signalIds: string[], status: string) {
+  const res = await convexFetch(`/mcp/signals/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ signalIds, status }),
+  });
+  if (!res.ok) throw new Error("Failed to bulk update signal status");
+  return await res.json();
+}
+
+export async function linkConvexSignalToProject(data: {
+  signalId: string;
+  projectId: string;
+  confidence?: number;
+  linkedBy?: string;
+}) {
+  const res = await convexFetch(`/mcp/signal-project-link`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to link signal to project");
+  return await res.json();
+}
+
+export async function createConvexJobInternal(data: {
+  workspaceId: string;
+  projectId?: string;
+  type: string;
+  input: Record<string, unknown>;
+  agentDefinitionId?: string;
+  initiatedBy?: string;
+}) {
+  const res = await convexFetch(`/mcp/jobs/internal`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create job");
+  return await res.json();
+}
+
+export async function listConvexWorkspaceSignals(workspaceId: string, status?: string) {
+  const params = new URLSearchParams({ workspaceId });
+  if (status) params.set("status", status);
+  const res = await convexFetch(`/mcp/workspace/signals?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch workspace signals");
+  return await res.json();
+}
+
+export async function listConvexSignalProjectLinks(signalId: string) {
+  const params = new URLSearchParams({ signalId });
+  const res = await convexFetch(`/mcp/workspace/signal-projects?${params.toString()}`);
+  if (!res.ok) return [];
+  return await res.json();
+}
+
+export async function syncConvexAgentDefinitions(data: {
+  workspaceId: string;
+  sourceRepo: string;
+  sourceRef: string;
+  definitions: Array<{
+    name: string;
+    type: string;
+    content: string;
+    sourcePath: string;
+    description?: string;
+    triggers?: string[];
+    metadata?: Record<string, unknown>;
+    syncedAt: number;
+  }>;
+}): Promise<{ count: number }> {
+  const res = await convexFetch(`/mcp/agent-sync-definitions`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to sync agent definitions");
+  return await res.json();
+}
+
+export async function syncConvexAgentKnowledgeSources(data: {
+  workspaceId: string;
+  sourceRepo: string;
+  sourceRef: string;
+  typeFilter?: string;
+  entries: Array<{
+    sourcePath: string;
+    type: string;
+    name: string;
+    syncedAt: number;
+  }>;
+}): Promise<{ count: number }> {
+  const res = await convexFetch(`/mcp/agent-sync-knowledge`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to sync agent knowledge sources");
+  return await res.json();
+}
+
+export async function getConvexDocumentByProjectAndType(
+  projectId: string,
+  type: string,
+): Promise<{ _id: string; projectId: string; workspaceId: string; type: string; title: string; content: string; version: number } | null> {
+  const params = new URLSearchParams({ projectId, type });
+  const res = await convexFetch(`/mcp/project-document-by-type?${params.toString()}`);
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+export async function upsertConvexDocumentByType(data: {
+  projectId: string;
+  workspaceId: string;
+  type: string;
+  title: string;
+  content: string;
+}): Promise<{ documentId: string }> {
+  const res = await convexFetch(`/mcp/project-document-upsert`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to upsert document");
+  return await res.json();
+}
+
+export async function createConvexPrototypeVariant(data: {
+  workspaceId: string;
+  projectId: string;
+  platform: string;
+  outputType: string;
+  title: string;
+  url?: string;
+  chromaticUrl?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ id: string }> {
+  const res = await convexFetch(`/mcp/prototypes/create`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create prototype variant");
+  return await res.json();
+}
+
+export async function patchConvexPrototypeVariant(data: {
+  variantId: string;
+  status?: string;
+  url?: string;
+  chromaticUrl?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const res = await convexFetch(`/mcp/prototypes/variant`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to patch prototype variant");
+}

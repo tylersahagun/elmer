@@ -1,30 +1,36 @@
+/**
+ * GET    /api/agents/[id] - Get agent definition
+ * PATCH  /api/agents/[id] - Enable/disable agent
+ * DELETE /api/agents/[id] - Delete agent definition
+ * Migrated to Convex (replaces Drizzle).
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { agentDefinitions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
-import {
-  getAgentDefinitionById,
-  updateAgentDefinition,
-} from "@/lib/db/queries";
-import { logAgentToggled, logAgentDeleted } from "@/lib/activity";
+import { createConvexWorkspaceActivity } from "@/lib/convex/server";
 
-/**
- * GET /api/agents/[id]
- *
- * Returns complete agent definition including:
- * - id, name, type, description
- * - sourcePath, sourceRepo, sourceRef
- * - content (full markdown)
- * - metadata (parsed agent-specific fields)
- * - triggers, syncedAt, createdAt
- *
- * Requires viewer access to workspace.
- */
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
+async function getAuthenticatedClient() {
+  const auth = await clerkAuth();
+  const token = await auth.getToken({ template: "convex" });
+  const client = getConvexClient();
+  if (token) client.setAuth(token);
+  return client;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -32,7 +38,6 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Return 400 for missing ID (should not happen with proper routing)
     if (!id) {
       return NextResponse.json(
         { error: "Agent ID is required" },
@@ -40,18 +45,17 @@ export async function GET(
       );
     }
 
-    const agent = await db.query.agentDefinitions.findFirst({
-      where: eq(agentDefinitions.id, id),
+    const client = await getAuthenticatedClient();
+    const agent = await client.query(api.agentDefinitions.get, {
+      id: id as Id<"agentDefinitions">,
     });
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    // Permission check - requires viewer access
-    await requireWorkspaceAccess(agent.workspaceId, "viewer");
+    await requireWorkspaceAccess(agent.workspaceId as string, "viewer");
 
-    // Return complete agent data including metadata
     return NextResponse.json(agent);
   } catch (error) {
     if (error instanceof PermissionError) {
@@ -63,27 +67,24 @@ export async function GET(
   }
 }
 
-/**
- * PATCH /api/agents/[id]
- *
- * Updates agent definition fields.
- * Currently supports: { enabled: boolean }
- *
- * Requires editor access to workspace.
- */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const agent = await getAgentDefinitionById(id);
+
+    const client = await getAuthenticatedClient();
+    const agent = await client.query(api.agentDefinitions.get, {
+      id: id as Id<"agentDefinitions">,
+    });
+
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
     const membership = await requireWorkspaceAccess(
-      agent.workspaceId,
+      agent.workspaceId as string,
       "member",
     );
 
@@ -97,16 +98,23 @@ export async function PATCH(
       );
     }
 
-    const updated = await updateAgentDefinition(id, { enabled });
-
-    // Log the agent toggle activity
-    await logAgentToggled(
-      agent.workspaceId,
-      membership.userId,
-      id,
-      agent.name,
+    await client.mutation(api.agentDefinitions.setEnabled, {
+      id: id as Id<"agentDefinitions">,
       enabled,
-    );
+    });
+
+    await createConvexWorkspaceActivity({
+      workspaceId: agent.workspaceId as string,
+      userId: membership.userId,
+      action: enabled ? "agent.enabled" : "agent.disabled",
+      targetType: "agent",
+      targetId: id,
+      metadata: { name: agent.name },
+    }).catch(() => {});
+
+    const updated = await client.query(api.agentDefinitions.get, {
+      id: id as Id<"agentDefinitions">,
+    });
 
     return NextResponse.json(updated);
   } catch (error) {
@@ -128,20 +136,33 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const agent = await db.query.agentDefinitions.findFirst({
-      where: eq(agentDefinitions.id, id),
+
+    const client = await getAuthenticatedClient();
+    const agent = await client.query(api.agentDefinitions.get, {
+      id: id as Id<"agentDefinitions">,
     });
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    const membership = await requireWorkspaceAccess(agent.workspaceId, "admin");
+    const membership = await requireWorkspaceAccess(
+      agent.workspaceId as string,
+      "admin",
+    );
 
-    await db.delete(agentDefinitions).where(eq(agentDefinitions.id, id));
+    await client.mutation(api.agentDefinitions.remove, {
+      id: id as Id<"agentDefinitions">,
+    });
 
-    // Log the agent deletion
-    await logAgentDeleted(agent.workspaceId, membership.userId, id, agent.name);
+    await createConvexWorkspaceActivity({
+      workspaceId: agent.workspaceId as string,
+      userId: membership.userId,
+      action: "agent.deleted",
+      targetType: "agent",
+      targetId: id,
+      metadata: { name: agent.name },
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

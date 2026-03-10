@@ -1,4 +1,4 @@
-import type { WorkspaceRole } from "@/lib/db/schema";
+import type { WorkspaceRole } from "@/lib/permissions";
 
 export const DEFAULT_COORDINATOR_WORKSPACE_ID =
   process.env.DEFAULT_WORKSPACE_ID ?? "mn7e43jc0m7bc5jn708d3ye4e182a7me";

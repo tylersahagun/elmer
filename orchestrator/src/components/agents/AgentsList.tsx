@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { canRunConvexQuery } from "@/lib/auth/convex";
 import { AgentCard } from "./AgentCard";
-import type { AgentDefinitionType } from "@/lib/db/schema";
+type AgentDefinitionType = "agents_md" | "skill" | "command" | "subagent" | "rule";
 
 interface AgentsListProps {
   workspaceId: string;

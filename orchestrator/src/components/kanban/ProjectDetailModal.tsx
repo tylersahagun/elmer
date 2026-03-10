@@ -18,7 +18,9 @@ import { useUIStore, useKanbanStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { getProjectRoute } from "@/lib/projects/navigation";
 import { DocumentViewer } from "@/components/documents";
-import type { DocumentType, KnowledgebaseType, ProjectStatus } from "@/lib/db/schema";
+type DocumentType = "research" | "prd" | "design_brief" | "engineering_spec" | "gtm_brief" | "prototype_notes" | "jury_report" | "metrics" | "state" | "feature_guide" | "competitive_landscape" | "success_criteria" | "gtm_plan" | "retrospective" | "decisions" | "visual_directions";
+type KnowledgebaseType = "company_context" | "strategic_guardrails" | "personas" | "roadmap" | "rules";
+type ProjectStatus = "active" | "paused" | "completed" | "archived";
 import {
   FileText,
   Layers,

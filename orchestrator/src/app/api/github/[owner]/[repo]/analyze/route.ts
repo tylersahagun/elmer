@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
-import { auth } from "@/lib/auth/legacy-next-auth";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
 
@@ -34,8 +34,8 @@ async function listDir(
 
 export async function POST(request: NextRequest, { params }: RouteContext) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await clerkAuth();
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       );
     }
 
-    const octokit = await getGitHubClient(session.user.id);
+    const octokit = await getGitHubClient(userId);
     if (!octokit) {
       return NextResponse.json(
         {

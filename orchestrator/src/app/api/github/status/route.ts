@@ -1,37 +1,29 @@
 /**
  * GitHub Connection Status API
- * 
+ *
  * Check if the current user has connected their GitHub account.
  */
 
 import { NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
-import { eq, and } from "drizzle-orm";
-import { auth } from "@/lib/auth/legacy-next-auth";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
-import { db } from "@/lib/db";
-import { accounts } from "@/lib/db/schema";
+import { getGitHubToken } from "@/lib/github/auth";
 
 export async function GET() {
   try {
-    const session = await auth();
-    
-    if (!session?.user?.id) {
+    const { userId } = await clerkAuth();
+
+    if (!userId) {
       return NextResponse.json({
         connected: false,
         connectUrl: GITHUB_OAUTH_CONNECT_URL,
       });
     }
 
-    // Check if user has a GitHub account connected
-    const account = await db.query.accounts.findFirst({
-      where: and(
-        eq(accounts.userId, session.user.id),
-        eq(accounts.provider, "github")
-      ),
-    });
+    const token = await getGitHubToken(userId);
 
-    if (!account?.access_token) {
+    if (!token) {
       return NextResponse.json({
         connected: false,
         connectUrl: GITHUB_OAUTH_CONNECT_URL,
@@ -40,7 +32,7 @@ export async function GET() {
 
     // Verify the token is still valid by fetching user info
     try {
-      const octokit = new Octokit({ auth: account.access_token });
+      const octokit = new Octokit({ auth: token });
       const { data: user } = await octokit.users.getAuthenticated();
 
       return NextResponse.json({
@@ -52,8 +44,7 @@ export async function GET() {
           profileUrl: user.html_url,
         },
       });
-    } catch (error) {
-      // Token is invalid or expired
+    } catch {
       return NextResponse.json({
         connected: false,
         expired: true,

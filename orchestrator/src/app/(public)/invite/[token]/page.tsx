@@ -27,7 +27,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
-import type { WorkspaceRole } from "@/lib/db/schema";
+type WorkspaceRole = "admin" | "member" | "viewer";
 
 interface InvitationDetails {
   id: string;

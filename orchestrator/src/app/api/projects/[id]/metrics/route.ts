@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse, after } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
-import {
-  getProject,
-  getDocumentByType,
-  createDocument,
-  updateProjectMetadata,
-  updateProjectStage,
-} from "@/lib/db/queries";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
+import { getConvexProjectWithDocuments } from "@/lib/convex/server";
 import { commitToGitHub } from "@/lib/github/writeback-service";
 import {
   requireWorkspaceAccess,
@@ -16,11 +13,26 @@ import {
 import { validateStageTransition } from "@/lib/rules/engine";
 import { logProjectStageChanged } from "@/lib/activity";
 import { triggerColumnAutomation } from "@/lib/automation/column-automation";
-import type {
-  ReleaseMetricsThreshold,
-  ReleaseMetricsValues,
-  ProjectStage,
-} from "@/lib/db/schema";
+
+type ReleaseMetricsThreshold = {
+  users: number;
+  engagement: number;
+  errors: number;
+  satisfaction: number;
+};
+type ReleaseMetricsValues = {
+  users: number;
+  engagement: number;
+  errors: number;
+  satisfaction: number;
+};
+type ProjectStage = string;
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 const DEFAULT_THRESHOLDS: Record<string, ReleaseMetricsThreshold> = {
   alpha: { users: 25, engagement: 50, errors: 5, satisfaction: 3.5 },
@@ -133,19 +145,38 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await clerkAuth();
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const project = await getProject(id);
-    if (!project) {
+    const projectData = await getConvexProjectWithDocuments(id);
+    if (!projectData) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    const project = projectData.project as {
+      _id: string;
+      workspaceId: string;
+      name: string;
+      stage: string;
+      metadata?: Record<string, unknown> | null;
+    };
+    const workspaceData = projectData as {
+      workspace?: {
+        githubRepo?: string | null;
+        settings?: { baseBranch?: string; contextPaths?: string[] } | null;
+      };
+    };
+
     await requireWorkspaceAccess(project.workspaceId, "member");
 
-    const prd = await getDocumentByType(id, "prd");
+    const client = getConvexClient();
+    const prd = (await client.query(api.documents.getByType, {
+      projectId: id as Id<"projects">,
+      type: "prd",
+    })) as { content: string } | null;
+
     const prdContent = prd?.content ?? "";
     const outcomeChain = extractSection(prdContent, "Outcome Chain");
     const successSection = extractSection(prdContent, "Success Metrics");
@@ -159,41 +190,41 @@ export async function POST(
 
     const metricsPath = resolveMetricsPath({
       projectName: project.name,
-      sourcePath: project.metadata?.sourcePath || null,
-      contextPath: project.workspace?.settings?.contextPaths?.[0] || null,
+      sourcePath: (project.metadata?.sourcePath as string | null) || null,
+      contextPath: workspaceData.workspace?.settings?.contextPaths?.[0] || null,
     });
 
-    const document = await createDocument({
-      projectId: id,
+    const documentId = await client.mutation(api.documents.create, {
+      workspaceId: project.workspaceId as Id<"workspaces">,
+      projectId: id as Id<"projects">,
       type: "metrics",
       title: "Metrics",
       content: metricsContent,
-      filePath: project.workspace?.githubRepo
-        ? `${project.workspace.githubRepo}:${metricsPath}`
-        : metricsPath,
-      metadata: { generatedBy: "ai" },
+      generatedByAgent: "metrics-generator",
     });
 
-    if (project.workspace?.githubRepo) {
-      const [owner, repo] = project.workspace.githubRepo.split("/");
+    const document = { id: documentId, projectId: id, type: "metrics", title: "Metrics" };
+
+    if (workspaceData.workspace?.githubRepo) {
+      const [owner, repo] = workspaceData.workspace.githubRepo.split("/");
       if (owner && repo) {
         await commitToGitHub(
           {
             workspaceId: project.workspaceId,
-            projectId: project.id,
+            projectId: project._id,
             projectName: project.name,
             owner,
             repo,
-            branch: project.workspace.settings?.baseBranch || "main",
+            branch: workspaceData.workspace.settings?.baseBranch || "main",
           },
           [{ path: metricsPath, content: metricsContent }],
           {
-            projectId: project.id,
+            projectId: project._id,
             projectName: project.name,
             documentType: "metrics",
             triggeredBy: "metrics-generator",
           },
-          session.user.id,
+          userId,
           "add",
         );
       }
@@ -219,10 +250,19 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const project = await getProject(id);
-    if (!project) {
+
+    const projectData = await getConvexProjectWithDocuments(id);
+    if (!projectData) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
+
+    const project = projectData.project as {
+      _id: string;
+      workspaceId: string;
+      name: string;
+      stage: string;
+      metadata?: Record<string, unknown> | null;
+    };
 
     const membership = await requireWorkspaceAccess(
       project.workspaceId,
@@ -237,8 +277,9 @@ export async function PATCH(
     const autoAdvance =
       typeof body?.autoAdvance === "boolean" ? body.autoAdvance : undefined;
 
+    const existingMetrics = (project.metadata?.releaseMetrics as Record<string, unknown>) || {};
     const mergedReleaseMetrics = {
-      ...(project.metadata?.releaseMetrics || {}),
+      ...existingMetrics,
       ...(thresholds ? { thresholds } : {}),
       ...(current ? { current } : {}),
       ...(autoAdvance !== undefined ? { autoAdvance } : {}),
@@ -250,7 +291,11 @@ export async function PATCH(
       releaseMetrics: mergedReleaseMetrics,
     };
 
-    const updated = await updateProjectMetadata(id, updatedMetadata);
+    const client = getConvexClient();
+    await client.mutation(api.projects.update, {
+      projectId: id as Id<"projects">,
+      metadata: updatedMetadata,
+    });
 
     let stageAdvanced: ProjectStage | null = null;
     if (mergedReleaseMetrics.autoAdvance) {
@@ -261,59 +306,58 @@ export async function PATCH(
           : currentStage === "beta"
             ? "ga"
             : null;
+      const thresholdsMap = mergedReleaseMetrics.thresholds as Record<string, ReleaseMetricsThreshold> | undefined;
       const threshold =
         currentStage === "alpha"
-          ? mergedReleaseMetrics.thresholds?.alpha
+          ? thresholdsMap?.alpha
           : currentStage === "beta"
-            ? mergedReleaseMetrics.thresholds?.beta
+            ? thresholdsMap?.beta
             : undefined;
+      const currentMetrics = mergedReleaseMetrics.current as ReleaseMetricsValues | undefined;
 
       if (
         targetStage &&
-        meetsThreshold(mergedReleaseMetrics.current, threshold)
+        meetsThreshold(currentMetrics, threshold)
       ) {
         const validation = await validateStageTransition(id, targetStage);
         if (validation.allowed) {
           const previousStage = project.stage;
-          const updatedStageProject = await updateProjectStage(
+          await client.mutation(api.projects.update, {
+            projectId: id as Id<"projects">,
+            stage: targetStage,
+          });
+          stageAdvanced = targetStage;
+          await logProjectStageChanged(
+            project.workspaceId,
+            membership.userId,
             id,
+            project.name,
+            previousStage,
             targetStage,
-            "automation:metrics",
           );
-          if (updatedStageProject) {
-            stageAdvanced = updatedStageProject.stage as ProjectStage;
-            await logProjectStageChanged(
-              project.workspaceId,
-              membership.userId,
-              id,
-              project.name,
-              previousStage,
-              targetStage,
-            );
-            after(async () => {
-              try {
-                const automationTriggeredBy = `automation:metrics`;
-                await triggerColumnAutomation(
-                  project.workspaceId,
-                  id,
-                  targetStage,
-                  automationTriggeredBy,
-                );
-              } catch (automationError) {
-                console.error(
-                  "[MetricsAutoAdvance] Failed to trigger column automation",
-                  automationError,
-                );
-              }
-            });
-          }
+          after(async () => {
+            try {
+              const automationTriggeredBy = `automation:metrics`;
+              await triggerColumnAutomation(
+                project.workspaceId,
+                id,
+                targetStage,
+                automationTriggeredBy,
+              );
+            } catch (automationError) {
+              console.error(
+                "[MetricsAutoAdvance] Failed to trigger column automation",
+                automationError,
+              );
+            }
+          });
         }
       }
     }
 
     return NextResponse.json({
       success: true,
-      project: updated,
+      project: { ...project, metadata: updatedMetadata },
       stageAdvanced,
     });
   } catch (error) {

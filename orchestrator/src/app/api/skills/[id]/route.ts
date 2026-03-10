@@ -9,7 +9,7 @@ import {
   deleteSkill,
   resyncSkillsMP,
 } from "@/lib/skills";
-import type { TrustLevel } from "@/lib/db/schema";
+type TrustLevel = "vetted" | "community" | "untrusted";
 
 export async function GET(
   request: Request,

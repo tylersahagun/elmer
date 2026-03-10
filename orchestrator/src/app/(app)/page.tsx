@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { WaveV4D, ElmerWordmark } from "@/components/brand/ElmerLogo";
 import Link from "next/link";
-import type { WorkspaceRole } from "@/lib/db/schema";
+type WorkspaceRole = "admin" | "member" | "viewer";
 import {
   useConvexAuth,
   useMutation,

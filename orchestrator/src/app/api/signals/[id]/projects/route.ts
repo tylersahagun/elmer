@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getSignal,
-  getSignalWithLinks,
-  linkSignalToProject,
-  unlinkSignalFromProject,
-  countSignalProjectLinks,
-  updateSignal,
-} from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -22,27 +23,32 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id: signalId } = await context.params;
+    const client = getConvexClient();
 
-    // Get signal to verify it exists and get workspaceId
-    const signal = await getSignal(signalId);
+    const signal = await client.query(api.signals.get, {
+      signalId: signalId as Id<"signals">,
+    });
     if (!signal) {
       return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
-    // Verify membership (viewer can read)
-    await requireWorkspaceAccess(signal.workspaceId, "viewer");
+    await requireWorkspaceAccess(signal.workspaceId as string, "viewer");
 
-    // Get signal with linked projects
-    const signalWithLinks = await getSignalWithLinks(signalId);
+    const projects = (await client.query(api.signals.linkedProjects, {
+      signalId: signalId as Id<"signals">,
+    })) as Array<{
+      _id: string;
+      _creationTime: number;
+      name: string;
+    }>;
 
     return NextResponse.json({
-      projects:
-        signalWithLinks?.projects.map((p) => ({
-          id: p.project.id,
-          name: p.project.name,
-          linkedAt: p.linkedAt,
-          linkReason: p.linkReason,
-        })) || [],
+      projects: projects.map((p) => ({
+        id: p._id,
+        name: p.name,
+        linkedAt: new Date(p._creationTime).toISOString(),
+        linkReason: null,
+      })),
     });
   } catch (error) {
     if (error instanceof PermissionError) {
@@ -64,7 +70,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id: signalId } = await context.params;
-    const { projectId, linkReason } = await request.json();
+    const { projectId } = await request.json();
 
     if (!projectId) {
       return NextResponse.json(
@@ -73,22 +79,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Get signal to verify it exists and get workspaceId
-    const signal = await getSignal(signalId);
+    const client = getConvexClient();
+    const signal = await client.query(api.signals.get, {
+      signalId: signalId as Id<"signals">,
+    });
     if (!signal) {
       return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
-    // Verify membership (member can write)
-    const membership = await requireWorkspaceAccess(signal.workspaceId, "member");
+    await requireWorkspaceAccess(signal.workspaceId as string, "member");
 
-    // Create link
-    await linkSignalToProject(signalId, projectId, membership.userId, linkReason);
-
-    // Update signal status to "linked" if not already
-    if (signal.status !== "linked") {
-      await updateSignal(signalId, { status: "linked" });
-    }
+    await client.mutation(api.signals.linkToProject, {
+      signalId: signalId as Id<"signals">,
+      projectId: projectId as Id<"projects">,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -120,22 +124,31 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const signal = await getSignal(signalId);
+    const client = getConvexClient();
+    const signal = await client.query(api.signals.get, {
+      signalId: signalId as Id<"signals">,
+    });
     if (!signal) {
       return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
-    await requireWorkspaceAccess(signal.workspaceId, "member");
+    await requireWorkspaceAccess(signal.workspaceId as string, "member");
 
-    // Delete link
-    await unlinkSignalFromProject(signalId, projectId);
+    await client.mutation(api.signals.unlinkFromProject, {
+      signalId: signalId as Id<"signals">,
+      projectId: projectId as Id<"projects">,
+    });
 
-    // Check if any projects remain linked
-    const remainingCount = await countSignalProjectLinks(signalId);
+    // Check remaining links to update status
+    const remainingProjects = (await client.query(api.signals.linkedProjects, {
+      signalId: signalId as Id<"signals">,
+    })) as Array<unknown>;
 
-    // Update status to "reviewed" if no projects linked and current status is "linked"
-    if (remainingCount === 0 && signal.status === "linked") {
-      await updateSignal(signalId, { status: "reviewed" });
+    if (remainingProjects.length === 0 && signal.status === "linked") {
+      await client.mutation(api.signals.update, {
+        signalId: signalId as Id<"signals">,
+        status: "reviewed",
+      });
     }
 
     return NextResponse.json({ success: true });

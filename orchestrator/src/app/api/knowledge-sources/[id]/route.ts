@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateKnowledgeSource, deleteKnowledgeSource } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -8,8 +14,14 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const source = await updateKnowledgeSource(id, body);
-    return NextResponse.json(source);
+    const client = getConvexClient();
+    const updated = await client.mutation(api.knowledgeSources.update, {
+      id: id as Id<"knowledgeSources">,
+      type: body.type,
+      config: body.config,
+      lastSyncedAt: body.lastSyncedAt ? new Date(body.lastSyncedAt).getTime() : undefined,
+    });
+    return NextResponse.json(updated);
   } catch (error) {
     console.error("Failed to update knowledge source:", error);
     return NextResponse.json({ error: "Failed to update knowledge source" }, { status: 500 });
@@ -22,7 +34,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await deleteKnowledgeSource(id);
+    const client = getConvexClient();
+    await client.mutation(api.knowledgeSources.remove, {
+      id: id as Id<"knowledgeSources">,
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Failed to delete knowledge source:", error);

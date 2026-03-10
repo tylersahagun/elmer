@@ -12,19 +12,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
-import { createSignal } from "@/lib/db/queries";
 import { processSignalExtraction } from "@/lib/signals";
-import type { SignalSource } from "@/lib/db/schema";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 interface IngestRequestBody {
   workspaceId: string;
   rawInput: string;
-  source?: SignalSource;
+  source?: string;
   interpretation?: string;
 }
 
@@ -33,7 +40,6 @@ export async function POST(request: NextRequest) {
     const body: IngestRequestBody = await request.json();
     const { workspaceId, rawInput, source, interpretation } = body;
 
-    // Validate required fields
     if (!workspaceId) {
       return NextResponse.json(
         { error: "workspaceId is required" },
@@ -48,35 +54,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Require member access to create signals
     await requireWorkspaceAccess(workspaceId, "member");
 
-    // Create signal with verbatim = trimmed rawInput
     const sourceRef = `ingest-${Date.now()}-${nanoid(6)}`;
-    const signal = await createSignal({
-      workspaceId,
+    const client = getConvexClient();
+    const signalId = await client.mutation(api.signals.create, {
+      workspaceId: workspaceId as Id<"workspaces">,
       verbatim: rawInput.trim(),
       interpretation: interpretation?.trim() || undefined,
-      source: source || "paste", // Default to "paste" if not provided
+      source: source || "paste",
       sourceRef,
+      status: "new",
     });
 
-    // Queue AI extraction and embedding (Phase 15)
     after(async () => {
       try {
-        await processSignalExtraction(signal!.id);
+        await processSignalExtraction(signalId as string);
       } catch (error) {
-        console.error(`Failed to process signal ${signal!.id}:`, error);
+        console.error(`Failed to process signal ${signalId}:`, error);
       }
     });
 
-    // Return 201 with signal info
     return NextResponse.json(
       {
         success: true,
         signal: {
-          id: signal!.id,
-          status: "processing", // Indicates extraction in progress
+          id: signalId,
+          status: "processing",
         },
         message: "Signal created. Extraction in progress.",
       },

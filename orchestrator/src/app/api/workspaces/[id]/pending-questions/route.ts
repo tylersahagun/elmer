@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listPendingQuestions } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
+
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +19,10 @@ export async function GET(
   try {
     const { id } = await params;
     await requireWorkspaceAccess(id, "viewer");
-    const questions = await listPendingQuestions(id);
+    const client = getConvexClient();
+    const questions = await client.query(api.pendingQuestions.listPending, {
+      workspaceId: id as Id<"workspaces">,
+    });
     return NextResponse.json({ questions });
   } catch (error) {
     if (error instanceof PermissionError) {

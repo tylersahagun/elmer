@@ -1,6 +1,6 @@
 /**
  * Inbox Stage Executor
- * 
+ *
  * Inputs: Raw transcript, voice memo, or feature request
  * Automation:
  *   - Extract TL;DR, problems with verbatim quotes, requests
@@ -11,12 +11,17 @@
  *   - Updated signals/_index.json
  */
 
-import { db } from "@/lib/db";
-import { documents, type DocumentType } from "@/lib/db/schema";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { getDefaultProvider, type StreamCallback } from "../providers";
-import { createArtifact, addRunLog } from "../run-manager";
 import type { StageContext, StageExecutionResult } from "./index";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 const INBOX_SYSTEM_PROMPT = `You are a PM research analyst. Your task is to analyze raw input (transcripts, voice memos, feature requests) and extract structured insights.
 
@@ -50,38 +55,40 @@ Format your response as structured markdown with these sections:
 
 export async function executeInbox(
   context: StageContext,
-  callbacks: StreamCallback
+  callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
   const { run, project } = context;
-  
+
   callbacks.onLog("info", "Starting inbox analysis", "inbox");
   callbacks.onProgress(0.2, "Analyzing input...");
 
-  // Get the raw input from project metadata or description
   const rawInput = project.description || "";
-  
+
   if (!rawInput || rawInput.length < 50) {
-    callbacks.onLog("warn", "No substantial input found in project description", "inbox");
+    callbacks.onLog(
+      "warn",
+      "No substantial input found in project description",
+      "inbox",
+    );
     return {
       success: false,
       error: "No input text found. Add a transcript or description to the project.",
     };
   }
 
-  // Execute with AI provider
   const provider = getDefaultProvider();
   const userPrompt = `Analyze this input and extract insights:\n\n${rawInput}`;
-  
+
   const result = await provider.execute(
     INBOX_SYSTEM_PROMPT,
     userPrompt,
     {
-      runId: run.id,
+      runId: run._id,
       workspaceId: run.workspaceId,
       cardId: run.cardId,
       stage: run.stage,
     },
-    callbacks
+    callbacks,
   );
 
   if (!result.success) {
@@ -94,33 +101,23 @@ export async function executeInbox(
 
   callbacks.onProgress(0.7, "Saving research document...");
 
-  // Save the analysis as a research document
+  const client = getConvexClient();
   const now = new Date();
-  const docId = `doc_${nanoid()}`;
-  
-  await db.insert(documents).values({
-    id: docId,
-    projectId: project.id,
-    type: "research" as DocumentType,
+
+  const docId = await client.mutation(api.documents.create, {
+    workspaceId: run.workspaceId as Id<"workspaces">,
+    projectId: run.cardId as Id<"projects">,
+    type: "research",
     title: `Signal Analysis - ${project.name}`,
     content: result.output || "",
-    version: 1,
-    filePath: `signals/${now.toISOString().split("T")[0]}-${project.name.toLowerCase().replace(/\s+/g, "-")}.md`,
-    metadata: {
-      generatedBy: "ai",
-      model: "claude-sonnet-4-20250514",
-      promptVersion: "inbox-v1",
-    },
-    createdAt: now,
-    updatedAt: now,
+    generatedByAgent: "inbox-executor",
   });
 
-  // Create artifact
   await callbacks.onArtifact(
     "file",
     "Signal Analysis",
-    `documents/${docId}`,
-    { documentType: "research" }
+    `projects/${run.cardId}/documents/${docId}`,
+    { documentType: "research" },
   );
 
   callbacks.onLog("info", "Research document saved successfully", "inbox");

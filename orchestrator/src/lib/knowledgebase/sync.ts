@@ -13,12 +13,47 @@
 import { readFile, stat, readdir } from "node:fs/promises";
 import path from "node:path";
 import { Octokit } from "@octokit/rest";
-import type { KnowledgebaseType } from "@/lib/db/schema";
 import {
-  getWorkspace,
-  upsertKnowledgebaseEntry,
-  upsertKnowledgebaseEntryByPath,
-} from "@/lib/db/queries";
+  getConvexWorkspace,
+  upsertConvexKnowledge,
+} from "@/lib/convex/server";
+
+type KnowledgebaseType = "company_context" | "strategic_guardrails" | "personas" | "roadmap" | "rules";
+
+async function upsertKnowledgebaseEntry(data: {
+  workspaceId: string;
+  type: KnowledgebaseType;
+  title: string;
+  content: string;
+  filePath?: string;
+}): Promise<void> {
+  await upsertConvexKnowledge(data);
+}
+
+async function upsertKnowledgebaseEntryByPath(data: {
+  workspaceId: string;
+  type: KnowledgebaseType;
+  title: string;
+  content: string;
+  filePath: string;
+}): Promise<void> {
+  await upsertConvexKnowledge(data);
+}
+
+async function getWorkspace(workspaceId: string) {
+  return getConvexWorkspace(workspaceId) as Promise<{
+    id: string;
+    githubRepo?: string | null;
+    contextPath?: string | null;
+    settings?: {
+      contextPaths?: string[];
+      baseBranch?: string;
+      prototypesPath?: string;
+      customKnowledgeMapping?: Record<string, string>;
+      syncFullFolders?: boolean;
+    } | null;
+  } | null>;
+}
 
 // Default mapping of knowledgebase types to file paths (relative to contextPath)
 // Used for backward compatibility with single-file sync
@@ -361,7 +396,7 @@ export async function syncKnowledgeBase(
         : ["pm-workspace-docs/", "elmer-docs/"];
 
   // Get custom knowledgebase mapping if configured
-  const customMapping = workspace.settings?.knowledgebaseMapping || {};
+  const customMapping = (workspace.settings as Record<string, unknown> | null)?.knowledgebaseMapping as Record<string, string> || {};
 
   // Process each knowledgebase type
   const knowledgebaseTypes: KnowledgebaseType[] = [

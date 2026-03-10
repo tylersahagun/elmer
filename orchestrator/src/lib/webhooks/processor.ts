@@ -1,13 +1,18 @@
 /**
  * Async signal processing for webhooks
- * Runs in after() context after immediate 200 response
+ * Runs in after() context after immediate 200 response.
+ * Uses Convex for signal creation (replaces Drizzle).
  */
-import { db } from "@/lib/db";
-import { signals, webhookKeys, activityLogs } from "@/lib/db/schema";
-import type { SignalSeverity, SignalFrequency, SignalSourceMetadata } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { processSignalExtraction } from "@/lib/signals";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 export interface SignalWebhookPayload {
   // Required
@@ -20,8 +25,8 @@ export interface SignalWebhookPayload {
   userSegment?: string;
 
   // Source tracking
-  sourceRef?: string;        // External ID for idempotency
-  sourceUrl?: string;        // Link to original source
+  sourceRef?: string;
+  sourceUrl?: string;
 
   // Ask Elephant specific
   interviewDate?: string;
@@ -44,112 +49,36 @@ export interface ProcessResult {
 }
 
 /**
- * Process a webhook payload into a signal
- * Uses check-then-insert for idempotency
+ * Process a webhook payload into a signal via Convex.
+ * Uses check-then-insert idempotency via sourceRef.
  */
 export async function processSignalWebhook(
   input: ProcessWebhookInput
 ): Promise<ProcessResult> {
-  const { workspaceId, payload, receivedAt, webhookKeyId } = input;
+  const { workspaceId, payload, receivedAt } = input;
 
-  // Generate sourceRef if not provided (timestamp-based for uniqueness)
   const sourceRef = payload.sourceRef || `webhook-${receivedAt.getTime()}-${nanoid(8)}`;
 
   try {
-    // Idempotent insert - check for existing signal with same sourceRef
-    // Note: signals table doesn't have unique constraint on sourceRef yet,
-    // so we check-then-insert with a unique sourceRef pattern
-    const existingSignal = await db.query.signals.findFirst({
-      where: (signals, { and, eq }) =>
-        and(
-          eq(signals.workspaceId, workspaceId),
-          eq(signals.source, "webhook"),
-          eq(signals.sourceRef, sourceRef)
-        ),
-    });
-
-    if (existingSignal) {
-      return { created: false, signalId: existingSignal.id, duplicate: true };
-    }
-
-    // Build source metadata
-    const sourceMetadata: SignalSourceMetadata = {
-      sourceUrl: payload.sourceUrl,
-      interviewDate: payload.interviewDate,
-      interviewee: payload.interviewee,
-      webhookId: webhookKeyId,
-      rawPayload: payload as unknown as Record<string, unknown>,
-    };
-
-    // Build insert values - only include optional fields if set
-    const insertValues: typeof signals.$inferInsert = {
-      id: nanoid(),
-      workspaceId,
+    const client = getConvexClient();
+    const result = await client.mutation(api.signals.createFromWebhook, {
+      workspaceId: workspaceId as Id<"workspaces">,
       verbatim: payload.verbatim,
-      source: "webhook",
       sourceRef,
-      sourceMetadata,
-      status: "new",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    // Add optional fields only if provided
-    if (payload.interpretation) {
-      insertValues.interpretation = payload.interpretation;
-    }
-    if (payload.severity) {
-      insertValues.severity = payload.severity as SignalSeverity;
-    }
-    if (payload.frequency) {
-      insertValues.frequency = payload.frequency as SignalFrequency;
-    }
-    if (payload.userSegment) {
-      insertValues.userSegment = payload.userSegment;
-    }
-
-    const [signal] = await db
-      .insert(signals)
-      .values(insertValues)
-      .returning();
-
-    // Update webhook key last used timestamp
-    if (webhookKeyId) {
-      await db
-        .update(webhookKeys)
-        .set({ lastUsedAt: new Date() })
-        .where(eq(webhookKeys.id, webhookKeyId));
-    }
-
-    // Log activity
-    await db.insert(activityLogs).values({
-      id: nanoid(),
-      workspaceId,
-      action: "signal.created",
-      targetType: "signal",
-      targetId: signal.id,
-      metadata: {
-        source: "webhook",
-        webhookKeyId,
-        verbatimPreview: payload.verbatim.slice(0, 100),
-      },
-      createdAt: new Date(),
+      interpretation: payload.interpretation,
+      severity: payload.severity,
+      frequency: payload.frequency,
+      userSegment: payload.userSegment,
+      tags: payload.tags,
     });
 
-    // Queue AI extraction and embedding (Phase 15)
-    // Note: We're already in after() context, so this runs synchronously here
-    // but errors are caught and logged, not thrown
-    try {
-      await processSignalExtraction(signal.id);
-    } catch (error) {
-      console.error(`Failed to process webhook signal ${signal.id}:`, error);
+    if (result.duplicate) {
+      return { created: false, signalId: result.signalId as string, duplicate: true };
     }
 
-    return { created: true, signalId: signal.id };
+    return { created: true, signalId: result.signalId as string };
   } catch (error) {
     console.error("Webhook processing error:", error);
-    // Don't throw - webhook is already ACKed
-    // Error is logged for debugging, could create notification for visibility
     return {
       created: false,
       error: error instanceof Error ? error.message : "Unknown error",

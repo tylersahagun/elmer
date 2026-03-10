@@ -1,7 +1,5 @@
-import { db } from "./db";
-import { activityLogs, users } from "./db/schema";
-import { nanoid } from "nanoid";
 import { createConvexWorkspaceActivity } from "./convex/server";
+import { clerkClient } from "@clerk/nextjs/server";
 
 /**
  * Activity action types for consistent logging
@@ -94,37 +92,21 @@ export async function logActivity(
 ) {
   const { targetType, targetId, metadata } = options || {};
 
-  let actorName: string | undefined;
-  let actorEmail: string | undefined;
-  let actorImage: string | undefined;
+  let actorName: string | null = null;
+  let actorEmail: string | null = null;
+  let actorImage: string | null = null;
   if (userId) {
     try {
-      const user = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.id, userId),
-      });
-      actorName = user?.name ?? undefined;
-      actorEmail = user?.email ?? undefined;
-      actorImage = user?.image ?? undefined;
+      const client = await clerkClient();
+      const user = await client.users.getUser(userId);
+      actorName = user.fullName ?? user.username ?? null;
+      actorEmail = user.primaryEmailAddress?.emailAddress ?? null;
+      actorImage = user.imageUrl ?? null;
     } catch {
-      // best-effort only
+      // non-fatal
     }
   }
 
-  const entry = await db
-    .insert(activityLogs)
-    .values({
-      id: nanoid(),
-      workspaceId,
-      userId,
-      action,
-      targetType,
-      targetId,
-      metadata,
-      createdAt: new Date(),
-    })
-    .returning();
-
-  // Dual-write to Convex during migration so activity feed parity can advance
   try {
     await createConvexWorkspaceActivity({
       workspaceId,
@@ -133,15 +115,13 @@ export async function logActivity(
       targetType,
       targetId,
       metadata,
-      actorName,
-      actorEmail,
-      actorImage,
+      actorName: actorName ?? undefined,
+      actorEmail: actorEmail ?? undefined,
+      actorImage: actorImage ?? undefined,
     });
   } catch {
-    // best-effort only; keep legacy activity logging non-blocking
+    // best-effort only
   }
-
-  return entry[0];
 }
 
 /**

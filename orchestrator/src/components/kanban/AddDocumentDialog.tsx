@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, Loader2, Plus } from "lucide-react";
-import type { DocumentType } from "@/lib/db/schema";
+type DocumentType = "research" | "prd" | "design_brief" | "engineering_spec" | "gtm_brief" | "prototype_notes" | "jury_report" | "metrics" | "state" | "feature_guide" | "competitive_landscape" | "success_criteria" | "gtm_plan" | "retrospective" | "decisions" | "visual_directions";
 
 // Simple select component fallback if shadcn Select isn't available
 const SelectFallback = ({

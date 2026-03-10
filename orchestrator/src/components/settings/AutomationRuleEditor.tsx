@@ -51,7 +51,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import type { AgentDefinitionType } from "@/lib/db/schema";
+type AgentDefinitionType = "agents_md" | "skill" | "command" | "subagent" | "rule";
 
 // Type badge colors matching AgentsList pattern
 const TYPE_BADGES: Record<AgentDefinitionType, { bg: string; text: string; icon: typeof Bot }> = {

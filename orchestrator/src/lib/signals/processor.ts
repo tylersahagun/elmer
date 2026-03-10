@@ -11,27 +11,37 @@
  * - Never throw in after() context - log errors for debugging
  */
 
-import { getSignal, updateSignalProcessing } from "@/lib/db/queries";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   extractSignalFields,
   generateEmbedding,
-  embeddingToBase64,
 } from "@/lib/ai";
 import { classifySignal } from "@/lib/classification";
 import { checkSignalAutomationForNewSignal } from "@/lib/automation/signal-automation";
 
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
 /**
  * Process a single signal: extract fields and generate embedding.
  *
- * @param signalId - ID of the signal to process
- * @returns void - results are stored in database
+ * @param signalId - Convex ID of the signal to process
+ * @returns void - results are stored in Convex
  *
  * Idempotency: Returns early if signal.processedAt is already set.
  * Error handling: Resets processedAt to null on failure to allow retry.
  */
 export async function processSignalExtraction(signalId: string): Promise<void> {
-  // Fetch signal
-  const signal = await getSignal(signalId);
+  const client = getConvexClient();
+
+  const signal = await client.query(api.signals.get, {
+    signalId: signalId as Id<"signals">,
+  });
 
   if (!signal) {
     console.warn(`Signal ${signalId} not found for processing`);
@@ -45,75 +55,85 @@ export async function processSignalExtraction(signalId: string): Promise<void> {
   }
 
   // Set processedAt optimistically BEFORE processing (prevents duplicate processing)
-  await updateSignalProcessing(signalId, {
-    processedAt: new Date(),
+  await client.mutation(api.signals.update, {
+    signalId: signalId as Id<"signals">,
+    processedAt: Date.now(),
   });
 
   try {
     // Extract structured fields using Claude
-    const extraction = await extractSignalFields(signal.verbatim);
+    const extraction = await extractSignalFields(signal.verbatim as string);
 
     // Generate embedding using OpenAI
-    const embeddingVector = await generateEmbedding(signal.verbatim);
-    const embeddingBase64 = embeddingToBase64(embeddingVector);
+    const embeddingVector = await generateEmbedding(signal.verbatim as string);
 
-    // Update signal with all processed data
-    await updateSignalProcessing(signalId, {
-      severity: extraction.severity,
-      frequency: extraction.frequency,
-      userSegment: extraction.userSegment,
-      // Only set interpretation if not already provided by user
-      interpretation: signal.interpretation || extraction.interpretation,
-      embedding: embeddingBase64,
-      processedAt: new Date(), // Update to actual completion time
+    // Update signal with extracted fields + processedAt
+    // Convert null values to undefined for Convex mutation compatibility
+    await client.mutation(api.signals.update, {
+      signalId: signalId as Id<"signals">,
+      severity: extraction.severity ?? undefined,
+      frequency: extraction.frequency ?? undefined,
+      userSegment: extraction.userSegment ?? undefined,
+      interpretation:
+        (signal.interpretation as string | undefined) ||
+        extraction.interpretation ||
+        undefined,
+      processedAt: Date.now(),
     });
+
+    // Store embedding separately
+    if (embeddingVector && embeddingVector.length > 0) {
+      await client.mutation(api.signals.storeEmbedding, {
+        signalId: signalId as Id<"signals">,
+        embeddingVector,
+      });
+    }
 
     console.info(`Signal ${signalId} processed successfully`);
 
     // Classify signal if embedding was generated
     if (embeddingVector && embeddingVector.length === 1536) {
       try {
-        // Get the signal's workspace for classification context
-        const updatedSignal = await getSignal(signalId);
+        const updatedSignal = await client.query(api.signals.get, {
+          signalId: signalId as Id<"signals">,
+        });
         if (updatedSignal) {
           await classifySignal(
             signalId,
             embeddingVector,
-            signal.verbatim,
-            updatedSignal.workspaceId
+            signal.verbatim as string,
+            updatedSignal.workspaceId as string
           );
           console.info(`Signal ${signalId} classified`);
         }
       } catch (classifyError) {
-        // Classification failure should not fail the overall processing
         console.error(`Classification failed for signal ${signalId}:`, classifyError);
       }
     }
 
-    // Check if automation thresholds are now met (Phase 19)
-    // This runs after classification completes - failures don't break the pipeline
+    // Check if automation thresholds are now met
     try {
-      // getSignal is already imported and used in this file
-      const signalForAutomation = await getSignal(signalId);
+      const signalForAutomation = await client.query(api.signals.get, {
+        signalId: signalId as Id<"signals">,
+      });
       if (signalForAutomation) {
         await checkSignalAutomationForNewSignal(
-          signalForAutomation.workspaceId,
+          signalForAutomation.workspaceId as string,
           signalId
         );
       }
     } catch (autoError) {
-      // Automation check failure should not fail signal processing
       console.error(`Automation check failed for signal ${signalId}:`, autoError);
     }
   } catch (error) {
     // Reset processedAt to allow retry
-    await updateSignalProcessing(signalId, {
+    await client.mutation(api.signals.update, {
+      signalId: signalId as Id<"signals">,
       processedAt: null,
     });
 
-    // Log error but don't throw (we're in after() context)
     console.error(`Failed to process signal ${signalId}:`, error);
-    throw error; // Re-throw so caller can handle if needed
+    throw error;
   }
 }
 
@@ -133,26 +153,21 @@ export async function batchProcessSignals(
   let processed = 0;
   let failed = 0;
 
-  // Process in batches
   for (let i = 0; i < signalIds.length; i += BATCH_SIZE) {
     const batch = signalIds.slice(i, i + BATCH_SIZE);
 
-    // Process batch in parallel
     const results = await Promise.allSettled(
       batch.map((id) => processSignalExtraction(id))
     );
 
-    // Count results
     for (const result of results) {
       if (result.status === "fulfilled") {
         processed++;
       } else {
         failed++;
-        // Error already logged in processSignalExtraction
       }
     }
 
-    // Delay between batches (except for last batch)
     if (i + BATCH_SIZE < signalIds.length) {
       await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }

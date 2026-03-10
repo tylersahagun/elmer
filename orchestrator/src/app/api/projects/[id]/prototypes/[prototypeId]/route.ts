@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
-import { getProject, updatePrototype, deletePrototype } from "@/lib/db/queries";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../../convex/_generated/dataModel";
+import { getConvexProjectWithDocuments } from "@/lib/convex/server";
 import { buildChromaticStorybookUrl } from "@/lib/chromatic";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 interface RouteParams {
   params: Promise<{ id: string; prototypeId: string }>;
@@ -9,23 +18,25 @@ interface RouteParams {
 
 // PATCH /api/projects/[id]/prototypes/[prototypeId] - Update a prototype
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const { userId } = await clerkAuth();
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id: projectId, prototypeId } = await params;
 
-  // Verify project exists and prototype belongs to it
-  const project = await getProject(projectId);
+  // Verify project exists
+  const project = await getConvexProjectWithDocuments(projectId);
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const prototype = project.prototypes?.find(
-    (p: { id: string }) => p.id === prototypeId,
-  );
-  if (!prototype) {
+  // Verify prototype exists
+  const client = getConvexClient();
+  const variant = await client.query(api.prototypes.get, {
+    variantId: prototypeId as Id<"prototypeVariants">,
+  });
+  if (!variant) {
     return NextResponse.json({ error: "Prototype not found" }, { status: 404 });
   }
 
@@ -40,45 +51,46 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       status,
     } = body;
 
-    // Build the update object
-    const updateData: Parameters<typeof updatePrototype>[1] = {};
+    const updateArgs: {
+      variantId: Id<"prototypeVariants">;
+      url?: string;
+      chromaticUrl?: string;
+      status?: string;
+      metadata?: Record<string, unknown>;
+    } = {
+      variantId: prototypeId as Id<"prototypeVariants">,
+    };
 
     if (storybookPath !== undefined) {
-      updateData.storybookPath = storybookPath;
+      updateArgs.url = storybookPath;
     }
 
     if (chromaticStorybookUrl !== undefined) {
-      updateData.chromaticStorybookUrl = chromaticStorybookUrl;
+      updateArgs.chromaticUrl = chromaticStorybookUrl;
     } else if (branch && !chromaticStorybookUrl) {
-      // Construct URL from branch if provided
-      updateData.chromaticStorybookUrl = buildChromaticStorybookUrl(branch);
+      updateArgs.chromaticUrl = buildChromaticStorybookUrl(branch);
     }
 
     if (status !== undefined) {
-      updateData.status = status;
+      updateArgs.status = status;
     }
 
-    // Update metadata
-    const existingMetadata = (prototype.metadata || {}) as Record<
-      string,
-      unknown
-    >;
-    updateData.metadata = {
+    const existingMetadata = (variant.metadata || {}) as Record<string, unknown>;
+    updateArgs.metadata = {
       ...existingMetadata,
       ...(versionLabel !== undefined && { versionLabel }),
       ...(branch !== undefined && { branch }),
       ...(name !== undefined && { displayName: name }),
     };
 
-    await updatePrototype(prototypeId, updateData);
+    await client.mutation(api.prototypes.updateVariant, updateArgs);
 
-    // Fetch the updated project to get the updated prototype
-    const updatedProject = await getProject(projectId);
-    const updatedPrototype = updatedProject?.prototypes?.find(
-      (p: { id: string }) => p.id === prototypeId,
-    );
+    // Fetch the updated variant to return
+    const updated = await client.query(api.prototypes.get, {
+      variantId: prototypeId as Id<"prototypeVariants">,
+    });
 
-    return NextResponse.json(updatedPrototype);
+    return NextResponse.json(updated);
   } catch (error) {
     console.error("Error updating prototype:", error);
     return NextResponse.json(
@@ -90,28 +102,32 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/projects/[id]/prototypes/[prototypeId] - Delete a prototype
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const { userId } = await clerkAuth();
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id: projectId, prototypeId } = await params;
 
-  // Verify project exists and prototype belongs to it
-  const project = await getProject(projectId);
+  // Verify project exists
+  const project = await getConvexProjectWithDocuments(projectId);
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const prototype = project.prototypes?.find(
-    (p: { id: string }) => p.id === prototypeId,
-  );
-  if (!prototype) {
+  // Verify prototype exists
+  const client = getConvexClient();
+  const variant = await client.query(api.prototypes.get, {
+    variantId: prototypeId as Id<"prototypeVariants">,
+  });
+  if (!variant) {
     return NextResponse.json({ error: "Prototype not found" }, { status: 404 });
   }
 
   try {
-    await deletePrototype(prototypeId);
+    await client.mutation(api.prototypes.deleteVariant, {
+      variantId: prototypeId as Id<"prototypeVariants">,
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting prototype:", error);

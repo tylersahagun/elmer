@@ -1,6 +1,6 @@
 /**
  * Design Stage Executor
- * 
+ *
  * Inputs: PRD + design-brief.md
  * Automation:
  *   - Create design-review.md (trust, states, accessibility)
@@ -14,12 +14,17 @@
  *   - Accessibility requirements defined
  */
 
-import { db } from "@/lib/db";
-import { documents, type DocumentType } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { getDefaultProvider, type StreamCallback } from "../providers";
 import type { StageContext, StageExecutionResult } from "./index";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 const DESIGN_REVIEW_SYSTEM_PROMPT = `You are a design companion focused on human-centric AI design. Your task is to review the design brief and PRD, then create a comprehensive design review document.
 
@@ -68,17 +73,16 @@ Format your response as markdown:
 
 export async function executeDesign(
   context: StageContext,
-  callbacks: StreamCallback
+  callbacks: StreamCallback,
 ): Promise<StageExecutionResult> {
   const { run, project, documents: existingDocs } = context;
-  
+
   callbacks.onLog("info", "Starting design review", "design");
   callbacks.onProgress(0.2, "Loading PRD and design brief...");
 
-  // Get PRD and design brief
   const prdDoc = existingDocs.find((doc) => doc.type === "prd");
   const designBrief = existingDocs.find((doc) => doc.type === "design_brief");
-  
+
   if (!prdDoc) {
     callbacks.onLog("warn", "No PRD found", "design");
     return {
@@ -88,7 +92,7 @@ export async function executeDesign(
   }
 
   const provider = getDefaultProvider();
-  
+
   const userPrompt = `Review this PRD and design brief for a comprehensive design review:
 
 Project: ${project.name}
@@ -105,12 +109,12 @@ ${designBrief ? `## Design Brief\n${designBrief.content}` : "No design brief ava
     DESIGN_REVIEW_SYSTEM_PROMPT,
     userPrompt,
     {
-      runId: run.id,
+      runId: run._id,
       workspaceId: run.workspaceId,
       cardId: run.cardId,
       stage: run.stage,
     },
-    callbacks
+    callbacks,
   );
 
   if (!result.success) {
@@ -123,35 +127,33 @@ ${designBrief ? `## Design Brief\n${designBrief.content}` : "No design brief ava
 
   callbacks.onProgress(0.8, "Saving design review...");
 
-  const now = new Date();
-  const docId = `doc_${nanoid()}`;
+  const client = getConvexClient();
 
-  // Check for existing design review (type is not in our enum, we'll use a workaround)
-  // For now, save as prototype_notes which can hold design notes
-  await db.insert(documents).values({
-    id: docId,
-    projectId: project.id,
-    type: "prototype_notes" as DocumentType, // Using prototype_notes for design review
-    title: `Design Review - ${project.name}`,
-    content: result.output || "",
-    version: 1,
-    filePath: `initiatives/${project.name.toLowerCase().replace(/\s+/g, "-")}/design-review.md`,
-    metadata: {
-      generatedBy: "ai",
-      model: "claude-sonnet-4-20250514",
-      promptVersion: "design-v1",
-      actualType: "design_review",
-    },
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  await callbacks.onArtifact(
-    "file",
-    "Design Review",
-    `documents/${docId}`,
-    { documentType: "design_review" }
+  // Check for existing design review doc (using prototype_notes type as proxy)
+  const existingReview = existingDocs.find(
+    (doc) => doc.type === "prototype_notes" && doc.title.includes("Design Review"),
   );
+
+  if (existingReview) {
+    await client.mutation(api.documents.update, {
+      documentId: existingReview._id as Id<"documents">,
+      content: result.output || "",
+      title: `Design Review - ${project.name}`,
+    });
+  } else {
+    await client.mutation(api.documents.create, {
+      workspaceId: run.workspaceId as Id<"workspaces">,
+      projectId: run.cardId as Id<"projects">,
+      type: "prototype_notes",
+      title: `Design Review - ${project.name}`,
+      content: result.output || "",
+      generatedByAgent: "design-executor",
+    });
+  }
+
+  await callbacks.onArtifact("file", "Design Review", `projects/${run.cardId}/documents`, {
+    documentType: "design_review",
+  });
 
   callbacks.onLog("info", "Design review complete", "design");
   callbacks.onProgress(1.0, "Design review complete");

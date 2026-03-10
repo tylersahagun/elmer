@@ -21,7 +21,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import type { SourceRepoTransformation, PathMapping } from "@/lib/db/schema";
+interface PathMapping {
+  from: string;
+  to: string;
+}
+interface SourceRepoTransformation {
+  sourceRepo: string;
+  name: string;
+  enabled: boolean;
+  pathMappings: PathMapping[];
+  chromaticConfig?: {
+    token?: string;
+    appId?: string;
+    productionUrl?: string;
+  };
+  lastSynced?: string;
+}
 
 interface SourceRepoTransformationsCardProps {
   transformations: SourceRepoTransformation[];

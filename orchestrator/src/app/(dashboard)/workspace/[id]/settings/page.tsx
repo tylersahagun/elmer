@@ -73,12 +73,52 @@ import {
 import { AgentsList } from "@/components/agents/AgentsList";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
-import type {
-  WorkspaceRole,
-  MaintenanceSettings,
-  SignalAutomationSettings,
-  SourceRepoTransformation,
-} from "@/lib/db/schema";
+type WorkspaceRole = "admin" | "member" | "viewer";
+
+interface MaintenanceSettings {
+  orphanThresholdDays: number;
+  flagOrphansEnabled: boolean;
+  duplicateDetectionEnabled: boolean;
+  duplicateSimilarityThreshold: number;
+  autoArchiveEnabled: boolean;
+  autoArchiveLinkedAfterDays: number;
+  autoArchiveReviewedAfterDays: number;
+  suggestAssociationsEnabled: boolean;
+  minSuggestionConfidence: number;
+  notifyOnOrphanThreshold: number | null;
+  notifyOnDuplicates: boolean;
+}
+
+type SignalSeverity = "critical" | "high" | "medium" | "low";
+interface SignalAutomationSettings {
+  automationDepth: "manual" | "suggest" | "auto_create" | "full_auto";
+  autoPrdThreshold: number;
+  autoInitiativeThreshold: number;
+  minClusterConfidence: number;
+  minSeverityForAuto: SignalSeverity | null;
+  notifyOnClusterSize: number | null;
+  notifyOnSeverity: SignalSeverity | null;
+  suppressDuplicateNotifications: boolean;
+  maxAutoActionsPerDay: number;
+  cooldownMinutes: number;
+}
+
+interface PathMapping {
+  from: string;
+  to: string;
+}
+interface SourceRepoTransformation {
+  sourceRepo: string;
+  name: string;
+  enabled: boolean;
+  pathMappings: PathMapping[];
+  chromaticConfig?: {
+    token?: string;
+    appId?: string;
+    productionUrl?: string;
+  };
+  lastSynced?: string;
+}
 import { canRunConvexQuery } from "@/lib/auth/convex";
 
 interface WorkspaceMember {

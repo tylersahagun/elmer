@@ -38,7 +38,8 @@ import {
   Trash2,
   Save,
 } from "lucide-react";
-import type { JobType, DocumentType } from "@/lib/db/schema";
+type JobType = "generate_prd" | "generate_design_brief" | "generate_engineering_spec" | "generate_gtm_brief" | "analyze_transcript" | "run_jury_evaluation" | "build_prototype" | "iterate_prototype" | "generate_tickets" | "validate_tickets" | "score_stage_alignment" | "deploy_chromatic" | "create_feature_branch" | "process_signal" | "synthesize_signals" | "execute_agent_definition";
+type DocumentType = "research" | "prd" | "design_brief" | "engineering_spec" | "gtm_brief" | "prototype_notes" | "jury_report" | "metrics" | "state" | "feature_guide" | "competitive_landscape" | "success_criteria" | "gtm_plan" | "retrospective" | "decisions" | "visual_directions";
 
 // Stage color mapping
 const stageColors: Record<string, { bg: string; text: string; glow: string }> =

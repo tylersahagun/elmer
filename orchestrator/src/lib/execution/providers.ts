@@ -6,7 +6,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import { addRunLog } from "./run-manager";
+import { addRunLog } from "./run-manager-convex";
 
 // ============================================
 // PROVIDER TYPES
@@ -263,7 +263,7 @@ try {
 // HELPER: Create callbacks that log to DB
 // ============================================
 
-import { createArtifact } from "./run-manager";
+import { createArtifact } from "./run-manager-convex";
 
 export function createDbCallbacks(
   runId: string,
@@ -273,23 +273,21 @@ export function createDbCallbacks(
 ): StreamCallback {
   return {
     onLog: async (level, message, stepKey) => {
-      await addRunLog(runId, level, message, stepKey);
+      await addRunLog(runId, level, message, undefined, stepKey);
     },
     onProgress: async (progress, message) => {
       if (message) {
-        await addRunLog(runId, "info", `[${Math.round(progress * 100)}%] ${message}`, "progress");
+        await addRunLog(runId, "info", `[${Math.round(progress * 100)}%] ${message}`, undefined, "progress");
       }
     },
-    onArtifact: async (type, label, uri, meta) => {
+    onArtifact: async (type, _label, uri, meta) => {
       await createArtifact({
         runId,
         cardId,
         workspaceId,
-        stage: stage as import("@/lib/db/schema").ProjectStage,
-        artifactType: type as import("@/lib/db/schema").ArtifactType,
-        label,
-        uri,
-        meta,
+        type,
+        url: uri,
+        metadata: meta as Record<string, unknown> | undefined,
       });
     },
   };

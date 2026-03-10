@@ -20,12 +20,9 @@ import {
   rescueStuckRuns,
   unlockStuckCards,
   createArtifact,
-} from "./run-manager";
+} from "./run-manager-convex";
 import { getProvider, getDefaultProvider, createDbCallbacks, type ExecutionResult } from "./providers";
 import { executeStage, executeStageWithTasks } from "./stage-executors";
-import { db } from "@/lib/db";
-import { stageRecipes, projects, documents } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
 
 // ============================================
 // WORKER CONFIGURATION
@@ -132,7 +129,7 @@ export class ExecutionWorker {
     }
     
     // Update worker status
-    await updateWorkerHeartbeat(this.config.workerId, "idle", null);
+    await updateWorkerHeartbeat(this.config.workerId, undefined);
     
     this.isRunning = false;
     console.log(`[Worker ${this.config.workerId}] Stopped`);
@@ -163,11 +160,11 @@ export class ExecutionWorker {
         }
 
         // Try to claim the run
-        const claimed = await claimRun(run.id, this.config.workerId);
+        const claimed = await claimRun(run._id, this.config.workerId);
         if (claimed) {
           this.activeTasks++;
           // Don't await - run async
-          this.executeRun(run.id).catch((error) => {
+          this.executeRun(run._id).catch((error) => {
             console.error(`[Worker ${this.config.workerId}] Execute error:`, error);
           });
         }
@@ -190,7 +187,7 @@ export class ExecutionWorker {
     try {
       await updateWorkerHeartbeat(
         this.config.workerId,
-        this.activeTasks > 0 ? "processing" : "idle"
+        this.activeTasks > 0 ? [] : undefined
       );
     } catch (error) {
       console.error(`[Worker ${this.config.workerId}] Heartbeat error:`, error);
@@ -238,23 +235,11 @@ export class ExecutionWorker {
       const durationMs = Date.now() - startTime;
       
       if (result.success) {
-        await completeRun(runId, "succeeded", undefined, {
-          durationMs,
-          tokensUsed: result.tokensUsed,
-          skillsExecuted: result.skillsExecuted,
-          gateResults: result.gateResults,
-          taskResults: result.taskResults,
-        });
+        await completeRun(runId, "succeeded", undefined);
         await incrementWorkerStats(this.config.workerId, false);
         console.log(`[Worker ${this.config.workerId}] Run ${runId} succeeded in ${durationMs}ms`);
       } else {
-        await completeRun(runId, "failed", result.error, {
-          durationMs,
-          tokensUsed: result.tokensUsed,
-          skillsExecuted: result.skillsExecuted,
-          gateResults: result.gateResults,
-          taskResults: result.taskResults,
-        });
+        await completeRun(runId, "failed", result.error);
         await incrementWorkerStats(this.config.workerId, true);
         console.log(`[Worker ${this.config.workerId}] Run ${runId} failed: ${result.error}`);
       }
@@ -264,7 +249,7 @@ export class ExecutionWorker {
       
       console.error(`[Worker ${this.config.workerId}] Run ${runId} error:`, error);
       await addRunLog(runId, "error", `Unexpected error: ${errorMessage}`, "worker");
-      await completeRun(runId, "failed", errorMessage, { durationMs });
+      await completeRun(runId, "failed", errorMessage);
       await incrementWorkerStats(this.config.workerId, true);
     } finally {
       this.activeTasks--;

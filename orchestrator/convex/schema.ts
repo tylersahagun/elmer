@@ -73,9 +73,11 @@ export default defineSchema({
     priority: v.string(), // "P0" | "P1" | "P2" | "P3"
     metadata: v.any(),
     isLocked: v.optional(v.boolean()),
-    // Linked Slack channel for continuous prototype feedback ingestion
     slackChannelId: v.optional(v.string()),
     slackChannelName: v.optional(v.string()),
+    // Embedding for project-signal matching (replaces pgvector on Postgres projects table)
+    embeddingVector: v.optional(v.array(v.float64())),
+    embeddingUpdatedAt: v.optional(v.number()),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_stage", ["workspaceId", "stage"]),
@@ -149,12 +151,20 @@ export default defineSchema({
     verbatim: v.string(),
     interpretation: v.optional(v.string()),
     severity: v.optional(v.string()),
+    frequency: v.optional(v.string()),
+    userSegment: v.optional(v.string()),
     source: v.string(),
     status: v.string(),
     classification: v.optional(v.any()),
-    neonSignalId: v.optional(v.string()), // FK to Neon pgvector
+    neonSignalId: v.optional(v.string()),
     inboxItemId: v.optional(v.id("inboxItems")),
     tags: v.optional(v.array(v.string())),
+    // Embedding for in-process cosine similarity search (replaces pgvector)
+    embeddingVector: v.optional(v.array(v.float64())),
+    embeddingUpdatedAt: v.optional(v.number()),
+    processedAt: v.optional(v.number()),
+    sourceRef: v.optional(v.string()),
+    sourceMetadata: v.optional(v.any()),
   }).index("by_workspace_status", ["workspaceId", "status"]),
 
   signalProjects: defineTable({
@@ -209,9 +219,26 @@ export default defineSchema({
     requiredArtifacts: v.optional(v.array(v.string())),
     producedArtifacts: v.optional(v.array(v.string())),
     metadata: v.optional(v.any()),
+    sourceRepo: v.optional(v.string()),
+    sourceRef: v.optional(v.string()),
+    sourcePath: v.optional(v.string()),
+    syncedAt: v.optional(v.number()),
   })
     .index("by_workspace_type", ["workspaceId", "type"])
-    .index("by_name", ["workspaceId", "name"]),
+    .index("by_name", ["workspaceId", "name"])
+    .index("by_source_repo", ["workspaceId", "sourceRepo", "sourceRef"]),
+
+  agentKnowledgeSources: defineTable({
+    workspaceId: v.id("workspaces"),
+    sourceRepo: v.string(),
+    sourceRef: v.string(),
+    sourcePath: v.string(),
+    type: v.string(), // "knowledge" | "personas"
+    name: v.string(),
+    syncedAt: v.number(),
+  })
+    .index("by_workspace_repo", ["workspaceId", "sourceRepo", "sourceRef"])
+    .index("by_workspace_repo_type", ["workspaceId", "sourceRepo", "sourceRef", "type"]),
 
   agentExecutions: defineTable({
     jobId: v.id("jobs"),
@@ -444,4 +471,188 @@ export default defineSchema({
     isHITL: v.optional(v.boolean()),
     hitlJobId: v.optional(v.id("jobs")),
   }).index("by_thread", ["threadId"]),
+
+  // ── Execution Worker System ───────────────────────────────────────────────
+  // Replaces the Postgres stage_runs / run_logs / artifacts / worker_heartbeats
+  // tables. Workers are external processes; Convex is the control plane.
+
+  stageRuns: defineTable({
+    cardId: v.string(),               // project/card ID being automated
+    workspaceId: v.id("workspaces"),
+    stage: v.string(),                // "discovery" | "define" | "build" | "validate" | "launch"
+    // "queued" | "running" | "succeeded" | "failed" | "cancelled"
+    status: v.string(),
+    automationLevel: v.string(),      // "full_auto" | "human_approval" | "human_in_loop"
+    provider: v.string(),             // "anthropic" | "openai"
+    attempt: v.number(),
+    idempotencyKey: v.string(),
+    triggeredBy: v.string(),          // Clerk user ID or "system"
+    claimedBy: v.optional(v.string()),  // worker ID
+    claimedAt: v.optional(v.number()),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  })
+    .index("by_workspace_status", ["workspaceId", "status"])
+    .index("by_card_stage", ["cardId", "stage"])
+    .index("by_idempotency", ["idempotencyKey"]),
+
+  runLogs: defineTable({
+    runId: v.id("stageRuns"),
+    workspaceId: v.id("workspaces"),
+    level: v.string(),    // "info" | "warn" | "error" | "debug"
+    message: v.string(),
+    stepKey: v.optional(v.string()),
+    meta: v.optional(v.any()),
+  }).index("by_run", ["runId"]),
+
+  artifacts: defineTable({
+    runId: v.id("stageRuns"),
+    workspaceId: v.id("workspaces"),
+    cardId: v.string(),
+    // "document" | "file" | "url" | "pr" | "storybook" | "prototype"
+    type: v.string(),
+    content: v.optional(v.string()),
+    url: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  }).index("by_run", ["runId"]),
+
+  workerHeartbeats: defineTable({
+    workerId: v.string(),
+    workspaceId: v.optional(v.id("workspaces")),
+    lastSeen: v.number(),
+    activeRunIds: v.optional(v.array(v.string())),
+    processedCount: v.number(),
+    failedCount: v.number(),
+  }).index("by_worker", ["workerId"]),
+
+  stageRecipes: defineTable({
+    workspaceId: v.id("workspaces"),
+    stage: v.string(),
+    automationLevel: v.string(),
+    provider: v.string(),
+    skills: v.optional(v.array(v.string())),
+    gates: v.optional(v.array(v.string())),
+    enabled: v.boolean(),
+    // Full structured recipe steps and gate definitions (richer than skills[]/gates[])
+    recipeSteps: v.optional(v.any()),
+    gateDefinitions: v.optional(v.any()),
+    onFailBehavior: v.optional(v.string()),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_stage", ["workspaceId", "stage"]),
+
+  // ── Skills Catalog ────────────────────────────────────────────────────────
+  // Replaces Postgres skills table.
+
+  skills: defineTable({
+    workspaceId: v.optional(v.id("workspaces")),
+    source: v.string(), // "local" | "skillsmp" | "imported"
+    name: v.string(),
+    description: v.optional(v.string()),
+    version: v.optional(v.string()),
+    entrypoint: v.optional(v.string()),
+    promptTemplate: v.optional(v.string()),
+    trustLevel: v.string(), // "vetted" | "community" | "untrusted"
+    remoteMetadata: v.optional(v.any()),
+    metadata: v.optional(v.any()),
+    inputSchema: v.optional(v.any()),
+    outputSchema: v.optional(v.any()),
+    tags: v.optional(v.array(v.string())),
+    lastSynced: v.optional(v.number()),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_source", ["source"]),
+
+  // ── Knowledge Sources ─────────────────────────────────────────────────────
+  // Replaces Postgres knowledge_sources table.
+
+  knowledgeSources: defineTable({
+    workspaceId: v.id("workspaces"),
+    type: v.string(), // "notion" | "confluence" | "drive"
+    config: v.optional(v.any()),
+    lastSyncedAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspaceId"]),
+
+  // ── Tickets and Linear Sync ───────────────────────────────────────────────
+  // Replaces Postgres tickets / linearMappings tables.
+
+  tickets: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.id("projects"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    priority: v.optional(v.string()),
+    status: v.optional(v.string()),
+    linearId: v.optional(v.string()),
+    linearIdentifier: v.optional(v.string()),
+    jiraId: v.optional(v.string()),
+    jiraKey: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_workspace", ["workspaceId"]),
+
+  linearMappings: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    linearTeamId: v.optional(v.string()),
+    linearProjectId: v.optional(v.string()),
+    lastSyncedAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspaceId"]),
+
+  // ── Project Commits ───────────────────────────────────────────────────────
+  // Replaces Postgres projectCommits table.
+
+  projectCommits: defineTable({
+    projectId: v.id("projects"),
+    workspaceId: v.id("workspaces"),
+    sha: v.string(),
+    message: v.string(),
+    author: v.optional(v.string()),
+    committedAt: v.number(),
+    url: v.optional(v.string()),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_committed", ["projectId", "committedAt"]),
+
+  // ── Webhook Keys ──────────────────────────────────────────────────────────
+  // Replaces Postgres webhookKeys table.
+
+  webhookKeys: defineTable({
+    workspaceId: v.id("workspaces"),
+    keyHash: v.string(),
+    name: v.string(),
+    createdBy: v.optional(v.string()),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_key_hash", ["keyHash"]),
+
+  // ── Jury Evaluations ──────────────────────────────────────────────────────
+  // Replaces Postgres juryEvaluations table.
+  // Stores results from synthetic user jury evaluations run during the validate stage.
+
+  juryEvaluations: defineTable({
+    projectId: v.id("projects"),
+    workspaceId: v.id("workspaces"),
+    phase: v.string(), // "prototype" | "prd" | "design"
+    jurySize: v.number(),
+    approvalRate: v.number(), // 0.0 – 1.0
+    conditionalRate: v.optional(v.number()),
+    rejectionRate: v.optional(v.number()),
+    verdict: v.string(), // "pass" | "fail" | "conditional"
+    topConcerns: v.optional(v.array(v.string())),
+    topSuggestions: v.optional(v.array(v.string())),
+    rawResults: v.optional(v.any()),
+    reportPath: v.optional(v.string()),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // ── Signals with embedding storage ───────────────────────────────────────
+  // embeddingVector is added to existing signals via a migration.
+  // Stored as an array of float64 numbers (1536 dimensions for text-embedding-3-small).
+  // Used for in-process cosine similarity search replacing pgvector.
 });

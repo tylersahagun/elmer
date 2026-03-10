@@ -4,28 +4,29 @@
  * POST /api/discovery/import
  *
  * Imports discovered initiatives as projects into the workspace.
- * Blocking issue fix for 02-08 (Rule 3) - this is needed for the wizard to work.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
-import { getWorkspace, updateWorkspace } from "@/lib/db/queries";
-import { db } from "@/lib/db";
-import { projects } from "@/lib/db/schema";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
+import {
+  getConvexWorkspace,
+  updateConvexWorkspaceOnboarding,
+  listConvexProjects,
+  createConvexProject,
+  updateConvexProject,
+} from "@/lib/convex/server";
 import type {
   ImportSelection,
   DiscoveryResult,
   ImportResult,
   DiscoveredInitiative,
 } from "@/lib/discovery/types";
-import type { ProjectStage, ProjectMetadata } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { getGitHubClient } from "@/lib/github/auth";
 import { syncAgentArchitecture } from "@/lib/agents/sync";
 import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
 
-// Map discovery column names to ProjectStage enum
-const COLUMN_TO_STAGE: Record<string, ProjectStage> = {
+// Map discovery column names to stage strings
+const COLUMN_TO_STAGE: Record<string, string> = {
   inbox: "inbox",
   discovery: "discovery",
   prd: "prd",
@@ -39,12 +40,8 @@ const COLUMN_TO_STAGE: Record<string, ProjectStage> = {
   ga: "ga",
 };
 
-function getStageFromColumn(column: string): ProjectStage {
-  if (column in COLUMN_TO_STAGE) {
-    return COLUMN_TO_STAGE[column];
-  }
-  // For dynamic columns, default to inbox
-  return "inbox";
+function getStageFromColumn(column: string): string {
+  return column in COLUMN_TO_STAGE ? COLUMN_TO_STAGE[column] : "inbox";
 }
 
 async function upsertProject(input: {
@@ -52,54 +49,48 @@ async function upsertProject(input: {
   workspaceId: string;
   name: string;
   description?: string | null;
-  stage: ProjectStage;
-  metadata?: ProjectMetadata;
+  stage: string;
+  metadata?: Record<string, unknown>;
 }): Promise<{ action: "created" | "updated"; id: string }> {
   const { id, workspaceId, name, description, stage, metadata } = input;
-  const now = new Date();
 
-  // Check if project exists
-  const existing = await db.query.projects.findFirst({
-    where: eq(projects.id, id),
-  });
+  // Check if project exists in this workspace by listing and matching on neonSignalId or id
+  const projects = await listConvexProjects(workspaceId) as Array<{
+    _id: string;
+    name?: string;
+  }>;
+
+  // Discovery-imported projects use the initiative id as a stable identifier.
+  // Since Convex uses its own IDs, check by name match for idempotency.
+  const existing = projects.find((p) => p.name === name);
 
   if (existing) {
-    // Update existing project
-    await db
-      .update(projects)
-      .set({
-        name,
-        description,
-        stage,
-        metadata: metadata ?? existing.metadata,
-        updatedAt: now,
-      })
-      .where(eq(projects.id, id));
-
-    return { action: "updated", id };
+    await updateConvexProject(existing._id, {
+      name,
+      description: description ?? undefined,
+      stage,
+      metadata: metadata ?? {},
+    });
+    return { action: "updated", id: existing._id };
   } else {
-    // Create new project
-    await db.insert(projects).values({
-      id,
+    const created = await createConvexProject({
       workspaceId,
       name,
-      description,
+      description: description ?? undefined,
       stage,
-      status: "active",
-      metadata,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    return { action: "created", id };
+      status: "on_track",
+      priority: "P2",
+      metadata: metadata ?? {},
+    }) as { _id?: string; id?: string };
+    return { action: "created", id: created._id ?? created.id ?? id };
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Auth check
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await clerkAuth();
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -119,7 +110,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Load workspace and validate
-    const workspace = await getWorkspace(workspaceId);
+    const workspace = await getConvexWorkspace(workspaceId) as {
+      _id: string;
+      githubRepo?: string;
+      onboardingData?: Record<string, unknown>;
+      settings?: {
+        baseBranch?: string;
+        contextPaths?: string[];
+        [key: string]: unknown;
+      };
+    } | null;
+
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
@@ -154,12 +155,11 @@ export async function POST(request: NextRequest) {
       try {
         const stage = getStageFromColumn(initiative.mappedColumn);
 
-        // Track if this is a dynamic column
         if (!(initiative.mappedColumn in COLUMN_TO_STAGE)) {
           dynamicColumns.add(initiative.mappedColumn);
         }
 
-        const metadata: ProjectMetadata = {
+        const metadata: Record<string, unknown> = {
           tags: initiative.tags,
         };
 
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
       workspace.githubRepo
     ) {
       try {
-        const octokit = await getGitHubClient(session.user.id);
+        const octokit = await getGitHubClient(userId);
         if (octokit) {
           const [owner, repo] = workspace.githubRepo.split("/");
           if (owner && repo) {
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
               workspaceId,
               owner,
               repo,
-              ref: workspace.settings?.baseBranch,
+              ref: workspace.settings?.baseBranch as string | undefined,
               contextPaths: selection.contextPaths,
               octokit,
             });
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
       workspace.githubRepo
     ) {
       try {
-        const octokit = await getGitHubClient(session.user.id);
+        const octokit = await getGitHubClient(userId);
         if (octokit) {
           const [owner, repo] = workspace.githubRepo.split("/");
           if (owner && repo) {
@@ -230,12 +230,11 @@ export async function POST(request: NextRequest) {
               octokit,
               repoOwner: owner,
               repoName: repo,
-              repoRef: workspace.settings?.baseBranch,
+              repoRef: workspace.settings?.baseBranch as string | undefined,
               contextPaths: selection.contextPaths,
             });
             importResult.knowledgeSynced = knowledgeResult.synced;
 
-            // Add any knowledge sync errors
             if (knowledgeResult.errors.length > 0) {
               importResult.errors.push(
                 ...knowledgeResult.errors.map((e) => `Knowledge: ${e}`),
@@ -256,18 +255,14 @@ export async function POST(request: NextRequest) {
       importResult.projectsCreated + importResult.projectsUpdated > 0;
 
     // 7. Update workspace onboarding data with import stats
-    const existingData = workspace.onboardingData || {
-      completedAt: "",
-      selectedBranch: "",
-    };
-    await updateWorkspace(workspaceId, {
+    const existingData = workspace.onboardingData || {};
+    await updateConvexWorkspaceOnboarding(workspaceId, {
       onboardingData: {
         ...existingData,
         importedProjects:
           importResult.projectsCreated + importResult.projectsUpdated,
         importedKnowledge: importResult.knowledgeSynced,
       },
-      // Update context paths from discovery
       settings: {
         ...workspace.settings,
         contextPaths: selection.contextPaths,

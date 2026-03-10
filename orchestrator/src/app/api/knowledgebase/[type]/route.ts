@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getConvexWorkspace, listConvexKnowledge, upsertConvexKnowledge } from "@/lib/convex/server";
 import { resolveKnowledgePath, writeKnowledgeFile } from "@/lib/knowledgebase";
 import { runSecondaryExport } from "@/lib/export-sync";
-import type { KnowledgebaseType } from "@/lib/db/schema";
+type KnowledgebaseType = "company_context" | "strategic_guardrails" | "personas" | "roadmap" | "rules";
 
 const KNOWLEDGEBASE_SURFACE = {
   runtimeAuthority: "convex_graph",

@@ -10,7 +10,7 @@ import {
   PermissionError,
 } from "@/lib/permissions";
 import { logMemberInvited, logInvitationRevoked } from "@/lib/activity";
-import type { WorkspaceRole } from "@/lib/db/schema";
+type WorkspaceRole = "admin" | "member" | "viewer";
 
 export async function GET(
   request: NextRequest,

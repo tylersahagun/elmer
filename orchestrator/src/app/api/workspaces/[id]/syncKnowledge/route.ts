@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCurrentAppUser } from "@/lib/auth/server";
-import { getWorkspace } from "@/lib/db/queries";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
+import { getConvexWorkspace } from "@/lib/convex/server";
 import { syncKnowledgeBase } from "@/lib/knowledgebase/sync";
 import { getGitHubClient } from "@/lib/github/auth";
 import {
@@ -24,7 +24,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const appUser = await requireCurrentAppUser();
+    const { userId: clerkUserId } = await clerkAuth();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
 
     const body = await request.json().catch(() => ({}));
     const repoOwner =
@@ -41,7 +44,11 @@ export async function POST(
     await requireWorkspaceAccess(id, "member");
 
     // Verify workspace exists
-    const workspace = await getWorkspace(id);
+    const workspace = await getConvexWorkspace(id) as {
+      _id: string;
+      githubRepo?: string;
+      settings?: { baseBranch?: string; contextPaths?: string[] };
+    } | null;
     if (!workspace) {
       return NextResponse.json(
         { error: "Workspace not found" },
@@ -53,7 +60,7 @@ export async function POST(
     const [defaultOwner, defaultRepo] = workspace.githubRepo?.split("/") || [];
 
     // Run the sync
-    const octokit = await getGitHubClient(appUser.id);
+    const octokit = await getGitHubClient(clerkUserId);
     const result = await syncKnowledgeBase(id, {
       octokit: octokit ?? undefined,
       repoRef: repoRef || workspace.settings?.baseBranch || undefined,

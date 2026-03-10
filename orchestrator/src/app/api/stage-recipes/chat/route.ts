@@ -13,7 +13,10 @@ import {
   type StageRecipe,
   type UpdateRecipeInput,
 } from "@/lib/skills";
-import type { ProjectStage, AutomationLevel, RecipeStep, GateDefinition } from "@/lib/db/schema";
+type ProjectStage = "inbox" | "discovery" | "prd" | "design" | "prototype" | "validate" | "tickets" | "build" | "alpha" | "beta" | "ga";
+type AutomationLevel = "fully_auto" | "auto_notify" | "human_approval" | "manual";
+interface RecipeStep { skillId: string; order?: number; name?: string; timeout?: number; retryCount?: number; }
+interface GateDefinition { id: string; type: string; config?: Record<string, unknown>; required?: boolean; message?: string; }
 
 const anthropic = new Anthropic();
 

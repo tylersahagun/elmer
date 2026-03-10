@@ -3,15 +3,14 @@
  *
  * Manages skills from multiple sources:
  * - Local skills (filesystem)
- * - SkillsMP imported skills (database)
+ * - SkillsMP imported skills (Convex)
  *
  * Provides unified CRUD operations, searching, and trust management.
  */
 
-import { db } from "@/lib/db";
-import { skills, type TrustLevel, type SkillSource } from "@/lib/db/schema";
-import { eq, and, ilike, or, sql, desc } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   SkillsMPClient,
   getSkillsMPClient,
@@ -21,9 +20,16 @@ import {
 import * as fs from "fs/promises";
 import * as path from "path";
 
+function getConvexClient() {
+  return new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+}
+
 // ============================================
 // TYPES
 // ============================================
+
+type TrustLevel = "vetted" | "community" | "untrusted";
+type SkillSource = "local" | "skillsmp" | "imported";
 
 export interface Skill {
   id: string;
@@ -67,6 +73,48 @@ export interface ImportSkillInput {
 }
 
 // ============================================
+// HELPER: Convex record → Skill
+// ============================================
+
+function convexToSkill(r: {
+  _id: Id<"skills">;
+  _creationTime: number;
+  workspaceId?: Id<"workspaces">;
+  source: string;
+  name: string;
+  description?: string;
+  version?: string;
+  entrypoint?: string;
+  promptTemplate?: string;
+  trustLevel: string;
+  remoteMetadata?: unknown;
+  metadata?: unknown;
+  inputSchema?: unknown;
+  outputSchema?: unknown;
+  tags?: string[];
+  lastSynced?: number;
+}): Skill {
+  return {
+    id: r._id,
+    workspaceId: r.workspaceId ?? null,
+    source: r.source as SkillSource,
+    name: r.name,
+    description: r.description ?? null,
+    version: r.version ?? null,
+    entrypoint: r.entrypoint ?? null,
+    promptTemplate: r.promptTemplate ?? null,
+    trustLevel: r.trustLevel as TrustLevel,
+    remoteMetadata: (r.remoteMetadata as Record<string, unknown>) ?? null,
+    inputSchema: (r.inputSchema as Record<string, unknown>) ?? null,
+    outputSchema: (r.outputSchema as Record<string, unknown>) ?? null,
+    tags: r.tags ?? [],
+    lastSynced: r.lastSynced ? new Date(r.lastSynced) : null,
+    createdAt: new Date(r._creationTime),
+    updatedAt: new Date(r._creationTime),
+  };
+}
+
+// ============================================
 // LOCAL SKILLS
 // ============================================
 
@@ -91,11 +139,7 @@ interface SkillMetadata {
   outputs?: Record<string, unknown>;
 }
 
-/**
- * Parse SKILL.md file to extract metadata
- */
 function parseSkillMd(content: string): SkillMetadata {
-  const lines = content.split("\n");
   const metadata: SkillMetadata = {
     name: "",
     description: "",
@@ -103,36 +147,21 @@ function parseSkillMd(content: string): SkillMetadata {
     tags: [],
   };
 
-  // Extract name from first heading
   const nameMatch = content.match(/^#\s+(.+)$/m);
-  if (nameMatch) {
-    metadata.name = nameMatch[1].trim();
-  }
+  if (nameMatch) metadata.name = nameMatch[1].trim();
 
-  // Extract description from first paragraph after heading
   const descMatch = content.match(/^#\s+.+\n+([^#\n].+)/m);
-  if (descMatch) {
-    metadata.description = descMatch[1].trim();
-  }
+  if (descMatch) metadata.description = descMatch[1].trim();
 
-  // Extract version from metadata block
   const versionMatch = content.match(/version:\s*(.+)/i);
-  if (versionMatch) {
-    metadata.version = versionMatch[1].trim();
-  }
+  if (versionMatch) metadata.version = versionMatch[1].trim();
 
-  // Extract tags
   const tagsMatch = content.match(/tags?:\s*(.+)/i);
-  if (tagsMatch) {
-    metadata.tags = tagsMatch[1].split(",").map((t) => t.trim());
-  }
+  if (tagsMatch) metadata.tags = tagsMatch[1].split(",").map((t) => t.trim());
 
   return metadata;
 }
 
-/**
- * Load local skills from filesystem
- */
 export async function loadLocalSkills(
   workspaceId: string,
   skillsPath: string = DEFAULT_SKILLS_PATH,
@@ -170,7 +199,7 @@ export async function loadLocalSkills(
           version: metadata.version,
           entrypoint: skillDir,
           promptTemplate,
-          trustLevel: "vetted", // Local skills are trusted by default
+          trustLevel: "vetted",
           remoteMetadata: null,
           inputSchema: metadata.inputs || null,
           outputSchema: metadata.outputs || null,
@@ -190,69 +219,29 @@ export async function loadLocalSkills(
   return loadedSkills;
 }
 
-/**
- * Sync local skills to database
- */
 export async function syncLocalSkills(
   workspaceId: string,
   skillsPath: string = DEFAULT_SKILLS_PATH,
 ): Promise<number> {
   const localSkills = await loadLocalSkills(workspaceId, skillsPath);
+  const client = getConvexClient();
   let syncedCount = 0;
 
   for (const skill of localSkills) {
-    const existing = await db
-      .select()
-      .from(skills)
-      .where(
-        and(
-          eq(skills.workspaceId, workspaceId),
-          eq(skills.source, "local"),
-          eq(skills.entrypoint, skill.entrypoint!),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
-      // Update existing
-      await db
-        .update(skills)
-        .set({
-          name: skill.name,
-          description: skill.description,
-          version: skill.version,
-          promptTemplate: skill.promptTemplate,
-          inputSchema:
-            skill.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
-          outputSchema:
-            skill.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
-          tags: skill.tags as (typeof skills.$inferInsert)["tags"],
-          lastSynced: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(skills.id, existing[0].id));
-    } else {
-      // Create new
-      await db.insert(skills).values({
-        id: `skill_${nanoid()}`,
-        workspaceId,
-        source: "local",
-        name: skill.name,
-        description: skill.description,
-        version: skill.version,
-        entrypoint: skill.entrypoint,
-        promptTemplate: skill.promptTemplate,
-        trustLevel: "vetted",
-        inputSchema:
-          skill.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
-        outputSchema:
-          skill.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
-        tags: skill.tags as (typeof skills.$inferInsert)["tags"],
-        lastSynced: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }
+    await client.mutation(api.skills.upsertByEntrypoint, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      entrypoint: skill.entrypoint!,
+      source: "local",
+      name: skill.name,
+      description: skill.description ?? undefined,
+      version: skill.version ?? undefined,
+      promptTemplate: skill.promptTemplate ?? undefined,
+      trustLevel: "vetted",
+      inputSchema: skill.inputSchema ?? undefined,
+      outputSchema: skill.outputSchema ?? undefined,
+      tags: skill.tags,
+      lastSynced: Date.now(),
+    });
     syncedCount++;
   }
 
@@ -263,9 +252,6 @@ export async function syncLocalSkills(
 // SKILLSMP INTEGRATION
 // ============================================
 
-/**
- * Search SkillsMP marketplace
- */
 export async function searchSkillsMP(
   query: string,
   options: {
@@ -287,26 +273,20 @@ export async function searchSkillsMP(
   });
 }
 
-/**
- * Import a skill from SkillsMP
- */
 export async function importFromSkillsMP(
   input: ImportSkillInput,
 ): Promise<string> {
   const client = getSkillsMPClient();
   const skillData = await client.getSkill(input.skillsmpId);
+  const convex = getConvexClient();
 
-  const skillId = `skill_${nanoid()}`;
-  const now = new Date();
-
-  await db.insert(skills).values({
-    id: skillId,
-    workspaceId: input.workspaceId,
+  const id = await convex.mutation(api.skills.create, {
+    workspaceId: input.workspaceId as Id<"workspaces">,
     source: "skillsmp",
     name: skillData.name,
     description: skillData.description,
-    version: input.pinVersion ? skillData.version : null,
-    promptTemplate: skillData.promptTemplate || null,
+    version: input.pinVersion ? skillData.version : undefined,
+    promptTemplate: skillData.promptTemplate || undefined,
     trustLevel: input.trustLevel || "community",
     remoteMetadata: {
       skillsmpId: skillData.id,
@@ -316,66 +296,57 @@ export async function importFromSkillsMP(
       stars: skillData.stars,
       downloads: skillData.downloads,
       pinnedVersion: input.pinVersion ? skillData.version : undefined,
-    } as (typeof skills.$inferInsert)["remoteMetadata"],
-    inputSchema:
-      skillData.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
-    outputSchema:
-      skillData.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
-    tags: skillData.tags as (typeof skills.$inferInsert)["tags"],
-    lastSynced: now,
-    createdAt: now,
-    updatedAt: now,
+    },
+    inputSchema: skillData.inputSchema as Record<string, unknown>,
+    outputSchema: skillData.outputSchema as Record<string, unknown>,
+    tags: skillData.tags as string[],
+    lastSynced: Date.now(),
   });
 
-  return skillId;
+  return id;
 }
 
-/**
- * Re-sync a SkillsMP skill to get latest version
- */
 export async function resyncSkillsMP(skillId: string): Promise<boolean> {
-  const existing = await db
-    .select()
-    .from(skills)
-    .where(eq(skills.id, skillId))
-    .limit(1);
+  const convex = getConvexClient();
+  const skill = await convex.query(api.skills.getByLegacyId, { legacyId: skillId });
 
-  if (!existing[0] || existing[0].source !== "skillsmp") {
-    return false;
+  // Try direct Convex ID lookup too
+  let existingSkill = skill;
+  if (!existingSkill) {
+    try {
+      const direct = await convex.query(api.skills.get, { id: skillId as Id<"skills"> });
+      existingSkill = direct;
+    } catch {
+      return false;
+    }
   }
 
-  const remoteMetadata = existing[0].remoteMetadata as Record<string, unknown>;
+  if (!existingSkill || existingSkill.source !== "skillsmp") return false;
+
+  const remoteMetadata = existingSkill.remoteMetadata as Record<string, unknown>;
   const skillsmpId = remoteMetadata?.skillsmpId as string;
   if (!skillsmpId) return false;
 
-  // Don't sync if version is pinned
-  if (remoteMetadata?.pinnedVersion) {
-    return true;
-  }
+  if (remoteMetadata?.pinnedVersion) return true;
 
   const client = getSkillsMPClient();
   const skillData = await client.getSkill(skillsmpId);
 
-  await db
-    .update(skills)
-    .set({
-      name: skillData.name,
-      description: skillData.description,
-      promptTemplate: skillData.promptTemplate || null,
-      remoteMetadata: {
-        ...remoteMetadata,
-        stars: skillData.stars,
-        downloads: skillData.downloads,
-      } as (typeof skills.$inferInsert)["remoteMetadata"],
-      inputSchema:
-        skillData.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
-      outputSchema:
-        skillData.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
-      tags: skillData.tags as (typeof skills.$inferInsert)["tags"],
-      lastSynced: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(skills.id, skillId));
+  await convex.mutation(api.skills.update, {
+    id: existingSkill._id as Id<"skills">,
+    name: skillData.name,
+    description: skillData.description,
+    promptTemplate: skillData.promptTemplate || undefined,
+    remoteMetadata: {
+      ...remoteMetadata,
+      stars: skillData.stars,
+      downloads: skillData.downloads,
+    },
+    inputSchema: skillData.inputSchema as Record<string, unknown>,
+    outputSchema: skillData.outputSchema as Record<string, unknown>,
+    tags: skillData.tags as string[],
+    lastSynced: Date.now(),
+  });
 
   return true;
 }
@@ -385,156 +356,102 @@ export async function resyncSkillsMP(skillId: string): Promise<boolean> {
 // ============================================
 
 export async function getSkills(workspaceId?: string): Promise<Skill[]> {
-  const query = workspaceId
-    ? db
-        .select()
-        .from(skills)
-        .where(
-          or(
-            eq(skills.workspaceId, workspaceId),
-            sql`${skills.workspaceId} IS NULL`,
-          ),
-        )
-    : db.select().from(skills);
-
-  const results = await query.orderBy(desc(skills.updatedAt));
-
-  return results.map((r) => ({
-    ...r,
-    tags: (r.tags as string[]) || [],
-    remoteMetadata: r.remoteMetadata as Record<string, unknown> | null,
-    inputSchema: r.inputSchema as Record<string, unknown> | null,
-    outputSchema: r.outputSchema as Record<string, unknown> | null,
-  }));
+  const client = getConvexClient();
+  const results = await client.query(api.skills.list, {
+    workspaceId: workspaceId as Id<"workspaces"> | undefined,
+  });
+  return results.map(convexToSkill);
 }
 
 export async function getSkillById(skillId: string): Promise<Skill | null> {
-  const results = await db
-    .select()
-    .from(skills)
-    .where(eq(skills.id, skillId))
-    .limit(1);
-
-  if (!results[0]) return null;
-
-  return {
-    ...results[0],
-    tags: (results[0].tags as string[]) || [],
-    remoteMetadata: results[0].remoteMetadata as Record<string, unknown> | null,
-    inputSchema: results[0].inputSchema as Record<string, unknown> | null,
-    outputSchema: results[0].outputSchema as Record<string, unknown> | null,
-  };
+  const client = getConvexClient();
+  try {
+    const result = await client.query(api.skills.get, { id: skillId as Id<"skills"> });
+    if (!result) return null;
+    return convexToSkill(result);
+  } catch {
+    return null;
+  }
 }
 
 export async function searchSkills(
   query: string,
   workspaceId?: string,
 ): Promise<Skill[]> {
-  const searchPattern = `%${query}%`;
-
-  const baseQuery = db
-    .select()
-    .from(skills)
-    .where(
-      and(
-        or(
-          ilike(skills.name, searchPattern),
-          ilike(skills.description, searchPattern),
-        ),
-        workspaceId
-          ? or(
-              eq(skills.workspaceId, workspaceId),
-              sql`${skills.workspaceId} IS NULL`,
-            )
-          : undefined,
-      ),
-    )
-    .orderBy(desc(skills.updatedAt))
-    .limit(50);
-
-  const results = await baseQuery;
-
-  return results.map((r) => ({
-    ...r,
-    tags: (r.tags as string[]) || [],
-    remoteMetadata: r.remoteMetadata as Record<string, unknown> | null,
-    inputSchema: r.inputSchema as Record<string, unknown> | null,
-    outputSchema: r.outputSchema as Record<string, unknown> | null,
-  }));
+  const allSkills = await getSkills(workspaceId);
+  const lower = query.toLowerCase();
+  return allSkills.filter(
+    (s) =>
+      s.name.toLowerCase().includes(lower) ||
+      (s.description?.toLowerCase().includes(lower) ?? false),
+  );
 }
 
 export async function createSkill(input: CreateSkillInput): Promise<string> {
-  const skillId = `skill_${nanoid()}`;
-  const now = new Date();
-
-  await db.insert(skills).values({
-    id: skillId,
-    workspaceId: input.workspaceId || null,
+  const client = getConvexClient();
+  return await client.mutation(api.skills.create, {
+    workspaceId: input.workspaceId as Id<"workspaces"> | undefined,
     source: input.source,
     name: input.name,
-    description: input.description || null,
-    version: input.version || null,
-    entrypoint: input.entrypoint || null,
-    promptTemplate: input.promptTemplate || null,
+    description: input.description,
+    version: input.version,
+    entrypoint: input.entrypoint,
+    promptTemplate: input.promptTemplate,
     trustLevel: input.trustLevel || "community",
-    remoteMetadata:
-      input.remoteMetadata as (typeof skills.$inferInsert)["remoteMetadata"],
-    inputSchema:
-      input.inputSchema as (typeof skills.$inferInsert)["inputSchema"],
-    outputSchema:
-      input.outputSchema as (typeof skills.$inferInsert)["outputSchema"],
-    tags: input.tags as (typeof skills.$inferInsert)["tags"],
-    createdAt: now,
-    updatedAt: now,
+    remoteMetadata: input.remoteMetadata,
+    inputSchema: input.inputSchema,
+    outputSchema: input.outputSchema,
+    tags: input.tags,
+    lastSynced: undefined,
   });
-
-  return skillId;
 }
 
 export async function updateSkillTrustLevel(
   skillId: string,
   trustLevel: TrustLevel,
 ): Promise<boolean> {
-  const result = await db
-    .update(skills)
-    .set({ trustLevel, updatedAt: new Date() })
-    .where(eq(skills.id, skillId));
-
-  return (result.rowCount ?? 0) > 0;
+  const client = getConvexClient();
+  try {
+    await client.mutation(api.skills.update, {
+      id: skillId as Id<"skills">,
+      trustLevel,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function deleteSkill(skillId: string): Promise<boolean> {
-  const result = await db.delete(skills).where(eq(skills.id, skillId));
-  return (result.rowCount ?? 0) > 0;
+  const client = getConvexClient();
+  try {
+    await client.mutation(api.skills.remove, { id: skillId as Id<"skills"> });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ============================================
 // SKILL EXECUTION
 // ============================================
 
-/**
- * Get the prompt template for a skill
- */
 export async function getSkillPrompt(skillId: string): Promise<string | null> {
   const skill = await getSkillById(skillId);
   if (!skill) return null;
 
-  // If local skill with entrypoint, try to read prompt.txt
   if (skill.source === "local" && skill.entrypoint) {
     try {
       const promptPath = path.join(skill.entrypoint, "prompt.txt");
       return await fs.readFile(promptPath, "utf-8");
     } catch {
-      // Fall through to promptTemplate
+      // Fall through
     }
   }
 
   return skill.promptTemplate;
 }
 
-/**
- * Check if a skill is trusted for fully_auto execution
- */
 export function isSkillTrusted(skill: Skill): boolean {
   return skill.trustLevel === "vetted";
 }

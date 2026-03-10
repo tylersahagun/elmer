@@ -9,7 +9,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { ProjectStage, StageRunStatus, RunLogLevel } from "@/lib/db/schema";
+type ProjectStage = "inbox" | "discovery" | "prd" | "design" | "prototype" | "validate" | "tickets" | "build" | "alpha" | "beta" | "ga";
+type StageRunStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+type RunLogLevel = "info" | "warn" | "error" | "debug";
 
 interface Run {
   id: string;

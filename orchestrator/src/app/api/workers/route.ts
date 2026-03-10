@@ -8,28 +8,42 @@
 import { NextResponse } from "next/server";
 import {
   getActiveWorkers,
-  hasActiveWorkers,
   cleanupStaleWorkers,
   rescueStuckRuns,
   unlockStuckCards,
   getQueuedRuns,
 } from "@/lib/execution";
 
+type WorkerRecord = {
+  workerId: string;
+  workspaceId?: string;
+  lastSeen: number;
+  activeRunIds?: string[];
+  processedCount: number;
+  failedCount: number;
+  // Legacy fields from older heartbeat schema
+  status?: string;
+  lastHeartbeat?: number;
+  activeRunId?: string;
+  metadata?: unknown;
+};
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspaceId") || undefined;
 
-    const workers = await getActiveWorkers(workspaceId);
+    const rawWorkers = await getActiveWorkers(workspaceId);
+    const workers = rawWorkers as WorkerRecord[];
     const queuedRuns = await getQueuedRuns(workspaceId, 100);
 
     // Calculate health metrics
-    const totalProcessed = workers.reduce((sum, w) => sum + (w.processedCount || 0), 0);
-    const totalFailed = workers.reduce((sum, w) => sum + (w.failedCount || 0), 0);
-    const activeRuns = workers.filter((w) => w.activeRunId).length;
+    const totalProcessed = workers.reduce((sum: number, w: WorkerRecord) => sum + (w.processedCount || 0), 0);
+    const totalFailed = workers.reduce((sum: number, w: WorkerRecord) => sum + (w.failedCount || 0), 0);
+    const activeRuns = workers.filter((w: WorkerRecord) => w.activeRunId).length;
 
     return NextResponse.json({
-      workers: workers.map((w) => ({
+      workers: workers.map((w: WorkerRecord) => ({
         id: w.workerId,
         status: w.status,
         lastHeartbeat: w.lastHeartbeat,
@@ -82,8 +96,9 @@ export async function POST(request: Request) {
       }
 
       case "health_check": {
-        const workers = await getActiveWorkers();
-        const hasWorkers = workers.length > 0;
+        const rawHcWorkers = await getActiveWorkers();
+        const hcWorkers = rawHcWorkers as WorkerRecord[];
+        const hasWorkers = hcWorkers.length > 0;
         const queuedRuns = await getQueuedRuns(undefined, 1);
         
         return NextResponse.json({

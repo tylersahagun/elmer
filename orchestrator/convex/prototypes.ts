@@ -1091,3 +1091,20 @@ export const listBySlackChannel = internalQuery({
     );
   },
 });
+
+export const patchVariant = internalMutation({
+  args: {
+    variantId: v.id("prototypeVariants"),
+    status: v.optional(v.string()),
+    url: v.optional(v.string()),
+    chromaticUrl: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, { variantId, ...patch }) => {
+    const updates: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(patch)) {
+      if (val !== undefined) updates[k] = val;
+    }
+    await ctx.db.patch(variantId, updates);
+  },
+});

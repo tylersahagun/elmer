@@ -14,7 +14,7 @@ import {
 import { FileCode, Bot, Zap, ScrollText, BookOpen, ChevronRight, Play } from "lucide-react";
 import { AgentDetailCard } from "./AgentDetailCard";
 import { AgentExecutionPanel } from "./AgentExecutionPanel";
-import type { AgentDefinitionType } from "@/lib/db/schema";
+type AgentDefinitionType = "agents_md" | "skill" | "command" | "subagent" | "rule";
 
 interface AgentCardProps {
   agent: {

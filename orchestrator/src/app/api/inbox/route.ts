@@ -1,12 +1,27 @@
 /**
  * Inbox Items API - List and manage inbox items
+ * Migrated to Convex (replaces Drizzle).
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { inboxItems, projects } from "@/lib/db/schema";
-import { eq, desc, and } from "drizzle-orm";
-import crypto from "crypto";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
+async function getAuthenticatedClient() {
+  const auth = await clerkAuth();
+  const token = await auth.getToken({ template: "convex" });
+  const client = getConvexClient();
+  if (token) client.setAuth(token);
+  return client;
+}
 
 // GET - List inbox items for a workspace
 export async function GET(request: NextRequest) {
@@ -16,47 +31,31 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const type = searchParams.get("type");
     const limit = parseInt(searchParams.get("limit") || "50", 10);
-    
+
     if (!workspaceId) {
       return NextResponse.json(
         { error: "Missing workspaceId parameter" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
-    // Build query conditions
-    const conditions = [eq(inboxItems.workspaceId, workspaceId)];
-    
-    if (status) {
-      conditions.push(eq(inboxItems.status, status as "pending" | "processing" | "assigned" | "dismissed"));
-    }
-    
-    if (type) {
-      conditions.push(eq(inboxItems.type, type as "transcript" | "document" | "signal" | "feedback"));
-    }
-    
-    const items = await db.query.inboxItems.findMany({
-      where: and(...conditions),
-      orderBy: [desc(inboxItems.createdAt)],
+
+    const client = getConvexClient();
+    const items = await client.query(api.inboxItems.listByPriority, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      status: status ?? undefined,
       limit,
-      with: {
-        assignedProject: {
-          columns: {
-            id: true,
-            name: true,
-            stage: true,
-          },
-        },
-      },
     });
-    
-    return NextResponse.json(items);
-    
+
+    const filtered = type
+      ? items.filter((item: { type: string }) => item.type === type)
+      : items;
+
+    return NextResponse.json(filtered);
   } catch (error) {
     console.error("Failed to get inbox items:", error);
     return NextResponse.json(
       { error: "Failed to get inbox items" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -65,99 +64,74 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { workspaceId, type, title, content, metadata } = body;
-    
+    const { workspaceId, type, title, content, metadata: _metadata } = body;
+
     if (!workspaceId || !type || !title || !content) {
       return NextResponse.json(
         { error: "Missing required fields: workspaceId, type, title, content" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
-    const id = crypto.randomUUID();
-    const now = new Date();
-    
-    await db.insert(inboxItems).values({
-      id,
-      workspaceId,
+
+    const client = await getAuthenticatedClient();
+    const id = await client.mutation(api.inboxItems.create, {
+      workspaceId: workspaceId as Id<"workspaces">,
       type,
       source: "upload",
       title,
       rawContent: content,
-      status: "pending",
-      metadata: metadata || {},
-      createdAt: now,
-      updatedAt: now,
     });
-    
-    return NextResponse.json({
-      id,
-      message: "Inbox item created",
-    });
-    
+
+    return NextResponse.json({ id, message: "Inbox item created" });
   } catch (error) {
     console.error("Failed to create inbox item:", error);
     return NextResponse.json(
       { error: "Failed to create inbox item" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
-// PATCH - Update inbox item (assign to project/persona, dismiss, etc.)
+// PATCH - Update inbox item (assign to project, dismiss, etc.)
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
-      id, 
-      status, 
-      assignedProjectId, 
-      assignedPersonaId,
-      assignedAction, 
+    const {
+      id,
+      status,
+      assignedProjectId,
       processedContent,
       aiSummary,
       extractedProblems,
       hypothesisMatches,
-      metadata,
     } = body;
-    
+
     if (!id) {
       return NextResponse.json(
         { error: "Missing item id" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
-    const updates: Record<string, unknown> = {
-      updatedAt: new Date(),
-    };
-    
-    if (status) updates.status = status;
-    if (assignedProjectId !== undefined) updates.assignedProjectId = assignedProjectId;
-    if (assignedPersonaId !== undefined) updates.assignedPersonaId = assignedPersonaId;
-    if (assignedAction !== undefined) updates.assignedAction = assignedAction;
-    if (processedContent !== undefined) updates.processedContent = processedContent;
-    if (aiSummary !== undefined) updates.aiSummary = aiSummary;
-    if (extractedProblems !== undefined) updates.extractedProblems = extractedProblems;
-    if (hypothesisMatches !== undefined) updates.hypothesisMatches = hypothesisMatches;
-    if (metadata !== undefined) updates.metadata = metadata;
-    
-    // Mark as processed when assigned to project or persona
-    if (status === "assigned" && (assignedProjectId || assignedPersonaId)) {
-      updates.processedAt = new Date();
-    }
-    
-    await db.update(inboxItems)
-      .set(updates)
-      .where(eq(inboxItems.id, id));
-    
+
+    const client = await getAuthenticatedClient();
+    await client.mutation(api.inboxItems.update, {
+      itemId: id as Id<"inboxItems">,
+      status: status ?? undefined,
+      assignedProjectId: assignedProjectId
+        ? (assignedProjectId as Id<"projects">)
+        : undefined,
+      processedContent: processedContent ?? undefined,
+      aiSummary: aiSummary ?? undefined,
+      extractedProblems: extractedProblems ?? undefined,
+      hypothesisMatches: hypothesisMatches ?? undefined,
+    });
+
     return NextResponse.json({ success: true });
-    
   } catch (error) {
     console.error("Failed to update inbox item:", error);
     return NextResponse.json(
       { error: "Failed to update inbox item" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -167,23 +141,25 @@ export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
-    
+
     if (!id) {
       return NextResponse.json(
         { error: "Missing id parameter" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
-    await db.delete(inboxItems).where(eq(inboxItems.id, id));
-    
+
+    const client = await getAuthenticatedClient();
+    await client.mutation(api.inboxItems.remove, {
+      itemId: id as Id<"inboxItems">,
+    });
+
     return NextResponse.json({ success: true });
-    
   } catch (error) {
     console.error("Failed to delete inbox item:", error);
     return NextResponse.json(
       { error: "Failed to delete inbox item" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

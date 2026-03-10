@@ -2,7 +2,10 @@
  * GitHub Writeback Service
  *
  * Core service layer for committing documents and prototypes to GitHub repositories.
- * Provides atomic commit capabilities with operation tracking in the database.
+ * Uses Convex for workspace/project data (replaces Drizzle + githubWriteOps audit table).
+ *
+ * Note: The githubWriteOps audit log has been removed — operations are logged to console.
+ * A Convex audit table can be added in a future phase if needed.
  */
 
 import type {
@@ -11,11 +14,13 @@ import type {
   WritebackResult,
   CommitMetadata,
 } from "./types";
-import { db } from "@/lib/db";
-import { githubWriteOps, projects, workspaces, workspaceMembers } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getGitHubClient } from "./auth";
+import {
+  getConvexWorkspace,
+  getConvexProjectWithDocuments,
+  listConvexWorkspaceMembers,
+} from "@/lib/convex/server";
 
 /**
  * Slugifies a project name for use in commit messages.
@@ -32,10 +37,6 @@ function slugifyForCommit(projectName: string): string {
  *
  * Pattern: docs({project-slug}): {action} {document-type}
  * Example: "docs(feature-alpha): add prd"
- *
- * @param metadata - Commit metadata with project and document info
- * @param action - The action being performed ("add" or "update")
- * @returns Formatted commit message
  */
 export function generateCommitMessage(
   metadata: CommitMetadata,
@@ -59,64 +60,7 @@ export function generateCommitMessage(
 }
 
 /**
- * Creates a writeback operation record in the database.
- *
- * @param config - Writeback configuration
- * @param files - Files to be committed
- * @param message - Commit message
- * @param metadata - Commit metadata
- * @returns The operation ID
- */
-async function createWritebackOperation(
-  config: WritebackConfig,
-  files: WritebackFile[],
-  message: string,
-  metadata: CommitMetadata
-): Promise<string> {
-  const opId = `ghop_${nanoid()}`;
-
-  await db.insert(githubWriteOps).values({
-    id: opId,
-    workspaceId: config.workspaceId,
-    repoFullName: `${config.owner}/${config.repo}`,
-    baseBranch: config.branch,
-    writeBranch: config.branch, // Direct commit to branch
-    status: "prepared",
-    proposedChanges: {
-      files: files.map((f) => ({ path: f.path, action: "add" })),
-      message,
-      metadata,
-    },
-    createdAt: new Date(),
-  });
-
-  return opId;
-}
-
-/**
- * Updates the status of a writeback operation.
- *
- * @param opId - Operation ID
- * @param status - New status
- * @param commitSha - Optional commit SHA (for successful commits)
- */
-async function updateOperationStatus(
-  opId: string,
-  status: "committed" | "failed",
-  commitSha?: string
-): Promise<void> {
-  await db
-    .update(githubWriteOps)
-    .set({
-      status,
-      ...(commitSha ? { commitSha } : {}),
-    })
-    .where(eq(githubWriteOps.id, opId));
-}
-
-/**
  * Commits files to GitHub using authenticated Octokit client.
- * Records the operation in githubWriteOps for tracking and audit.
  *
  * @param config - Writeback configuration (workspace, project, repo details)
  * @param files - Array of files to commit
@@ -124,14 +68,6 @@ async function updateOperationStatus(
  * @param userId - User ID for GitHub authentication
  * @param action - Whether adding or updating files
  * @returns WritebackResult with success status and commit details
- *
- * @example
- * const result = await commitToGitHub(
- *   { workspaceId, projectId, projectName, owner, repo, branch },
- *   [{ path: "initiatives/feature-a/prd.md", content: "# PRD..." }],
- *   { projectId, projectName, documentType: "prd", triggeredBy: "automation" },
- *   "user_123"
- * );
  */
 export async function commitToGitHub(
   config: WritebackConfig,
@@ -144,7 +80,6 @@ export async function commitToGitHub(
   const opId = `ghop_${nanoid()}`;
 
   try {
-    // Get authenticated GitHub client
     const octokit = await getGitHubClient(userId);
     if (!octokit) {
       return {
@@ -153,22 +88,7 @@ export async function commitToGitHub(
       };
     }
 
-    // Record the operation as "prepared"
-    await db.insert(githubWriteOps).values({
-      id: opId,
-      workspaceId: config.workspaceId,
-      repoFullName: `${config.owner}/${config.repo}`,
-      baseBranch: config.branch,
-      writeBranch: config.branch,
-      status: "prepared",
-      proposedChanges: {
-        files: files.map((f) => ({ path: f.path, action })),
-        message,
-        metadata,
-      },
-      createdBy: userId,
-      createdAt: new Date(),
-    });
+    console.log(`[writeback-service] Starting commit op=${opId} repo=${config.owner}/${config.repo} files=${files.length}`);
 
     // Get current branch ref
     const { data: refData } = await octokit.git.getRef({
@@ -217,13 +137,7 @@ export async function commitToGitHub(
       sha: newCommit.sha,
     });
 
-    // Update operation status to committed
-    await db.update(githubWriteOps)
-      .set({
-        status: "committed",
-        commitSha: newCommit.sha,
-      })
-      .where(eq(githubWriteOps.id, opId));
+    console.log(`[writeback-service] Committed op=${opId} sha=${newCommit.sha}`);
 
     return {
       success: true,
@@ -234,15 +148,6 @@ export async function commitToGitHub(
   } catch (error) {
     console.error("[writeback-service] Commit failed:", error);
 
-    // Try to update operation status to failed
-    try {
-      await db.update(githubWriteOps)
-        .set({ status: "failed" })
-        .where(eq(githubWriteOps.id, opId));
-    } catch {
-      // Ignore cleanup errors
-    }
-
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to commit to GitHub",
@@ -252,86 +157,63 @@ export async function commitToGitHub(
 
 /**
  * Gets the writeback configuration for a project from workspace settings.
- * Extracts GitHub repo info and branch configuration from the workspace.
- *
- * @param workspaceId - The workspace ID
- * @param projectId - The project ID
- * @returns WritebackConfig if workspace has GitHub connected, null otherwise
- *
- * @example
- * const config = await getWritebackConfig("ws_123", "proj_456");
- * if (config) {
- *   // Ready to commit
- * }
+ * Uses Convex for workspace and project data.
  */
 export async function getWritebackConfig(
   workspaceId: string,
   projectId: string
 ): Promise<WritebackConfig | null> {
-  // Get project with workspace via relation
-  const project = await db.query.projects.findFirst({
-    where: eq(projects.id, projectId),
-    with: { workspace: true },
-  });
+  const [project, workspace] = await Promise.all([
+    getConvexProjectWithDocuments(projectId),
+    getConvexWorkspace(workspaceId),
+  ]);
 
-  if (!project || !project.workspace) {
+  if (!project || !workspace) {
     return null;
   }
 
-  const workspace = project.workspace;
-  const settings = workspace.settings || {};
-
-  // Parse repo from githubRepo (format: "owner/repo")
   if (!workspace.githubRepo) {
     return null;
   }
 
-  const [owner, repo] = workspace.githubRepo.split("/");
+  const [owner, repo] = (workspace.githubRepo as string).split("/");
   if (!owner || !repo) {
     return null;
   }
 
+  const settings = (workspace.settings as Record<string, unknown>) ?? {};
+
   return {
     workspaceId,
     projectId,
-    projectName: project.name,
+    projectName: project.name as string,
     owner,
     repo,
-    branch: settings.baseBranch || "main",
-    basePath: "initiatives", // Could make this configurable later via settings
+    branch: (settings.baseBranch as string) || "main",
+    basePath: "initiatives",
   };
 }
 
 /**
  * Checks if a workspace has writeback enabled (GitHub connected with valid repo).
- *
- * @param workspaceId - The workspace ID
- * @returns True if writeback is available
+ * Uses Convex for workspace data.
  */
 export async function isWritebackEnabled(workspaceId: string): Promise<boolean> {
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.id, workspaceId),
-  });
-
+  const workspace = await getConvexWorkspace(workspaceId);
   if (!workspace?.githubRepo) {
     return false;
   }
-
-  const [owner, repo] = workspace.githubRepo.split("/");
+  const [owner, repo] = (workspace.githubRepo as string).split("/");
   return Boolean(owner && repo);
 }
 
 /**
  * Gets the first admin user ID for a workspace (for automated operations).
- * In production, this should use the actual user context from the stage run.
- *
- * @param workspaceId - The workspace ID
- * @returns User ID if found, null otherwise
+ * Uses Convex for workspace member data.
  */
 export async function getWorkspaceUserId(workspaceId: string): Promise<string | null> {
-  const member = await db.query.workspaceMembers.findFirst({
-    where: eq(workspaceMembers.workspaceId, workspaceId),
-    orderBy: (members, { asc }) => [asc(members.joinedAt)],
-  });
-  return member?.userId || null;
+  const members = await listConvexWorkspaceMembers(workspaceId);
+  if (!members || members.length === 0) return null;
+  // Return first member (sorted by joinedAt on server)
+  return (members[0]?.userId as string) ?? null;
 }

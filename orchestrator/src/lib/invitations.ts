@@ -1,8 +1,17 @@
-import { db } from "@/lib/db";
-import { invitations, workspaceMembers, users } from "@/lib/db/schema";
-import { eq, and, isNull, gt } from "drizzle-orm";
+// NOTE: This file is dead code — no longer imported by application code (only test files). Safe to delete in cleanup phase.
+
+import {
+  createConvexInvitation,
+  getConvexInvitationByToken,
+  acceptConvexInvitation,
+  listConvexWorkspaceInvitations,
+} from "@/lib/convex/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { nanoid } from "nanoid";
-import type { WorkspaceRole } from "@/lib/db/schema";
+
+export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 
 const INVITATION_EXPIRY_DAYS = 7;
 
@@ -10,7 +19,6 @@ const INVITATION_EXPIRY_DAYS = 7;
  * Generate a secure invitation token
  */
 export function generateInviteToken(): string {
-  // Use nanoid for URL-safe, unique tokens
   return nanoid(32);
 }
 
@@ -31,65 +39,23 @@ export async function createInvitation(params: {
   inviteUrl: string;
 }> {
   const { workspaceId, email, role, invitedBy } = params;
-  
-  // Check if there's already a pending invitation for this email
-  const existingInvitation = await db.query.invitations.findFirst({
-    where: and(
-      eq(invitations.workspaceId, workspaceId),
-      eq(invitations.email, email.toLowerCase()),
-      isNull(invitations.acceptedAt),
-      gt(invitations.expiresAt, new Date())
-    ),
-  });
 
-  if (existingInvitation) {
-    throw new Error("An invitation for this email is already pending");
-  }
+  const result = await createConvexInvitation({
+    workspaceId,
+    email: email.toLowerCase(),
+    role,
+    invitedBy,
+  }) as { id: string; token: string; email: string; role: string; expiresAt: number };
 
-  // Check if user is already a member
-  const existingUser = await db.query.users.findFirst({
-    where: eq(users.email, email.toLowerCase()),
-  });
-
-  if (existingUser) {
-    const existingMembership = await db.query.workspaceMembers.findFirst({
-      where: and(
-        eq(workspaceMembers.workspaceId, workspaceId),
-        eq(workspaceMembers.userId, existingUser.id)
-      ),
-    });
-
-    if (existingMembership) {
-      throw new Error("This user is already a member of the workspace");
-    }
-  }
-
-  const token = generateInviteToken();
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + INVITATION_EXPIRY_DAYS);
-
-  const [invitation] = await db
-    .insert(invitations)
-    .values({
-      workspaceId,
-      email: email.toLowerCase(),
-      role,
-      token,
-      invitedBy,
-      expiresAt,
-    })
-    .returning();
-
-  // Generate the invite URL
   const baseUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "http://localhost:3000";
-  const inviteUrl = `${baseUrl}/invite/${token}`;
+  const inviteUrl = `${baseUrl}/invite/${result.token}`;
 
   return {
-    id: invitation.id,
-    token: invitation.token,
-    email: invitation.email,
-    role: invitation.role,
-    expiresAt: invitation.expiresAt,
+    id: result.id,
+    token: result.token,
+    email: result.email,
+    role: result.role as WorkspaceRole,
+    expiresAt: new Date(result.expiresAt),
     inviteUrl,
   };
 }
@@ -98,29 +64,28 @@ export async function createInvitation(params: {
  * Get an invitation by its token
  */
 export async function getInvitationByToken(token: string) {
-  const invitation = await db.query.invitations.findFirst({
-    where: eq(invitations.token, token),
-    with: {
-      workspace: true,
-      inviter: true,
-    },
-  });
+  const invitation = await getConvexInvitationByToken(token) as {
+    _id: string;
+    token: string;
+    email: string;
+    role: string;
+    workspaceId: string;
+    expiresAt: number;
+    acceptedAt?: number;
+    workspace?: unknown;
+    isExpired: boolean;
+    isAccepted: boolean;
+    isValid: boolean;
+  } | null;
 
-  if (!invitation) {
-    return null;
-  }
-
-  // Check if expired
-  const isExpired = invitation.expiresAt < new Date();
-  
-  // Check if already accepted
-  const isAccepted = invitation.acceptedAt !== null;
+  if (!invitation) return null;
 
   return {
     ...invitation,
-    isExpired,
-    isAccepted,
-    isValid: !isExpired && !isAccepted,
+    id: invitation._id,
+    expiresAt: new Date(invitation.expiresAt),
+    acceptedAt: invitation.acceptedAt ? new Date(invitation.acceptedAt) : null,
+    role: invitation.role as WorkspaceRole,
   };
 }
 
@@ -133,103 +98,88 @@ export async function acceptInvitation(params: {
 }): Promise<{ success: boolean; workspaceId?: string; error?: string }> {
   const { token, userId } = params;
 
-  const invitation = await getInvitationByToken(token);
+  try {
+    const result = await acceptConvexInvitation({
+      token,
+      clerkUserId: userId,
+      userId,
+      email: "",
+    }) as { workspaceId?: string; error?: string };
 
-  if (!invitation) {
-    return { success: false, error: "Invitation not found" };
+    if (result.error) {
+      return { success: false, error: result.error };
+    }
+
+    return { success: true, workspaceId: result.workspaceId };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to accept invitation",
+    };
   }
-
-  if (invitation.isExpired) {
-    return { success: false, error: "This invitation has expired" };
-  }
-
-  if (invitation.isAccepted) {
-    return { success: false, error: "This invitation has already been used" };
-  }
-
-  // Check if user is already a member
-  const existingMembership = await db.query.workspaceMembers.findFirst({
-    where: and(
-      eq(workspaceMembers.workspaceId, invitation.workspaceId),
-      eq(workspaceMembers.userId, userId)
-    ),
-  });
-
-  if (existingMembership) {
-    // Mark invitation as accepted even if already a member
-    await db
-      .update(invitations)
-      .set({ acceptedAt: new Date() })
-      .where(eq(invitations.id, invitation.id));
-    
-    return { success: true, workspaceId: invitation.workspaceId };
-  }
-
-  // Add user to workspace
-  await db.insert(workspaceMembers).values({
-    workspaceId: invitation.workspaceId,
-    userId,
-    role: invitation.role,
-  });
-
-  // Mark invitation as accepted
-  await db
-    .update(invitations)
-    .set({ acceptedAt: new Date() })
-    .where(eq(invitations.id, invitation.id));
-
-  return { success: true, workspaceId: invitation.workspaceId };
 }
 
 /**
  * Get an invitation by its ID
  */
 export async function getInvitationById(invitationId: string) {
-  return db.query.invitations.findFirst({
-    where: eq(invitations.id, invitationId),
-  });
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!convexUrl) return null;
+  const client = new ConvexHttpClient(convexUrl);
+  return await client.query(api.invitations.getByToken, { token: invitationId }).catch(() => null);
 }
 
 /**
  * Revoke (delete) an invitation
  */
 export async function revokeInvitation(invitationId: string): Promise<boolean> {
-  const result = await db
-    .delete(invitations)
-    .where(eq(invitations.id, invitationId))
-    .returning();
-  
-  return result.length > 0;
+  try {
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) return false;
+    const client = new ConvexHttpClient(convexUrl);
+    await client.mutation(api.invitations.revoke, {
+      invitationId: invitationId as Id<"invitations">,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Get all pending invitations for a workspace
  */
 export async function getWorkspaceInvitations(workspaceId: string) {
-  const invitationList = await db.query.invitations.findMany({
-    where: eq(invitations.workspaceId, workspaceId),
-    with: {
-      inviter: true,
-    },
-    orderBy: (invitations, { desc }) => [desc(invitations.createdAt)],
-  });
+  const invitationList = await listConvexWorkspaceInvitations(workspaceId) as Array<{
+    _id: string;
+    id?: string;
+    email: string;
+    role: string;
+    token: string;
+    expiresAt: number;
+    acceptedAt?: number;
+    createdAt?: number;
+    inviterName?: string;
+    inviterEmail?: string;
+    invitedBy?: string;
+  }>;
 
   return invitationList.map((inv) => ({
-    id: inv.id,
+    id: inv._id ?? inv.id,
     email: inv.email,
     role: inv.role,
     token: inv.token,
-    expiresAt: inv.expiresAt,
-    acceptedAt: inv.acceptedAt,
-    createdAt: inv.createdAt,
+    expiresAt: new Date(inv.expiresAt),
+    acceptedAt: inv.acceptedAt ? new Date(inv.acceptedAt) : null,
+    createdAt: inv.createdAt ? new Date(inv.createdAt) : null,
     inviter: {
-      id: inv.inviter.id,
-      name: inv.inviter.name,
-      email: inv.inviter.email,
+      id: inv.invitedBy ?? "unknown",
+      name: inv.inviterName ?? null,
+      email: inv.inviterEmail ?? "",
     },
     status: inv.acceptedAt
       ? "accepted"
-      : inv.expiresAt < new Date()
+      : inv.expiresAt < Date.now()
       ? "expired"
       : "pending",
   }));

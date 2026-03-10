@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
-import { getCurrentAppUser } from "@/lib/auth/server";
 import {
   createConvexWorkspace,
   listConvexWorkspaces,
@@ -73,17 +72,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    let actorUserId: string | undefined;
-    try {
-      const appUser = await getCurrentAppUser();
-      actorUserId = appUser?.id;
-    } catch (error) {
-      console.warn(
-        "Workspace creation continuing without local app-user bridge.",
-        error,
-      );
-    }
-
     const normalizedName = String(name).trim();
     const workspace = await createConvexWorkspace({
       clerkUserId: identity.clerkUserId,
@@ -92,7 +80,7 @@ export async function POST(request: NextRequest) {
       description,
       githubRepo,
       contextPath,
-      actorUserId,
+      actorUserId: identity.clerkUserId,
       actorEmail: identity.email ?? undefined,
       actorName: identity.name ?? undefined,
       actorImage: identity.image ?? undefined,

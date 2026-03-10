@@ -12,7 +12,12 @@
  * - "ai:criterion" - AI-based verification with context
  */
 
-import type { RecipeStep, GateDefinition, ProjectStage } from "@/lib/db/schema";
+import type { RecipeStepDef, GateDefinitionDef } from "./stage-executors/index";
+
+// Type aliases for backward compatibility within this file
+type RecipeStep = RecipeStepDef;
+type GateDefinition = GateDefinitionDef;
+type ProjectStage = string;
 
 // ============================================
 // DISCOVERY STAGE RECIPE

@@ -1,12 +1,12 @@
 /**
  * Signal Clustering Module
  *
- * Uses K-NN queries via pgvector to find semantic clusters in unlinked signals.
- * Clusters are generated on-demand for /synthesize command.
+ * Uses in-process cosine similarity over Convex-stored embeddings to find
+ * semantic clusters in unlinked signals. Replaces pgvector KNN queries.
  *
  * Pattern:
- * 1. Get unlinked signals with embeddings
- * 2. For each seed signal, find K nearest neighbors
+ * 1. Get unlinked signals with embeddings from Convex
+ * 2. For each seed signal, find K nearest neighbors via in-process cosine
  * 3. Filter by distance threshold
  * 4. Deduplicate overlapping clusters
  * 5. Generate themes for clusters via LLM
@@ -15,10 +15,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { nanoid } from "nanoid";
 import {
-  findSimilarSignals,
-  getUnlinkedSignalsWithEmbeddings,
-} from "@/lib/db/queries";
-import type { SignalSeverity, SignalFrequency } from "@/lib/db/schema";
+  findSimilarSignalsConvex,
+  getUnlinkedSignalsWithEmbeddingsConvex,
+} from "@/lib/signals/similarity";
+
+type SignalSeverity = string;
+type SignalFrequency = string;
 
 // Clustering parameters
 const NEIGHBOR_LIMIT = 10;
@@ -57,8 +59,8 @@ export async function findSignalClusters(
   workspaceId: string,
   minClusterSize = MIN_CLUSTER_SIZE
 ): Promise<SignalCluster[]> {
-  // Get unlinked signals with embeddings
-  const seeds = await getUnlinkedSignalsWithEmbeddings(workspaceId, 100);
+  // Get unlinked signals with embeddings from Convex
+  const seeds = await getUnlinkedSignalsWithEmbeddingsConvex(workspaceId, 100);
 
   if (seeds.length === 0) {
     return [];
@@ -69,17 +71,17 @@ export async function findSignalClusters(
 
   for (const seed of seeds) {
     // Skip if already part of a cluster
-    if (processedIds.has(seed.id)) continue;
+    if (processedIds.has(seed._id)) continue;
 
     // Skip if no embedding vector
     if (!seed.embeddingVector) continue;
 
-    // Find similar signals
-    const neighbors = await findSimilarSignals(
+    // Find similar signals using in-process cosine similarity
+    const neighbors = await findSimilarSignalsConvex(
       workspaceId,
-      seed.embeddingVector,
+      seed.embeddingVector as number[],
       NEIGHBOR_LIMIT,
-      seed.id
+      seed._id,
     );
 
     // Filter by distance threshold
@@ -93,9 +95,9 @@ export async function findSignalClusters(
     // Build cluster signals array
     const clusterSignals: ClusterSignal[] = [
       {
-        id: seed.id,
+        id: seed._id,
         verbatim: seed.verbatim,
-        interpretation: seed.interpretation,
+        interpretation: seed.interpretation ?? null,
         severity: seed.severity as SignalSeverity | null,
         frequency: seed.frequency as SignalFrequency | null,
         distance: 0,

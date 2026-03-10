@@ -1,5 +1,4 @@
 import { auth as clerkAuth, currentUser } from "@clerk/nextjs/server";
-import { getUserByEmail, upsertUserByEmail } from "@/lib/db/queries";
 
 export interface AppUser {
   id: string;
@@ -26,6 +25,10 @@ function getClerkPrimaryEmail(
   );
 }
 
+/**
+ * Get the current authenticated user from Clerk.
+ * The `id` field is the Clerk user ID (no Postgres user table involved).
+ */
 export async function getCurrentAppUser(): Promise<AppUser | null> {
   const { userId } = await clerkAuth();
   if (!userId) {
@@ -39,22 +42,12 @@ export async function getCurrentAppUser(): Promise<AppUser | null> {
     return null;
   }
 
-  const appUser = await upsertUserByEmail({
+  return {
+    id: clerkUser.id,
+    clerkUserId: clerkUser.id,
     email,
     name: clerkUser.fullName ?? clerkUser.username ?? null,
     image: clerkUser.imageUrl ?? null,
-  });
-
-  if (!appUser) {
-    return null;
-  }
-
-  return {
-    id: appUser.id,
-    clerkUserId: clerkUser.id,
-    email: appUser.email,
-    name: appUser.name,
-    image: appUser.image,
   };
 }
 
@@ -66,20 +59,4 @@ export async function requireCurrentAppUser(): Promise<AppUser> {
   }
 
   return appUser;
-}
-
-export async function getAppUserByEmail(email: string): Promise<AppUser | null> {
-  const user = await getUserByEmail(email);
-
-  if (!user) {
-    return null;
-  }
-
-  return {
-    id: user.id,
-    clerkUserId: user.id,
-    email: user.email,
-    name: user.name,
-    image: user.image,
-  };
 }

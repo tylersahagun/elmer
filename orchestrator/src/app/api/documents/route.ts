@@ -1,13 +1,30 @@
 /**
  * Documents API - List and create documents
+ * Migrated to Convex (replaces Drizzle).
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { auth as clerkAuth } from "@clerk/nextjs/server";
-import { createDocument, getDocuments, getProject } from "@/lib/db/queries";
-import type { DocumentType } from "@/lib/db/schema";
 import { DOCUMENT_TYPE_ORDER } from "@/lib/documentTypes";
-import { createConvexDocument } from "@/lib/convex/server";
+
+type DocumentType = string;
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
+
+async function getAuthenticatedClient() {
+  const auth = await clerkAuth();
+  const token = await auth.getToken({ template: "convex" });
+  const client = getConvexClient();
+  if (token) client.setAuth(token);
+  return client;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,24 +34,27 @@ export async function GET(request: NextRequest) {
     if (!projectId) {
       return NextResponse.json(
         { error: "projectId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const documents = await getDocuments(projectId);
+    const client = await getAuthenticatedClient();
+    const documents = await client.query(api.documents.byProject, {
+      projectId: projectId as Id<"projects">,
+    });
+
     return NextResponse.json(documents);
   } catch (error) {
     console.error("Failed to get documents:", error);
     return NextResponse.json(
       { error: "Failed to get documents" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await clerkAuth();
     const body = await request.json();
     const { projectId, type, title, content, metadata } = body;
     const workspaceId =
@@ -46,63 +66,43 @@ export async function POST(request: NextRequest) {
     if (!projectId || !type || !title) {
       return NextResponse.json(
         { error: "projectId, type, and title are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Validate document type
-    const validTypes = new Set<string>(DOCUMENT_TYPE_ORDER);
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: "workspaceId is required (in body or metadata)" },
+        { status: 400 },
+      );
+    }
 
-    if (!validTypes.has(type)) {
+    const validTypes = new Set<string>(DOCUMENT_TYPE_ORDER);
+    if (!validTypes.has(type as DocumentType)) {
       return NextResponse.json(
         {
           error: `Invalid document type. Must be one of: ${Array.from(validTypes).join(", ")}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const normalizedMetadata = {
-      ...metadata,
-      generatedBy: "user",
-    };
+    const client = await getAuthenticatedClient();
+    const documentId = await client.mutation(api.documents.create, {
+      workspaceId: workspaceId as Id<"workspaces">,
+      projectId: projectId as Id<"projects">,
+      type,
+      title,
+      content: content || "",
+      generatedByAgent: "user",
+    });
 
-    const sqlProject = await getProject(projectId);
-    let document:
-      | Awaited<ReturnType<typeof createDocument>>
-      | { id: string; documentId?: string };
-
-    if (!sqlProject && workspaceId && userId) {
-      const convexDocument = (await createConvexDocument({
-        workspaceId,
-        projectId,
-        seedTag:
-          normalizedMetadata?.e2eTag ??
-          `document-${Date.now()}`,
-        type,
-        title,
-        content: content || "",
-      })) as { documentId: string };
-      document = {
-        id: convexDocument.documentId,
-        documentId: convexDocument.documentId,
-      };
-    } else {
-      document = await createDocument({
-        projectId,
-        type: type as DocumentType,
-        title,
-        content: content || "",
-        metadata: normalizedMetadata,
-      });
-    }
-
-    return NextResponse.json(document, { status: 201 });
+    return NextResponse.json({ id: documentId, documentId }, { status: 201 });
   } catch (error) {
     console.error("Failed to create document:", error);
     return NextResponse.json(
       { error: "Failed to create document" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

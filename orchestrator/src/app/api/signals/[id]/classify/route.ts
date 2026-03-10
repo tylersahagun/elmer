@@ -9,43 +9,51 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
 import {
   requireWorkspaceAccess,
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
-import { getSignal } from "@/lib/db/queries";
 import { classifySignal } from "@/lib/classification";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
+    const client = getConvexClient();
 
-    // Get the signal
-    const signal = await getSignal(id);
+    const signal = await client.query(api.signals.get, {
+      signalId: id as Id<"signals">,
+    });
+
     if (!signal) {
       return NextResponse.json({ error: "Signal not found" }, { status: 404 });
     }
 
-    // Require member access for classification
-    await requireWorkspaceAccess(signal.workspaceId, "member");
+    await requireWorkspaceAccess(signal.workspaceId as string, "member");
 
-    // Check if signal has embedding
-    if (!signal.embeddingVector) {
+    if (!signal.embeddingVector || (signal.embeddingVector as number[]).length === 0) {
       return NextResponse.json(
         { error: "Signal has no embedding. Wait for processing to complete." },
         { status: 400 }
       );
     }
 
-    // Run classification
     const classification = await classifySignal(
       id,
-      signal.embeddingVector,
-      signal.verbatim,
-      signal.workspaceId
+      signal.embeddingVector as number[],
+      signal.verbatim as string,
+      signal.workspaceId as string
     );
 
     return NextResponse.json({

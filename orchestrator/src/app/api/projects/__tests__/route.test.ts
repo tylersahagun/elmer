@@ -1,13 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/db/queries", () => ({
-  createJob: vi.fn(),
-  createProject: vi.fn(),
-  getProjectsWithCounts: vi.fn(),
-  getWorkspace: vi.fn(),
-}));
-
 vi.mock("@/lib/git/branches", () => ({
   buildFeatureBranchName: vi.fn(() => "feature/test-branch"),
 }));
@@ -35,7 +28,6 @@ vi.mock("@/lib/permissions", () => {
   };
 });
 
-import { getProjectsWithCounts } from "@/lib/db/queries";
 import { listConvexProjects } from "@/lib/convex/server";
 import {
   PermissionError,
@@ -43,7 +35,6 @@ import {
 } from "@/lib/permissions";
 import { GET } from "../route";
 
-const mockGetProjectsWithCounts = vi.mocked(getProjectsWithCounts);
 const mockListConvexProjects = vi.mocked(listConvexProjects);
 const mockRequireWorkspaceAccess = vi.mocked(requireWorkspaceAccess);
 
@@ -61,14 +52,6 @@ describe("/api/projects GET", () => {
       role: "viewer",
       joinedAt: new Date("2026-03-07T00:00:00.000Z"),
     });
-    mockGetProjectsWithCounts.mockResolvedValue([
-      {
-        id: "project_123",
-        documentCount: 2,
-        prototypeCount: 1,
-        signalCount: 3,
-      },
-    ] as Awaited<ReturnType<typeof getProjectsWithCounts>>);
     mockListConvexProjects.mockResolvedValue([
       {
         _id: "project_123",
@@ -90,9 +73,6 @@ describe("/api/projects GET", () => {
 
     expect(response.status).toBe(200);
     expect(mockRequireWorkspaceAccess).toHaveBeenCalledWith("ws_123", "viewer");
-    expect(mockGetProjectsWithCounts).toHaveBeenCalledWith("ws_123", {
-      includeArchived: false,
-    });
     expect(mockListConvexProjects).toHaveBeenCalledWith("ws_123");
     expect(data).toEqual([
       {
@@ -106,9 +86,9 @@ describe("/api/projects GET", () => {
         createdAt: new Date(createdAtMs).toISOString(),
         updatedAt: new Date(createdAtMs).toISOString(),
         metadata: { source: "test" },
-        documentCount: 2,
-        prototypeCount: 1,
-        signalCount: 3,
+        documentCount: 0,
+        prototypeCount: 0,
+        signalCount: 0,
       },
     ]);
   });
@@ -125,6 +105,5 @@ describe("/api/projects GET", () => {
 
     expect(response.status).toBe(403);
     expect(data).toEqual({ error: "Authentication required" });
-    expect(mockGetProjectsWithCounts).not.toHaveBeenCalled();
   });
 });

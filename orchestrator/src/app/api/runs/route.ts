@@ -13,7 +13,9 @@ import {
   getQueuedRuns,
   hasActiveWorkers,
 } from "@/lib/execution";
-import type { ProjectStage, AutomationLevel, ExecutionProvider } from "@/lib/db/schema";
+type ProjectStage = string;
+type AutomationLevel = string;
+type ExecutionProvider = string;
 
 export async function GET(request: Request) {
   try {

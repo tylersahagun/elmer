@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { GITHUB_OAUTH_CONNECT_URL } from "@/lib/auth/routes";
 import { getGitHubClient } from "@/lib/github/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await clerkAuth();
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const octokit = await getGitHubClient(session.user.id);
+    const octokit = await getGitHubClient(userId);
     if (!octokit) {
       return NextResponse.json(
         { error: "GitHub not connected", connectUrl: GITHUB_OAUTH_CONNECT_URL },

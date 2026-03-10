@@ -12,24 +12,39 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { generateEmbedding } from "@/lib/ai/embeddings";
 import {
-  findBestProjectMatch,
-  updateSignalClassification,
-  updateProjectEmbedding,
-  getProject,
-} from "@/lib/db/queries";
-import type { SignalClassificationResult } from "@/lib/db/schema";
+  findBestProjectMatchConvex,
+} from "@/lib/signals/similarity";
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_CONVEX_URL is required");
+  return new ConvexHttpClient(url);
+}
 
 // Classification thresholds
 const HIGH_CONFIDENCE_THRESHOLD = 0.75;
 const LOW_CONFIDENCE_THRESHOLD = 0.5;
 
+export interface SignalClassificationResult {
+  projectId?: string;
+  projectName?: string;
+  confidence: number;
+  method: "embedding" | "llm";
+  isNewInitiative: boolean;
+  reason: string;
+  classifiedAt: string;
+}
+
 /**
  * Classify a signal to determine if it belongs to an existing project
  * or represents a new initiative.
  *
- * @param signalId - ID of the signal to classify
+ * @param signalId - Convex ID of the signal to classify
  * @param signalVector - The signal's embedding vector
  * @param signalVerbatim - The signal's verbatim text (for LLM tier)
  * @param workspaceId - The workspace to search for projects
@@ -41,12 +56,10 @@ export async function classifySignal(
   signalVerbatim: string,
   workspaceId: string
 ): Promise<SignalClassificationResult> {
-  // Find best matching project
-  const bestMatch = await findBestProjectMatch(workspaceId, signalVector);
+  const bestMatch = await findBestProjectMatchConvex(workspaceId, signalVector);
 
   const now = new Date().toISOString();
 
-  // No projects with embeddings - mark as new initiative
   if (!bestMatch) {
     const result: SignalClassificationResult = {
       confidence: 0.9,
@@ -60,7 +73,6 @@ export async function classifySignal(
     return result;
   }
 
-  // High confidence - auto-classify to project
   if (bestMatch.similarity > HIGH_CONFIDENCE_THRESHOLD) {
     const result: SignalClassificationResult = {
       projectId: bestMatch.id,
@@ -76,10 +88,9 @@ export async function classifySignal(
     return result;
   }
 
-  // Low confidence - mark as new initiative
   if (bestMatch.similarity < LOW_CONFIDENCE_THRESHOLD) {
     const result: SignalClassificationResult = {
-      confidence: 1 - bestMatch.similarity, // Confidence in "new initiative"
+      confidence: 1 - bestMatch.similarity,
       method: "embedding",
       isNewInitiative: true,
       reason: `Low similarity (${(bestMatch.similarity * 100).toFixed(1)}%) to any existing project`,
@@ -96,6 +107,20 @@ export async function classifySignal(
   );
 
   return llmClassify(signalId, signalVerbatim, bestMatch, now);
+}
+
+/**
+ * Update signal classification in Convex.
+ */
+async function updateSignalClassification(
+  signalId: string,
+  classification: SignalClassificationResult,
+): Promise<void> {
+  const client = getConvexClient();
+  await client.mutation(api.signals.update, {
+    signalId: signalId as Id<"signals">,
+    classification,
+  });
 }
 
 /**
@@ -129,7 +154,7 @@ Return ONLY valid JSON with these fields:
           role: "user",
           content: `Does this user feedback relate to the project "${bestMatch.name}"?
 
-Project description: ${bestMatch.description || "No description"}
+Project description: ${(bestMatch as { description?: string | null }).description || "No description"}
 
 User feedback:
 "${signalVerbatim.slice(0, 500)}"
@@ -165,7 +190,6 @@ Return JSON only.`,
   } catch (error) {
     console.error("LLM classification failed:", error);
 
-    // Fallback to embedding-based decision on LLM failure
     const result: SignalClassificationResult = {
       projectId: bestMatch.similarity > 0.6 ? bestMatch.id : undefined,
       projectName: bestMatch.similarity > 0.6 ? bestMatch.name : undefined,
@@ -185,19 +209,27 @@ Return JSON only.`,
  * Generate and store embedding for a project.
  * Uses project name + description as input text.
  *
- * @param projectId - ID of the project to generate embedding for
- * @returns The updated project, or null if generation failed
+ * @param projectId - Convex ID of the project to generate embedding for
+ * @returns The project id, or null if generation failed
  */
 export async function generateProjectEmbedding(projectId: string) {
-  const project = await getProject(projectId);
+  const client = getConvexClient();
+
+  const project = await client.query(api.projects.get, {
+    projectId: projectId as Id<"projects">,
+  });
 
   if (!project) {
     console.warn(`Project ${projectId} not found for embedding generation`);
     return null;
   }
 
-  // Combine name and description for embedding
-  const text = [project.name, project.description].filter(Boolean).join(". ");
+  const text = [
+    (project as { name: string }).name,
+    (project as { description?: string | null }).description,
+  ]
+    .filter(Boolean)
+    .join(". ");
 
   if (text.trim().length < 5) {
     console.warn(`Project ${projectId} has insufficient text for embedding`);
@@ -206,9 +238,12 @@ export async function generateProjectEmbedding(projectId: string) {
 
   try {
     const embedding = await generateEmbedding(text);
-    await updateProjectEmbedding(projectId, embedding);
+    await client.mutation(api.projects.storeEmbedding, {
+      projectId: projectId as Id<"projects">,
+      embeddingVector: embedding,
+    });
 
-    console.log(`Generated embedding for project ${projectId} (${project.name})`);
+    console.log(`Generated embedding for project ${projectId}`);
     return project;
   } catch (error) {
     console.error(`Failed to generate embedding for project ${projectId}:`, error);

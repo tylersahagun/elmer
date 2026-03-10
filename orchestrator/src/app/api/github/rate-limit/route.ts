@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/legacy-next-auth";
+import { auth as clerkAuth } from "@clerk/nextjs/server";
 import { getGitHubClient } from "@/lib/github/auth";
 
 interface RateLimitResponse {
@@ -24,16 +24,16 @@ const MINIMUM_REMAINING = 100;
 
 export async function GET() {
   try {
-    const session = await auth();
+    const { userId } = await clerkAuth();
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    const octokit = await getGitHubClient(session.user.id);
+    const octokit = await getGitHubClient(userId);
 
     if (!octokit) {
       return NextResponse.json(

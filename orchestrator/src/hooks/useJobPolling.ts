@@ -17,7 +17,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useKanbanStore } from "@/lib/store";
-import type { JobStatus, JobType } from "@/lib/db/schema";
+type JobStatus = "pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled";
+type JobType = "generate_prd" | "generate_design_brief" | "generate_engineering_spec" | "generate_gtm_brief" | "analyze_transcript" | "run_jury_evaluation" | "build_prototype" | "iterate_prototype" | "generate_tickets" | "validate_tickets" | "score_stage_alignment" | "deploy_chromatic" | "create_feature_branch" | "process_signal" | "synthesize_signals" | "execute_agent_definition";
 
 // ============================================
 // VISIBILITY DETECTION HOOK

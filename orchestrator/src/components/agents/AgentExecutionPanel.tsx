@@ -5,7 +5,7 @@ import { Play, Loader2, X, CheckCircle, AlertCircle, ExternalLink } from "lucide
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ContextSelector } from "./ContextSelector";
-import type { AgentDefinitionType } from "@/lib/db/schema";
+type AgentDefinitionType = "agents_md" | "skill" | "command" | "subagent" | "rule";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";

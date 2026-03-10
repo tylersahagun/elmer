@@ -5,7 +5,7 @@ import {
   handlePermissionError,
   PermissionError,
 } from "@/lib/permissions";
-import type { WorkspaceRole } from "@/lib/db/schema";
+type WorkspaceRole = "admin" | "member" | "viewer";
 
 export async function GET(
   request: NextRequest,

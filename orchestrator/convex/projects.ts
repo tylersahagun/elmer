@@ -182,3 +182,31 @@ export const generateProjectTldr = internalAction({
     await ctx.runMutation(internal.projects.internalUpdateTldr, { projectId, tldr });
   },
 });
+
+export const listWithEmbeddings = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, { workspaceId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const all = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
+      .collect();
+    return all.filter((p) => p.embeddingVector && p.embeddingVector.length > 0);
+  },
+});
+
+export const storeEmbedding = mutation({
+  args: {
+    projectId: v.id("projects"),
+    embeddingVector: v.array(v.float64()),
+  },
+  handler: async (ctx, { projectId, embeddingVector }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    await ctx.db.patch(projectId, {
+      embeddingVector,
+      embeddingUpdatedAt: Date.now(),
+    });
+  },
+});

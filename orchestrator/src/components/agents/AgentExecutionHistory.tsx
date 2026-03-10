@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUIStore } from "@/lib/store";
-import type { JobStatus } from "@/lib/db/schema";
+type JobStatus = "pending" | "running" | "waiting_input" | "completed" | "failed" | "cancelled";
 
 interface Execution {
   id: string;
