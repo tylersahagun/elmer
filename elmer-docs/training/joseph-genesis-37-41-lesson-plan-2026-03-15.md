@@ -50,6 +50,34 @@ This plan intentionally follows your requested adjustments:
 
 ---
 
+## Quick scripture links
+
+Use these to jump straight to the scripture passages during class:
+
+- [Genesis 37:3-11](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&id=p3-p11#p3)
+- [Genesis 37:18-28](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&id=p18-p28#p18)
+- [Genesis 37:36](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&id=p36#p36)
+- [Genesis 39:1-6](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p1-p6#p1)
+- [Genesis 39:2](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p2#p2)
+- [Genesis 39:20-23](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p20-p23#p20)
+- [Genesis 39:21](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p21#p21)
+- [Genesis 39:23](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p23#p23)
+- [Genesis 40:5-8](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/40?lang=eng&id=p5-p8#p5)
+- [Genesis 40:8](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/40?lang=eng&id=p8#p8)
+- [Genesis 40:5-23](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/40?lang=eng&id=p5-p23#p5)
+- [Genesis 41:14-16](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p14-p16#p14)
+- [Genesis 41:16](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p16#p16)
+- [Genesis 41:25](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p25#p25)
+- [Genesis 41:28-36](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p28-p36#p28)
+- [Genesis 41:33-36](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p33-p36#p33)
+- [Genesis 41:37-39](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p37-p39#p37)
+- [Genesis 41:38](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p38#p38)
+- [Genesis 41:46-49](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p46-p49#p46)
+- [Genesis 41:53-57](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p53-p57#p53)
+- [Doctrine and Covenants 38:30](https://www.churchofjesuschrist.org/study/scriptures/dc-testament/dc/38?lang=eng&id=p30#p30)
+
+---
+
 ## Big truths to repeat during the lesson
 
 1. The Lord was with Joseph in unfair situations.
@@ -73,8 +101,8 @@ Let two or three youth answer briefly. Then say:
 
 Read aloud:
 
-- Genesis 39:2
-- Genesis 39:21
+- [Genesis 39:2](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p2#p2)
+- [Genesis 39:21](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p21#p21)
 
 Tell the class to listen for that idea all lesson long.
 
@@ -84,8 +112,8 @@ Tell the class to listen for that idea all lesson long.
 
 ### Scriptures
 
-- Genesis 37:3-11
-- Genesis 37:18-28
+- [Genesis 37:3-11](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&id=p3-p11#p3)
+- [Genesis 37:18-28](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&id=p18-p28#p18)
 
 ### Teach simply
 
@@ -110,8 +138,8 @@ Even when other people make wrong choices, the Lord still sees us and can still 
 
 ### Scriptures
 
-- Genesis 39:1-6
-- Genesis 39:20-23
+- [Genesis 39:1-6](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p1-p6#p1)
+- [Genesis 39:20-23](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p20-p23#p20)
 
 ### Teach simply
 
@@ -150,9 +178,9 @@ Following the Lord does not always remove hardship, but it does bring strength, 
 
 ### Scriptures
 
-- Genesis 40:5-8
-- Genesis 41:14-16
-- Genesis 41:25, 37-39
+- [Genesis 40:5-8](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/40?lang=eng&id=p5-p8#p5)
+- [Genesis 41:14-16](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p14-p16#p14)
+- [Genesis 41:25](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p25#p25), [Genesis 41:37-39](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p37-p39#p37)
 
 ### Activity
 
@@ -168,7 +196,7 @@ Make sure the class hears these points:
 
 ### Questions
 
-- What do you like about Joseph's answer in Genesis 41:16?
+- What do you like about Joseph's answer in [Genesis 41:16](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p16#p16)?
 - Why is it important that Joseph gave glory to God?
 - What can we do when we need help understanding the Lord's will?
 
@@ -182,10 +210,10 @@ Revelation is real, and humble people point back to God when they receive help f
 
 ### Scriptures
 
-- Genesis 41:28-36
-- Genesis 41:46-49
-- Genesis 41:53-57
-- Doctrine and Covenants 38:30
+- [Genesis 41:28-36](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p28-p36#p28)
+- [Genesis 41:46-49](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p46-p49#p46)
+- [Genesis 41:53-57](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p53-p57#p53)
+- [Doctrine and Covenants 38:30](https://www.churchofjesuschrist.org/study/scriptures/dc-testament/dc/38?lang=eng&id=p30#p30)
 
 ### Teach simply
 
@@ -238,12 +266,12 @@ Invite the youth to look this week for one moment when they can say:
 
 Use the diagram in this order:
 
-1. Beloved son and inspired dreams - Genesis 37:3-11
-2. Pit and slavery - Genesis 37:18-28, 36
-3. Blessed in Potiphar's house - Genesis 39:1-6
-4. Prison, but not alone - Genesis 39:20-23
-5. Dreams in prison - Genesis 40:5-23
-6. Pharaoh's dreams and preparation - Genesis 41:14-43, 53-57
+1. Beloved son and inspired dreams - [Genesis 37:3-11](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&id=p3-p11#p3)
+2. Pit and slavery - [Genesis 37:18-28](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&id=p18-p28#p18), [Genesis 37:36](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&id=p36#p36)
+3. Blessed in Potiphar's house - [Genesis 39:1-6](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p1-p6#p1)
+4. Prison, but not alone - [Genesis 39:20-23](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&id=p20-p23#p20)
+5. Dreams in prison - [Genesis 40:5-23](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/40?lang=eng&id=p5-p23#p5)
+6. Pharaoh's dreams and preparation - [Genesis 41:14-43](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p14-p43#p14), [Genesis 41:53-57](https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&id=p53-p57#p53)
 
 Then pause at the teaching lane:
 

@@ -29,6 +29,7 @@
       .scripture { font: 700 18px Arial, sans-serif; fill: #1d4ed8; }
       .learn { font: 700 18px Arial, sans-serif; fill: #7c2d12; }
       .arrow-label { font: 700 18px Arial, sans-serif; fill: #475569; }
+      a { text-decoration: none; cursor: pointer; }
     </style>
   </defs>
 
@@ -37,12 +38,14 @@
 
   <rect x="160" y="80" width="1880" height="90" rx="45" fill="url(#titleGlow)" opacity="0.14" />
   <text x="1100" y="125" text-anchor="middle" class="title">Joseph's Journey: Genesis 37-41</text>
-  <text x="1100" y="160" text-anchor="middle" class="subtitle">Come, Follow Me 2026 week 11 " story, scriptures, and teachings for a 12-year-old class</text>
+  <text x="1100" y="160" text-anchor="middle" class="subtitle">Come, Follow Me 2026 week 11 | story, scriptures, and teachings for a 12-year-old class</text>
 
-  <rect x="160" y="210" width="520" height="110" rx="28" fill="#2563eb" filter="url(#shadow)" />
-  <text x="420" y="252" text-anchor="middle" class="pill">Main truth</text>
-  <text x="420" y="287" text-anchor="middle" class="pill">The Lord was with Joseph</text>
-  <text x="420" y="310" text-anchor="middle" style="font:700 17px Arial, sans-serif; fill:#dbeafe;">Genesis 39:2, 21, 23</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&amp;id=p2-p23#p2" target="_blank">
+    <rect x="160" y="210" width="520" height="110" rx="28" fill="#2563eb" filter="url(#shadow)" />
+    <text x="420" y="252" text-anchor="middle" class="pill">Main truth</text>
+    <text x="420" y="287" text-anchor="middle" class="pill">The Lord was with Joseph</text>
+    <text x="420" y="310" text-anchor="middle" style="font:700 17px Arial, sans-serif; fill:#dbeafe;">Genesis 39:2, 21, 23</text>
+  </a>
 
   <rect x="740" y="205" width="760" height="120" rx="34" fill="#fde68a" stroke="#f59e0b" stroke-width="3" filter="url(#shadow)" />
   <text x="1120" y="248" text-anchor="middle" class="bubble">Hardship did not mean God had left Joseph.</text>
@@ -50,69 +53,81 @@
 
   <rect x="1560" y="210" width="480" height="110" rx="28" fill="#ede9fe" stroke="#8b5cf6" stroke-width="3" filter="url(#shadow)" />
   <text x="1800" y="252" text-anchor="middle" class="small">Official guide anchors</text>
-  <text x="1800" y="282" text-anchor="middle" class="small">Come, Follow Me " Seminary " Institute " Scripture Helps</text>
+  <text x="1800" y="282" text-anchor="middle" class="small">Come, Follow Me | Seminary | Institute | Scripture Helps</text>
 
   <rect x="120" y="370" width="1960" height="410" rx="30" fill="#eff6ff" stroke="#93c5fd" stroke-width="3" />
   <text x="170" y="420" class="section">Story journey</text>
 
-  <rect x="145" y="465" width="280" height="250" rx="28" fill="#bfdbfe" stroke="#2563eb" stroke-width="3" filter="url(#shadow)" />
-  <text x="285" y="505" text-anchor="middle" class="card-title">1. Beloved son</text>
-  <text x="285" y="535" text-anchor="middle" class="card-title">and inspired dreams</text>
-  <text x="285" y="565" text-anchor="middle" class="scripture">Genesis 37:3-11</text>
-  <text x="285" y="600" text-anchor="middle" class="card-body">Jacob gives Joseph</text>
-  <text x="285" y="626" text-anchor="middle" class="card-body">a special coat.</text>
-  <text x="285" y="652" text-anchor="middle" class="card-body">Joseph shares</text>
-  <text x="285" y="678" text-anchor="middle" class="card-body">two inspired dreams.</text>
-  <text x="285" y="705" text-anchor="middle" class="learn">Learn: God can reveal truth.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&amp;id=p3-p11#p3" target="_blank">
+    <rect x="145" y="465" width="280" height="250" rx="28" fill="#bfdbfe" stroke="#2563eb" stroke-width="3" filter="url(#shadow)" />
+    <text x="285" y="505" text-anchor="middle" class="card-title">1. Beloved son</text>
+    <text x="285" y="535" text-anchor="middle" class="card-title">and inspired dreams</text>
+    <text x="285" y="565" text-anchor="middle" class="scripture">Genesis 37:3-11</text>
+    <text x="285" y="600" text-anchor="middle" class="card-body">Jacob gives Joseph</text>
+    <text x="285" y="626" text-anchor="middle" class="card-body">a special coat.</text>
+    <text x="285" y="652" text-anchor="middle" class="card-body">Joseph shares</text>
+    <text x="285" y="678" text-anchor="middle" class="card-body">two inspired dreams.</text>
+    <text x="285" y="705" text-anchor="middle" class="learn">Learn: God can reveal truth.</text>
+  </a>
 
-  <rect x="475" y="465" width="280" height="250" rx="28" fill="#fed7aa" stroke="#f97316" stroke-width="3" filter="url(#shadow)" />
-  <text x="615" y="505" text-anchor="middle" class="card-title">2. Pit and slavery</text>
-  <text x="615" y="535" text-anchor="middle" class="scripture">Genesis 37:18-28, 36</text>
-  <text x="615" y="575" text-anchor="middle" class="card-body">Joseph's brothers</text>
-  <text x="615" y="601" text-anchor="middle" class="card-body">throw him into a pit</text>
-  <text x="615" y="627" text-anchor="middle" class="card-body">and sell him</text>
-  <text x="615" y="653" text-anchor="middle" class="card-body">into Egypt.</text>
-  <text x="615" y="690" text-anchor="middle" class="learn">Learn: God still sees us.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/37?lang=eng&amp;id=p18-p36#p18" target="_blank">
+    <rect x="475" y="465" width="280" height="250" rx="28" fill="#fed7aa" stroke="#f97316" stroke-width="3" filter="url(#shadow)" />
+    <text x="615" y="505" text-anchor="middle" class="card-title">2. Pit and slavery</text>
+    <text x="615" y="535" text-anchor="middle" class="scripture">Genesis 37:18-28, 36</text>
+    <text x="615" y="575" text-anchor="middle" class="card-body">Joseph's brothers</text>
+    <text x="615" y="601" text-anchor="middle" class="card-body">throw him into a pit</text>
+    <text x="615" y="627" text-anchor="middle" class="card-body">and sell him</text>
+    <text x="615" y="653" text-anchor="middle" class="card-body">into Egypt.</text>
+    <text x="615" y="690" text-anchor="middle" class="learn">Learn: God still sees us.</text>
+  </a>
 
-  <rect x="805" y="465" width="280" height="250" rx="28" fill="#bbf7d0" stroke="#16a34a" stroke-width="3" filter="url(#shadow)" />
-  <text x="945" y="505" text-anchor="middle" class="card-title">3. Blessed in</text>
-  <text x="945" y="535" text-anchor="middle" class="card-title">Potiphar's house</text>
-  <text x="945" y="565" text-anchor="middle" class="scripture">Genesis 39:1-6</text>
-  <text x="945" y="600" text-anchor="middle" class="card-body">Joseph serves with</text>
-  <text x="945" y="626" text-anchor="middle" class="card-body">faith and integrity.</text>
-  <text x="945" y="652" text-anchor="middle" class="card-body">The Lord helps him</text>
-  <text x="945" y="678" text-anchor="middle" class="card-body">prosper.</text>
-  <text x="945" y="705" text-anchor="middle" class="learn">Learn: God helps in unfair places.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&amp;id=p1-p6#p1" target="_blank">
+    <rect x="805" y="465" width="280" height="250" rx="28" fill="#bbf7d0" stroke="#16a34a" stroke-width="3" filter="url(#shadow)" />
+    <text x="945" y="505" text-anchor="middle" class="card-title">3. Blessed in</text>
+    <text x="945" y="535" text-anchor="middle" class="card-title">Potiphar's house</text>
+    <text x="945" y="565" text-anchor="middle" class="scripture">Genesis 39:1-6</text>
+    <text x="945" y="600" text-anchor="middle" class="card-body">Joseph serves with</text>
+    <text x="945" y="626" text-anchor="middle" class="card-body">faith and integrity.</text>
+    <text x="945" y="652" text-anchor="middle" class="card-body">The Lord helps him</text>
+    <text x="945" y="678" text-anchor="middle" class="card-body">prosper.</text>
+    <text x="945" y="705" text-anchor="middle" class="learn">Learn: God helps in unfair places.</text>
+  </a>
 
-  <rect x="1135" y="465" width="280" height="250" rx="28" fill="#fecaca" stroke="#dc2626" stroke-width="3" filter="url(#shadow)" />
-  <text x="1275" y="505" text-anchor="middle" class="card-title">4. Prison, but</text>
-  <text x="1275" y="535" text-anchor="middle" class="card-title">not alone</text>
-  <text x="1275" y="565" text-anchor="middle" class="scripture">Genesis 39:20-23</text>
-  <text x="1275" y="600" text-anchor="middle" class="card-body">Joseph is falsely</text>
-  <text x="1275" y="626" text-anchor="middle" class="card-body">accused and sent</text>
-  <text x="1275" y="652" text-anchor="middle" class="card-body">to prison.</text>
-  <text x="1275" y="678" text-anchor="middle" class="card-body">The Lord is still</text>
-  <text x="1275" y="704" text-anchor="middle" class="card-body">with him there.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&amp;id=p20-p23#p20" target="_blank">
+    <rect x="1135" y="465" width="280" height="250" rx="28" fill="#fecaca" stroke="#dc2626" stroke-width="3" filter="url(#shadow)" />
+    <text x="1275" y="505" text-anchor="middle" class="card-title">4. Prison, but</text>
+    <text x="1275" y="535" text-anchor="middle" class="card-title">not alone</text>
+    <text x="1275" y="565" text-anchor="middle" class="scripture">Genesis 39:20-23</text>
+    <text x="1275" y="600" text-anchor="middle" class="card-body">Joseph is falsely</text>
+    <text x="1275" y="626" text-anchor="middle" class="card-body">accused and sent</text>
+    <text x="1275" y="652" text-anchor="middle" class="card-body">to prison.</text>
+    <text x="1275" y="678" text-anchor="middle" class="card-body">The Lord is still</text>
+    <text x="1275" y="704" text-anchor="middle" class="card-body">with him there.</text>
+  </a>
 
-  <rect x="1465" y="465" width="280" height="250" rx="28" fill="#ddd6fe" stroke="#7c3aed" stroke-width="3" filter="url(#shadow)" />
-  <text x="1605" y="505" text-anchor="middle" class="card-title">5. Dreams in prison</text>
-  <text x="1605" y="535" text-anchor="middle" class="scripture">Genesis 40:5-23</text>
-  <text x="1605" y="575" text-anchor="middle" class="card-body">Joseph listens and says</text>
-  <text x="1605" y="601" text-anchor="middle" class="card-body">interpretations</text>
-  <text x="1605" y="627" text-anchor="middle" class="card-body">belong to God.</text>
-  <text x="1605" y="653" text-anchor="middle" class="card-body">He helps the butler</text>
-  <text x="1605" y="679" text-anchor="middle" class="card-body">and baker.</text>
-  <text x="1605" y="705" text-anchor="middle" class="learn">Learn: Revelation points to God.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/40?lang=eng&amp;id=p5-p23#p5" target="_blank">
+    <rect x="1465" y="465" width="280" height="250" rx="28" fill="#ddd6fe" stroke="#7c3aed" stroke-width="3" filter="url(#shadow)" />
+    <text x="1605" y="505" text-anchor="middle" class="card-title">5. Dreams in prison</text>
+    <text x="1605" y="535" text-anchor="middle" class="scripture">Genesis 40:5-23</text>
+    <text x="1605" y="575" text-anchor="middle" class="card-body">Joseph listens and says</text>
+    <text x="1605" y="601" text-anchor="middle" class="card-body">interpretations</text>
+    <text x="1605" y="627" text-anchor="middle" class="card-body">belong to God.</text>
+    <text x="1605" y="653" text-anchor="middle" class="card-body">He helps the butler</text>
+    <text x="1605" y="679" text-anchor="middle" class="card-body">and baker.</text>
+    <text x="1605" y="705" text-anchor="middle" class="learn">Learn: Revelation points to God.</text>
+  </a>
 
-  <rect x="1795" y="465" width="260" height="250" rx="28" fill="#dcfce7" stroke="#22c55e" stroke-width="3" filter="url(#shadow)" />
-  <text x="1925" y="505" text-anchor="middle" class="card-title">6. Pharaoh's dreams</text>
-  <text x="1925" y="535" text-anchor="middle" class="card-title">and preparation</text>
-  <text x="1925" y="565" text-anchor="middle" class="scripture">Genesis 41:14-43, 53-57</text>
-  <text x="1925" y="600" text-anchor="middle" class="card-body">7 years of plenty,</text>
-  <text x="1925" y="626" text-anchor="middle" class="card-body">7 years of famine.</text>
-  <text x="1925" y="652" text-anchor="middle" class="card-body">Joseph prepares Egypt</text>
-  <text x="1925" y="678" text-anchor="middle" class="card-body">to save many lives.</text>
-  <text x="1925" y="705" text-anchor="middle" class="learn">Learn: Preparation blesses many.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&amp;id=p14-p57#p14" target="_blank">
+    <rect x="1795" y="465" width="260" height="250" rx="28" fill="#dcfce7" stroke="#22c55e" stroke-width="3" filter="url(#shadow)" />
+    <text x="1925" y="505" text-anchor="middle" class="card-title">6. Pharaoh's dreams</text>
+    <text x="1925" y="535" text-anchor="middle" class="card-title">and preparation</text>
+    <text x="1925" y="565" text-anchor="middle" class="scripture">Genesis 41:14-43, 53-57</text>
+    <text x="1925" y="600" text-anchor="middle" class="card-body">7 years of plenty,</text>
+    <text x="1925" y="626" text-anchor="middle" class="card-body">7 years of famine.</text>
+    <text x="1925" y="652" text-anchor="middle" class="card-body">Joseph prepares Egypt</text>
+    <text x="1925" y="678" text-anchor="middle" class="card-body">to save many lives.</text>
+    <text x="1925" y="705" text-anchor="middle" class="learn">Learn: Preparation blesses many.</text>
+  </a>
 
   <line x1="425" y1="590" x2="475" y2="590" stroke="#64748b" stroke-width="4" marker-end="url(#arrow)" />
   <line x1="755" y1="590" x2="805" y2="590" stroke="#64748b" stroke-width="4" marker-end="url(#arrow)" />
@@ -129,26 +144,32 @@
   <rect x="120" y="835" width="1960" height="300" rx="30" fill="#f0fdf4" stroke="#86efac" stroke-width="3" />
   <text x="170" y="885" class="section">Big teachings</text>
 
-  <circle cx="300" cy="935" r="48" fill="#16a34a" />
-  <text x="300" y="944" text-anchor="middle" class="pill" style="font-size:22px;">Trust</text>
-  <rect x="150" y="985" width="500" height="115" rx="28" fill="#bbf7d0" stroke="#16a34a" stroke-width="3" filter="url(#shadow)" />
-  <text x="400" y="1023" text-anchor="middle" class="card-title">The Lord is with us in hardship</text>
-  <text x="400" y="1052" text-anchor="middle" class="scripture">Genesis 39:2, 21, 23</text>
-  <text x="400" y="1080" text-anchor="middle" class="card-body">Share your two personal stories here.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/39?lang=eng&amp;id=p2-p23#p2" target="_blank">
+    <circle cx="300" cy="935" r="48" fill="#16a34a" />
+    <text x="300" y="944" text-anchor="middle" class="pill" style="font-size:22px;">Trust</text>
+    <rect x="150" y="985" width="500" height="115" rx="28" fill="#bbf7d0" stroke="#16a34a" stroke-width="3" filter="url(#shadow)" />
+    <text x="400" y="1023" text-anchor="middle" class="card-title">The Lord is with us in hardship</text>
+    <text x="400" y="1052" text-anchor="middle" class="scripture">Genesis 39:2, 21, 23</text>
+    <text x="400" y="1080" text-anchor="middle" class="card-body">Share your two personal stories here.</text>
+  </a>
 
-  <circle cx="1100" cy="935" r="48" fill="#7c3aed" />
-  <text x="1100" y="944" text-anchor="middle" class="pill" style="font-size:22px;">Listen</text>
-  <rect x="850" y="985" width="500" height="115" rx="28" fill="#ddd6fe" stroke="#7c3aed" stroke-width="3" filter="url(#shadow)" />
-  <text x="1100" y="1023" text-anchor="middle" class="card-title">God gives revelation</text>
-  <text x="1100" y="1052" text-anchor="middle" class="scripture">Genesis 37:5-11; 40:8; 41:16, 25, 38</text>
-  <text x="1100" y="1080" text-anchor="middle" class="card-body">Use your prepared guess the dreams game here.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&amp;id=p16-p38#p16" target="_blank">
+    <circle cx="1100" cy="935" r="48" fill="#7c3aed" />
+    <text x="1100" y="944" text-anchor="middle" class="pill" style="font-size:22px;">Listen</text>
+    <rect x="850" y="985" width="500" height="115" rx="28" fill="#ddd6fe" stroke="#7c3aed" stroke-width="3" filter="url(#shadow)" />
+    <text x="1100" y="1023" text-anchor="middle" class="card-title">God gives revelation</text>
+    <text x="1100" y="1052" text-anchor="middle" class="scripture">Genesis 37:5-11; 40:8; 41:16, 25, 38</text>
+    <text x="1100" y="1080" text-anchor="middle" class="card-body">Use your prepared guess the dreams game here.</text>
+  </a>
 
-  <circle cx="1900" cy="935" r="48" fill="#f59e0b" />
-  <text x="1900" y="944" text-anchor="middle" class="pill" style="font-size:22px;">Prepare</text>
-  <rect x="1550" y="985" width="500" height="115" rx="28" fill="#fde68a" stroke="#f59e0b" stroke-width="3" filter="url(#shadow)" />
-  <text x="1800" y="1023" text-anchor="middle" class="card-title">Preparation brings peace</text>
-  <text x="1800" y="1052" text-anchor="middle" class="scripture">Genesis 41:33-36, 53-57 " Doctrine and Covenants 38:30</text>
-  <text x="1800" y="1080" text-anchor="middle" class="card-body">If we are prepared, we need not fear.</text>
+  <a href="https://www.churchofjesuschrist.org/study/scriptures/ot/gen/41?lang=eng&amp;id=p33-p57#p33" target="_blank">
+    <circle cx="1900" cy="935" r="48" fill="#f59e0b" />
+    <text x="1900" y="944" text-anchor="middle" class="pill" style="font-size:22px;">Prepare</text>
+    <rect x="1550" y="985" width="500" height="115" rx="28" fill="#fde68a" stroke="#f59e0b" stroke-width="3" filter="url(#shadow)" />
+    <text x="1800" y="1023" text-anchor="middle" class="card-title">Preparation brings peace</text>
+    <text x="1800" y="1052" text-anchor="middle" class="scripture">Genesis 41:33-36, 53-57 | Doctrine and Covenants 38:30</text>
+    <text x="1800" y="1080" text-anchor="middle" class="card-body">If we are prepared, we need not fear.</text>
+  </a>
 
   <rect x="120" y="1185" width="1960" height="290" rx="30" fill="#faf5ff" stroke="#c4b5fd" stroke-width="3" />
   <text x="170" y="1235" class="section">Teaching helps and study guide anchors</text>
@@ -160,8 +181,8 @@
 
   <rect x="820" y="1285" width="620" height="150" rx="28" fill="#fef3c7" stroke="#f59e0b" stroke-width="3" filter="url(#shadow)" />
   <text x="1130" y="1323" text-anchor="middle" class="card-title">Official Church study guides</text>
-  <text x="1130" y="1355" text-anchor="middle" class="card-body">Come, Follow Me 2026 " Seminary Manual 2026</text>
-  <text x="1130" y="1381" text-anchor="middle" class="card-body">Institute Manual 2026 " Scripture Helps " Games and Activities</text>
+  <text x="1130" y="1355" text-anchor="middle" class="card-body">Come, Follow Me 2026 | Seminary Manual 2026</text>
+  <text x="1130" y="1381" text-anchor="middle" class="card-body">Institute Manual 2026 | Scripture Helps | Games and Activities</text>
 
   <rect x="1550" y="1285" width="500" height="150" rx="28" fill="#dbeafe" stroke="#2563eb" stroke-width="3" filter="url(#shadow)" />
   <text x="1800" y="1323" text-anchor="middle" class="card-title">Class reminder</text>
